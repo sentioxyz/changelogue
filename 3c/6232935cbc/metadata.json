@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "3c6232935cbc",
+  "strategy": "manual-commit",
+  "branch": "feat/ingestion-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/ingestion/pgstore.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/3c/6232935cbc/0/metadata.json",
+      "transcript": "/3c/6232935cbc/0/full.jsonl",
+      "context": "/3c/6232935cbc/0/context.md",
+      "content_hash": "/3c/6232935cbc/0/content_hash.txt",
+      "prompt": "/3c/6232935cbc/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 60,
+    "cache_creation_tokens": 84862,
+    "cache_read_tokens": 2674637,
+    "output_tokens": 612,
+    "api_call_count": 55
+  }
+}
