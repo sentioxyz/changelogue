@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "1e7cd0745ba7",
+  "strategy": "manual-commit",
+  "branch": "feat/ingestion-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/ingestion/github.go",
+    "internal/ingestion/github_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/1e/7cd0745ba7/0/metadata.json",
+      "transcript": "/1e/7cd0745ba7/0/full.jsonl",
+      "context": "/1e/7cd0745ba7/0/context.md",
+      "content_hash": "/1e/7cd0745ba7/0/content_hash.txt",
+      "prompt": "/1e/7cd0745ba7/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 72,
+    "cache_creation_tokens": 91704,
+    "cache_read_tokens": 3453424,
+    "output_tokens": 696,
+    "api_call_count": 67
+  }
+}
