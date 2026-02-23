@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "0467faedc4d2",
+  "strategy": "manual-commit",
+  "branch": "feat/ingestion-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/designs/2026-02-24-api-design.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/04/67faedc4d2/0/metadata.json",
+      "transcript": "/04/67faedc4d2/0/full.jsonl",
+      "context": "/04/67faedc4d2/0/context.md",
+      "content_hash": "/04/67faedc4d2/0/content_hash.txt",
+      "prompt": "/04/67faedc4d2/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 102,
+    "cache_creation_tokens": 102863,
+    "cache_read_tokens": 5235844,
+    "output_tokens": 922,
+    "api_call_count": 91
+  }
+}
