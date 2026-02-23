@@ -1,0 +1,22 @@
+package queue
+
+import (
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+)
+
+// NewRiverClient creates a River client backed by the given pgx pool.
+// Pass nil workers to create an insert-only client (no job processing).
+func NewRiverClient(pool *pgxpool.Pool, workers *river.Workers) (*river.Client[pgx.Tx], error) {
+	config := &river.Config{
+		Queues: map[string]river.QueueConfig{
+			river.QueueDefault: {MaxWorkers: 100},
+		},
+	}
+	if workers != nil {
+		config.Workers = workers
+	}
+	return river.NewClient(riverpgxv5.New(pool), config)
+}
