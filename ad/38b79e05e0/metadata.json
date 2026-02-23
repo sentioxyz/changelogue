@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "ad38b79e05e0",
+  "strategy": "manual-commit",
+  "branch": "feat/ingestion-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/ingestion/dockerhub.go",
+    "internal/ingestion/dockerhub_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ad/38b79e05e0/0/metadata.json",
+      "transcript": "/ad/38b79e05e0/0/full.jsonl",
+      "context": "/ad/38b79e05e0/0/context.md",
+      "content_hash": "/ad/38b79e05e0/0/content_hash.txt",
+      "prompt": "/ad/38b79e05e0/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 66,
+    "cache_creation_tokens": 87684,
+    "cache_read_tokens": 3053719,
+    "output_tokens": 643,
+    "api_call_count": 61
+  }
+}
