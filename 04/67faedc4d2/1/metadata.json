@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "0467faedc4d2",
+  "session_id": "a7f3e521-42be-4eb7-a31a-9aa7a4e67b76",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-23T16:35:46.118443Z",
+  "branch": "feat/ingestion-layer",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/designs/2026-02-24-api-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "25664e0c1991",
+  "checkpoint_transcript_start": 31,
+  "transcript_lines_at_start": 31,
+  "token_usage": {
+    "input_tokens": 11,
+    "cache_creation_tokens": 10353,
+    "cache_read_tokens": 355154,
+    "output_tokens": 128,
+    "api_call_count": 11
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-23T16:35:46.06792Z",
+    "agent_lines": 0,
+    "human_added": 429,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 429,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/a7f3e521-42be-4eb7-a31a-9aa7a4e67b76.jsonl"
+}
