@@ -1,0 +1,39 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/vendor/
+releaseguard
+/server
+
+# Next.js
+web/.next/
+web/out/
+web/node_modules/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Tools
+.claude/
+.entire/
+
+# OS
+.DS_Store
+Thumbs.db
