@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "e73e1ad8e122",
+  "strategy": "manual-commit",
+  "branch": "feat/ingestion-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "go.mod",
+    "go.sum",
+    "internal/queue/client.go",
+    "internal/queue/jobs.go",
+    "internal/queue/jobs_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e7/3e1ad8e122/0/metadata.json",
+      "transcript": "/e7/3e1ad8e122/0/full.jsonl",
+      "context": "/e7/3e1ad8e122/0/context.md",
+      "content_hash": "/e7/3e1ad8e122/0/content_hash.txt",
+      "prompt": "/e7/3e1ad8e122/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 41,
+    "cache_creation_tokens": 36290,
+    "cache_read_tokens": 1734076,
+    "output_tokens": 402,
+    "api_call_count": 38
+  }
+}
