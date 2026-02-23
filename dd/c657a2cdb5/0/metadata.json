@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "ddc657a2cdb5",
+  "session_id": "1779df1a-c014-416d-85b6-b2213692ee7f",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-23T16:28:17.954218Z",
+  "branch": "feat/ingestion-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/server/main.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "f3af15a6e207",
+  "token_usage": {
+    "input_tokens": 89,
+    "cache_creation_tokens": 98417,
+    "cache_read_tokens": 4535185,
+    "output_tokens": 809,
+    "api_call_count": 82
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-23T16:28:17.817649Z",
+    "agent_lines": 82,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 82,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/1779df1a-c014-416d-85b6-b2213692ee7f.jsonl"
+}
