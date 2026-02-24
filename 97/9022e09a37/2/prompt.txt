@@ -1,0 +1,1002 @@
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.0.3/skills/writing-plans
+
+# Writing Plans
+
+## Overview
+
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+
+Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+
+**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+
+**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+
+**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+
+## Bite-Sized Task Granularity
+
+**Each step is one action (2-5 minutes):**
+- "Write the failing test" - step
+- "Run it to make sure it fails" - step
+- "Implement the minimal code to make the test pass" - step
+- "Run the tests and make sure they pass" - step
+- "Commit" - step
+
+## Plan Document Header
+
+**Every plan MUST start with this header:**
+
+```markdown
+# [Feature Name] Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** [One sentence describing what this builds]
+
+**Architecture:** [2-3 sentences about approach]
+
+**Tech Stack:** [Key technologies/libraries]
+
+---
+```
+
+## Task Structure
+
+````markdown
+### Task N: [Component Name]
+
+**Files:**
+- Create: `exact/path/to/file.py`
+- Modify: `exact/path/to/existing.py:123-145`
+- Test: `tests/exact/path/to/test.py`
+
+**Step 1: Write the failing test**
+
+```python
+def test_specific_behavior():
+    result = function(input)
+    assert result == expected
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: FAIL with "function not defined"
+
+**Step 3: Write minimal implementation**
+
+```python
+def function(input):
+    return expected
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: PASS
+
+**Step 5: Commit**
+
+```bash
+git add tests/path/test.py src/path/file.py
+git commit -m "feat: add specific feature"
+```
+````
+
+## Remember
+- Exact file paths always
+- Complete code in plan (not "add validation")
+- Exact commands with expected output
+- Reference relevant skills with @ syntax
+- DRY, YAGNI, TDD, frequent commits
+
+## Execution Handoff
+
+After saving the plan, offer execution choice:
+
+**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+
+**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+
+**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
+
+**Which approach?"**
+
+**If Subagent-Driven chosen:**
+- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+- Stay in this session
+- Fresh subagent per task + code review
+
+**If Parallel Session chosen:**
+- Guide them to open new session in worktree
+- **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+
+---
+
+1. could you plese use git worktree?
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.0.3/skills/using-git-worktrees
+
+# Using Git Worktrees
+
+## Overview
+
+Git worktrees create isolated workspaces sharing the same repository, allowing work on multiple branches simultaneously without switching.
+
+**Core principle:** Systematic directory selection + safety verification = reliable isolation.
+
+**Announce at start:** "I'm using the using-git-worktrees skill to set up an isolated workspace."
+
+## Directory Selection Process
+
+Follow this priority order:
+
+### 1. Check Existing Directories
+
+```bash
+# Check in priority order
+ls -d .worktrees 2>/dev/null     # Preferred (hidden)
+ls -d worktrees 2>/dev/null      # Alternative
+```
+
+**If found:** Use that directory. If both exist, `.worktrees` wins.
+
+### 2. Check CLAUDE.md
+
+```bash
+grep -i "worktree.*director" CLAUDE.md 2>/dev/null
+```
+
+**If preference specified:** Use it without asking.
+
+### 3. Ask User
+
+If no directory exists and no CLAUDE.md preference:
+
+```
+No worktree directory found. Where should I create worktrees?
+
+1. .worktrees/ (project-local, hidden)
+2. ~/.config/superpowers/worktrees/<project-name>/ (global location)
+
+Which would you prefer?
+```
+
+## Safety Verification
+
+### For Project-Local Directories (.worktrees or worktrees)
+
+**MUST verify directory is ignored before creating worktree:**
+
+```bash
+# Check if directory is ignored (respects local, global, and system gitignore)
+git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/dev/null
+```
+
+**If NOT ignored:**
+
+Per Jesse's rule "Fix broken things immediately":
+1. Add appropriate line to .gitignore
+2. Commit the change
+3. Proceed with worktree creation
+
+**Why critical:** Prevents accidentally committing worktree contents to repository.
+
+### For Global Directory (~/.config/superpowers/worktrees)
+
+No .gitignore verification needed - outside project entirely.
+
+## Creation Steps
+
+### 1. Detect Project Name
+
+```bash
+project=$(basename "$(git rev-parse --show-toplevel)")
+```
+
+### 2. Create Worktree
+
+```bash
+# Determine full path
+case $LOCATION in
+  .worktrees|worktrees)
+    path="$LOCATION/$BRANCH_NAME"
+    ;;
+  ~/.config/superpowers/worktrees/*)
+    path="~/.config/superpowers/worktrees/$project/$BRANCH_NAME"
+    ;;
+esac
+
+# Create worktree with new branch
+git worktree add "$path" -b "$BRANCH_NAME"
+cd "$path"
+```
+
+### 3. Run Project Setup
+
+Auto-detect and run appropriate setup:
+
+```bash
+# Node.js
+if [ -f package.json ]; then npm install; fi
+
+# Rust
+if [ -f Cargo.toml ]; then cargo build; fi
+
+# Python
+if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+if [ -f pyproject.toml ]; then poetry install; fi
+
+# Go
+if [ -f go.mod ]; then go mod download; fi
+```
+
+### 4. Verify Clean Baseline
+
+Run tests to ensure worktree starts clean:
+
+```bash
+# Examples - use project-appropriate command
+npm test
+cargo test
+pytest
+go test ./...
+```
+
+**If tests fail:** Report failures, ask whether to proceed or investigate.
+
+**If tests pass:** Report ready.
+
+### 5. Report Location
+
+```
+Worktree ready at <full-path>
+Tests passing (<N> tests, 0 failures)
+Ready to implement <feature-name>
+```
+
+## Quick Reference
+
+| Situation | Action |
+|-----------|--------|
+| `.worktrees/` exists | Use it (verify ignored) |
+| `worktrees/` exists | Use it (verify ignored) |
+| Both exist | Use `.worktrees/` |
+| Neither exists | Check CLAUDE.md → Ask user |
+| Directory not ignored | Add to .gitignore + commit |
+| Tests fail during baseline | Report failures + ask |
+| No package.json/Cargo.toml | Skip dependency install |
+
+## Common Mistakes
+
+### Skipping ignore verification
+
+- **Problem:** Worktree contents get tracked, pollute git status
+- **Fix:** Always use `git check-ignore` before creating project-local worktree
+
+### Assuming directory location
+
+- **Problem:** Creates inconsistency, violates project conventions
+- **Fix:** Follow priority: existing > CLAUDE.md > ask
+
+### Proceeding with failing tests
+
+- **Problem:** Can't distinguish new bugs from pre-existing issues
+- **Fix:** Report failures, get explicit permission to proceed
+
+### Hardcoding setup commands
+
+- **Problem:** Breaks on projects using different tools
+- **Fix:** Auto-detect from project files (package.json, etc.)
+
+## Example Workflow
+
+```
+You: I'm using the using-git-worktrees skill to set up an isolated workspace.
+
+[Check .worktrees/ - exists]
+[Verify ignored - git check-ignore confirms .worktrees/ is ignored]
+[Create worktree: git worktree add .worktrees/auth -b feature/auth]
+[Run npm install]
+[Run npm test - 47 passing]
+
+Worktree ready at /Users/jesse/myproject/.worktrees/auth
+Tests passing (47 tests, 0 failures)
+Ready to implement auth feature
+```
+
+## Red Flags
+
+**Never:**
+- Create worktree without verifying it's ignored (project-local)
+- Skip baseline test verification
+- Proceed with failing tests without asking
+- Assume directory location when ambiguous
+- Skip CLAUDE.md check
+
+**Always:**
+- Follow directory priority: existing > CLAUDE.md > ask
+- Verify directory is ignored for project-local
+- Auto-detect and run project setup
+- Verify clean test baseline
+
+## Integration
+
+**Called by:**
+- **brainstorming** (Phase 4) - REQUIRED when design is approved and implementation follows
+- **subagent-driven-development** - REQUIRED before executing any tasks
+- **executing-plans** - REQUIRED before executing any tasks
+- Any skill needing isolated workspace
+
+**Pairs with:**
+- **finishing-a-development-branch** - REQUIRED for cleanup after work complete
+
+---
+
+1
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.0.3/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation plan?" [shape=diamond];
+    "Tasks mostly independent?" [shape=diamond];
+    "Stay in this session?" [shape=diamond];
+    "subagent-driven-development" [shape=box];
+    "executing-plans" [shape=box];
+    "Manual execution or brainstorm first" [shape=box];
+
+    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
+    "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
+    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
+    "Stay in this session?" -> "subagent-driven-development" [label="yes"];
+    "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
+}
+```
+
+**vs. Executing Plans (parallel session):**
+- Same session (no context switch)
+- Fresh subagent per task (no context pollution)
+- Two-stage review after each task: spec compliance first, then code quality
+- Faster iteration (no human-in-loop between tasks)
+
+## The Process
+
+```dot
+digraph process {
+    rankdir=TB;
+
+    subgraph cluster_per_task {
+        label="Per Task";
+        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Implementer subagent asks questions?" [shape=diamond];
+        "Answer questions, provide context" [shape=box];
+        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
+        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
+        "Implementer subagent fixes spec gaps" [shape=box];
+        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
+        "Code quality reviewer subagent approves?" [shape=diamond];
+        "Implementer subagent fixes quality issues" [shape=box];
+        "Mark task complete in TodoWrite" [shape=box];
+    }
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "More tasks remain?" [shape=diamond];
+    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
+    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
+    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+}
+```
+
+## Prompt Templates
+
+- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+
+## Example Workflow
+
+```
+You: I'm using Subagent-Driven Development to execute this plan.
+
+[Read plan file once: docs/plans/feature-plan.md]
+[Extract all 5 tasks with full text and context]
+[Create TodoWrite with all tasks]
+
+Task 1: Hook installation script
+
+[Get Task 1 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: "Before I begin - should the hook be installed at user or system level?"
+
+You: "User level (~/.config/superpowers/hooks/)"
+
+Implementer: "Got it. Implementing now..."
+[Later] Implementer:
+  - Implemented install-hook command
+  - Added tests, 5/5 passing
+  - Self-review: Found I missed --force flag, added it
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+
+[Get git SHAs, dispatch code quality reviewer]
+Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
+
+[Mark Task 1 complete]
+
+Task 2: Recovery modes
+
+[Get Task 2 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: [No questions, proceeds]
+Implementer:
+  - Added verify/repair modes
+  - 8/8 tests passing
+  - Self-review: All good
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ❌ Issues:
+  - Missing: Progress reporting (spec says "report every 100 items")
+  - Extra: Added --json flag (not requested)
+
+[Implementer fixes issues]
+Implementer: Removed --json flag, added progress reporting
+
+[Spec reviewer reviews again]
+Spec reviewer: ✅ Spec compliant now
+
+[Dispatch code quality reviewer]
+Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
+
+[Implementer fixes]
+Implementer: Extracted PROGRESS_INTERVAL constant
+
+[Code reviewer reviews again]
+Code reviewer: ✅ Approved
+
+[Mark Task 2 complete]
+
+...
+
+[After all tasks]
+[Dispatch final code-reviewer]
+Final reviewer: All requirements met, ready to merge
+
+Done!
+```
+
+## Advantages
+
+**vs. Manual execution:**
+- Subagents follow TDD naturally
+- Fresh context per task (no confusion)
+- Parallel-safe (subagents don't interfere)
+- Subagent can ask questions (before AND during work)
+
+**vs. Executing Plans:**
+- Same session (no handoff)
+- Continuous progress (no waiting)
+- Review checkpoints automatic
+
+**Efficiency gains:**
+- No file reading overhead (controller provides full text)
+- Controller curates exactly what context is needed
+- Subagent gets complete information upfront
+- Questions surfaced before work begins (not after)
+
+**Quality gates:**
+- Self-review catches issues before handoff
+- Two-stage review: spec compliance, then code quality
+- Review loops ensure fixes actually work
+- Spec compliance prevents over/under-building
+- Code quality ensures implementation is well-built
+
+**Cost:**
+- More subagent invocations (implementer + 2 reviewers per task)
+- Controller does more prep work (extracting all tasks upfront)
+- Review loops add iterations
+- But catches issues early (cheaper than debugging later)
+
+## Red Flags
+
+**Never:**
+- Start implementation on main/master branch without explicit user consent
+- Skip reviews (spec compliance OR code quality)
+- Proceed with unfixed issues
+- Dispatch multiple implementation subagents in parallel (conflicts)
+- Make subagent read plan file (provide full text instead)
+- Skip scene-setting context (subagent needs to understand where task fits)
+- Ignore subagent questions (answer before letting them proceed)
+- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
+- Skip review loops (reviewer found issues = implementer fixes = review again)
+- Let implementer self-review replace actual review (both are needed)
+- **Start code quality review before spec compliance is ✅** (wrong order)
+- Move to next task while either review has open issues
+
+**If subagent asks questions:**
+- Answer clearly and completely
+- Provide additional context if needed
+- Don't rush them into implementation
+
+**If reviewer finds issues:**
+- Implementer (same subagent) fixes them
+- Reviewer reviews again
+- Repeat until approved
+- Don't skip the re-review
+
+**If subagent fails task:**
+- Dispatch fix subagent with specific instructions
+- Don't try to fix manually (context pollution)
+
+## Integration
+
+**Required workflow skills:**
+- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+
+**Subagents should use:**
+- **superpowers:test-driven-development** - Subagents follow TDD for each task
+
+**Alternative workflow:**
+- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **Initial Request**: User invoked `/superpowers:writing-plans` skill to create an implementation plan. When asked what to plan, they chose "UX layer with a mocked API server" (custom input, not one of the preset options).
+
+2. **Research Phase**: I dispatched an Explore agent to thoroughly read all design docs (ARCH.md, DESIGN.md, API design doc, existing Go code). This gave comprehensive context about:
+   - The full API spec with all endpoints, response envelopes, resource shapes
+   - Existing Go backend (ingestion layer implemented, API server not yet)
+   - Database schema (projects, sources, releases, pipeline_jobs, notification_channels, subscriptions, api_keys)
+   - The planned tech stack (Next.js + Tailwind for frontend, static export embedded in Go)
+
+3. **Plan Writing**: I wrote a comprehensive 18-task plan saved to `docs/plans/2026-02-24-ux-layer.md` covering:
+   - Tasks 1-6: Foundation (scaffold, shadcn/ui, types, API client, mock data, MSW)
+   - Task 7: App shell layout
+   - Tasks 8-13: Dashboard, Projects CRUD, Releases with pipeline viz
+   - Tasks 14-16: Sources, Subscriptions, Channels CRUD
+   - Tasks 17-18: SSE mock + static export verification
+
+4. **User asked for git worktree**: User said "could you please use git worktree?" - I invoked the `superpowers:using-git-worktrees` skill, created `.worktrees/ux-layer` on branch `feat/ux-layer` based on `main`.
+
+5. **User chose execution approach**: When offered "Subagent-Driven" vs "Parallel Session", user chose "1" (Subagent-Driven). I invoked `superpowers:subagent-driven-development`.
+
+6. **Execution Phase** - Dispatched subagents for each task batch:
+
+   **Task 1** (Scaffold Next.js): Created Next.js app in `web/`. Note: Next.js 16.1.6 was installed (latest) instead of 15. Commit `2d38ec7`.
+
+   **Task 2** (shadcn/ui + deps): Initialized shadcn with new-york style, neutral color. Installed 15 UI components, SWR, MSW. Commit `dcef9cf`.
+
+   **Tasks 3+4** (Types + API client): Created `web/lib/api/types.ts` and `web/lib/api/client.ts`. Commit `917940e`.
+
+   **Tasks 5+6** (Mock data + MSW): Created `web/lib/mock/data.ts`, `web/lib/mock/handlers.ts`, `web/lib/mock/browser.ts`, `web/lib/msw-provider.tsx`. Updated `layout.tsx` with MSWProvider. Commit `66dfc17`.
+
+   **Task 7** (App shell): Created `web/components/layout/sidebar.tsx` and `header.tsx`. Updated `layout.tsx` with flex layout. Commit `3287d4f`.
+
+   **Task 8** (Dashboard): Created `web/components/dashboard/stats-cards.tsx`, `recent-releases.tsx`. Updated `page.tsx`. Commit `09ca2df`.
+
+   **Tasks 9-11** (Projects): Created projects list, detail, create/edit pages. Key architectural decision: split dynamic `[id]` routes into server component (with `generateStaticParams`) + client component (with SWR hooks) due to `output: "export"` requirement. Placeholder `[{ id: "0" }]` for static params (Next.js bug workaround). Commit `14572b8`.
+
+   **Tasks 12-13** (Releases): Created releases list with filters, release detail with pipeline visualization. Same server/client split pattern. Commit `ab7b6d7`.
+
+   **Tasks 14-16** (Sources + Subscriptions + Channels): Created 15 files across 3 resources. Three separate commits: `90b3772`, `8d80736`, `3c19825`.
+
+7. **Key errors/patterns discovered**:
+   - Next.js static export (`output: "export"`) requires `generateStaticParams` for dynamic routes
+   - `"use client"` pages can't export `generateStaticParams` - need server/client component split
+   - `useSearchParams` needs Suspense boundary for static export
+   - Next.js bug #71862: empty `generateStaticParams` array `[]` fails, need placeholder `[{ id: "0" }]`
+   - Next.js 16 uses Promise-based params: `params: Promise<{ id: string }>` unwrapped with `await params` in server components
+
+8. **Remaining tasks**: Tasks 17-18 (SSE mock + activity feed + static export verification) are pending.
+
+Summary:
+1. Primary Request and Intent:
+   The user invoked `/superpowers:writing-plans` to create an implementation plan for a "UX layer with a mocked API server" for the ReleaseBeacon project. After the plan was written, the user requested using git worktrees for isolation, then chose "Subagent-Driven Development" (option 1) to execute the plan in the current session. The goal is to build a complete Next.js frontend dashboard with MSW (Mock Service Worker) providing a mocked API layer, enabling full UI development without the real Go backend.
+
+2. Key Technical Concepts:
+   - **Next.js 16 App Router** with `output: "export"` for static site generation (to be embedded in Go binary via `//go:embed`)
+   - **MSW (Mock Service Worker) 2.x** intercepting fetch calls to `/api/v1/*` in development
+   - **SWR** for data fetching, caching, and revalidation
+   - **shadcn/ui** (v3.8.5, new-york style, neutral color) for UI primitives
+   - **Tailwind CSS v4** for styling
+   - **Static Export Pattern**: Dynamic `[id]` routes require server/client component split — server component exports `generateStaticParams`, client component uses hooks (SWR, useRouter)
+   - **Git Worktrees**: Isolated workspace at `.worktrees/ux-layer` on branch `feat/ux-layer` based on `main`
+   - **Subagent-Driven Development**: Fresh subagent per task with two-stage review (spec compliance + code quality)
+   - **Transactional Outbox Pattern** in existing Go backend
+   - **API Response Envelope**: `{ data: T, meta: { request_id, page, per_page, total } }`
+
+3. Files and Code Sections:
+
+   - **`docs/plans/2026-02-24-ux-layer.md`** — The comprehensive 18-task implementation plan. Contains all code for every component. This is the source of truth for what each task should produce.
+
+   - **`.gitignore`** — Added `.worktrees/` to prevent worktree contents from being tracked. Done in both main repo and worktree.
+
+   - **`web/next.config.ts`** — Configured with `output: "export"` for static site generation:
+     ```ts
+     import type { NextConfig } from "next";
+     const nextConfig: NextConfig = { output: "export" };
+     export default nextConfig;
+     ```
+
+   - **`web/lib/api/types.ts`** — All TypeScript types matching the API design spec. Includes: `ApiResponse<T>`, `ApiMeta`, `ApiError`, `Project`, `ProjectInput`, `Release`, `PipelineStatus`, `Source`, `SourceInput`, `Subscription`, `SubscriptionInput`, `NotificationChannel`, `ChannelInput`, `Provider`, `HealthStatus`, `Stats`, `SSEEvent`, `SSEEventType`.
+
+   - **`web/lib/api/client.ts`** — Typed fetch wrappers organized by resource: `projects` (CRUD), `releases` (list with params, get, pipeline, notes), `sources` (CRUD + latestRelease), `subscriptions` (CRUD), `channels` (CRUD), `system` (health, stats, providers). Uses a generic `request<T>()` function with base path `/api/v1`.
+
+   - **`web/lib/mock/data.ts`** — Realistic mock data: 4 projects (Geth, Go, PostgreSQL, Node.js), 6 sources, 8 releases with varying pipeline statuses, 5 pipeline statuses with detailed node results, 5 subscriptions, 3 notification channels, 2 providers, system stats.
+
+   - **`web/lib/mock/handlers.ts`** — MSW request handlers for all API endpoints. Uses `http.get/post/put/delete` from MSW. Supports CRUD operations with in-memory mutation, filtering (project_id, source_id, pre_release), sorting, pagination. Response wrapped in `envelope()` and `listEnvelope()` helpers with realistic delays.
+
+   - **`web/lib/mock/browser.ts`** — MSW browser worker setup:
+     ```ts
+     import { setupWorker } from "msw/browser";
+     import { handlers } from "./handlers";
+     export const worker = setupWorker(...handlers);
+     ```
+
+   - **`web/lib/msw-provider.tsx`** — Client component that lazily initializes MSW in development, rendering null until ready.
+
+   - **`web/app/layout.tsx`** — Root layout wrapping children with MSWProvider, Sidebar, and Header in a flex layout. Preserves Geist fonts from scaffolding.
+
+   - **`web/components/layout/sidebar.tsx`** — Collapsible sidebar with 6 nav items (Dashboard, Projects, Releases, Sources, Subscriptions, Channels), active route highlighting, collapse toggle.
+
+   - **`web/components/layout/header.tsx`** — Dynamic page title derived from pathname.
+
+   - **`web/components/dashboard/stats-cards.tsx`** — 4-card grid showing total releases, active sources, pending jobs, failed jobs via SWR.
+
+   - **`web/components/dashboard/recent-releases.tsx`** — Card with 8 most recent releases, linked to detail pages, showing pipeline status badges.
+
+   - **`web/app/projects/page.tsx`** — Projects list with table showing name, description, pipeline node badges, subscription count.
+
+   - **`web/app/projects/[id]/page.tsx`** — Server wrapper with `generateStaticParams` returning `[{ id: "0" }]`, delegates to client component.
+
+   - **`web/components/projects/project-detail.tsx`** — Client component showing project detail with pipeline config display, sources list, edit/delete actions.
+
+   - **`web/components/projects/project-form.tsx`** — Reusable form for create/edit with name, description, URL, pipeline config JSON editor.
+
+   - **`web/components/projects/project-edit.tsx`** — Client component fetching project by ID, rendering ProjectForm.
+
+   - **`web/app/projects/new/page.tsx`**, **`web/app/projects/[id]/edit/page.tsx`** — Create and edit pages.
+
+   - **`web/app/releases/page.tsx`** — Releases list with project filter, pre-release filter, pagination, status-colored badges.
+
+   - **`web/app/releases/[id]/page.tsx`** — Server wrapper for release detail.
+
+   - **`web/components/releases/release-detail.tsx`** — Release detail showing version metadata, release notes, and pipeline visualization in a 3-column layout.
+
+   - **`web/components/releases/pipeline-status.tsx`** — Pipeline visualization showing completed nodes with key-value results, active nodes with spinner, state-specific icons/badges, attempt count.
+
+   - **Sources CRUD** (5 files): `web/components/sources/source-form.tsx`, `source-edit.tsx`, `web/app/sources/page.tsx`, `new/page.tsx`, `[id]/edit/page.tsx`
+
+   - **Subscriptions CRUD** (5 files): `web/components/subscriptions/subscription-form.tsx`, `subscription-edit.tsx`, `web/app/subscriptions/page.tsx`, `new/page.tsx`, `[id]/edit/page.tsx`
+
+   - **Channels CRUD** (5 files): `web/components/channels/channel-form.tsx`, `channel-edit.tsx`, `web/app/channels/page.tsx`, `new/page.tsx`, `[id]/edit/page.tsx`
+
+4. Errors and Fixes:
+   - **Next.js static export + dynamic routes**: `output: "export"` requires `generateStaticParams` for every dynamic `[id]` route. `"use client"` pages cannot export server-side functions. Fix: Split into server component page (exports `generateStaticParams`, awaits params) + client component (uses hooks).
+   - **Next.js bug #71862**: `generateStaticParams` returning empty array `[]` causes build failure. Fix: Return placeholder `[{ id: "0" }]` instead.
+   - **`useSearchParams` + static export**: Requires Suspense boundary. Fix: Wrapped in `<Suspense>` in `sources/new/page.tsx`.
+   - **Next.js 16 instead of 15**: `create-next-app@latest` installed Next.js 16.1.6. Functionally compatible, no fix needed.
+   - **shadcn style default**: Used "new-york" style with "neutral" base color instead of "zinc" as originally planned. Close match, no fix needed.
+   - **TypeScript `frequency` state type**: Needed explicit `string` type annotation for `Select` `onValueChange` compatibility.
+
+5. Problem Solving:
+   - Designed the server/client component split pattern for static export compatibility across all dynamic routes
+   - Implemented realistic mock data covering all pipeline states (completed, running, available, retry, discarded)
+   - Used SWR key arrays for proper cache invalidation with filters (e.g., `["releases", page, projectFilter, preReleaseFilter]`)
+   - Subscriptions list page resolves project and channel names via parallel SWR fetches instead of importing mock data directly
+   - Channel form has dynamic fields per channel type (Slack: webhook_url + channel, PagerDuty: routing_key, Webhook: url + headers)
+
+6. All User Messages:
+   - User invoked `/superpowers:writing-plans`
+   - When asked what feature to plan: **"UX layer with a mocked API server"** (custom input)
+   - **"could you plese use git worktree?"** (after plan was written)
+   - When asked where to create worktrees: **".worktrees/ (Recommended)"**
+   - When asked which execution approach: **"1"** (Subagent-Driven, this session)
+   - (Summary request - current message)
+
+7. Pending Tasks:
+   - **Tasks 17-18: SSE mock + live activity feed + static export verification**
+     - Task 17: Create `web/lib/mock/sse.ts` (mock SSE emitter), `web/components/dashboard/activity-feed.tsx`, update dashboard page
+     - Task 18: Run TypeScript check, linter, build static export, verify output
+
+8. Current Work:
+   I was executing the implementation plan via Subagent-Driven Development. Tasks 1-16 are complete (all committed to branch `feat/ux-layer` in worktree `.worktrees/ux-layer`). The last completed batch was Tasks 14-16 (Sources + Subscriptions + Channels CRUD) with commits `90b3772`, `8d80736`, `3c19825`. The TodoWrite shows:
+   - Tasks 14-16 just completed (status was `in_progress`)
+   - Tasks 17-18 still `pending`
+
+   The todo list at last update:
+   ```
+   ✅ Task 1: Scaffold Next.js project
+   ✅ Task 2: Install shadcn/ui and dependencies
+   ✅ Tasks 3+4: TypeScript types + API client
+   ✅ Tasks 5+6: Mock data + MSW handlers
+   ✅ Task 7: App shell layout
+   ✅ Task 8: Dashboard page
+   ✅ Tasks 9-11: Projects pages
+   ✅ Tasks 12-13: Releases pages
+   ✅ Tasks 14-16: Sources + Subscriptions + Channels CRUD
+   ⏳ Tasks 17-18: SSE mock + activity feed + static export (PENDING)
+   ```
+
+9. Optional Next Step:
+   Continue executing the plan by dispatching a subagent for Tasks 17-18 (SSE mock + live activity feed + static export verification). This is directly in line with the Subagent-Driven Development workflow the user approved.
+   
+   The plan specifies:
+   - Task 17: Create `web/lib/mock/sse.ts` (MockSSE class emitting events every 5 seconds), `web/components/dashboard/activity-feed.tsx` (live event display with pulsing green dot), update `web/app/page.tsx` to include ActivityFeed in a 2-column grid layout
+   - Task 18: Run `npx tsc --noEmit`, `npm run lint`, `npm run build`, verify `out/` directory, final commit
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/e4ada0eb-2b90-4b4d-b811-1455e745351b.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+<task-notification>
+<task-id>b8d6d80</task-id>
+<tool-use-id>toolu_01QuooH4QpkbWGm49vq9zP3f</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-pc-web3-ReleaseBeacon/tasks/b8d6d80.output</output-file>
+<status>completed</status>
+<summary>Background command "Scaffold Next.js app with TypeScript, Tailwind, ESLint, App Router, no src-dir, turbopack" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-501/-Users-pc-web3-ReleaseBeacon/tasks/b8d6d80.output
+
+---
+
+<task-notification>
+<task-id>bd84070</task-id>
+<tool-use-id>toolu_01JjAmGqiA6cdMzdTp4AMKc1</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Initialize shadcn/ui with defaults" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+superpowers:finishing-a-development-branch
+create a PR
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.0.3/skills/finishing-a-development-branch
+
+# Finishing a Development Branch
+
+## Overview
+
+Guide completion of development work by presenting clear options and handling chosen workflow.
+
+**Core principle:** Verify tests → Present options → Execute choice → Clean up.
+
+**Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
+
+## The Process
+
+### Step 1: Verify Tests
+
+**Before presenting options, verify tests pass:**
+
+```bash
+# Run project's test suite
+npm test / cargo test / pytest / go test ./...
+```
+
+**If tests fail:**
+```
+Tests failing (<N> failures). Must fix before completing:
+
+[Show failures]
+
+Cannot proceed with merge/PR until tests pass.
+```
+
+Stop. Don't proceed to Step 2.
+
+**If tests pass:** Continue to Step 2.
+
+### Step 2: Determine Base Branch
+
+```bash
+# Try common base branches
+git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
+```
+
+Or ask: "This branch split from main - is that correct?"
+
+### Step 3: Present Options
+
+Present exactly these 4 options:
+
+```
+Implementation complete. What would you like to do?
+
+1. Merge back to <base-branch> locally
+2. Push and create a Pull Request
+3. Keep the branch as-is (I'll handle it later)
+4. Discard this work
+
+Which option?
+```
+
+**Don't add explanation** - keep options concise.
+
+### Step 4: Execute Choice
+
+#### Option 1: Merge Locally
+
+```bash
+# Switch to base branch
+git checkout <base-branch>
+
+# Pull latest
+git pull
+
+# Merge feature branch
+git merge <feature-branch>
+
+# Verify tests on merged result
+<test command>
+
+# If tests pass
+git branch -d <feature-branch>
+```
+
+Then: Cleanup worktree (Step 5)
+
+#### Option 2: Push and Create PR
+
+```bash
+# Push branch
+git push -u origin <feature-branch>
+
+# Create PR
+gh pr create --title "<title>" --body "$(cat <<'EOF'
+## Summary
+<2-3 bullets of what changed>
+
+## Test Plan
+- [ ] <verification steps>
+EOF
+)"
+```
+
+Then: Cleanup worktree (Step 5)
+
+#### Option 3: Keep As-Is
+
+Report: "Keeping branch <name>. Worktree preserved at <path>."
+
+**Don't cleanup worktree.**
+
+#### Option 4: Discard
+
+**Confirm first:**
+```
+This will permanently delete:
+- Branch <name>
+- All commits: <commit-list>
+- Worktree at <path>
+
+Type 'discard' to confirm.
+```
+
+Wait for exact confirmation.
+
+If confirmed:
+```bash
+git checkout <base-branch>
+git branch -D <feature-branch>
+```
+
+Then: Cleanup worktree (Step 5)
+
+### Step 5: Cleanup Worktree
+
+**For Options 1, 2, 4:**
+
+Check if in worktree:
+```bash
+git worktree list | grep $(git branch --show-current)
+```
+
+If yes:
+```bash
+git worktree remove <worktree-path>
+```
+
+**For Option 3:** Keep worktree.
+
+## Quick Reference
+
+| Option | Merge | Push | Keep Worktree | Cleanup Branch |
+|--------|-------|------|---------------|----------------|
+| 1. Merge locally | ✓ | - | - | ✓ |
+| 2. Create PR | - | ✓ | ✓ | - |
+| 3. Keep as-is | - | - | ✓ | - |
+| 4. Discard | - | - | - | ✓ (force) |
+
+## Common Mistakes
+
+**Skipping test verification**
+- **Problem:** Merge broken code, create failing PR
+- **Fix:** Always verify tests before offering options
+
+**Open-ended questions**
+- **Problem:** "What should I do next?" → ambiguous
+- **Fix:** Present exactly 4 structured options
+
+**Automatic worktree cleanup**
+- **Problem:** Remove worktree when might need it (Option 2, 3)
+- **Fix:** Only cleanup for Options 1 and 4
+
+**No confirmation for discard**
+- **Problem:** Accidentally delete work
+- **Fix:** Require typed "discard" confirmation
+
+## Red Flags
+
+**Never:**
+- Proceed with failing tests
+- Merge without verifying tests on result
+- Delete work without confirmation
+- Force-push without explicit request
+
+**Always:**
+- Verify tests before offering options
+- Present exactly 4 options
+- Get typed confirmation for Option 4
+- Clean up worktree for Options 1 & 4 only
+
+## Integration
+
+**Called by:**
+- **subagent-driven-development** (Step 7) - After all tasks complete
+- **executing-plans** (Step 5) - After all batches complete
+
+**Pairs with:**
+- **using-git-worktrees** - Cleans up worktree created by that skill
