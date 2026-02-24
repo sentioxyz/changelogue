@@ -144,7 +144,7 @@ The core filtering and scoring logic is structured as a **configurable Directed 
 7. **Urgency Scorer** — Composite urgency from all preceding results. Config adjusts thresholds.
 8. **Validation Trigger** — Triggers SRE agent. Config sets urgency threshold.
 
-Every node implements a common `PipelineNode` interface and receives its config as raw JSON, which it unmarshals into its own typed struct. This means adding a new node or evolving a node's config requires no changes to the pipeline runner or database schema — just register the node and update the project's `pipeline_config`.
+Every node implements a common `PipelineNode` interface and receives its config as raw JSON, which it unmarshals into its own typed struct. This means adding a new node or evolving a node's config requires no changes to the pipeline runner or database schema — just register the node and update the project's `pipeline_config`. The interface is designed to support **external plugin nodes** in the future — user-authored processing logic loaded via a plugin registry and executed over a transport layer (e.g., gRPC sidecar), with no changes to the runner or schema.
 
 The final notification is assembled as a fixed template with dynamic sections — each enabled configurable node maps to a section, and disabled nodes produce no section.
 

@@ -76,6 +76,10 @@ type PipelineNode interface {
 
 Each node unmarshals `config` into its own typed struct. If the node's needs grow complex enough to warrant dedicated storage (e.g., a `discord_monitors` table), its config can reference an ID (`{"monitor_id": 5}`) — the pipeline_config contract stays the same.
 
+#### Future: External Plugin Nodes
+
+The `PipelineNode` interface and opaque config model are designed to support **user-authored plugin nodes** in the future. The runner already treats nodes as interchangeable — it resolves a name to an implementation and passes raw JSON config. Extending this to external plugins requires only a transport layer (e.g., gRPC sidecar or HTTP callback) and a plugin registry that discovers external nodes at startup. Each plugin would ship a manifest declaring its node name, config JSON schema, and execution endpoint. No changes to the pipeline runner, database schema, or `pipeline_config` contract would be needed.
+
 #### Example: pipeline_config for a Blockchain Project (Geth)
 
 ```json
