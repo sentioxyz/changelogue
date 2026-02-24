@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"github.com/riverqueue/river/rivermigrate"
 )
 
 const schema = `
@@ -26,11 +28,18 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 );
 `
 
-// RunMigrations applies the database schema. Idempotent — safe to call on every startup.
+// RunMigrations applies River's schema and the application schema. Idempotent — safe to call on every startup.
 func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	_, err := pool.Exec(ctx, schema)
+	migrator, err := rivermigrate.New(riverpgxv5.New(pool), nil)
 	if err != nil {
-		return fmt.Errorf("run migrations: %w", err)
+		return fmt.Errorf("create river migrator: %w", err)
+	}
+	if _, err := migrator.Migrate(ctx, rivermigrate.DirectionUp, nil); err != nil {
+		return fmt.Errorf("river migrations: %w", err)
+	}
+
+	if _, err := pool.Exec(ctx, schema); err != nil {
+		return fmt.Errorf("app migrations: %w", err)
 	}
 	return nil
 }

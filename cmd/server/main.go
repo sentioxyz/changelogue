@@ -19,6 +19,7 @@ func main() {
 
 	dbURL := envOr("DATABASE_URL", "postgres://localhost:5432/releaseguard?sslmode=disable")
 	ghSecret := envOr("GITHUB_WEBHOOK_SECRET", "")
+	addr := envOr("LISTEN_ADDR", ":8080")
 
 	// Database
 	pool, err := db.NewPool(ctx, dbURL)
@@ -60,7 +61,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("POST /webhook/github", webhookHandler)
 
-	srv := &http.Server{Addr: ":8080", Handler: mux}
+	srv := &http.Server{Addr: addr, Handler: mux}
 
 	// Start polling in background
 	go orch.Run(ctx)

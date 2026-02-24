@@ -10,13 +10,12 @@ import (
 // NewRiverClient creates a River client backed by the given pgx pool.
 // Pass nil workers to create an insert-only client (no job processing).
 func NewRiverClient(pool *pgxpool.Pool, workers *river.Workers) (*river.Client[pgx.Tx], error) {
-	config := &river.Config{
-		Queues: map[string]river.QueueConfig{
-			river.QueueDefault: {MaxWorkers: 100},
-		},
-	}
+	config := &river.Config{}
 	if workers != nil {
 		config.Workers = workers
+		config.Queues = map[string]river.QueueConfig{
+			river.QueueDefault: {MaxWorkers: 100},
+		}
 	}
 	return river.NewClient(riverpgxv5.New(pool), config)
 }
