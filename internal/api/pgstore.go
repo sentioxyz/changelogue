@@ -475,3 +475,24 @@ func (s *PgStore) DeleteChannel(ctx context.Context, id int) error {
 func (s *PgStore) Ping(ctx context.Context) error {
 	return s.pool.Ping(ctx)
 }
+
+func (s *PgStore) PingDB(ctx context.Context) error {
+	return s.pool.Ping(ctx)
+}
+
+func (s *PgStore) GetStats(ctx context.Context) (*DashboardStats, error) {
+	var stats DashboardStats
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM releases`).Scan(&stats.TotalReleases); err != nil {
+		return nil, fmt.Errorf("count releases: %w", err)
+	}
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM sources WHERE enabled = true`).Scan(&stats.ActiveSources); err != nil {
+		return nil, fmt.Errorf("count active sources: %w", err)
+	}
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM pipeline_jobs WHERE state = 'available'`).Scan(&stats.PendingJobs); err != nil {
+		return nil, fmt.Errorf("count pending jobs: %w", err)
+	}
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM pipeline_jobs WHERE state = 'discarded'`).Scan(&stats.FailedJobs); err != nil {
+		return nil, fmt.Errorf("count failed jobs: %w", err)
+	}
+	return &stats, nil
+}
