@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "276090c849df",
+  "strategy": "manual-commit",
+  "branch": "feat/rest-api-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/health.go",
+    "internal/api/health_test.go",
+    "internal/api/pgstore.go",
+    "internal/api/providers.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/27/6090c849df/0/metadata.json",
+      "transcript": "/27/6090c849df/0/full.jsonl",
+      "context": "/27/6090c849df/0/context.md",
+      "content_hash": "/27/6090c849df/0/content_hash.txt",
+      "prompt": "/27/6090c849df/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 42,
+    "cache_creation_tokens": 365701,
+    "cache_read_tokens": 3371337,
+    "output_tokens": 349,
+    "api_call_count": 38
+  }
+}

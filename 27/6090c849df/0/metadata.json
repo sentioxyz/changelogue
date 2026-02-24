@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "276090c849df",
+  "session_id": "a24e068c-3d31-48d3-8098-15787548e2c9",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-24T13:14:09.802068Z",
+  "branch": "feat/rest-api-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/health.go",
+    "internal/api/health_test.go",
+    "internal/api/pgstore.go",
+    "internal/api/providers.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "ddf379a6ff93",
+  "token_usage": {
+    "input_tokens": 42,
+    "cache_creation_tokens": 365701,
+    "cache_read_tokens": 3371337,
+    "output_tokens": 349,
+    "api_call_count": 38
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-24T13:14:09.410778Z",
+    "agent_lines": 288,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 288,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/a24e068c-3d31-48d3-8098-15787548e2c9.jsonl"
+}
