@@ -33,6 +33,7 @@ node_modules/
 # Tools
 .claude/
 .entire/
+.worktrees/
 
 # OS
 .DS_Store
