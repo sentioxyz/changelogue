@@ -372,7 +372,7 @@ PostgreSQL LISTEN/NOTIFY  →  Go listener goroutine  →  SSE broadcaster  → 
 | Event                      | Triggered When                          |
 |----------------------------|-----------------------------------------|
 | `release.created`          | New release ingested                    |
-| `pipeline.node_completed`  | A DAG node finishes (includes node name + result) |
+| `pipeline.node_completed`  | A pipeline node finishes (includes node name + result) |
 | `pipeline.completed`       | Pipeline finishes for a release         |
 | `pipeline.failed`          | Pipeline job goes to dead-letter queue  |
 | `source.error`             | Polling source encounters an error      |

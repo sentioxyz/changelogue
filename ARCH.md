@@ -36,12 +36,12 @@ graph LR
 
     subgraph Core [Event Bus & Queue - PostgreSQL]
         Engine((Go Engine)) --> |INSERT release + job\nTransactional Outbox| PG[(PostgreSQL)]
-        PG --> |SKIP LOCKED\nRiver| DAG[DAG Processing Pipeline]
-        DAG --> |UPDATE node_results\ncurrent_node| PG
+        PG --> |SKIP LOCKED\nRiver| Pipeline[Processing Pipeline]
+        Pipeline --> |UPDATE node_results\ncurrent_node| PG
     end
 
     subgraph Intelligence [Agentic Validation]
-        DAG -.-> |Trigger Tool| Agent[SRE Agent]
+        Pipeline -.-> |Trigger Tool| Agent[SRE Agent]
         Agent -.-> |Verify| Sandbox[(Sandbox / Base A Box)]
     end
 
@@ -106,7 +106,7 @@ Components do not call each other synchronously. Instead, they rely on PostgreSQ
 
 * **The Transactional Outbox:** When a new release is detected, the ingestion worker writes the metadata to the `releases` table (linked to its `source_id`) and simultaneously inserts a processing job into the `pipeline_jobs` table *within the exact same SQL transaction*. This guarantees no events are ever lost.
 * **Real-time Pub/Sub:** Database triggers use `pg_notify` to broadcast lightweight events (e.g., telling the Next.js UI via SSE to refresh) over standard Postgres connections using `LISTEN`.
-* **Reliable Queues:** Go background workers poll the `pipeline_jobs` table using `FOR UPDATE SKIP LOCKED`, ensuring only one worker processes a specific release's DAG pipeline at a time.
+* **Reliable Queues:** Go background workers poll the `pipeline_jobs` table using `FOR UPDATE SKIP LOCKED`, ensuring only one worker processes a specific release's pipeline at a time.
 * **Project-Centric Model:** All data flows through the `projects` → `sources` → `releases` hierarchy. Subscriptions attach to projects, so notification rules automatically cover releases from any of a project's sources.
 
 ### 2.2 Provider Interfaces (I/O)
@@ -126,9 +126,9 @@ The Go server exposes a RESTful API (`/api/v1`) serving the Next.js dashboard an
 * **API Key Auth:** Bearer token authentication with hashed key storage. Webhooks use their own HMAC-based auth.
 * **Rate Limiting:** Per-key token bucket with standard `X-Ratelimit-*` response headers.
 
-### 2.4 The DAG Processing Pipeline
+### 2.4 The Configurable Processing Pipeline
 
-The core filtering and scoring logic is structured as a **configurable Directed Acyclic Graph (DAG)**. Instead of monolithic conditional blocks, the system compiles a pipeline of independent execution nodes. **Which nodes run and how they behave is controlled per-project** via `pipeline_config` — an opaque JSONB map where each key is a node name and its value is that node's configuration.
+The core filtering and scoring logic is structured as a **configurable sequential pipeline**. Instead of monolithic conditional blocks, the system compiles a pipeline of independent execution nodes. **Which nodes run and how they behave is controlled per-project** via `pipeline_config` — an opaque JSONB map where each key is a node name and its value is that node's configuration. Nodes execute sequentially; independent nodes (e.g., Availability Checker, Risk Assessor) could be parallelized in a future iteration without changing the node interface.
 
 **Always-on nodes** (structural — cannot be disabled):
 
@@ -161,7 +161,7 @@ This allows the agent to autonomously deploy a sandbox, verify that the deployme
 
 1. **Discovery:** A Go worker polling Docker Hub detects a new base image tag for a configured source (e.g., the "Docker Hub" source under the "Go Runtime" project). Source-level exclusion filters (`exclude_version_regexp`, `exclude_prereleases`) are applied — filtered versions are discarded immediately.
 2. **Ingestion & Transaction:** The worker standardizes the payload into a `ReleaseEvent` IR and executes a single database transaction to insert the record into `releases` (linked to its `source_id`) and queue a job in `pipeline_jobs`.
-3. **Processing (Queue Pull):** A Go worker pulls the job using `SKIP LOCKED` and routes the event through the DAG pipeline. Each node updates `current_node` and accumulates results in `node_results`. The subscription router checks the parent project's subscriptions — unsubscribed events are marked as `skipped`.
+3. **Processing (Queue Pull):** A Go worker pulls the job using `SKIP LOCKED` and routes the event through the processing pipeline. Each node updates `current_node` and accumulates results in `node_results`. The subscription router checks the parent project's subscriptions — unsubscribed events are marked as `skipped`.
 4. **Analysis & Validation:** For stable releases, the LLM analyzes the release notes to generate a "Production Record" summary. If the urgency score meets a threshold, an SRE agent is triggered to draft a master config update for Base A Box and run automated health checks.
 5. **Finalization & Broadcast:** The worker updates the job status to `completed` in PostgreSQL. A Postgres trigger fires a `NOTIFY` payload to alert the routing matrix and push SSE events to connected dashboard clients.
 6. **Notification:** The Notification Matrix reads the finalized data, resolves the project's subscriptions, and routes to the appropriate notification channels (e.g., a critical PagerDuty alert for hotfixes via instant delivery, or a batched daily digest to Slack for low-priority updates).
@@ -175,7 +175,7 @@ This allows the agent to autonomously deploy a sandbox, verify that the deployme
 ├── internal/
 │   ├── api/             # REST API handlers, middleware, SSE broadcaster
 │   ├── ingestion/       # Polling workers and webhook handlers (IIngestionSource)
-│   ├── pipeline/        # DAG node implementations for filtering & scoring
+│   ├── pipeline/        # Pipeline node implementations for filtering & scoring
 │   ├── agents/          # LLM orchestration and validation tools
 │   ├── routing/         # Notification matrix and I/O providers (INotificationChannel)
 │   ├── queue/           # PostgreSQL River queue setup and job definitions

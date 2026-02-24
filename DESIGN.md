@@ -34,9 +34,9 @@ type ReleaseEvent struct {
 
 ```
 
-### 2.2 The DAG Processing Pipeline
+### 2.2 The Configurable Processing Pipeline
 
-Instead of a rigid, procedural filtering function, the event processing is designed as a **Directed Acyclic Graph (DAG)**. The IR payload is passed through these nodes sequentially. This compiler-like approach makes it trivial to add new evaluation steps or branch the logic for multiple outputs without breaking existing flows.
+Instead of a rigid, procedural filtering function, the event processing is designed as a **configurable sequential pipeline**. The IR payload is passed through nodes sequentially. This compiler-like approach makes it trivial to add new evaluation steps without breaking existing flows. Independent nodes could be parallelized in a future iteration without changing the node interface.
 
 **Which nodes run is configurable per project** via `pipeline_config` — an opaque JSONB map where each key is a node name and its value is the node's configuration blob. A key being present means the node is enabled; absent or `null` means disabled. Each node owns and validates its own config schema independently.
 
@@ -207,7 +207,7 @@ CREATE TABLE releases (
     UNIQUE(source_id, version)                  -- idempotent: same version from same source
 );
 
--- River-compatible job queue for the DAG pipeline
+-- River-compatible job queue for the processing pipeline
 CREATE TABLE pipeline_jobs (
     id BIGSERIAL PRIMARY KEY,
     state VARCHAR(50) DEFAULT 'available',      -- available, running, completed, retry, discarded
@@ -271,7 +271,7 @@ CREATE TABLE api_keys (
 
 * **Idempotent Ingestion:** The `releases` table enforces a `UNIQUE(source_id, version)` constraint. If a polling worker and a webhook both report the same release from the same source simultaneously, the database rejects the duplicate, preventing duplicate pipeline jobs.
 * **Source-Level Filtering:** Before events enter the pipeline, the ingestion layer applies source-level exclusion rules (`exclude_version_regexp`, `exclude_prereleases`). Filtered releases are never inserted, reducing pipeline load.
-* **Dead-Letter Queue (DLQ):** If a DAG pipeline job fails `max_attempts` (e.g., the LLM API is down), the `pipeline_jobs` state is updated to `discarded` and `error_message` captures the failure reason. A separate Postgres trigger alerts the system admin that an event requires manual intervention.
-* **Pipeline Observability:** Each pipeline job tracks its `current_node` and accumulates `node_results` as it progresses through the DAG. If a job fails mid-pipeline, the exact failure point and partial results are preserved for debugging.
+* **Dead-Letter Queue (DLQ):** If a pipeline job fails `max_attempts` (e.g., the LLM API is down), the `pipeline_jobs` state is updated to `discarded` and `error_message` captures the failure reason. A separate Postgres trigger alerts the system admin that an event requires manual intervention.
+* **Pipeline Observability:** Each pipeline job tracks its `current_node` and accumulates `node_results` as it progresses through the pipeline. If a job fails mid-pipeline, the exact failure point and partial results are preserved for debugging.
 * **Agent Fallback:** If the SRE Agent sandbox deployment fails due to infrastructure timeout (unrelated to the software release itself), the agent safely aborts the validation phase, flags the release event as "Unverified," and routes it to a human reviewer rather than dropping the notification.
 * **Notification Digest Fallback:** If a digest batch fails to send (e.g., Slack API outage), the batch is retried on the next interval. Individual items within the batch are not lost — they remain queued until the channel recovers.

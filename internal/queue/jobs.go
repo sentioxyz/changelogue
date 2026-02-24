@@ -2,7 +2,7 @@ package queue
 
 import "github.com/riverqueue/river"
 
-// PipelineJobArgs defines the payload for a DAG pipeline processing job.
+// PipelineJobArgs defines the payload for a pipeline processing job.
 type PipelineJobArgs struct {
 	ReleaseID string `json:"release_id"`
 }

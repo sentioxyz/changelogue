@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ReleaseBeacon** (internal name: ReleaseGuard) is an event-driven release management system that polls upstream registries (Docker Hub, GitHub) for new releases, processes them through a DAG pipeline, and routes notifications to downstream systems (Slack, PagerDuty, Ops Opsack).
+**ReleaseBeacon** (internal name: ReleaseGuard) is an event-driven release management system that polls upstream registries (Docker Hub, GitHub) for new releases, processes them through a configurable pipeline, and routes notifications to downstream systems (Slack, PagerDuty, Ops Opsack).
 
 Go module: `github.com/sentioxyz/releaseguard`
 
 ## Tech Stack
 
-- **Backend:** Go 1.25 — polling engine, DAG pipeline, API server
+- **Backend:** Go 1.25 — polling engine, configurable pipeline, API server
 - **Database/Queue/PubSub:** PostgreSQL + [River](https://github.com/riverqueue/river) v0.31.0 for job queue (`FOR UPDATE SKIP LOCKED`), native `LISTEN`/`NOTIFY` for real-time events
 - **Frontend:** Next.js (React) + Tailwind CSS — dashboard (not yet started, `web/` is empty)
 - **Intelligence:** LLMs (Gemini/GPT-4o-mini) via agent frameworks for changelog analysis and SRE validation (planned)
@@ -49,7 +49,7 @@ bash scripts/integration-test.sh
 Four decoupled layers communicate exclusively through PostgreSQL:
 
 1. **Ingestion Layer** *(implemented)* — Polling workers and webhook handlers behind `IIngestionSource` interface
-2. **DAG Processing Pipeline** *(planned)* — Sequential nodes processing a `ReleaseEvent` IR
+2. **Processing Pipeline** *(planned)* — Sequential configurable nodes processing a `ReleaseEvent` IR
 3. **Agentic Validation** *(planned)* — SRE agent for autonomous sandbox testing
 4. **Routing & Notification** *(planned)* — Notification Matrix behind `INotificationChannel` interface
 
@@ -64,7 +64,7 @@ The critical data integrity pattern: release insert + River job enqueue happen i
 
 ### Key Interfaces (planned)
 
-- `PipelineNode` — DAG processing stages
+- `PipelineNode` — Pipeline processing stages
 - `INotificationChannel` — Output providers (Slack, PagerDuty, webhooks)
 
 ### Data Flow
@@ -73,7 +73,7 @@ The critical data integrity pattern: release insert + River job enqueue happen i
 IIngestionSource.FetchLatest() → IngestionResult
     → IngestionService.ProcessResults() normalizes to ReleaseEvent IR
     → PgStore.Save() in single TX: INSERT release + River InsertTx(PipelineJobArgs)
-    → River worker picks up job → DAG pipeline processes → notifications sent
+    → River worker picks up job → pipeline processes → notifications sent
 ```
 
 ## Database
@@ -85,7 +85,7 @@ Schema lives in `internal/db/migrations.go` (idempotent, runs on startup). Curre
 
 ## Key Design References
 
-- `ARCH.md` — Full architecture: system diagram, data flow lifecycle, DAG pipeline design
+- `ARCH.md` — Full architecture: system diagram, data flow lifecycle, pipeline design
 - `DESIGN.md` — Component design: ReleaseEvent IR struct, database schema, SRE agent workflow, error handling
 - `docs/designs/` — Feature-specific design docs (API design, etc.)
 - `docs/plans/` — Implementation plans and task tracking
