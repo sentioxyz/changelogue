@@ -31,7 +31,7 @@ func TestOrchestratorPollsOnInterval(t *testing.T) {
 		results: []IngestionResult{{Repository: "r", RawVersion: "v1", Timestamp: time.Now()}},
 	}
 
-	orch := NewOrchestrator(svc, []IIngestionSource{src}, 50*time.Millisecond)
+	orch := NewOrchestratorWithSources(svc, []IIngestionSource{src}, 50*time.Millisecond)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Millisecond)
 	defer cancel()
@@ -53,7 +53,7 @@ func TestOrchestratorMultipleSources(t *testing.T) {
 	src1 := &fakeSource{name: "a", results: []IngestionResult{{Repository: "r1", RawVersion: "v1", Timestamp: time.Now()}}}
 	src2 := &fakeSource{name: "b", results: []IngestionResult{{Repository: "r2", RawVersion: "v2", Timestamp: time.Now()}}}
 
-	orch := NewOrchestrator(svc, []IIngestionSource{src1, src2}, 50*time.Millisecond)
+	orch := NewOrchestratorWithSources(svc, []IIngestionSource{src1, src2}, 50*time.Millisecond)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 80*time.Millisecond)
 	defer cancel()
