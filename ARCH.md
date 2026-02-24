@@ -128,23 +128,25 @@ The Go server exposes a RESTful API (`/api/v1`) serving the Next.js dashboard an
 
 ### 2.4 The DAG Processing Pipeline
 
-The core filtering and scoring logic is structured as a **configurable Directed Acyclic Graph (DAG)**. Instead of monolithic conditional blocks, the system compiles a pipeline of independent execution nodes. **Which nodes run is controlled per-project** via `pipeline_config` — disabled nodes are skipped during processing and omitted from the final notification.
+The core filtering and scoring logic is structured as a **configurable Directed Acyclic Graph (DAG)**. Instead of monolithic conditional blocks, the system compiles a pipeline of independent execution nodes. **Which nodes run and how they behave is controlled per-project** via `pipeline_config` — an opaque JSONB map where each key is a node name and its value is that node's configuration.
 
 **Always-on nodes** (structural — cannot be disabled):
 
 1. **Regex Normalizer** — Parses version, applies source-level exclusion filters.
 2. **Subscription Router** — Checks project subscriptions, drops unsubscribed events.
 
-**Configurable nodes** (opt-in per project):
+**Configurable nodes** (opt-in per project, each with its own config schema):
 
-3. **Availability Checker** — Verifies artifact is pullable/downloadable.
-4. **Risk Assessor** — Scans changelog and external signals for high-risk keywords.
-5. **Adoption Tracker** — Queries network/registry metrics for adoption rates.
-6. **Changelog Summarizer** — LLM-generated human-readable summary.
-7. **Urgency Scorer** — Composite urgency from all preceding node results.
-8. **Validation Trigger** — Triggers SRE agent if urgency threshold is met.
+3. **Availability Checker** — Source-linked checks are automatic (Docker → verify image, GitHub → verify binaries). Config adds extra artifacts.
+4. **Risk Assessor** — Changelog keyword scanning is automatic. Config adds external signals (Discord, Telegram, GitHub Advisories).
+5. **Adoption Tracker** — Always requires config (provider + metrics source).
+6. **Changelog Summarizer** — Uses release changelog. Config can override LLM strategy.
+7. **Urgency Scorer** — Composite urgency from all preceding results. Config adjusts thresholds.
+8. **Validation Trigger** — Triggers SRE agent. Config sets urgency threshold.
 
-An Intermediate Representation (IR) of the `ReleaseEvent` is passed sequentially through enabled nodes. Each node records its output in `pipeline_jobs.node_results`. The final notification is assembled as a fixed template with dynamic sections — each configurable node maps to a notification section, and disabled nodes produce no section.
+Every node implements a common `PipelineNode` interface and receives its config as raw JSON, which it unmarshals into its own typed struct. This means adding a new node or evolving a node's config requires no changes to the pipeline runner or database schema — just register the node and update the project's `pipeline_config`.
+
+The final notification is assembled as a fixed template with dynamic sections — each enabled configurable node maps to a section, and disabled nodes produce no section.
 
 ### 2.5 Agentic Tooling
 

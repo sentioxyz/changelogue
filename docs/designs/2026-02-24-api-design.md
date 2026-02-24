@@ -160,17 +160,49 @@ Every API response uses a consistent JSON envelope.
   "description": "Go Ethereum - Official Go implementation of the Ethereum protocol",
   "url": "https://geth.ethereum.org",
   "pipeline_config": {
-    "availability_checker": true,
-    "risk_assessor": true,
-    "adoption_tracker": true,
-    "changelog_summarizer": true,
-    "urgency_scorer": true,
-    "validation_trigger": false
+    "availability_checker": {
+      "extra_artifacts": [
+        {"type": "npm_package", "name": "geth"}
+      ]
+    },
+    "risk_assessor": {
+      "keywords": ["hard fork", "breaking change", "CVE", "security"],
+      "external_signals": [
+        {"type": "discord", "guild_id": "714888", "channel_id": "announcements"},
+        {"type": "github_advisories"}
+      ]
+    },
+    "adoption_tracker": {
+      "provider": "ethernodes",
+      "config": {"network": "mainnet"}
+    },
+    "changelog_summarizer": {},
+    "urgency_scorer": {}
   }
 }
 ```
 
-The `pipeline_config` controls which DAG nodes run for this project. Disabled nodes are skipped during processing and their sections are omitted from notifications. Two structural nodes (regex normalizer, subscription router) are always-on and not configurable. If `pipeline_config` is omitted on creation, defaults are applied (all enabled except `adoption_tracker` and `validation_trigger`).
+The `pipeline_config` is an opaque JSONB map — each key is a node name, each value is that node's config. **Present key = node enabled, absent key = node disabled.** Each node owns its config schema independently:
+
+- **Source-linked behavior is automatic** — if a project has a Docker Hub source, the availability checker verifies that image with no config needed.
+- **External targets require explicit config** — Discord monitors, adoption APIs, extra artifacts beyond the project's sources.
+- **`{}` is valid** — enables the node with defaults (e.g., `"changelog_summarizer": {}` uses the default LLM strategy).
+
+Two structural nodes (regex normalizer, subscription router) are always-on and don't appear in `pipeline_config`. If `pipeline_config` is omitted on creation, minimal defaults are applied: `{"changelog_summarizer": {}, "urgency_scorer": {}}`.
+
+For a simpler project, the config is minimal:
+
+```json
+{
+  "name": "lodash",
+  "description": "JavaScript utility library",
+  "url": "https://lodash.com",
+  "pipeline_config": {
+    "changelog_summarizer": {},
+    "urgency_scorer": {}
+  }
+}
+```
 
 Response includes `id`, `created_at`, `updated_at` fields. `GET /projects/{id}` also includes `sources` (array of attached sources) and `subscription_count`.
 

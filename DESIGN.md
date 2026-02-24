@@ -38,7 +38,9 @@ type ReleaseEvent struct {
 
 Instead of a rigid, procedural filtering function, the event processing is designed as a **Directed Acyclic Graph (DAG)**. The IR payload is passed through these nodes sequentially. This compiler-like approach makes it trivial to add new evaluation steps or branch the logic for multiple outputs without breaking existing flows.
 
-**Which nodes run is configurable per project** via `pipeline_config`. Disabled nodes are skipped during processing and their sections are omitted from the final notification. Two nodes are always-on (regex normalizer and subscription router) since they're structural. The rest are opt-in.
+**Which nodes run is configurable per project** via `pipeline_config` — an opaque JSONB map where each key is a node name and its value is the node's configuration blob. A key being present means the node is enabled; absent or `null` means disabled. Each node owns and validates its own config schema independently.
+
+Two nodes are **always-on** (structural — cannot be disabled). The rest are **configurable** and receive their config blob at runtime.
 
 #### Always-On Nodes
 
@@ -47,16 +49,72 @@ Instead of a rigid, procedural filtering function, the event processing is desig
 
 #### Configurable Nodes
 
-3. **Node: Availability Checker** (`availability_checker`) — Verifies the release artifact is actually obtainable. For Docker Hub, pulls and validates the image digest. For GitHub, checks binary download URLs return 200. Produces the "Status" section of the notification.
-4. **Node: Risk Assessor** (`risk_assessor`) — Scans changelog text, linked issues, and external signals (e.g., Discord announcements, advisory databases) for high-risk keywords ("hard fork", "breaking change", "CVE", "security"). Produces the "Risk Level" section.
-5. **Node: Adoption Tracker** (`adoption_tracker`) — Queries external metrics for release adoption (e.g., % of network nodes updated for blockchain projects, download counts for libraries). Produces the "Adoption" section. Not applicable to all projects.
-6. **Node: Changelog Summarizer** (`changelog_summarizer`) — Calls the LLM to generate a concise, human-readable summary of the changelog. Produces the "Summary" section.
-7. **Node: Urgency Scorer** (`urgency_scorer`) — Computes a composite urgency score (LOW / MEDIUM / HIGH / CRITICAL) from all preceding node results. Produces the "Urgency" section and the notification subject line qualifier.
-8. **Node: Validation Trigger** (`validation_trigger`) — Evaluates the urgency score and triggers the SRE agent if a threshold is met. Only relevant for projects with sandbox validation configured.
+Each configurable node has a **source-linked mode** (auto-resolves targets from the project's sources — no config needed) and may support **external targets** via explicit config.
+
+3. **Node: Availability Checker** (`availability_checker`) — Verifies the release artifact is obtainable. Source-linked checks are automatic (Docker Hub → verify image digest, GitHub → verify binary download URLs). Extra artifacts beyond the project's sources can be configured explicitly.
+
+4. **Node: Risk Assessor** (`risk_assessor`) — Scans for high-risk signals. Changelog keyword scanning is automatic (uses the release payload). External signal sources (Discord channels, Telegram groups, GitHub security advisories) are configured explicitly per project.
+
+5. **Node: Adoption Tracker** (`adoption_tracker`) — Queries domain-specific metrics for release adoption. Always requires explicit config since adoption data comes from external APIs (ethernodes for blockchain, npm registry for packages, Docker Hub pulls for containers).
+
+6. **Node: Changelog Summarizer** (`changelog_summarizer`) — Calls the LLM to generate a concise summary. Uses the release changelog from the payload. Config can override LLM provider or prompt strategy.
+
+7. **Node: Urgency Scorer** (`urgency_scorer`) — Computes a composite urgency (LOW / MEDIUM / HIGH / CRITICAL) from all preceding node results. Config can adjust thresholds and weighting.
+
+8. **Node: Validation Trigger** (`validation_trigger`) — Triggers the SRE agent if the urgency score meets a threshold. Only relevant for projects with sandbox validation configured.
+
+#### Node Interface (Go)
+
+```go
+// Every pipeline node implements this interface.
+// The runner passes the node's config blob from pipeline_config as raw JSON.
+type PipelineNode interface {
+    Name() string
+    Execute(ctx context.Context, event *ReleaseEvent, config json.RawMessage, prior map[string]json.RawMessage) (json.RawMessage, error)
+}
+```
+
+Each node unmarshals `config` into its own typed struct. If the node's needs grow complex enough to warrant dedicated storage (e.g., a `discord_monitors` table), its config can reference an ID (`{"monitor_id": 5}`) — the pipeline_config contract stays the same.
+
+#### Example: pipeline_config for a Blockchain Project (Geth)
+
+```json
+{
+  "availability_checker": {
+    "extra_artifacts": [
+      {"type": "npm_package", "name": "geth"}
+    ]
+  },
+  "risk_assessor": {
+    "keywords": ["hard fork", "breaking change", "CVE", "security"],
+    "external_signals": [
+      {"type": "discord", "guild_id": "714888", "channel_id": "announcements"},
+      {"type": "github_advisories"}
+    ]
+  },
+  "adoption_tracker": {
+    "provider": "ethernodes",
+    "config": {"network": "mainnet"}
+  },
+  "changelog_summarizer": {},
+  "urgency_scorer": {}
+}
+```
+
+#### Example: pipeline_config for a Simple Library (lodash)
+
+```json
+{
+  "changelog_summarizer": {},
+  "urgency_scorer": {}
+}
+```
+
+Source-linked availability checks (GitHub binary verification) happen automatically. No risk assessor, no adoption tracking — just summary and urgency.
 
 #### Notification Assembly
 
-The final notification is assembled from `pipeline_jobs.node_results` using a fixed template with dynamic sections. Each configurable node maps to a notification section — disabled nodes produce no section:
+The final notification is assembled from `pipeline_jobs.node_results` using a fixed template with dynamic sections. Each enabled node maps to a notification section — disabled nodes produce no section:
 
 ```
 🚀 Ready to Deploy: {project} {version} ({urgency} Update)
@@ -68,7 +126,7 @@ Summary: "Fixes sync bug in block 14,000,000."              ← changelog_summar
 Urgency: HIGH                                                ← urgency_scorer
 ```
 
-For a simpler project with only `changelog_summarizer` and `urgency_scorer` enabled, the notification would be:
+For the lodash project (only `changelog_summarizer` and `urgency_scorer` enabled):
 
 ```
 🚀 New Release: lodash v4.18.0
@@ -108,14 +166,10 @@ CREATE TABLE projects (
     name VARCHAR(100) NOT NULL UNIQUE,          -- display name: 'Go Runtime', 'PostgreSQL'
     description TEXT,
     url VARCHAR(500),                           -- upstream project URL
-    pipeline_config JSONB NOT NULL DEFAULT '{   -- which DAG nodes are enabled for this project
-        "availability_checker": true,
-        "risk_assessor": true,
-        "adoption_tracker": false,
-        "changelog_summarizer": true,
-        "urgency_scorer": true,
-        "validation_trigger": false
-    }'::jsonb,
+    pipeline_config JSONB NOT NULL DEFAULT '{   -- per-node config: present key = enabled, absent = disabled
+        "changelog_summarizer": {},
+        "urgency_scorer": {}
+    }'::jsonb,                                  -- each node owns its config schema; see DESIGN.md §2.2
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -202,7 +256,7 @@ CREATE TABLE api_keys (
 
 ### 3.1 Schema Design Notes
 
-* **Projects as the central entity:** A project represents a tracked piece of software (e.g., "Go Runtime"). It can have multiple sources — a GitHub source for webhook-based repos you own and a Docker Hub source for polling the container image. Subscriptions attach to projects, so a single notification rule covers all sources for that project. The `pipeline_config` JSONB column controls which DAG nodes run for this project — disabled nodes are skipped during processing and their sections are omitted from notifications.
+* **Projects as the central entity:** A project represents a tracked piece of software (e.g., "Go Runtime"). It can have multiple sources — a GitHub source for webhook-based repos you own and a Docker Hub source for polling the container image. Subscriptions attach to projects, so a single notification rule covers all sources for that project. The `pipeline_config` JSONB column is an opaque map of node name → node config. Each node owns its config schema — presence means enabled, absence means disabled. Source-linked behavior (e.g., Docker image verification) is automatic; external targets (Discord monitors, adoption APIs) are configured explicitly in the node's config blob.
 * **Multi-source ingestion:** The `sources` table uses `UNIQUE(source_type, repository)` instead of `UNIQUE(repository)` — the same repository name on different providers won't collide. Each source belongs to exactly one project via `project_id`.
 * **Release provenance:** Releases reference `source_id` (not raw strings), so you always know which source detected a release. The unique constraint `UNIQUE(source_id, version)` allows the same version to exist from different sources (e.g., Go 1.21.0 from GitHub and Docker Hub are separate release records).
 * **Pipeline node tracking:** The `current_node` and `node_results` columns on `pipeline_jobs` provide per-node observability. The dashboard can show exactly where a release is in the pipeline and what each node produced (e.g., the AI urgency score, regex normalizer output).
