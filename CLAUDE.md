@@ -4,67 +4,91 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ReleaseBeacon** (internal name: ReleaseGuard) is an event-driven release management system that polls upstream registries (Docker Hub, GitHub) for new releases, processes them through an intelligent pipeline, and routes notifications to downstream systems (Slack, PagerDuty, Ops Opsack).
+**ReleaseBeacon** (internal name: ReleaseGuard) is an event-driven release management system that polls upstream registries (Docker Hub, GitHub) for new releases, processes them through a DAG pipeline, and routes notifications to downstream systems (Slack, PagerDuty, Ops Opsack).
 
-The project is in its initial phase — `ARCH.md` and `DESIGN.md` contain the full specification. No source code exists yet.
+Go module: `github.com/sentioxyz/releaseguard`
 
-## Planned Tech Stack
+## Tech Stack
 
-- **Backend:** Go — polling engine, DAG pipeline, API server
-- **Frontend:** Next.js (React) + Tailwind CSS — dashboard for release streams and configuration
-- **Database/Queue/PubSub:** PostgreSQL — River library for job queue (`FOR UPDATE SKIP LOCKED`), native `LISTEN`/`NOTIFY` for real-time events
-- **Intelligence:** LLMs (Gemini/GPT-4o-mini) via agent frameworks for changelog analysis and SRE validation
+- **Backend:** Go 1.25 — polling engine, DAG pipeline, API server
+- **Database/Queue/PubSub:** PostgreSQL + [River](https://github.com/riverqueue/river) v0.31.0 for job queue (`FOR UPDATE SKIP LOCKED`), native `LISTEN`/`NOTIFY` for real-time events
+- **Frontend:** Next.js (React) + Tailwind CSS — dashboard (not yet started, `web/` is empty)
+- **Intelligence:** LLMs (Gemini/GPT-4o-mini) via agent frameworks for changelog analysis and SRE validation (planned)
 - **Deployment:** Single binary — Go `//go:embed` serves Next.js static export
 
-## Architecture (Key Concepts)
+## Build & Test Commands
+
+```bash
+# Build
+go build -o releaseguard ./cmd/server
+
+# Test all packages
+go test ./...
+
+# Test a single package
+go test ./internal/ingestion/...
+go test -v -run TestDockerHubSource ./internal/ingestion/...
+
+# Vet
+go vet ./...
+
+# Integration tests (requires Docker)
+bash scripts/integration-test.sh
+```
+
+## Environment Variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DATABASE_URL` | `postgres://localhost:5432/releaseguard?sslmode=disable` | PostgreSQL connection |
+| `GITHUB_WEBHOOK_SECRET` | (empty) | HMAC-SHA256 verification for GitHub webhooks |
+| `LISTEN_ADDR` | `:8080` | HTTP server bind address |
+
+## Architecture
 
 Four decoupled layers communicate exclusively through PostgreSQL:
 
-1. **Ingestion Layer** — Polling workers and webhook handlers behind `IIngestionSource` interface
-2. **DAG Processing Pipeline** — Sequential nodes (Regex Normalizer → Subscription Router → AI Urgency Scorer → Validation Trigger) processing a `ReleaseEvent` IR
-3. **Agentic Validation** — SRE agent with tools (`GetBaseABoxConfig`, `DraftConfigUpgrade`, `DeploySandbox`, `QueryAgentStatus`) for autonomous sandbox testing
-4. **Routing & Notification** — Notification Matrix behind `INotificationChannel` interface
+1. **Ingestion Layer** *(implemented)* — Polling workers and webhook handlers behind `IIngestionSource` interface
+2. **DAG Processing Pipeline** *(planned)* — Sequential nodes processing a `ReleaseEvent` IR
+3. **Agentic Validation** *(planned)* — SRE agent for autonomous sandbox testing
+4. **Routing & Notification** *(planned)* — Notification Matrix behind `INotificationChannel` interface
 
-Critical patterns:
-- **Transactional Outbox** — release insert + job queue within same SQL transaction (zero-loss)
-- **Idempotent ingestion** — unique constraint on `(repository, version)`
-- **Dead-Letter Queue** — failed jobs after 3 attempts go to `discarded` state
+### Transactional Outbox Pattern
 
-## Planned Directory Structure
+The critical data integrity pattern: release insert + River job enqueue happen in the same SQL transaction (`internal/ingestion/pgstore.go`). If either fails, both rollback — zero-loss guarantee.
+
+### Key Interfaces (implemented)
+
+- `IIngestionSource` (`internal/ingestion/source.go`) — Polling-based providers must implement `FetchLatest(ctx) ([]IngestionResult, error)`
+- `ReleaseStore` (`internal/ingestion/store.go`) — Persistence abstraction with `Save(ctx, source, results) error`
+
+### Key Interfaces (planned)
+
+- `PipelineNode` — DAG processing stages
+- `INotificationChannel` — Output providers (Slack, PagerDuty, webhooks)
+
+### Data Flow
 
 ```
-cmd/server/          — Main Go entry point
-internal/
-  ingestion/         — Polling workers, webhook handlers (IIngestionSource)
-  pipeline/          — DAG node implementations
-  agents/            — LLM orchestration and validation tools
-  routing/           — Notification matrix, output providers (INotificationChannel)
-  queue/             — River queue setup and job definitions
-  models/            — Shared domain structs (ReleaseEvent, SemanticData, etc.)
-web/                 — Next.js frontend
-deployments/         — Dockerfiles, Base A Box integration scripts
+IIngestionSource.FetchLatest() → IngestionResult
+    → IngestionService.ProcessResults() normalizes to ReleaseEvent IR
+    → PgStore.Save() in single TX: INSERT release + River InsertTx(PipelineJobArgs)
+    → River worker picks up job → DAG pipeline processes → notifications sent
 ```
 
-## Build Commands (to be established)
+## Database
 
-```bash
-# Go backend
-go build -o releaseguard ./cmd/server
-go test ./...
-go vet ./...
-
-# Next.js frontend
-cd web && npm install && npm run build
-
-# Single binary with embedded frontend
-# Build web first, then go build (embeds web/out/)
-```
+Schema lives in `internal/db/migrations.go` (idempotent, runs on startup). Current tables:
+- `releases` — unique on `(repository, version)` for idempotent ingestion
+- `subscriptions` — maps repositories to notification channels
+- River's own tables (created by `rivermigrate`)
 
 ## Key Design References
 
 - `ARCH.md` — Full architecture: system diagram, data flow lifecycle, DAG pipeline design
 - `DESIGN.md` — Component design: ReleaseEvent IR struct, database schema, SRE agent workflow, error handling
-- `docs/designs` - Folder for design docs
+- `docs/designs/` — Feature-specific design docs (API design, etc.)
+- `docs/plans/` — Implementation plans and task tracking
 
 ## Workflow Orchestration
 
