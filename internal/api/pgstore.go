@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sentioxyz/releaseguard/internal/models"
@@ -104,6 +105,116 @@ func (s *PgStore) TouchKeyUsage(ctx context.Context, rawKey string) {
 	hash := sha256.Sum256([]byte(rawKey))
 	keyHash := hex.EncodeToString(hash[:])
 	_, _ = s.pool.Exec(ctx, `UPDATE api_keys SET last_used_at = NOW() WHERE key_hash = $1`, keyHash)
+}
+
+// --- SourcesStore ---
+
+func (s *PgStore) ListSources(ctx context.Context, page, perPage int) ([]models.Source, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM sources`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count sources: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, project_id, source_type, repository, poll_interval_seconds, enabled,
+		        COALESCE(exclude_version_regexp,''), exclude_prereleases, last_polled_at, last_error,
+		        created_at, updated_at
+		 FROM sources ORDER BY created_at DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list sources: %w", err)
+	}
+	defer rows.Close()
+	var sources []models.Source
+	for rows.Next() {
+		var src models.Source
+		if err := rows.Scan(&src.ID, &src.ProjectID, &src.SourceType, &src.Repository,
+			&src.PollIntervalSeconds, &src.Enabled, &src.ExcludeVersionRegexp, &src.ExcludePrereleases,
+			&src.LastPolledAt, &src.LastError, &src.CreatedAt, &src.UpdatedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan source: %w", err)
+		}
+		sources = append(sources, src)
+	}
+	return sources, total, nil
+}
+
+func (s *PgStore) CreateSource(ctx context.Context, src *models.Source) error {
+	return s.pool.QueryRow(ctx,
+		`INSERT INTO sources (project_id, source_type, repository, poll_interval_seconds, enabled, exclude_version_regexp, exclude_prereleases)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 RETURNING id, enabled, created_at, updated_at`,
+		src.ProjectID, src.SourceType, src.Repository, src.PollIntervalSeconds, src.Enabled,
+		src.ExcludeVersionRegexp, src.ExcludePrereleases,
+	).Scan(&src.ID, &src.Enabled, &src.CreatedAt, &src.UpdatedAt)
+}
+
+func (s *PgStore) GetSource(ctx context.Context, id int) (*models.Source, error) {
+	var src models.Source
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, project_id, source_type, repository, poll_interval_seconds, enabled,
+		        COALESCE(exclude_version_regexp,''), exclude_prereleases, last_polled_at, last_error,
+		        created_at, updated_at
+		 FROM sources WHERE id = $1`, id,
+	).Scan(&src.ID, &src.ProjectID, &src.SourceType, &src.Repository,
+		&src.PollIntervalSeconds, &src.Enabled, &src.ExcludeVersionRegexp, &src.ExcludePrereleases,
+		&src.LastPolledAt, &src.LastError, &src.CreatedAt, &src.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &src, nil
+}
+
+func (s *PgStore) UpdateSource(ctx context.Context, id int, src *models.Source) error {
+	return s.pool.QueryRow(ctx,
+		`UPDATE sources SET source_type=$1, repository=$2, poll_interval_seconds=$3, enabled=$4,
+		        exclude_version_regexp=$5, exclude_prereleases=$6, updated_at=NOW()
+		 WHERE id=$7 RETURNING updated_at`,
+		src.SourceType, src.Repository, src.PollIntervalSeconds, src.Enabled,
+		src.ExcludeVersionRegexp, src.ExcludePrereleases, id,
+	).Scan(&src.UpdatedAt)
+}
+
+func (s *PgStore) DeleteSource(ctx context.Context, id int) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM sources WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("not found")
+	}
+	return nil
+}
+
+func (s *PgStore) GetLatestRelease(ctx context.Context, sourceID int) (*ReleaseView, error) {
+	var rv ReleaseView
+	var isPreStr string
+	var createdAt time.Time
+	err := s.pool.QueryRow(ctx,
+		releaseViewQuery+` WHERE s.id = $1 ORDER BY r.created_at DESC LIMIT 1`, sourceID,
+	).Scan(&rv.ID, &rv.SourceID, &rv.SourceType, &rv.Repository, &rv.ProjectID, &rv.ProjectName,
+		&rv.RawVersion, &isPreStr, &rv.PipelineStatus, &createdAt)
+	if err != nil {
+		return nil, err
+	}
+	rv.IsPreRelease = isPreStr == "true"
+	rv.CreatedAt = createdAt.Format(time.RFC3339)
+	return &rv, nil
+}
+
+func (s *PgStore) GetReleaseByVersion(ctx context.Context, sourceID int, version string) (*ReleaseView, error) {
+	var rv ReleaseView
+	var isPreStr string
+	var createdAt time.Time
+	err := s.pool.QueryRow(ctx,
+		releaseViewQuery+` WHERE s.id = $1 AND r.version = $2`, sourceID, version,
+	).Scan(&rv.ID, &rv.SourceID, &rv.SourceType, &rv.Repository, &rv.ProjectID, &rv.ProjectName,
+		&rv.RawVersion, &isPreStr, &rv.PipelineStatus, &createdAt)
+	if err != nil {
+		return nil, err
+	}
+	rv.IsPreRelease = isPreStr == "true"
+	rv.CreatedAt = createdAt.Format(time.RFC3339)
+	return &rv, nil
 }
 
 // --- HealthChecker ---
