@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "7eede43a66a4",
+  "session_id": "a7f3e521-42be-4eb7-a31a-9aa7a4e67b76",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-24T12:13:49.861065Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "ARCH.md",
+    "CLAUDE.md",
+    "DESIGN.md",
+    "docs/designs/2026-02-24-api-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "670c9ca42fb9",
+  "transcript_identifier_at_start": "c71af08d-84eb-42eb-9976-432810696974",
+  "token_usage": {
+    "input_tokens": 5780,
+    "cache_creation_tokens": 195825,
+    "cache_read_tokens": 8789862,
+    "output_tokens": 1136,
+    "api_call_count": 99
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-24T12:13:49.001942Z",
+    "agent_lines": 0,
+    "human_added": 88,
+    "human_modified": 34,
+    "human_removed": 0,
+    "total_committed": 93,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/a7f3e521-42be-4eb7-a31a-9aa7a4e67b76.jsonl"
+}
