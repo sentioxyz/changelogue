@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "ad8afc8007c4",
+  "session_id": "f2050b44-759c-4aa3-b2b2-dff0c536df49",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-24T12:45:29.233019Z",
+  "branch": "feat/rest-api-layer",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".gitignore"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "9db735a1d9d6",
+  "transcript_identifier_at_start": "0c4318d6-b71a-4be7-9277-958827e3b0bb",
+  "token_usage": {
+    "input_tokens": 98,
+    "cache_creation_tokens": 163467,
+    "cache_read_tokens": 6034552,
+    "output_tokens": 776,
+    "api_call_count": 54
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-24T12:45:28.607713Z",
+    "agent_lines": 0,
+    "human_added": 1,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/f2050b44-759c-4aa3-b2b2-dff0c536df49.jsonl"
+}

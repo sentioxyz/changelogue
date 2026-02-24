@@ -3,7 +3,7 @@
   "checkpoint_id": "ad8afc8007c4",
   "strategy": "manual-commit",
   "branch": "feat/rest-api-layer",
-  "checkpoints_count": 3,
+  "checkpoints_count": 5,
   "files_touched": [
     ".gitignore"
   ],
@@ -28,13 +28,20 @@
       "context": "/ad/8afc8007c4/2/context.md",
       "content_hash": "/ad/8afc8007c4/2/content_hash.txt",
       "prompt": "/ad/8afc8007c4/2/prompt.txt"
+    },
+    {
+      "metadata": "/ad/8afc8007c4/3/metadata.json",
+      "transcript": "/ad/8afc8007c4/3/full.jsonl",
+      "context": "/ad/8afc8007c4/3/context.md",
+      "content_hash": "/ad/8afc8007c4/3/content_hash.txt",
+      "prompt": "/ad/8afc8007c4/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 5844,
-    "cache_creation_tokens": 646844,
-    "cache_read_tokens": 12621814,
-    "output_tokens": 1690,
-    "api_call_count": 154
+    "input_tokens": 5942,
+    "cache_creation_tokens": 810311,
+    "cache_read_tokens": 18656366,
+    "output_tokens": 2466,
+    "api_call_count": 208
   }
 }
