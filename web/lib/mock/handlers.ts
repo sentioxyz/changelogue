@@ -1,5 +1,6 @@
 // web/lib/mock/handlers.ts
 import { http, HttpResponse, delay } from "msw";
+import type { Project, Source, Subscription, NotificationChannel } from "../api/types";
 import {
   mockProjects, mockReleases, mockPipelineStatuses,
   mockSources, mockSubscriptions, mockChannels,
@@ -43,7 +44,7 @@ export const handlers = [
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    mockProjects.push(project as any);
+    mockProjects.push(project as unknown as Project);
     return HttpResponse.json(envelope(project), { status: 201 });
   }),
 
@@ -126,7 +127,7 @@ export const handlers = [
       last_polled_at: null, last_error: null,
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     };
-    mockSources.push(source as any);
+    mockSources.push(source as unknown as Source);
     return HttpResponse.json(envelope(source), { status: 201 });
   }),
 
@@ -175,7 +176,7 @@ export const handlers = [
       enabled: body.enabled ?? true, frequency: body.frequency ?? "instant",
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     };
-    mockSubscriptions.push(sub as any);
+    mockSubscriptions.push(sub as unknown as Subscription);
     return HttpResponse.json(envelope(sub), { status: 201 });
   }),
 
@@ -217,7 +218,7 @@ export const handlers = [
       enabled: body.enabled ?? true,
       created_at: new Date().toISOString(),
     };
-    mockChannels.push(channel as any);
+    mockChannels.push(channel as unknown as NotificationChannel);
     return HttpResponse.json(envelope(channel), { status: 201 });
   }),
 
