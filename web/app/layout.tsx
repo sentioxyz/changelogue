@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { MSWProvider } from "@/lib/msw-provider";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Header } from "@/components/layout/header";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,7 +30,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <MSWProvider>{children}</MSWProvider>
+        <MSWProvider>
+          <div className="flex h-screen">
+            <Sidebar />
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <Header />
+              <main className="flex-1 overflow-y-auto p-6">{children}</main>
+            </div>
+          </div>
+        </MSWProvider>
       </body>
     </html>
   );
