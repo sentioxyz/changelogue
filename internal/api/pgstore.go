@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -215,6 +217,118 @@ func (s *PgStore) GetReleaseByVersion(ctx context.Context, sourceID int, version
 	rv.IsPreRelease = isPreStr == "true"
 	rv.CreatedAt = createdAt.Format(time.RFC3339)
 	return &rv, nil
+}
+
+// --- ReleasesStore ---
+
+func (s *PgStore) ListReleases(ctx context.Context, opts ListReleasesOpts) ([]ReleaseView, int, error) {
+	// Build dynamic WHERE clause.
+	var conditions []string
+	var args []any
+	argIdx := 1
+
+	if opts.ProjectID != nil {
+		conditions = append(conditions, fmt.Sprintf("p.id = $%d", argIdx))
+		args = append(args, *opts.ProjectID)
+		argIdx++
+	}
+	if opts.SourceID != nil {
+		conditions = append(conditions, fmt.Sprintf("s.id = $%d", argIdx))
+		args = append(args, *opts.SourceID)
+		argIdx++
+	}
+
+	where := ""
+	if len(conditions) > 0 {
+		where = " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// Count query.
+	countQuery := `SELECT COUNT(*) FROM releases r
+		JOIN sources s ON r.source_id = s.id
+		JOIN projects p ON s.project_id = p.id` + where
+	var total int
+	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count releases: %w", err)
+	}
+
+	// Sort clause.
+	sortCol := "r.created_at"
+	if opts.Sort == "version" {
+		sortCol = "r.version"
+	}
+	order := "DESC"
+	if strings.EqualFold(opts.Order, "asc") {
+		order = "ASC"
+	}
+
+	// Data query.
+	dataQuery := releaseViewQuery + where +
+		fmt.Sprintf(" ORDER BY %s %s LIMIT $%d OFFSET $%d", sortCol, order, argIdx, argIdx+1)
+	args = append(args, opts.PerPage, (opts.Page-1)*opts.PerPage)
+
+	rows, err := s.pool.Query(ctx, dataQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list releases: %w", err)
+	}
+	defer rows.Close()
+
+	var releases []ReleaseView
+	for rows.Next() {
+		var rv ReleaseView
+		var isPreStr string
+		var createdAt time.Time
+		if err := rows.Scan(&rv.ID, &rv.SourceID, &rv.SourceType, &rv.Repository, &rv.ProjectID, &rv.ProjectName,
+			&rv.RawVersion, &isPreStr, &rv.PipelineStatus, &createdAt); err != nil {
+			return nil, 0, fmt.Errorf("scan release: %w", err)
+		}
+		rv.IsPreRelease = isPreStr == "true"
+		rv.CreatedAt = createdAt.Format(time.RFC3339)
+		releases = append(releases, rv)
+	}
+	return releases, total, nil
+}
+
+func (s *PgStore) GetRelease(ctx context.Context, id string) (*ReleaseView, error) {
+	var rv ReleaseView
+	var isPreStr string
+	var createdAt time.Time
+	err := s.pool.QueryRow(ctx,
+		releaseViewQuery+` WHERE r.id = $1`, id,
+	).Scan(&rv.ID, &rv.SourceID, &rv.SourceType, &rv.Repository, &rv.ProjectID, &rv.ProjectName,
+		&rv.RawVersion, &isPreStr, &rv.PipelineStatus, &createdAt)
+	if err != nil {
+		return nil, err
+	}
+	rv.IsPreRelease = isPreStr == "true"
+	rv.CreatedAt = createdAt.Format(time.RFC3339)
+	return &rv, nil
+}
+
+func (s *PgStore) GetReleaseNotes(ctx context.Context, id string) (string, error) {
+	var changelog string
+	err := s.pool.QueryRow(ctx,
+		`SELECT COALESCE(payload->>'changelog', '') FROM releases WHERE id = $1`, id,
+	).Scan(&changelog)
+	if err != nil {
+		return "", err
+	}
+	return changelog, nil
+}
+
+func (s *PgStore) GetPipelineStatus(ctx context.Context, releaseID string) (*PipelineStatus, error) {
+	var ps PipelineStatus
+	var nodeResults []byte
+	err := s.pool.QueryRow(ctx,
+		`SELECT release_id, state, current_node, node_results, attempt, completed_at
+		 FROM pipeline_jobs WHERE release_id = $1 ORDER BY created_at DESC LIMIT 1`, releaseID,
+	).Scan(&ps.ReleaseID, &ps.State, &ps.CurrentNode, &nodeResults, &ps.Attempt, &ps.CompletedAt)
+	if err != nil {
+		return nil, err
+	}
+	ps.NodeResults = json.RawMessage(nodeResults)
+	return &ps, nil
 }
 
 // --- HealthChecker ---
