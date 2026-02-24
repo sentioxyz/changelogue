@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "d22707384619",
+  "session_id": "a24e068c-3d31-48d3-8098-15787548e2c9",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-24T12:47:57.148265Z",
+  "branch": "feat/rest-api-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/server/main.go",
+    "internal/ingestion/dockerhub.go",
+    "internal/ingestion/dockerhub_test.go",
+    "internal/ingestion/orchestrator.go",
+    "internal/ingestion/orchestrator_test.go",
+    "internal/ingestion/pgstore.go",
+    "internal/ingestion/service.go",
+    "internal/ingestion/service_test.go",
+    "internal/ingestion/source.go",
+    "internal/ingestion/store.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "ddf379a6ff93",
+  "token_usage": {
+    "input_tokens": 32,
+    "cache_creation_tokens": 231655,
+    "cache_read_tokens": 2184810,
+    "output_tokens": 251,
+    "api_call_count": 28
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-24T12:47:56.79459Z",
+    "agent_lines": 28,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 28,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/a24e068c-3d31-48d3-8098-15787548e2c9.jsonl"
+}
