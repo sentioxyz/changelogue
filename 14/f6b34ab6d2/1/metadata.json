@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "14f6b34ab6d2",
+  "session_id": "e4ada0eb-2b90-4b4d-b811-1455e745351b",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-24T14:55:07.629391Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/plans/2026-02-24-project-centric-redesign-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "2ff0a9a83e02",
+  "checkpoint_transcript_start": 272,
+  "transcript_lines_at_start": 272,
+  "token_usage": {
+    "input_tokens": 42,
+    "cache_creation_tokens": 142647,
+    "cache_read_tokens": 1840327,
+    "output_tokens": 273,
+    "api_call_count": 33
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-24T14:55:06.563529Z",
+    "agent_lines": 0,
+    "human_added": 16997,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 16997,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/e4ada0eb-2b90-4b4d-b811-1455e745351b.jsonl"
+}
