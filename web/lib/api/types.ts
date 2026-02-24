@@ -164,8 +164,33 @@ export type SSEEventType =
   | "source.error"
   | "source.polled";
 
-export interface SSEEvent {
-  type: SSEEventType;
-  data: unknown;
+interface SSEBase {
+  id: string;
   timestamp: string;
 }
+
+export type SSEEvent =
+  | (SSEBase & {
+      type: "release.created";
+      data: { id: string; source: string; repository: string; raw_version: string; created_at: string };
+    })
+  | (SSEBase & {
+      type: "pipeline.node_completed";
+      data: { release_id: string; node: string; result: Record<string, unknown> };
+    })
+  | (SSEBase & {
+      type: "pipeline.completed";
+      data: { release_id: string; state: string };
+    })
+  | (SSEBase & {
+      type: "pipeline.failed";
+      data: { release_id: string };
+    })
+  | (SSEBase & {
+      type: "source.polled";
+      data: { source_id: number; repository: string; new_releases: number };
+    })
+  | (SSEBase & {
+      type: "source.error";
+      data: { repository: string };
+    });

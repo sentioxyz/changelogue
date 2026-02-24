@@ -17,23 +17,27 @@ const eventColors: Record<string, string> = {
 };
 
 function formatEvent(event: SSEEvent): string {
-  const d = event.data as Record<string, unknown>;
   switch (event.type) {
     case "release.created":
-      return `New release: ${d.repository} ${d.raw_version}`;
+      return `New release: ${event.data.repository} ${event.data.raw_version}`;
     case "pipeline.node_completed":
-      return `Pipeline node "${d.node}" completed for ${d.release_id}`;
+      return `Pipeline node "${event.data.node}" completed for ${event.data.release_id}`;
     case "pipeline.completed":
-      return `Pipeline completed for ${d.release_id}`;
+      return `Pipeline completed for ${event.data.release_id}`;
     case "pipeline.failed":
-      return `Pipeline failed for ${d.release_id}`;
+      return `Pipeline failed for ${event.data.release_id}`;
     case "source.polled":
-      return `Polled ${d.repository} — ${d.new_releases} new`;
+      return `Polled ${event.data.repository} — ${event.data.new_releases} new`;
     case "source.error":
-      return `Source error: ${d.repository}`;
+      return `Source error: ${event.data.repository}`;
     default:
-      return event.type;
+      return event satisfies never;
   }
+}
+
+function eventLabel(type: SSEEvent["type"]): string {
+  const idx = type.indexOf(".");
+  return idx >= 0 ? type.slice(idx + 1) : type;
 }
 
 export function ActivityFeed() {
@@ -64,10 +68,10 @@ export function ActivityFeed() {
           </p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">
-            {events.map((event, i) => (
-              <div key={`${event.timestamp}-${i}`} className="flex items-start gap-2 text-sm">
+            {events.map((event) => (
+              <div key={event.id} className="flex items-start gap-2 text-sm">
                 <Badge className={`shrink-0 text-xs ${eventColors[event.type] ?? ""}`}>
-                  {event.type.split(".")[1]}
+                  {eventLabel(event.type)}
                 </Badge>
                 <span className="flex-1 text-muted-foreground">{formatEvent(event)}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">

@@ -1,7 +1,12 @@
 // web/lib/mock/sse.ts
-import type { SSEEvent, SSEEventType } from "../api/types";
+import type { SSEEvent } from "../api/types";
 
 type SSEListener = (event: SSEEvent) => void;
+
+let counter = 0;
+function uid(): string {
+  return `sse-${Date.now()}-${++counter}`;
+}
 
 class MockSSE {
   private listeners: SSEListener[] = [];
@@ -20,9 +25,10 @@ class MockSSE {
   }
 
   private startEmitting() {
-    const events: Array<() => SSEEvent> = [
+    const factories: Array<() => SSEEvent> = [
       () => ({
-        type: "release.created" as SSEEventType,
+        id: uid(),
+        type: "release.created",
         data: {
           id: `r-live-${Date.now()}`,
           source: "dockerhub",
@@ -33,7 +39,8 @@ class MockSSE {
         timestamp: new Date().toISOString(),
       }),
       () => ({
-        type: "pipeline.node_completed" as SSEEventType,
+        id: uid(),
+        type: "pipeline.node_completed",
         data: {
           release_id: "r-004",
           node: ["regex_normalizer", "changelog_summarizer", "urgency_scorer"][Math.floor(Math.random() * 3)],
@@ -42,7 +49,8 @@ class MockSSE {
         timestamp: new Date().toISOString(),
       }),
       () => ({
-        type: "pipeline.completed" as SSEEventType,
+        id: uid(),
+        type: "pipeline.completed",
         data: {
           release_id: "r-004",
           state: "completed",
@@ -50,7 +58,8 @@ class MockSSE {
         timestamp: new Date().toISOString(),
       }),
       () => ({
-        type: "source.polled" as SSEEventType,
+        id: uid(),
+        type: "source.polled",
         data: {
           source_id: Math.floor(Math.random() * 6) + 1,
           repository: ["library/golang", "ethereum/client-go", "library/postgres"][Math.floor(Math.random() * 3)],
@@ -61,8 +70,8 @@ class MockSSE {
     ];
 
     this.interval = setInterval(() => {
-      const eventFn = events[Math.floor(Math.random() * events.length)];
-      const event = eventFn();
+      const factory = factories[Math.floor(Math.random() * factories.length)];
+      const event = factory();
       this.listeners.forEach((l) => l(event));
     }, 5000); // Emit every 5 seconds
   }
