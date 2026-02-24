@@ -38,10 +38,44 @@ type ReleaseEvent struct {
 
 Instead of a rigid, procedural filtering function, the event processing is designed as a **Directed Acyclic Graph (DAG)**. The IR payload is passed through these nodes sequentially. This compiler-like approach makes it trivial to add new evaluation steps or branch the logic for multiple outputs without breaking existing flows.
 
-1. **Node: Regex Normalizer:** Parses `RawVersion` into `SemanticData` and sets `IsPreRelease`.
-2. **Node: Subscription Router:** Checks the Postgres DB to see if any team is subscribed to this repository's pre-release channel. If not, execution halts (the event is dropped).
-3. **Node: AI Urgency Scorer:** Calls the LLM to analyze the `Changelog`.
-4. **Node: Validation Trigger:** Evaluates the AI's urgency score and triggers the SRE agent if a threshold is met.
+**Which nodes run is configurable per project** via `pipeline_config`. Disabled nodes are skipped during processing and their sections are omitted from the final notification. Two nodes are always-on (regex normalizer and subscription router) since they're structural. The rest are opt-in.
+
+#### Always-On Nodes
+
+1. **Node: Regex Normalizer** — Parses `RawVersion` into `SemanticData` and sets `IsPreRelease`. Applies source-level exclusion rules (`exclude_version_regexp`, `exclude_prereleases`).
+2. **Node: Subscription Router** — Checks the Postgres DB to see if any team is subscribed to this project's channel type. If not, execution halts (the event is dropped).
+
+#### Configurable Nodes
+
+3. **Node: Availability Checker** (`availability_checker`) — Verifies the release artifact is actually obtainable. For Docker Hub, pulls and validates the image digest. For GitHub, checks binary download URLs return 200. Produces the "Status" section of the notification.
+4. **Node: Risk Assessor** (`risk_assessor`) — Scans changelog text, linked issues, and external signals (e.g., Discord announcements, advisory databases) for high-risk keywords ("hard fork", "breaking change", "CVE", "security"). Produces the "Risk Level" section.
+5. **Node: Adoption Tracker** (`adoption_tracker`) — Queries external metrics for release adoption (e.g., % of network nodes updated for blockchain projects, download counts for libraries). Produces the "Adoption" section. Not applicable to all projects.
+6. **Node: Changelog Summarizer** (`changelog_summarizer`) — Calls the LLM to generate a concise, human-readable summary of the changelog. Produces the "Summary" section.
+7. **Node: Urgency Scorer** (`urgency_scorer`) — Computes a composite urgency score (LOW / MEDIUM / HIGH / CRITICAL) from all preceding node results. Produces the "Urgency" section and the notification subject line qualifier.
+8. **Node: Validation Trigger** (`validation_trigger`) — Evaluates the urgency score and triggers the SRE agent if a threshold is met. Only relevant for projects with sandbox validation configured.
+
+#### Notification Assembly
+
+The final notification is assembled from `pipeline_jobs.node_results` using a fixed template with dynamic sections. Each configurable node maps to a notification section — disabled nodes produce no section:
+
+```
+🚀 Ready to Deploy: {project} {version} ({urgency} Update)
+
+Status: ✅ Docker Image Verified | ✅ Binaries Available    ← availability_checker
+Risk Level: 🔴 CRITICAL (Keyword "Hard Fork" detected)      ← risk_assessor
+Adoption: 📊 12% of network updated                         ← adoption_tracker
+Summary: "Fixes sync bug in block 14,000,000."              ← changelog_summarizer
+Urgency: HIGH                                                ← urgency_scorer
+```
+
+For a simpler project with only `changelog_summarizer` and `urgency_scorer` enabled, the notification would be:
+
+```
+🚀 New Release: lodash v4.18.0
+
+Summary: "Adds array chunking utility, fixes deep clone edge case."
+Urgency: LOW
+```
 
 ### 2.3 SRE Agent Orchestration (The Validation Sandbox)
 
@@ -65,41 +99,121 @@ To maintain predictable execution, the agent is modeled as a state machine (suit
 
 ## 3. Database Schema (PostgreSQL)
 
-The system relies on three core tables to manage state and message passing.
+The system relies on seven core tables to manage state, configuration, and message passing.
 
 ```sql
+-- Tracked software projects (the central entity)
+CREATE TABLE projects (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,          -- display name: 'Go Runtime', 'PostgreSQL'
+    description TEXT,
+    url VARCHAR(500),                           -- upstream project URL
+    pipeline_config JSONB NOT NULL DEFAULT '{   -- which DAG nodes are enabled for this project
+        "availability_checker": true,
+        "risk_assessor": true,
+        "adoption_tracker": false,
+        "changelog_summarizer": true,
+        "urgency_scorer": true,
+        "validation_trigger": false
+    }'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Configured ingestion sources (what to poll and how)
+-- A project can have multiple sources (e.g., GitHub + Docker Hub)
+CREATE TABLE sources (
+    id SERIAL PRIMARY KEY,
+    project_id INT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    source_type VARCHAR(50) NOT NULL,           -- 'dockerhub', 'github'
+    repository VARCHAR(255) NOT NULL,
+    poll_interval_seconds INT DEFAULT 300,
+    enabled BOOLEAN DEFAULT true,
+    exclude_version_regexp TEXT,                 -- regex to skip matching versions at ingestion
+    exclude_prereleases BOOLEAN DEFAULT false,   -- drop pre-releases before pipeline
+    last_polled_at TIMESTAMPTZ,
+    last_error TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(source_type, repository)             -- no duplicate source+repo pairs
+);
+
 -- Stores the normalized Intermediate Representation
+-- References the source it came from; project is reachable via JOIN
 CREATE TABLE releases (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    repository VARCHAR(255) NOT NULL,
+    source_id INT NOT NULL REFERENCES sources(id),
     version VARCHAR(100) NOT NULL,
-    payload JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    payload JSONB NOT NULL,                     -- full ReleaseEvent IR as JSON
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(source_id, version)                  -- idempotent: same version from same source
 );
 
 -- River-compatible job queue for the DAG pipeline
 CREATE TABLE pipeline_jobs (
     id BIGSERIAL PRIMARY KEY,
-    state VARCHAR(50) DEFAULT 'available', -- available, running, completed, retry
+    state VARCHAR(50) DEFAULT 'available',      -- available, running, completed, retry, discarded
     release_id UUID REFERENCES releases(id),
+    current_node VARCHAR(50),                   -- 'regex_normalizer', 'subscription_router', etc.
+    node_results JSONB DEFAULT '{}',            -- per-node output keyed by node name
     attempt INT DEFAULT 0,
     max_attempts INT DEFAULT 3,
-    locked_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    error_message TEXT,
+    locked_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
 );
 
--- Tracks routing rules for specific repos and channels
+-- Registered notification channels (output targets)
+CREATE TABLE notification_channels (
+    id SERIAL PRIMARY KEY,
+    type VARCHAR(50) NOT NULL,                  -- 'slack', 'pagerduty', 'webhook'
+    name VARCHAR(100) NOT NULL,
+    config JSONB NOT NULL,                      -- webhook_url, channel_id, routing_key, etc.
+    enabled BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Routing rules: subscribe a project to a notification channel
+-- Subscriptions attach to projects, not individual sources
 CREATE TABLE subscriptions (
     id SERIAL PRIMARY KEY,
-    repository VARCHAR(255) NOT NULL,
-    channel_type VARCHAR(50) NOT NULL, -- 'stable', 'pre-release', 'security'
-    notification_target VARCHAR(255) NOT NULL -- e.g., 'slack_channel_id'
+    project_id INT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    channel_type VARCHAR(50) NOT NULL,          -- 'stable', 'pre-release', 'security'
+    channel_id INT REFERENCES notification_channels(id),
+    version_pattern TEXT,                       -- regex: only notify for matching versions
+    frequency VARCHAR(20) DEFAULT 'instant',    -- 'instant', 'hourly', 'daily', 'weekly'
+    enabled BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- API authentication keys
+CREATE TABLE api_keys (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    key_hash VARCHAR(64) NOT NULL UNIQUE,       -- SHA-256 hash, raw key shown once
+    key_prefix VARCHAR(12) NOT NULL,            -- 'rg_live_' or 'rg_test_' prefix for identification
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    last_used_at TIMESTAMPTZ
 );
 
 ```
 
+### 3.1 Schema Design Notes
+
+* **Projects as the central entity:** A project represents a tracked piece of software (e.g., "Go Runtime"). It can have multiple sources — a GitHub source for webhook-based repos you own and a Docker Hub source for polling the container image. Subscriptions attach to projects, so a single notification rule covers all sources for that project. The `pipeline_config` JSONB column controls which DAG nodes run for this project — disabled nodes are skipped during processing and their sections are omitted from notifications.
+* **Multi-source ingestion:** The `sources` table uses `UNIQUE(source_type, repository)` instead of `UNIQUE(repository)` — the same repository name on different providers won't collide. Each source belongs to exactly one project via `project_id`.
+* **Release provenance:** Releases reference `source_id` (not raw strings), so you always know which source detected a release. The unique constraint `UNIQUE(source_id, version)` allows the same version to exist from different sources (e.g., Go 1.21.0 from GitHub and Docker Hub are separate release records).
+* **Pipeline node tracking:** The `current_node` and `node_results` columns on `pipeline_jobs` provide per-node observability. The dashboard can show exactly where a release is in the pipeline and what each node produced (e.g., the AI urgency score, regex normalizer output).
+* **Notification channels:** Separating channel registration from subscription routing allows multiple subscriptions to reference the same Slack channel or PagerDuty service. The `config` JSONB column stores provider-specific credentials (webhook URLs, routing keys).
+* **Notification frequency:** The `frequency` column on subscriptions supports digest-style notifications. A background worker aggregates `hourly`/`daily`/`weekly` subscriptions and sends batched summaries instead of individual alerts.
+
 ## 4. Error Handling & Idempotency
 
-* **Idempotent Ingestion:** The `releases` table enforces a unique constraint on `(repository, version)`. If a polling worker and a webhook both report the same release simultaneously, the database rejects the duplicate, preventing duplicate pipeline jobs.
-* **Dead-Letter Queue (DLQ):** If a DAG pipeline job fails `max_attempts` (e.g., the LLM API is down), the `pipeline_jobs` state is updated to `discarded`. A separate Postgres trigger alerts the system admin that an event requires manual intervention.
+* **Idempotent Ingestion:** The `releases` table enforces a `UNIQUE(source_id, version)` constraint. If a polling worker and a webhook both report the same release from the same source simultaneously, the database rejects the duplicate, preventing duplicate pipeline jobs.
+* **Source-Level Filtering:** Before events enter the pipeline, the ingestion layer applies source-level exclusion rules (`exclude_version_regexp`, `exclude_prereleases`). Filtered releases are never inserted, reducing pipeline load.
+* **Dead-Letter Queue (DLQ):** If a DAG pipeline job fails `max_attempts` (e.g., the LLM API is down), the `pipeline_jobs` state is updated to `discarded` and `error_message` captures the failure reason. A separate Postgres trigger alerts the system admin that an event requires manual intervention.
+* **Pipeline Observability:** Each pipeline job tracks its `current_node` and accumulates `node_results` as it progresses through the DAG. If a job fails mid-pipeline, the exact failure point and partial results are preserved for debugging.
 * **Agent Fallback:** If the SRE Agent sandbox deployment fails due to infrastructure timeout (unrelated to the software release itself), the agent safely aborts the validation phase, flags the release event as "Unverified," and routes it to a human reviewer rather than dropping the notification.
+* **Notification Digest Fallback:** If a digest batch fails to send (e.g., Slack API outage), the batch is retried on the next interval. Individual items within the batch are not lost — they remain queued until the channel recovers.

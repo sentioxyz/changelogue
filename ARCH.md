@@ -19,20 +19,25 @@ ReleaseGuard is an event-driven, hybrid-architecture system designed to centrali
 
 ## 2. System Design & Abstractions
 
-The system is decoupled into four primary layers communicating entirely through PostgreSQL using the Transactional Outbox pattern.
+The system is decoupled into four primary layers communicating entirely through PostgreSQL using the Transactional Outbox pattern. A **Project** is the central domain entity — it groups multiple ingestion sources and notification subscriptions under a single tracked piece of software.
 
 ```mermaid
 graph LR
     %% Data Flow
+    subgraph Dashboard [API & Dashboard]
+        API[REST API] --> |CRUD| PG
+        API --> |SSE| Browser[Next.js Dashboard]
+    end
+
     subgraph Ingestion [Ingestion Layer]
-        I_Hub(Docker Hub) --> |Provider| Engine
-        I_Git(GitHub Webhooks) --> |Provider| Engine
+        I_Hub(Docker Hub Poller) --> |IIngestionSource| Engine
+        I_Git(GitHub Webhooks) --> |HTTP Handler| Engine
     end
 
     subgraph Core [Event Bus & Queue - PostgreSQL]
-        Engine((Go Engine)) --> |INSERT / Transaction| PG[(PostgreSQL)]
-        PG --> |SKIP LOCKED (River)| DAG[DAG Processing Pipeline]
-        DAG --> |UPDATE status| PG
+        Engine((Go Engine)) --> |INSERT release + job\nTransactional Outbox| PG[(PostgreSQL)]
+        PG --> |SKIP LOCKED\nRiver| DAG[DAG Processing Pipeline]
+        DAG --> |UPDATE node_results\ncurrent_node| PG
     end
 
     subgraph Intelligence [Agentic Validation]
@@ -41,38 +46,107 @@ graph LR
     end
 
     subgraph Output [Routing & Notification]
-        PG --> |LISTEN / Job Route| Router[Notification Matrix]
-        Router --> O_Slack(Slack/Teams)
-        Router --> O_Opsack(Ops Opsack)
+        PG --> |LISTEN/NOTIFY| Router[Notification Matrix]
+        Router --> |INotificationChannel| O_Slack(Slack/Teams)
+        Router --> |INotificationChannel| O_PD(PagerDuty)
+        Router --> |INotificationChannel| O_Hook(Custom Webhooks)
     end
 
+```
+
+### Entity Relationship Model
+
+```mermaid
+erDiagram
+    projects ||--o{ sources : "has many"
+    projects ||--o{ subscriptions : "has many"
+    sources ||--o{ releases : "produces"
+    releases ||--o{ pipeline_jobs : "triggers"
+    notification_channels ||--o{ subscriptions : "receives via"
+
+    projects {
+        int id PK
+        string name UK
+        string description
+        string url
+        jsonb pipeline_config
+    }
+    sources {
+        int id PK
+        int project_id FK
+        string source_type
+        string repository
+        int poll_interval_seconds
+        boolean enabled
+    }
+    releases {
+        uuid id PK
+        int source_id FK
+        string version
+        jsonb payload
+    }
+    subscriptions {
+        int id PK
+        int project_id FK
+        int channel_id FK
+        string channel_type
+        string frequency
+    }
+    notification_channels {
+        int id PK
+        string type
+        string name
+        jsonb config
+    }
 ```
 
 ### 2.1 The Event-Driven Backbone (PostgreSQL Only)
 
 Components do not call each other synchronously. Instead, they rely on PostgreSQL to guarantee delivery:
 
-* **The Transactional Outbox:** When a new release is detected, the ingestion worker writes the metadata to the `releases` table and simultaneously inserts a processing job into the `pipeline_jobs` table *within the exact same SQL transaction*. This guarantees no events are ever lost.
-* **Real-time Pub/Sub:** Database triggers use `pg_notify` to broadcast lightweight events (e.g., telling the Next.js UI to refresh) over standard Postgres connections using `LISTEN`.
+* **The Transactional Outbox:** When a new release is detected, the ingestion worker writes the metadata to the `releases` table (linked to its `source_id`) and simultaneously inserts a processing job into the `pipeline_jobs` table *within the exact same SQL transaction*. This guarantees no events are ever lost.
+* **Real-time Pub/Sub:** Database triggers use `pg_notify` to broadcast lightweight events (e.g., telling the Next.js UI via SSE to refresh) over standard Postgres connections using `LISTEN`.
 * **Reliable Queues:** Go background workers poll the `pipeline_jobs` table using `FOR UPDATE SKIP LOCKED`, ensuring only one worker processes a specific release's DAG pipeline at a time.
+* **Project-Centric Model:** All data flows through the `projects` → `sources` → `releases` hierarchy. Subscriptions attach to projects, so notification rules automatically cover releases from any of a project's sources.
 
 ### 2.2 Provider Interfaces (I/O)
 
 All external integrations are abstracted behind strict Go interfaces.
 
-* `IIngestionSource`: Standardizes how polling workers fetch data. Adding a new registry (like npm or NuGet) only requires implementing this interface.
-* `INotificationChannel`: Standardizes output routing.
+* `IIngestionSource`: Standardizes how polling workers fetch data. Adding a new registry (like npm or NuGet) only requires implementing this interface. Each implementation maps to a `source_type` in the database.
+* `INotificationChannel`: Standardizes output routing. Each implementation maps to a `type` in the `notification_channels` table (Slack, PagerDuty, custom webhooks).
 
-### 2.3 The DAG Processing Pipeline
+### 2.3 REST API & Dashboard
 
-The core filtering and scoring logic is structured as a Directed Acyclic Graph (DAG). Instead of monolithic conditional blocks, the system compiles a pipeline of independent execution nodes.
+The Go server exposes a RESTful API (`/api/v1`) serving the Next.js dashboard and external consumers:
 
-1. **Regex Node:** Filters `-alpha`, `-beta`, `-rc`.
-2. **Semantic Node:** LLM parses the changelog for keywords (e.g., "token compiler", "login regression").
-3. **Urgency Node:** Calculates a composite urgency score.
-An Intermediate Representation (IR) of the `ReleaseEvent` is passed sequentially through these nodes, allowing for seamless injection of new validation steps without refactoring the core engine.
+* **Resource CRUD:** Projects, sources, subscriptions, notification channels — all manageable through the API.
+* **Read-Only Releases:** Releases and pipeline status are queryable but not writable via the API — they're created exclusively through the ingestion layer.
+* **SSE Real-Time Events:** `GET /api/v1/events` streams server-sent events backed by PostgreSQL `LISTEN/NOTIFY`, pushing release and pipeline updates to connected dashboard clients.
+* **API Key Auth:** Bearer token authentication with hashed key storage. Webhooks use their own HMAC-based auth.
+* **Rate Limiting:** Per-key token bucket with standard `X-Ratelimit-*` response headers.
 
-### 2.4 Agentic Tooling
+### 2.4 The DAG Processing Pipeline
+
+The core filtering and scoring logic is structured as a **configurable Directed Acyclic Graph (DAG)**. Instead of monolithic conditional blocks, the system compiles a pipeline of independent execution nodes. **Which nodes run is controlled per-project** via `pipeline_config` — disabled nodes are skipped during processing and omitted from the final notification.
+
+**Always-on nodes** (structural — cannot be disabled):
+
+1. **Regex Normalizer** — Parses version, applies source-level exclusion filters.
+2. **Subscription Router** — Checks project subscriptions, drops unsubscribed events.
+
+**Configurable nodes** (opt-in per project):
+
+3. **Availability Checker** — Verifies artifact is pullable/downloadable.
+4. **Risk Assessor** — Scans changelog and external signals for high-risk keywords.
+5. **Adoption Tracker** — Queries network/registry metrics for adoption rates.
+6. **Changelog Summarizer** — LLM-generated human-readable summary.
+7. **Urgency Scorer** — Composite urgency from all preceding node results.
+8. **Validation Trigger** — Triggers SRE agent if urgency threshold is met.
+
+An Intermediate Representation (IR) of the `ReleaseEvent` is passed sequentially through enabled nodes. Each node records its output in `pipeline_jobs.node_results`. The final notification is assembled as a fixed template with dynamic sections — each configurable node maps to a notification section, and disabled nodes produce no section.
+
+### 2.5 Agentic Tooling
 
 For deep validation, ReleaseGuard utilizes SRE agents. The agent is provided a suite of abstracted tools:
 
@@ -83,12 +157,12 @@ This allows the agent to autonomously deploy a sandbox, verify that the deployme
 
 ## 3. Data Flow: Lifecycle of a Release Event
 
-1. **Discovery:** A Go worker polling Docker Hub detects a new base image tag.
-2. **Ingestion & Transaction:** The worker standardizes the payload and executes a single database transaction to insert the record into `releases` and queue a job in `pipeline_jobs`.
-3. **Processing (Queue Pull):** A Go worker pulls the job using `SKIP LOCKED` and routes the event through the DAG pipeline. Unsubscribed pre-releases are marked as `skipped`.
+1. **Discovery:** A Go worker polling Docker Hub detects a new base image tag for a configured source (e.g., the "Docker Hub" source under the "Go Runtime" project). Source-level exclusion filters (`exclude_version_regexp`, `exclude_prereleases`) are applied — filtered versions are discarded immediately.
+2. **Ingestion & Transaction:** The worker standardizes the payload into a `ReleaseEvent` IR and executes a single database transaction to insert the record into `releases` (linked to its `source_id`) and queue a job in `pipeline_jobs`.
+3. **Processing (Queue Pull):** A Go worker pulls the job using `SKIP LOCKED` and routes the event through the DAG pipeline. Each node updates `current_node` and accumulates results in `node_results`. The subscription router checks the parent project's subscriptions — unsubscribed events are marked as `skipped`.
 4. **Analysis & Validation:** For stable releases, the LLM analyzes the release notes to generate a "Production Record" summary. If the urgency score meets a threshold, an SRE agent is triggered to draft a master config update for Base A Box and run automated health checks.
-5. **Finalization & Broadcast:** The worker updates the job status to `completed` in PostgreSQL. A Postgres trigger fires a `NOTIFY` payload to alert the routing matrix.
-6. **Notification:** The Notification Matrix reads the finalized data and routes it to the appropriate channels (e.g., a critical PagerDuty alert for hotfixes, or a quiet Slack message to the "Hyper research" channel).
+5. **Finalization & Broadcast:** The worker updates the job status to `completed` in PostgreSQL. A Postgres trigger fires a `NOTIFY` payload to alert the routing matrix and push SSE events to connected dashboard clients.
+6. **Notification:** The Notification Matrix reads the finalized data, resolves the project's subscriptions, and routes to the appropriate notification channels (e.g., a critical PagerDuty alert for hotfixes via instant delivery, or a batched daily digest to Slack for low-priority updates).
 
 ## 4. Directory Structure
 
@@ -97,12 +171,14 @@ This allows the agent to autonomously deploy a sandbox, verify that the deployme
 ├── cmd/
 │   └── server/          # Main Go application entry point
 ├── internal/
+│   ├── api/             # REST API handlers, middleware, SSE broadcaster
 │   ├── ingestion/       # Polling workers and webhook handlers (IIngestionSource)
 │   ├── pipeline/        # DAG node implementations for filtering & scoring
 │   ├── agents/          # LLM orchestration and validation tools
 │   ├── routing/         # Notification matrix and I/O providers (INotificationChannel)
 │   ├── queue/           # PostgreSQL River queue setup and job definitions
-│   └── models/          # Shared domain structs (ReleaseEvent, etc.)
+│   ├── db/              # Connection pool and schema migrations
+│   └── models/          # Shared domain structs (ReleaseEvent, Project, etc.)
 ├── web/                 # Next.js frontend application
 │   ├── app/
 │   └── components/
