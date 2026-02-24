@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "f0f7737a9154",
+  "strategy": "manual-commit",
+  "branch": "feat/rest-api-layer",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "internal/db/migrations.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f0/f7737a9154/0/metadata.json",
+      "transcript": "/f0/f7737a9154/0/full.jsonl",
+      "context": "/f0/f7737a9154/0/context.md",
+      "content_hash": "/f0/f7737a9154/0/content_hash.txt",
+      "prompt": "/f0/f7737a9154/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 23,
+    "cache_creation_tokens": 195368,
+    "cache_read_tokens": 1681954,
+    "output_tokens": 190,
+    "api_call_count": 20
+  }
+}
