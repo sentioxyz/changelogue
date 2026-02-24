@@ -19,6 +19,8 @@ type IngestionResult struct {
 type IIngestionSource interface {
 	// Name returns the source identifier (e.g., "dockerhub", "github").
 	Name() string
+	// SourceID returns the database ID of the sources row for this provider.
+	SourceID() int
 	// FetchNewReleases polls the upstream registry and returns discovered releases.
 	FetchNewReleases(ctx context.Context) ([]IngestionResult, error)
 }

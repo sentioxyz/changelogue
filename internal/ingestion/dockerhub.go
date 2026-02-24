@@ -15,17 +15,20 @@ type DockerHubSource struct {
 	client     *http.Client
 	repository string
 	baseURL    string
+	sourceID   int
 }
 
-func NewDockerHubSource(client *http.Client, repository string) *DockerHubSource {
+func NewDockerHubSource(client *http.Client, repository string, sourceID int) *DockerHubSource {
 	return &DockerHubSource{
 		client:     client,
 		repository: repository,
 		baseURL:    defaultDockerHubURL,
+		sourceID:   sourceID,
 	}
 }
 
-func (s *DockerHubSource) Name() string { return "dockerhub" }
+func (s *DockerHubSource) Name() string     { return "dockerhub" }
+func (s *DockerHubSource) SourceID() int    { return s.sourceID }
 
 func (s *DockerHubSource) FetchNewReleases(ctx context.Context) ([]IngestionResult, error) {
 	url := fmt.Sprintf("%s/v2/repositories/%s/tags/?page_size=25&ordering=last_updated",

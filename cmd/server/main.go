@@ -46,14 +46,14 @@ func main() {
 	svc := ingestion.NewService(store)
 
 	sources := []ingestion.IIngestionSource{
-		ingestion.NewDockerHubSource(http.DefaultClient, "library/golang"),
+		ingestion.NewDockerHubSource(http.DefaultClient, "library/golang", 0),
 	}
 
 	orch := ingestion.NewOrchestrator(svc, sources, 5*time.Minute)
 
 	// GitHub webhook handler
 	webhookHandler := ingestion.NewGitHubWebhookHandler(ghSecret, func(results []ingestion.IngestionResult) {
-		if err := svc.ProcessResults(ctx, "github", results); err != nil {
+		if err := svc.ProcessResults(ctx, 0, "github", results); err != nil {
 			slog.Error("github webhook processing failed", "err", err)
 		}
 	})
