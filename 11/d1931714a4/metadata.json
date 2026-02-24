@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "11d1931714a4",
+  "strategy": "manual-commit",
+  "branch": "feat/rest-api-layer",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/middleware.go",
+    "internal/api/middleware_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/11/d1931714a4/0/metadata.json",
+      "transcript": "/11/d1931714a4/0/full.jsonl",
+      "context": "/11/d1931714a4/0/context.md",
+      "content_hash": "/11/d1931714a4/0/content_hash.txt",
+      "prompt": "/11/d1931714a4/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 36,
+    "cache_creation_tokens": 236635,
+    "cache_read_tokens": 2685914,
+    "output_tokens": 278,
+    "api_call_count": 32
+  }
+}
