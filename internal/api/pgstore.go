@@ -403,6 +403,73 @@ func (s *PgStore) DeleteSubscription(ctx context.Context, id int) error {
 	return nil
 }
 
+// --- ChannelsStore ---
+
+func (s *PgStore) ListChannels(ctx context.Context, page, perPage int) ([]models.NotificationChannel, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM notification_channels`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count channels: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, type, name, config, enabled, created_at
+		 FROM notification_channels ORDER BY created_at DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list channels: %w", err)
+	}
+	defer rows.Close()
+	var channels []models.NotificationChannel
+	for rows.Next() {
+		var ch models.NotificationChannel
+		if err := rows.Scan(&ch.ID, &ch.Type, &ch.Name, &ch.Config, &ch.Enabled, &ch.CreatedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan channel: %w", err)
+		}
+		channels = append(channels, ch)
+	}
+	return channels, total, nil
+}
+
+func (s *PgStore) CreateChannel(ctx context.Context, ch *models.NotificationChannel) error {
+	return s.pool.QueryRow(ctx,
+		`INSERT INTO notification_channels (type, name, config, enabled)
+		 VALUES ($1, $2, $3, $4)
+		 RETURNING id, enabled, created_at`,
+		ch.Type, ch.Name, ch.Config, ch.Enabled,
+	).Scan(&ch.ID, &ch.Enabled, &ch.CreatedAt)
+}
+
+func (s *PgStore) GetChannel(ctx context.Context, id int) (*models.NotificationChannel, error) {
+	var ch models.NotificationChannel
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, type, name, config, enabled, created_at
+		 FROM notification_channels WHERE id = $1`, id,
+	).Scan(&ch.ID, &ch.Type, &ch.Name, &ch.Config, &ch.Enabled, &ch.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &ch, nil
+}
+
+func (s *PgStore) UpdateChannel(ctx context.Context, id int, ch *models.NotificationChannel) error {
+	return s.pool.QueryRow(ctx,
+		`UPDATE notification_channels SET type=$1, name=$2, config=$3, enabled=$4
+		 WHERE id=$5 RETURNING created_at`,
+		ch.Type, ch.Name, ch.Config, ch.Enabled, id,
+	).Scan(&ch.CreatedAt)
+}
+
+func (s *PgStore) DeleteChannel(ctx context.Context, id int) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM notification_channels WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("not found")
+	}
+	return nil
+}
+
 // --- HealthChecker ---
 
 func (s *PgStore) Ping(ctx context.Context) error {
