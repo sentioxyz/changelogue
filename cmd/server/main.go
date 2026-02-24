@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/sentioxyz/releaseguard/internal/api"
 	"github.com/sentioxyz/releaseguard/internal/db"
 	"github.com/sentioxyz/releaseguard/internal/ingestion"
 	"github.com/sentioxyz/releaseguard/internal/queue"
@@ -42,8 +43,8 @@ func main() {
 	}
 
 	// Ingestion layer
-	store := ingestion.NewPgStore(pool, riverClient)
-	svc := ingestion.NewService(store)
+	ingestionStore := ingestion.NewPgStore(pool, riverClient)
+	svc := ingestion.NewService(ingestionStore)
 
 	sources := []ingestion.IIngestionSource{
 		ingestion.NewDockerHubSource(http.DefaultClient, "library/golang", 0),
@@ -58,13 +59,35 @@ func main() {
 		}
 	})
 
+	// API layer
+	pgStore := api.NewPgStore(pool)
+	broadcaster := api.NewBroadcaster()
+
 	mux := http.NewServeMux()
+
+	// Register webhook route
 	mux.Handle("POST /webhook/github", webhookHandler)
+
+	// Register all API v1 routes
+	api.RegisterRoutes(mux, api.Dependencies{
+		DB:                 pool,
+		ProjectsStore:      pgStore,
+		ReleasesStore:      pgStore,
+		SubscriptionsStore: pgStore,
+		SourcesStore:       pgStore,
+		ChannelsStore:      pgStore,
+		KeyStore:           pgStore,
+		HealthChecker:      pgStore,
+		Broadcaster:        broadcaster,
+	})
 
 	srv := &http.Server{Addr: addr, Handler: mux}
 
 	// Start polling in background
 	go orch.Run(ctx)
+
+	// Start PostgreSQL LISTEN/NOTIFY → SSE bridge
+	go api.ListenForNotifications(ctx, pool, broadcaster)
 
 	// Start HTTP server
 	go func() {
