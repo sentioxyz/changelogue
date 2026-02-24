@@ -14,7 +14,7 @@ type mockStore struct {
 	err      error
 }
 
-func (m *mockStore) IngestRelease(_ context.Context, event *models.ReleaseEvent) error {
+func (m *mockStore) IngestRelease(_ context.Context, _ int, event *models.ReleaseEvent) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -35,7 +35,7 @@ func TestServiceProcessResults(t *testing.T) {
 		},
 	}
 
-	err := svc.ProcessResults(context.Background(), "dockerhub", results)
+	err := svc.ProcessResults(context.Background(), 1, "dockerhub", results)
 	if err != nil {
 		t.Fatalf("ProcessResults: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestServiceProcessResultsDuplicateSkipped(t *testing.T) {
 	}
 
 	// Duplicates should not cause a top-level error — they're expected.
-	err := svc.ProcessResults(context.Background(), "dockerhub", results)
+	err := svc.ProcessResults(context.Background(), 1, "dockerhub", results)
 	if err != nil {
 		t.Fatalf("ProcessResults should not fail on duplicates: %v", err)
 	}

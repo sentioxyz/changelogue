@@ -24,7 +24,7 @@ func NewPgStore(pool *pgxpool.Pool, riverClient *river.Client[pgx.Tx]) *PgStore 
 
 // IngestRelease inserts a release and enqueues a pipeline job in a single transaction.
 // Returns an error on unique constraint violation (caller treats as idempotent skip).
-func (s *PgStore) IngestRelease(ctx context.Context, event *models.ReleaseEvent) error {
+func (s *PgStore) IngestRelease(ctx context.Context, sourceID int, event *models.ReleaseEvent) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -37,8 +37,8 @@ func (s *PgStore) IngestRelease(ctx context.Context, event *models.ReleaseEvent)
 	}
 
 	_, err = tx.Exec(ctx,
-		`INSERT INTO releases (id, source, repository, version, payload) VALUES ($1, $2, $3, $4, $5)`,
-		event.ID, event.Source, event.Repository, event.RawVersion, payload,
+		`INSERT INTO releases (id, source_id, version, payload) VALUES ($1, $2, $3, $4)`,
+		event.ID, sourceID, event.RawVersion, payload,
 	)
 	if err != nil {
 		return fmt.Errorf("insert release: %w", err)

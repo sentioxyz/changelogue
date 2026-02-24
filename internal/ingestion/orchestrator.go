@@ -44,7 +44,7 @@ func (o *Orchestrator) pollAll(ctx context.Context) {
 		if len(results) == 0 {
 			continue
 		}
-		if err := o.service.ProcessResults(ctx, src.Name(), results); err != nil {
+		if err := o.service.ProcessResults(ctx, src.SourceID(), src.Name(), results); err != nil {
 			slog.Error("process failed", "source", src.Name(), "err", err)
 		}
 	}
