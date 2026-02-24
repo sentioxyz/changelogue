@@ -23,6 +23,7 @@ func main() {
 	dbURL := envOr("DATABASE_URL", "postgres://localhost:5432/releaseguard?sslmode=disable")
 	ghSecret := envOr("GITHUB_WEBHOOK_SECRET", "")
 	addr := envOr("LISTEN_ADDR", ":8080")
+	noAuth := os.Getenv("NO_AUTH") == "true"
 
 	// Database
 	pool, err := db.NewPool(ctx, dbURL)
@@ -106,9 +107,10 @@ func main() {
 		KeyStore:           pgStore,
 		HealthChecker:      pgStore,
 		Broadcaster:        broadcaster,
+		NoAuth:             noAuth,
 	})
 
-	srv := &http.Server{Addr: addr, Handler: mux}
+	srv := &http.Server{Addr: addr, Handler: api.CORS(mux)}
 
 	// Start polling in background
 	go orch.Run(ctx)

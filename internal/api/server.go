@@ -17,14 +17,19 @@ type Dependencies struct {
 	KeyStore           KeyStore
 	HealthChecker      HealthChecker
 	Broadcaster        *Broadcaster
+	NoAuth             bool
 }
 
 // RegisterRoutes registers all API v1 routes on the given ServeMux.
 func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
-	// Authenticated chain: all middleware including auth and rate limiting.
-	chain := Chain(RequestID, Logger, Recovery, RateLimit(10, 20), Auth(deps.KeyStore), CORS)
 	// Public chain: no auth required.
-	publicChain := Chain(RequestID, Logger, Recovery, CORS)
+	publicChain := Chain(RequestID, Logger, Recovery)
+
+	// Authenticated chain: includes auth unless NoAuth is set.
+	chain := publicChain
+	if !deps.NoAuth {
+		chain = Chain(RequestID, Logger, Recovery, RateLimit(10, 20), Auth(deps.KeyStore))
+	}
 
 	// Projects (CRUD)
 	projects := NewProjectsHandler(deps.ProjectsStore)
