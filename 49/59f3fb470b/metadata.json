@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "4959f3fb470b",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "ARCH.md",
+    "DESIGN.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/49/59f3fb470b/0/metadata.json",
+      "transcript": "/49/59f3fb470b/0/full.jsonl",
+      "context": "/49/59f3fb470b/0/context.md",
+      "content_hash": "/49/59f3fb470b/0/content_hash.txt",
+      "prompt": "/49/59f3fb470b/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 5786,
+    "cache_creation_tokens": 198119,
+    "cache_read_tokens": 9059914,
+    "output_tokens": 1239,
+    "api_call_count": 105
+  }
+}
