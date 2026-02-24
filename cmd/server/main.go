@@ -8,9 +8,11 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/riverqueue/river"
 	"github.com/sentioxyz/releaseguard/internal/api"
 	"github.com/sentioxyz/releaseguard/internal/db"
 	"github.com/sentioxyz/releaseguard/internal/ingestion"
+	"github.com/sentioxyz/releaseguard/internal/pipeline"
 	"github.com/sentioxyz/releaseguard/internal/queue"
 )
 
@@ -35,10 +37,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	// River queue (insert-only — no workers registered yet)
-	riverClient, err := queue.NewRiverClient(pool, nil)
+	// Pipeline
+	pipelineStore := pipeline.NewPgStore(pool)
+	pipelineRunner := pipeline.NewRunner(
+		pipelineStore,
+		[]pipeline.PipelineNode{
+			pipeline.NewRegexNormalizer(),
+			pipeline.NewSubscriptionRouter(pipelineStore),
+		},
+		[]pipeline.PipelineNode{
+			pipeline.NewUrgencyScorer(),
+		},
+	)
+
+	// River queue with pipeline worker
+	workers := river.NewWorkers()
+	river.AddWorker(workers, pipeline.NewWorker(pipelineRunner))
+
+	riverClient, err := queue.NewRiverClient(pool, workers)
 	if err != nil {
 		slog.Error("river client failed", "err", err)
+		os.Exit(1)
+	}
+
+	if err := riverClient.Start(ctx); err != nil {
+		slog.Error("river start failed", "err", err)
 		os.Exit(1)
 	}
 
@@ -99,7 +122,11 @@ func main() {
 
 	<-ctx.Done()
 	slog.Info("shutting down")
-	srv.Shutdown(context.Background())
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	riverClient.Stop(shutdownCtx)
+	srv.Shutdown(shutdownCtx)
 }
 
 func envOr(key, fallback string) string {
