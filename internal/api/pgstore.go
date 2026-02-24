@@ -331,6 +331,78 @@ func (s *PgStore) GetPipelineStatus(ctx context.Context, releaseID string) (*Pip
 	return &ps, nil
 }
 
+// --- SubscriptionsStore ---
+
+func (s *PgStore) ListSubscriptions(ctx context.Context, page, perPage int) ([]models.Subscription, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM subscriptions`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count subscriptions: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, project_id, channel_type, COALESCE(channel_id, 0), COALESCE(version_pattern,''),
+		        frequency, enabled, created_at, updated_at
+		 FROM subscriptions ORDER BY created_at DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list subscriptions: %w", err)
+	}
+	defer rows.Close()
+	var subs []models.Subscription
+	for rows.Next() {
+		var sub models.Subscription
+		if err := rows.Scan(&sub.ID, &sub.ProjectID, &sub.ChannelType, &sub.ChannelID,
+			&sub.VersionPattern, &sub.Frequency, &sub.Enabled, &sub.CreatedAt, &sub.UpdatedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan subscription: %w", err)
+		}
+		subs = append(subs, sub)
+	}
+	return subs, total, nil
+}
+
+func (s *PgStore) CreateSubscription(ctx context.Context, sub *models.Subscription) error {
+	return s.pool.QueryRow(ctx,
+		`INSERT INTO subscriptions (project_id, channel_type, channel_id, version_pattern, frequency, enabled)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 RETURNING id, enabled, created_at, updated_at`,
+		sub.ProjectID, sub.ChannelType, sub.ChannelID, sub.VersionPattern, sub.Frequency, sub.Enabled,
+	).Scan(&sub.ID, &sub.Enabled, &sub.CreatedAt, &sub.UpdatedAt)
+}
+
+func (s *PgStore) GetSubscription(ctx context.Context, id int) (*models.Subscription, error) {
+	var sub models.Subscription
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, project_id, channel_type, COALESCE(channel_id, 0), COALESCE(version_pattern,''),
+		        frequency, enabled, created_at, updated_at
+		 FROM subscriptions WHERE id = $1`, id,
+	).Scan(&sub.ID, &sub.ProjectID, &sub.ChannelType, &sub.ChannelID,
+		&sub.VersionPattern, &sub.Frequency, &sub.Enabled, &sub.CreatedAt, &sub.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &sub, nil
+}
+
+func (s *PgStore) UpdateSubscription(ctx context.Context, id int, sub *models.Subscription) error {
+	return s.pool.QueryRow(ctx,
+		`UPDATE subscriptions SET channel_type=$1, channel_id=$2, version_pattern=$3,
+		        frequency=$4, enabled=$5, updated_at=NOW()
+		 WHERE id=$6 RETURNING updated_at`,
+		sub.ChannelType, sub.ChannelID, sub.VersionPattern, sub.Frequency, sub.Enabled, id,
+	).Scan(&sub.UpdatedAt)
+}
+
+func (s *PgStore) DeleteSubscription(ctx context.Context, id int) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM subscriptions WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("not found")
+	}
+	return nil
+}
+
 // --- HealthChecker ---
 
 func (s *PgStore) Ping(ctx context.Context) error {
