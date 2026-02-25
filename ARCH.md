@@ -159,24 +159,32 @@ When a new source release is detected, a `notify_release` River job is enqueued 
 
 This provides immediate, low-latency alerts for raw releases without waiting for AI analysis. Source-level subscriptions are simple: "tell me when this source has a new release."
 
-### 2.5 Agent Layer
+### 2.5 Agent Layer (Implemented)
 
-For project-level intelligence, an `agent_run` River job triggers an LLM agent (via ADK-Go) that:
+For project-level intelligence, an `agent_run` River job triggers an LLM agent (via ADK-Go v0.5.0) that:
 
-1. Gathers recent source releases for the project.
-2. Consults context sources (runbooks, docs, monitoring dashboards) configured for the project.
-3. Produces a `SemanticRelease` with a structured `SemanticReport` (summary, availability, adoption, urgency, recommendation).
+1. Gathers recent source releases for the project using the `get_releases` tool.
+2. Inspects individual release details (changelogs, raw data) using `get_release_detail`.
+3. Consults context sources (runbooks, docs, monitoring dashboards) using `list_context_sources`.
+4. Produces a `SemanticRelease` with a structured `SemanticReport` (summary, availability, adoption, urgency, recommendation).
 
 Agent behavior is configured per-project via `agent_prompt` (custom instructions) and `agent_rules` (structured triggers like `on_major_release`, `on_security_patch`, `version_pattern`). Agent runs are tracked in the `agent_runs` table for observability and auditability.
 
-### 2.6 Agentic Tooling
+**Implementation details (`internal/agent/`):**
 
-For deep validation, ReleaseGuard utilizes SRE agents. The agent is provided a suite of abstracted tools:
+* **`tools.go`** — Three ADK function tools (`get_releases`, `get_release_detail`, `list_context_sources`) created via `functiontool.New()`. Tools are scoped to a project via `toolFactory` which holds the `AgentDataStore` and project ID.
+* **`orchestrator.go`** — `Orchestrator` manages the full agent lifecycle: loading project config, creating an ADK `llmagent` with Gemini as the LLM backend, running the agent via `runner.Runner`, parsing the JSON report, and persisting the `SemanticRelease` in a transaction.
+* **`worker.go`** — `AgentWorker` implements `river.Worker[queue.AgentJobArgs]`, loading the agent run from the store and delegating to `Orchestrator.RunAgent()`.
+* **Graceful degradation** — If `GOOGLE_API_KEY` is not set, the orchestrator is not created, the worker is not registered, and a warning is logged. The rest of the system continues to function. Agent jobs remain in the River queue until the key is configured.
+
+### 2.6 Agentic Tooling (Planned: SRE Validation)
+
+For deep validation, ReleaseGuard will utilize SRE agents with a suite of abstracted tools:
 
 * `UpgradeBaseABoxConfig(version)`
 * `CheckAgentStatus(environment)`
 * `SyncOpsOpsack(payload)`
-This allows the agent to autonomously deploy a sandbox, verify that the deployment is healthy, and rollback or alert on failure.
+This will allow the agent to autonomously deploy a sandbox, verify that the deployment is healthy, and rollback or alert on failure.
 
 ## 3. Data Flow: Lifecycle of a Release Event
 
