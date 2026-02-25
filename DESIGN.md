@@ -279,7 +279,62 @@ Two PostgreSQL triggers publish real-time events via `pg_notify` on the `release
 * **Subscription routing:** Subscriptions now support two granularity levels via a `type` check constraint: `'source'` subscriptions (linked to a specific source via `source_id`) notify on raw releases, while `'project'` subscriptions (linked via `project_id`) notify on semantic releases. This replaces the old project-only subscription model.
 * **Notification channels:** Separating channel registration from subscription routing allows multiple subscriptions to reference the same Slack channel or PagerDuty service. The `config` JSONB column stores provider-specific credentials (webhook URLs, routing keys).
 
-## 4. Error Handling & Idempotency
+## 4. Notification Routing
+
+### 4.1 Overview
+
+When the ingestion layer detects a new release, it enqueues a `NotifyJobArgs` River job in the same transaction that inserts the release (transactional outbox pattern). The notification routing system picks up these jobs and delivers alerts to all source-level subscribers.
+
+### 4.2 Sender Interface
+
+All notification channel types implement the `Sender` interface:
+
+```go
+type Sender interface {
+    Send(ctx context.Context, ch *models.NotificationChannel, msg Notification) error
+}
+```
+
+The `Notification` struct is the channel-agnostic payload:
+
+```go
+type Notification struct {
+    Title   string `json:"title"`
+    Body    string `json:"body"`
+    Version string `json:"version"`
+}
+```
+
+### 4.3 Channel Types
+
+| Type | Implementation | Config Fields | Payload Format |
+|------|---------------|---------------|----------------|
+| `webhook` | `WebhookSender` | `{"url": "..."}` | Raw JSON `Notification` |
+| `slack` | `SlackSender` | `{"webhook_url": "..."}` | Slack Block Kit (header + section) |
+| `discord` | `DiscordSender` | `{"webhook_url": "..."}` | Discord webhook with embeds |
+
+Each sender parses provider-specific config from the channel's `Config` JSONB field, formats the notification into the provider's expected payload structure, and POSTs to the configured URL. All senders use a 10-second HTTP timeout.
+
+### 4.4 Delivery Flow
+
+```
+River picks up NotifyJobArgs {release_id, source_id}
+  → NotifyWorker.Work()
+    → store.GetRelease(release_id)
+    → store.ListSourceSubscriptions(source_id)
+    → for each subscription:
+        → store.GetChannel(sub.channel_id)
+        → senders[ch.type].Send(ch, notification)
+```
+
+### 4.5 Error Handling
+
+* **Unknown channel type:** Logged as a warning and skipped. The job completes successfully (partial delivery).
+* **Sender failure:** Individual send errors are logged but do not fail the job. Other subscriptions still receive their notifications.
+* **Store errors:** If the release or subscription list cannot be fetched, the job returns an error and River retries per its configured retry policy.
+* **Channel lookup failure:** If a specific channel cannot be found (e.g., deleted between subscription creation and notification), it is logged and skipped.
+
+## 5. Error Handling & Idempotency
 
 * **Idempotent Ingestion:** The `releases` table enforces a `UNIQUE(source_id, version)` constraint. If a polling worker and a webhook both report the same release from the same source simultaneously, the database rejects the duplicate, preventing duplicate notification or agent jobs.
 * **Source-Level Filtering:** Before events enter the system, the ingestion layer applies source-level exclusion rules (`exclude_version_regexp`, `exclude_prereleases`). Filtered releases are never inserted, reducing downstream load.

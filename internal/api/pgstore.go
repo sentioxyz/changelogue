@@ -591,6 +591,30 @@ func (s *PgStore) GetAgentRun(ctx context.Context, id string) (*models.AgentRun,
 	return &run, nil
 }
 
+// --- NotifyStore (routing) ---
+
+// ListSourceSubscriptions returns all source-level subscriptions for a given source.
+func (s *PgStore) ListSourceSubscriptions(ctx context.Context, sourceID string) ([]models.Subscription, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), created_at
+		 FROM subscriptions
+		 WHERE type = 'source' AND source_id = $1`, sourceID)
+	if err != nil {
+		return nil, fmt.Errorf("list source subscriptions: %w", err)
+	}
+	defer rows.Close()
+	var subs []models.Subscription
+	for rows.Next() {
+		var sub models.Subscription
+		if err := rows.Scan(&sub.ID, &sub.ChannelID, &sub.Type, &sub.SourceID,
+			&sub.ProjectID, &sub.VersionFilter, &sub.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan subscription: %w", err)
+		}
+		subs = append(subs, sub)
+	}
+	return subs, nil
+}
+
 // --- HealthChecker ---
 
 func (s *PgStore) Ping(ctx context.Context) error {

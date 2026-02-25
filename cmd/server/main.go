@@ -13,6 +13,7 @@ import (
 	"github.com/sentioxyz/releaseguard/internal/db"
 	"github.com/sentioxyz/releaseguard/internal/ingestion"
 	"github.com/sentioxyz/releaseguard/internal/queue"
+	"github.com/sentioxyz/releaseguard/internal/routing"
 )
 
 func main() {
@@ -37,14 +38,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Workers will be added in Phase 2 (notification) and Phase 3 (agent)
+	// API & routing store (created before River so we can register workers)
+	// The river client is set to nil initially; TriggerAgentRun (which needs it)
+	// won't be called until the server is up and the client is set below.
+	pgStore := api.NewPgStore(pool, nil)
+
+	// Register River workers
 	workers := river.NewWorkers()
+	notifyWorker := routing.NewNotifyWorker(pgStore)
+	river.AddWorker(workers, notifyWorker)
 
 	riverClient, err := queue.NewRiverClient(pool, workers)
 	if err != nil {
 		slog.Error("river client failed", "err", err)
 		os.Exit(1)
 	}
+
+	// Now that the river client exists, re-create pgStore with it so that
+	// TriggerAgentRun can enqueue agent jobs.
+	pgStore = api.NewPgStore(pool, riverClient)
 
 	if err := riverClient.Start(ctx); err != nil {
 		slog.Error("river start failed", "err", err)
@@ -71,9 +83,6 @@ func main() {
 			}
 		}
 	})
-
-	// API layer
-	pgStore := api.NewPgStore(pool, riverClient)
 	broadcaster := api.NewBroadcaster()
 
 	mux := http.NewServeMux()
