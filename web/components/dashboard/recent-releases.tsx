@@ -3,21 +3,28 @@
 
 import useSWR from "swr";
 import Link from "next/link";
-import { releases as releasesApi } from "@/lib/api/client";
+import { projects as projectsApi, releases as releasesApi } from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-
-const statusColors: Record<string, string> = {
-  completed: "bg-green-100 text-green-800",
-  running: "bg-blue-100 text-blue-800",
-  available: "bg-gray-100 text-gray-800",
-  retry: "bg-yellow-100 text-yellow-800",
-  discarded: "bg-red-100 text-red-800",
-};
+import type { Release } from "@/lib/api/types";
 
 export function RecentReleases() {
-  const { data, isLoading } = useSWR("recent-releases", () =>
-    releasesApi.list({ per_page: 8, order: "desc" })
+  const { data: projectsData } = useSWR("projects-for-dashboard", () => projectsApi.list());
+
+  const { data: allReleases, isLoading } = useSWR(
+    projectsData ? "recent-releases" : null,
+    async () => {
+      if (!projectsData?.data?.length) return [];
+      const results = await Promise.all(
+        projectsData.data.slice(0, 10).map((p) =>
+          releasesApi.listByProject(p.id, 1).catch(() => null)
+        )
+      );
+      return results
+        .filter((r): r is NonNullable<typeof r> => r !== null)
+        .flatMap((r) => r.data)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 8);
+    }
   );
 
   return (
@@ -31,35 +38,30 @@ export function RecentReleases() {
       <CardContent>
         {isLoading ? (
           <div className="py-8 text-center text-muted-foreground">Loading...</div>
-        ) : (
+        ) : allReleases && allReleases.length > 0 ? (
           <div className="space-y-3">
-            {data?.data.map((release) => (
+            {allReleases.map((release: Release) => (
               <Link
                 key={release.id}
                 href={`/releases/${release.id}`}
                 className="flex items-center justify-between rounded-md border p-3 transition-colors hover:bg-muted/50"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{release.project_name}</span>
-                    <span className="font-mono text-sm text-muted-foreground">
-                      {release.raw_version}
-                    </span>
-                    {release.is_pre_release && (
-                      <Badge variant="outline" className="text-xs">pre-release</Badge>
-                    )}
-                  </div>
+                  <span className="font-mono text-sm font-medium">{release.version}</span>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {release.source_type} &middot; {release.repository} &middot;{" "}
-                    {new Date(release.created_at).toLocaleDateString()}
+                    {release.released_at
+                      ? new Date(release.released_at).toLocaleDateString()
+                      : new Date(release.created_at).toLocaleDateString()}
                   </div>
                 </div>
-                <Badge className={statusColors[release.pipeline_status] ?? ""}>
-                  {release.pipeline_status}
-                </Badge>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {release.source_id.slice(0, 8)}...
+                </span>
               </Link>
             ))}
           </div>
+        ) : (
+          <div className="py-8 text-center text-muted-foreground">No releases yet</div>
         )}
       </CardContent>
     </Card>

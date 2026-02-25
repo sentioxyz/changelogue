@@ -1,53 +1,70 @@
 // web/components/dashboard/activity-feed.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { SSEEvent } from "@/lib/api/types";
-import { mockSSE } from "@/lib/mock/sse";
+
+const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
 const eventColors: Record<string, string> = {
-  "release.created": "bg-green-100 text-green-800",
-  "pipeline.node_completed": "bg-blue-100 text-blue-800",
-  "pipeline.completed": "bg-green-100 text-green-800",
-  "pipeline.failed": "bg-red-100 text-red-800",
-  "source.error": "bg-red-100 text-red-800",
-  "source.polled": "bg-gray-100 text-gray-800",
+  release: "bg-green-100 text-green-800",
+  semantic_release: "bg-blue-100 text-blue-800",
 };
 
 function formatEvent(event: SSEEvent): string {
   switch (event.type) {
-    case "release.created":
-      return `New release: ${event.data.repository} ${event.data.raw_version}`;
-    case "pipeline.node_completed":
-      return `Pipeline node "${event.data.node}" completed for ${event.data.release_id}`;
-    case "pipeline.completed":
-      return `Pipeline completed for ${event.data.release_id}`;
-    case "pipeline.failed":
-      return `Pipeline failed for ${event.data.release_id}`;
-    case "source.polled":
-      return `Polled ${event.data.repository} — ${event.data.new_releases} new`;
-    case "source.error":
-      return `Source error: ${event.data.repository}`;
+    case "release":
+      return `New release: ${event.data.version}`;
+    case "semantic_release":
+      return `Semantic release: ${event.data.version} (${event.data.status})`;
     default:
-      return event satisfies never;
+      return "Unknown event";
   }
-}
-
-function eventLabel(type: SSEEvent["type"]): string {
-  const idx = type.indexOf(".");
-  return idx >= 0 ? type.slice(idx + 1) : type;
 }
 
 export function ActivityFeed() {
   const [events, setEvents] = useState<SSEEvent[]>([]);
+  const [connected, setConnected] = useState(false);
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const unsubscribe = mockSSE.subscribe((event) => {
-      setEvents((prev) => [event, ...prev].slice(0, 20));
-    });
-    return unsubscribe;
+    let es: EventSource | null = null;
+
+    function connect() {
+      try {
+        es = new EventSource(`${BASE}/events`);
+
+        es.onopen = () => setConnected(true);
+
+        es.onmessage = (msg) => {
+          try {
+            const event = JSON.parse(msg.data) as SSEEvent;
+            setEvents((prev) => [event, ...prev].slice(0, 20));
+          } catch {
+            // ignore parse errors
+          }
+        };
+
+        es.onerror = () => {
+          setConnected(false);
+          es?.close();
+          // Retry connection after 5 seconds
+          retryRef.current = setTimeout(connect, 5000);
+        };
+      } catch {
+        setConnected(false);
+        retryRef.current = setTimeout(connect, 5000);
+      }
+    }
+
+    connect();
+
+    return () => {
+      es?.close();
+      if (retryRef.current) clearTimeout(retryRef.current);
+    };
   }, []);
 
   return (
@@ -56,8 +73,14 @@ export function ActivityFeed() {
         <CardTitle className="flex items-center gap-2">
           Live Activity
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+            {connected ? (
+              <>
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+              </>
+            ) : (
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-400" />
+            )}
           </span>
         </CardTitle>
       </CardHeader>
@@ -71,7 +94,7 @@ export function ActivityFeed() {
             {events.map((event) => (
               <div key={event.id} className="flex items-start gap-2 text-sm">
                 <Badge className={`shrink-0 text-xs ${eventColors[event.type] ?? ""}`}>
-                  {eventLabel(event.type)}
+                  {event.type}
                 </Badge>
                 <span className="flex-1 text-muted-foreground">{formatEvent(event)}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">
