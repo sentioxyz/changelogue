@@ -1,0 +1,25 @@
+package models
+
+import (
+	"encoding/json"
+	"time"
+)
+
+type SemanticReport struct {
+	Summary        string `json:"summary"`
+	Availability   string `json:"availability"`
+	Adoption       string `json:"adoption"`
+	Urgency        string `json:"urgency"`
+	Recommendation string `json:"recommendation"`
+}
+
+type SemanticRelease struct {
+	ID          string          `json:"id"`
+	ProjectID   string          `json:"project_id"`
+	Version     string          `json:"version"`
+	Report      json.RawMessage `json:"report,omitempty"`
+	Status      string          `json:"status"`
+	Error       string          `json:"error,omitempty"`
+	CreatedAt   time.Time       `json:"created_at"`
+	CompletedAt *time.Time      `json:"completed_at,omitempty"`
+}
