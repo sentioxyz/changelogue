@@ -10,89 +10,117 @@ import (
 )
 
 const schema = `
--- Drop old-format tables (dev only — no production data exists)
-DROP TABLE IF EXISTS subscriptions CASCADE;
-DROP TABLE IF EXISTS releases CASCADE;
-
 -- Tracked software projects (the central entity)
 CREATE TABLE IF NOT EXISTS projects (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
-    url VARCHAR(500),
-    pipeline_config JSONB NOT NULL DEFAULT '{"changelog_summarizer": {}, "urgency_scorer": {}}'::jsonb,
+    agent_prompt TEXT,
+    agent_rules JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Configured ingestion sources
+-- Configured ingestion sources (polling-based: GitHub, Docker Hub)
 CREATE TABLE IF NOT EXISTS sources (
-    id SERIAL PRIMARY KEY,
-    project_id INT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    source_type VARCHAR(50) NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    provider VARCHAR(50) NOT NULL,
     repository VARCHAR(255) NOT NULL,
-    poll_interval_seconds INT DEFAULT 300,
+    poll_interval_seconds INT DEFAULT 900,
     enabled BOOLEAN DEFAULT true,
-    exclude_version_regexp TEXT,
-    exclude_prereleases BOOLEAN DEFAULT false,
+    config JSONB,
     last_polled_at TIMESTAMPTZ,
     last_error TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(source_type, repository)
+    UNIQUE(provider, repository)
 );
 
--- Normalized release events (references source, not raw strings)
-CREATE TABLE IF NOT EXISTS releases (
+-- Context sources (read-only references for agent research)
+CREATE TABLE IF NOT EXISTS context_sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    source_id INT NOT NULL REFERENCES sources(id),
-    version VARCHAR(100) NOT NULL,
-    payload JSONB NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(source_id, version)
-);
-
--- Pipeline job tracking (application-level, separate from River internals)
-CREATE TABLE IF NOT EXISTS pipeline_jobs (
-    id BIGSERIAL PRIMARY KEY,
-    state VARCHAR(50) DEFAULT 'available',
-    release_id UUID REFERENCES releases(id),
-    current_node VARCHAR(50),
-    node_results JSONB DEFAULT '{}',
-    attempt INT DEFAULT 0,
-    max_attempts INT DEFAULT 3,
-    error_message TEXT,
-    locked_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
-);
-
--- Registered notification channels
-CREATE TABLE IF NOT EXISTS notification_channels (
-    id SERIAL PRIMARY KEY,
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     type VARCHAR(50) NOT NULL,
     name VARCHAR(100) NOT NULL,
     config JSONB NOT NULL,
-    enabled BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Subscriptions: route project releases to notification channels
-CREATE TABLE IF NOT EXISTS subscriptions (
-    id SERIAL PRIMARY KEY,
-    project_id INT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    channel_type VARCHAR(50) NOT NULL,
-    channel_id INT REFERENCES notification_channels(id),
-    version_pattern TEXT,
-    frequency VARCHAR(20) DEFAULT 'instant',
-    enabled BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Source-level releases (detected from polling sources)
+CREATE TABLE IF NOT EXISTS releases (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_id UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+    version VARCHAR(100) NOT NULL,
+    raw_data JSONB,
+    released_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(source_id, version)
+);
+
+-- Project-level semantic releases (AI-generated, correlating source releases)
+CREATE TABLE IF NOT EXISTS semantic_releases (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    version VARCHAR(100) NOT NULL,
+    report JSONB,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    error TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    UNIQUE(project_id, version)
+);
+
+-- Join table: which source releases compose a semantic release
+CREATE TABLE IF NOT EXISTS semantic_release_sources (
+    semantic_release_id UUID NOT NULL REFERENCES semantic_releases(id) ON DELETE CASCADE,
+    release_id UUID NOT NULL REFERENCES releases(id) ON DELETE CASCADE,
+    PRIMARY KEY (semantic_release_id, release_id)
+);
+
+-- Notification channels (standalone)
+CREATE TABLE IF NOT EXISTS notification_channels (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    config JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Subscriptions: two types (source-level and project-level)
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_id UUID NOT NULL REFERENCES notification_channels(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('source', 'project')),
+    source_id UUID REFERENCES sources(id) ON DELETE CASCADE,
+    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    version_filter TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CHECK (
+        (type = 'source'  AND source_id  IS NOT NULL AND project_id IS NULL) OR
+        (type = 'project' AND project_id IS NOT NULL AND source_id  IS NULL)
+    )
+);
+
+-- Agent runs (scoped to project)
+CREATE TABLE IF NOT EXISTS agent_runs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    semantic_release_id UUID REFERENCES semantic_releases(id) ON DELETE SET NULL,
+    trigger VARCHAR(100) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    prompt_used TEXT,
+    error TEXT,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- API authentication keys
 CREATE TABLE IF NOT EXISTS api_keys (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     key_hash VARCHAR(64) NOT NULL UNIQUE,
     key_prefix VARCHAR(12) NOT NULL,
@@ -103,7 +131,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 -- Trigger for SSE: notify on new releases
 CREATE OR REPLACE FUNCTION notify_release_created() RETURNS trigger AS $$
 BEGIN
-    PERFORM pg_notify('release_events', NEW.id::text);
+    PERFORM pg_notify('release_events', json_build_object('type', 'release', 'id', NEW.id)::text);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -112,6 +140,21 @@ DROP TRIGGER IF EXISTS release_created_trigger ON releases;
 CREATE TRIGGER release_created_trigger
     AFTER INSERT ON releases
     FOR EACH ROW EXECUTE FUNCTION notify_release_created();
+
+-- Trigger for SSE: notify on semantic release completion
+CREATE OR REPLACE FUNCTION notify_semantic_release() RETURNS trigger AS $$
+BEGIN
+    IF NEW.status = 'completed' AND (OLD IS NULL OR OLD.status != 'completed') THEN
+        PERFORM pg_notify('release_events', json_build_object('type', 'semantic_release', 'id', NEW.id)::text);
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS semantic_release_trigger ON semantic_releases;
+CREATE TRIGGER semantic_release_trigger
+    AFTER INSERT OR UPDATE ON semantic_releases
+    FOR EACH ROW EXECUTE FUNCTION notify_semantic_release();
 `
 
 // RunMigrations applies River's schema and the application schema. Idempotent — safe to call on every startup.
