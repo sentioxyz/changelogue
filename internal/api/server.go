@@ -8,16 +8,19 @@ import (
 
 // Dependencies holds all external dependencies required for registering API routes.
 type Dependencies struct {
-	DB                 *pgxpool.Pool
-	ProjectsStore      ProjectsStore
-	ReleasesStore      ReleasesStore
-	SubscriptionsStore SubscriptionsStore
-	SourcesStore       SourcesStore
-	ChannelsStore      ChannelsStore
-	KeyStore           KeyStore
-	HealthChecker      HealthChecker
-	Broadcaster        *Broadcaster
-	NoAuth             bool
+	DB                    *pgxpool.Pool
+	ProjectsStore         ProjectsStore
+	ReleasesStore         ReleasesStore
+	SubscriptionsStore    SubscriptionsStore
+	SourcesStore          SourcesStore
+	ChannelsStore         ChannelsStore
+	ContextSourcesStore   ContextSourcesStore
+	SemanticReleasesStore SemanticReleasesStore
+	AgentStore            AgentStore
+	KeyStore              KeyStore
+	HealthChecker         HealthChecker
+	Broadcaster           *Broadcaster
+	NoAuth                bool
 }
 
 // RegisterRoutes registers all API v1 routes on the given ServeMux.
@@ -39,12 +42,32 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("PUT /api/v1/projects/{id}", chain(http.HandlerFunc(projects.Update)))
 	mux.Handle("DELETE /api/v1/projects/{id}", chain(http.HandlerFunc(projects.Delete)))
 
-	// Releases (read-only)
+	// Sources (nested under projects)
+	sources := NewSourcesHandler(deps.SourcesStore)
+	mux.Handle("GET /api/v1/projects/{projectId}/sources", chain(http.HandlerFunc(sources.List)))
+	mux.Handle("POST /api/v1/projects/{projectId}/sources", chain(http.HandlerFunc(sources.Create)))
+	mux.Handle("GET /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Get)))
+	mux.Handle("PUT /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Update)))
+	mux.Handle("DELETE /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Delete)))
+
+	// Context Sources (nested under projects)
+	contextSources := NewContextSourcesHandler(deps.ContextSourcesStore)
+	mux.Handle("GET /api/v1/projects/{projectId}/context-sources", chain(http.HandlerFunc(contextSources.List)))
+	mux.Handle("POST /api/v1/projects/{projectId}/context-sources", chain(http.HandlerFunc(contextSources.Create)))
+	mux.Handle("GET /api/v1/context-sources/{id}", chain(http.HandlerFunc(contextSources.Get)))
+	mux.Handle("PUT /api/v1/context-sources/{id}", chain(http.HandlerFunc(contextSources.Update)))
+	mux.Handle("DELETE /api/v1/context-sources/{id}", chain(http.HandlerFunc(contextSources.Delete)))
+
+	// Releases (read-only, nested under sources and projects)
 	releases := NewReleasesHandler(deps.ReleasesStore)
-	mux.Handle("GET /api/v1/releases", chain(http.HandlerFunc(releases.List)))
+	mux.Handle("GET /api/v1/sources/{id}/releases", chain(http.HandlerFunc(releases.ListBySource)))
+	mux.Handle("GET /api/v1/projects/{projectId}/releases", chain(http.HandlerFunc(releases.ListByProject)))
 	mux.Handle("GET /api/v1/releases/{id}", chain(http.HandlerFunc(releases.Get)))
-	mux.Handle("GET /api/v1/releases/{id}/pipeline", chain(http.HandlerFunc(releases.Pipeline)))
-	mux.Handle("GET /api/v1/releases/{id}/notes", chain(http.HandlerFunc(releases.Notes)))
+
+	// Semantic Releases (read-only, nested under projects)
+	semanticReleases := NewSemanticReleasesHandler(deps.SemanticReleasesStore)
+	mux.Handle("GET /api/v1/projects/{projectId}/semantic-releases", chain(http.HandlerFunc(semanticReleases.List)))
+	mux.Handle("GET /api/v1/semantic-releases/{id}", chain(http.HandlerFunc(semanticReleases.Get)))
 
 	// Subscriptions (CRUD)
 	subscriptions := NewSubscriptionsHandler(deps.SubscriptionsStore)
@@ -54,16 +77,6 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("PUT /api/v1/subscriptions/{id}", chain(http.HandlerFunc(subscriptions.Update)))
 	mux.Handle("DELETE /api/v1/subscriptions/{id}", chain(http.HandlerFunc(subscriptions.Delete)))
 
-	// Sources (CRUD + release lookups)
-	sources := NewSourcesHandler(deps.SourcesStore)
-	mux.Handle("GET /api/v1/sources", chain(http.HandlerFunc(sources.List)))
-	mux.Handle("POST /api/v1/sources", chain(http.HandlerFunc(sources.Create)))
-	mux.Handle("GET /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Get)))
-	mux.Handle("PUT /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Update)))
-	mux.Handle("DELETE /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Delete)))
-	mux.Handle("GET /api/v1/sources/{id}/latest-release", chain(http.HandlerFunc(sources.LatestRelease)))
-	mux.Handle("GET /api/v1/sources/{id}/releases/{version}", chain(http.HandlerFunc(sources.ReleaseByVersion)))
-
 	// Channels (CRUD)
 	channels := NewChannelsHandler(deps.ChannelsStore)
 	mux.Handle("GET /api/v1/channels", chain(http.HandlerFunc(channels.List)))
@@ -71,6 +84,12 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("GET /api/v1/channels/{id}", chain(http.HandlerFunc(channels.Get)))
 	mux.Handle("PUT /api/v1/channels/{id}", chain(http.HandlerFunc(channels.Update)))
 	mux.Handle("DELETE /api/v1/channels/{id}", chain(http.HandlerFunc(channels.Delete)))
+
+	// Agent
+	agent := NewAgentHandler(deps.AgentStore)
+	mux.Handle("POST /api/v1/projects/{projectId}/agent/run", chain(http.HandlerFunc(agent.TriggerRun)))
+	mux.Handle("GET /api/v1/projects/{projectId}/agent/runs", chain(http.HandlerFunc(agent.ListRuns)))
+	mux.Handle("GET /api/v1/agent-runs/{id}", chain(http.HandlerFunc(agent.GetRun)))
 
 	// Providers (metadata — static, no store needed)
 	providers := NewProvidersHandler()

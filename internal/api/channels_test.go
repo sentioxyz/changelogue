@@ -18,7 +18,7 @@ type mockChannelsStore struct {
 	channels  []models.NotificationChannel
 	created   *models.NotificationChannel
 	updated   *models.NotificationChannel
-	deleted   int
+	deleted   string
 	listErr   error
 	createErr error
 	getErr    error
@@ -37,14 +37,14 @@ func (m *mockChannelsStore) CreateChannel(_ context.Context, ch *models.Notifica
 	if m.createErr != nil {
 		return m.createErr
 	}
-	ch.ID = 1
-	ch.Enabled = true
+	ch.ID = "ch-001"
 	ch.CreatedAt = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	ch.UpdatedAt = ch.CreatedAt
 	m.created = ch
 	return nil
 }
 
-func (m *mockChannelsStore) GetChannel(_ context.Context, id int) (*models.NotificationChannel, error) {
+func (m *mockChannelsStore) GetChannel(_ context.Context, id string) (*models.NotificationChannel, error) {
 	if m.getErr != nil {
 		return nil, m.getErr
 	}
@@ -56,7 +56,7 @@ func (m *mockChannelsStore) GetChannel(_ context.Context, id int) (*models.Notif
 	return nil, fmt.Errorf("not found")
 }
 
-func (m *mockChannelsStore) UpdateChannel(_ context.Context, id int, ch *models.NotificationChannel) error {
+func (m *mockChannelsStore) UpdateChannel(_ context.Context, id string, ch *models.NotificationChannel) error {
 	if m.updateErr != nil {
 		return m.updateErr
 	}
@@ -69,7 +69,7 @@ func (m *mockChannelsStore) UpdateChannel(_ context.Context, id int, ch *models.
 	return fmt.Errorf("not found")
 }
 
-func (m *mockChannelsStore) DeleteChannel(_ context.Context, id int) error {
+func (m *mockChannelsStore) DeleteChannel(_ context.Context, id string) error {
 	if m.deleteErr != nil {
 		return m.deleteErr
 	}
@@ -96,8 +96,8 @@ func setupChannelsMux(store ChannelsStore) *http.ServeMux {
 func TestChannelsHandlerList(t *testing.T) {
 	store := &mockChannelsStore{
 		channels: []models.NotificationChannel{
-			{ID: 1, Type: "slack", Name: "ops-alerts", Config: json.RawMessage(`{"webhook_url":"https://hooks.slack.com/xxx"}`), Enabled: true, CreatedAt: time.Now()},
-			{ID: 2, Type: "pagerduty", Name: "on-call", Config: json.RawMessage(`{"routing_key":"abc123"}`), Enabled: true, CreatedAt: time.Now()},
+			{ID: "ch-1", Type: "slack", Name: "ops-alerts", Config: json.RawMessage(`{"webhook_url":"https://hooks.slack.com/xxx"}`), CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: "ch-2", Type: "pagerduty", Name: "on-call", Config: json.RawMessage(`{"routing_key":"abc123"}`), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		},
 	}
 	mux := setupChannelsMux(store)
@@ -149,8 +149,8 @@ func TestChannelsHandlerCreate(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if got.Data.ID != 1 {
-		t.Fatalf("expected id=1, got %d", got.Data.ID)
+	if got.Data.ID != "ch-001" {
+		t.Fatalf("expected id=ch-001, got %s", got.Data.ID)
 	}
 	if got.Data.Name != "ops-alerts" {
 		t.Fatalf("expected name=ops-alerts, got %s", got.Data.Name)
@@ -222,13 +222,13 @@ func TestChannelsHandlerCreateInvalidJSON(t *testing.T) {
 func TestChannelsHandlerGet(t *testing.T) {
 	store := &mockChannelsStore{
 		channels: []models.NotificationChannel{
-			{ID: 42, Type: "slack", Name: "ops-alerts", Config: json.RawMessage(`{"webhook_url":"https://hooks.slack.com/xxx"}`), Enabled: true, CreatedAt: time.Now()},
+			{ID: "ch-42", Type: "slack", Name: "ops-alerts", Config: json.RawMessage(`{"webhook_url":"https://hooks.slack.com/xxx"}`), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		},
 	}
 	mux := setupChannelsMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/channels/42", nil)
+	r := httptest.NewRequest(http.MethodGet, "/channels/ch-42", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
@@ -241,8 +241,8 @@ func TestChannelsHandlerGet(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if got.Data.ID != 42 {
-		t.Fatalf("expected id=42, got %d", got.Data.ID)
+	if got.Data.ID != "ch-42" {
+		t.Fatalf("expected id=ch-42, got %s", got.Data.ID)
 	}
 }
 
@@ -251,7 +251,7 @@ func TestChannelsHandlerGetNotFound(t *testing.T) {
 	mux := setupChannelsMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/channels/999", nil)
+	r := httptest.NewRequest(http.MethodGet, "/channels/nonexistent", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusNotFound {
@@ -262,20 +262,20 @@ func TestChannelsHandlerGetNotFound(t *testing.T) {
 func TestChannelsHandlerDelete(t *testing.T) {
 	store := &mockChannelsStore{
 		channels: []models.NotificationChannel{
-			{ID: 5, Type: "slack", Name: "to-delete", Config: json.RawMessage(`{}`), Enabled: true, CreatedAt: time.Now()},
+			{ID: "ch-5", Type: "slack", Name: "to-delete", Config: json.RawMessage(`{}`), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		},
 	}
 	mux := setupChannelsMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodDelete, "/channels/5", nil)
+	r := httptest.NewRequest(http.MethodDelete, "/channels/ch-5", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d", w.Code)
 	}
-	if store.deleted != 5 {
-		t.Fatalf("expected deleted=5, got %d", store.deleted)
+	if store.deleted != "ch-5" {
+		t.Fatalf("expected deleted=ch-5, got %s", store.deleted)
 	}
 }
 
@@ -284,7 +284,7 @@ func TestChannelsHandlerDeleteNotFound(t *testing.T) {
 	mux := setupChannelsMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodDelete, "/channels/999", nil)
+	r := httptest.NewRequest(http.MethodDelete, "/channels/nonexistent", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusNotFound {

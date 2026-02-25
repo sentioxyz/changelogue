@@ -18,7 +18,7 @@ type mockSubscriptionsStore struct {
 	subscriptions []models.Subscription
 	created       *models.Subscription
 	updated       *models.Subscription
-	deleted       int
+	deleted       string
 	listErr       error
 	createErr     error
 	getErr        error
@@ -37,15 +37,13 @@ func (m *mockSubscriptionsStore) CreateSubscription(_ context.Context, sub *mode
 	if m.createErr != nil {
 		return m.createErr
 	}
-	sub.ID = 1
-	sub.Enabled = true
+	sub.ID = "sub-001"
 	sub.CreatedAt = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	sub.UpdatedAt = sub.CreatedAt
 	m.created = sub
 	return nil
 }
 
-func (m *mockSubscriptionsStore) GetSubscription(_ context.Context, id int) (*models.Subscription, error) {
+func (m *mockSubscriptionsStore) GetSubscription(_ context.Context, id string) (*models.Subscription, error) {
 	if m.getErr != nil {
 		return nil, m.getErr
 	}
@@ -57,13 +55,12 @@ func (m *mockSubscriptionsStore) GetSubscription(_ context.Context, id int) (*mo
 	return nil, fmt.Errorf("not found")
 }
 
-func (m *mockSubscriptionsStore) UpdateSubscription(_ context.Context, id int, sub *models.Subscription) error {
+func (m *mockSubscriptionsStore) UpdateSubscription(_ context.Context, id string, sub *models.Subscription) error {
 	if m.updateErr != nil {
 		return m.updateErr
 	}
 	for i := range m.subscriptions {
 		if m.subscriptions[i].ID == id {
-			sub.UpdatedAt = time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
 			m.updated = sub
 			return nil
 		}
@@ -71,7 +68,7 @@ func (m *mockSubscriptionsStore) UpdateSubscription(_ context.Context, id int, s
 	return fmt.Errorf("not found")
 }
 
-func (m *mockSubscriptionsStore) DeleteSubscription(_ context.Context, id int) error {
+func (m *mockSubscriptionsStore) DeleteSubscription(_ context.Context, id string) error {
 	if m.deleteErr != nil {
 		return m.deleteErr
 	}
@@ -96,10 +93,12 @@ func setupSubscriptionsMux(store SubscriptionsStore) *http.ServeMux {
 }
 
 func TestSubscriptionsHandlerList(t *testing.T) {
+	srcID := "s1"
+	projID := "p1"
 	store := &mockSubscriptionsStore{
 		subscriptions: []models.Subscription{
-			{ID: 1, ProjectID: 1, ChannelType: "slack", Frequency: "instant", Enabled: true, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-			{ID: 2, ProjectID: 2, ChannelType: "pagerduty", Frequency: "daily", Enabled: true, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: "sub-1", ChannelID: "ch1", Type: "source", SourceID: &srcID, CreatedAt: time.Now()},
+			{ID: "sub-2", ChannelID: "ch2", Type: "project", ProjectID: &projID, CreatedAt: time.Now()},
 		},
 	}
 	mux := setupSubscriptionsMux(store)
@@ -131,11 +130,11 @@ func TestSubscriptionsHandlerList(t *testing.T) {
 	}
 }
 
-func TestSubscriptionsHandlerCreate(t *testing.T) {
+func TestSubscriptionsHandlerCreateSource(t *testing.T) {
 	store := &mockSubscriptionsStore{}
 	mux := setupSubscriptionsMux(store)
 
-	body := `{"project_id":1,"channel_type":"slack","channel_id":5}`
+	body := `{"channel_id":"ch1","type":"source","source_id":"s1"}`
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
@@ -151,22 +150,37 @@ func TestSubscriptionsHandlerCreate(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if got.Data.ID != 1 {
-		t.Fatalf("expected id=1, got %d", got.Data.ID)
+	if got.Data.ID != "sub-001" {
+		t.Fatalf("expected id=sub-001, got %s", got.Data.ID)
 	}
-	if got.Data.Frequency != "instant" {
-		t.Fatalf("expected default frequency=instant, got %s", got.Data.Frequency)
+	if got.Data.Type != "source" {
+		t.Fatalf("expected type=source, got %s", got.Data.Type)
 	}
 	if store.created == nil {
 		t.Fatal("expected store.created to be set")
 	}
 }
 
-func TestSubscriptionsHandlerCreateMissingProjectID(t *testing.T) {
+func TestSubscriptionsHandlerCreateProject(t *testing.T) {
 	store := &mockSubscriptionsStore{}
 	mux := setupSubscriptionsMux(store)
 
-	body := `{"channel_type":"slack"}`
+	body := `{"channel_id":"ch1","type":"project","project_id":"p1"}`
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d; body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestSubscriptionsHandlerCreateInvalidType(t *testing.T) {
+	store := &mockSubscriptionsStore{}
+	mux := setupSubscriptionsMux(store)
+
+	body := `{"channel_id":"ch1","type":"invalid","source_id":"s1"}`
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
@@ -177,11 +191,41 @@ func TestSubscriptionsHandlerCreateMissingProjectID(t *testing.T) {
 	}
 }
 
-func TestSubscriptionsHandlerCreateMissingChannelType(t *testing.T) {
+func TestSubscriptionsHandlerCreateMissingChannelID(t *testing.T) {
 	store := &mockSubscriptionsStore{}
 	mux := setupSubscriptionsMux(store)
 
-	body := `{"project_id":1}`
+	body := `{"type":"source","source_id":"s1"}`
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", w.Code)
+	}
+}
+
+func TestSubscriptionsHandlerCreateSourceMissingSourceID(t *testing.T) {
+	store := &mockSubscriptionsStore{}
+	mux := setupSubscriptionsMux(store)
+
+	body := `{"channel_id":"ch1","type":"source"}`
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", w.Code)
+	}
+}
+
+func TestSubscriptionsHandlerCreateProjectMissingProjectID(t *testing.T) {
+	store := &mockSubscriptionsStore{}
+	mux := setupSubscriptionsMux(store)
+
+	body := `{"channel_id":"ch1","type":"project"}`
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
@@ -207,15 +251,16 @@ func TestSubscriptionsHandlerCreateInvalidJSON(t *testing.T) {
 }
 
 func TestSubscriptionsHandlerGet(t *testing.T) {
+	srcID := "s1"
 	store := &mockSubscriptionsStore{
 		subscriptions: []models.Subscription{
-			{ID: 42, ProjectID: 1, ChannelType: "slack", Frequency: "instant", Enabled: true, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: "sub-42", ChannelID: "ch1", Type: "source", SourceID: &srcID, CreatedAt: time.Now()},
 		},
 	}
 	mux := setupSubscriptionsMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/subscriptions/42", nil)
+	r := httptest.NewRequest(http.MethodGet, "/subscriptions/sub-42", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
@@ -228,8 +273,8 @@ func TestSubscriptionsHandlerGet(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if got.Data.ID != 42 {
-		t.Fatalf("expected id=42, got %d", got.Data.ID)
+	if got.Data.ID != "sub-42" {
+		t.Fatalf("expected id=sub-42, got %s", got.Data.ID)
 	}
 }
 
@@ -238,7 +283,7 @@ func TestSubscriptionsHandlerGetNotFound(t *testing.T) {
 	mux := setupSubscriptionsMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/subscriptions/999", nil)
+	r := httptest.NewRequest(http.MethodGet, "/subscriptions/nonexistent", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusNotFound {
@@ -247,22 +292,23 @@ func TestSubscriptionsHandlerGetNotFound(t *testing.T) {
 }
 
 func TestSubscriptionsHandlerDelete(t *testing.T) {
+	srcID := "s1"
 	store := &mockSubscriptionsStore{
 		subscriptions: []models.Subscription{
-			{ID: 5, ProjectID: 1, ChannelType: "slack", Frequency: "instant", Enabled: true, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: "sub-5", ChannelID: "ch1", Type: "source", SourceID: &srcID, CreatedAt: time.Now()},
 		},
 	}
 	mux := setupSubscriptionsMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodDelete, "/subscriptions/5", nil)
+	r := httptest.NewRequest(http.MethodDelete, "/subscriptions/sub-5", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d", w.Code)
 	}
-	if store.deleted != 5 {
-		t.Fatalf("expected deleted=5, got %d", store.deleted)
+	if store.deleted != "sub-5" {
+		t.Fatalf("expected deleted=sub-5, got %s", store.deleted)
 	}
 }
 
@@ -271,31 +317,10 @@ func TestSubscriptionsHandlerDeleteNotFound(t *testing.T) {
 	mux := setupSubscriptionsMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodDelete, "/subscriptions/999", nil)
+	r := httptest.NewRequest(http.MethodDelete, "/subscriptions/nonexistent", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", w.Code)
-	}
-}
-
-func TestSubscriptionsHandlerCreateDefaultFrequency(t *testing.T) {
-	store := &mockSubscriptionsStore{}
-	mux := setupSubscriptionsMux(store)
-
-	body := `{"project_id":1,"channel_type":"slack"}`
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	mux.ServeHTTP(w, r)
-
-	if w.Code != http.StatusCreated {
-		t.Fatalf("expected status 201, got %d", w.Code)
-	}
-	if store.created == nil {
-		t.Fatal("expected store.created to be set")
-	}
-	if store.created.Frequency != "instant" {
-		t.Fatalf("expected default frequency=instant, got %s", store.created.Frequency)
 	}
 }

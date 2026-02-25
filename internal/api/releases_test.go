@@ -8,28 +8,34 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/sentioxyz/releaseguard/internal/models"
 )
 
 // mockReleasesStore implements ReleasesStore for testing.
 type mockReleasesStore struct {
-	releases   []ReleaseView
-	release    *ReleaseView
-	notes      string
-	pipeline   *PipelineStatus
-	listErr    error
-	getErr     error
-	notesErr   error
-	pipeErr    error
+	sourceReleases  []models.Release
+	projectReleases []models.Release
+	release         *models.Release
+	listErr         error
+	getErr          error
 }
 
-func (m *mockReleasesStore) ListReleases(_ context.Context, opts ListReleasesOpts) ([]ReleaseView, int, error) {
+func (m *mockReleasesStore) ListReleasesBySource(_ context.Context, sourceID string, page, perPage int) ([]models.Release, int, error) {
 	if m.listErr != nil {
 		return nil, 0, m.listErr
 	}
-	return m.releases, len(m.releases), nil
+	return m.sourceReleases, len(m.sourceReleases), nil
 }
 
-func (m *mockReleasesStore) GetRelease(_ context.Context, id string) (*ReleaseView, error) {
+func (m *mockReleasesStore) ListReleasesByProject(_ context.Context, projectID string, page, perPage int) ([]models.Release, int, error) {
+	if m.listErr != nil {
+		return nil, 0, m.listErr
+	}
+	return m.projectReleases, len(m.projectReleases), nil
+}
+
+func (m *mockReleasesStore) GetRelease(_ context.Context, id string) (*models.Release, error) {
 	if m.getErr != nil {
 		return nil, m.getErr
 	}
@@ -39,44 +45,27 @@ func (m *mockReleasesStore) GetRelease(_ context.Context, id string) (*ReleaseVi
 	return nil, fmt.Errorf("not found")
 }
 
-func (m *mockReleasesStore) GetReleaseNotes(_ context.Context, id string) (string, error) {
-	if m.notesErr != nil {
-		return "", m.notesErr
-	}
-	return m.notes, nil
-}
-
-func (m *mockReleasesStore) GetPipelineStatus(_ context.Context, releaseID string) (*PipelineStatus, error) {
-	if m.pipeErr != nil {
-		return nil, m.pipeErr
-	}
-	if m.pipeline != nil {
-		return m.pipeline, nil
-	}
-	return nil, fmt.Errorf("not found")
-}
-
 func setupReleasesMux(store ReleasesStore) *http.ServeMux {
 	h := NewReleasesHandler(store)
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /releases", h.List)
+	mux.HandleFunc("GET /sources/{id}/releases", h.ListBySource)
+	mux.HandleFunc("GET /projects/{projectId}/releases", h.ListByProject)
 	mux.HandleFunc("GET /releases/{id}", h.Get)
-	mux.HandleFunc("GET /releases/{id}/pipeline", h.Pipeline)
-	mux.HandleFunc("GET /releases/{id}/notes", h.Notes)
 	return mux
 }
 
-func TestReleasesHandlerList(t *testing.T) {
+func TestReleasesHandlerListBySource(t *testing.T) {
+	now := time.Now()
 	store := &mockReleasesStore{
-		releases: []ReleaseView{
-			{ID: "aaa-111", SourceID: 1, SourceType: "docker_hub", Repository: "library/nginx", ProjectID: 1, ProjectName: "infra", RawVersion: "1.25.0", PipelineStatus: "completed", CreatedAt: "2026-01-15T00:00:00Z"},
-			{ID: "bbb-222", SourceID: 2, SourceType: "github", Repository: "golang/go", ProjectID: 1, ProjectName: "infra", RawVersion: "1.22.0", PipelineStatus: "pending", CreatedAt: "2026-01-14T00:00:00Z"},
+		sourceReleases: []models.Release{
+			{ID: "aaa-111", SourceID: "s1", Version: "1.25.0", RawData: json.RawMessage(`{}`), CreatedAt: now},
+			{ID: "bbb-222", SourceID: "s1", Version: "1.24.0", RawData: json.RawMessage(`{}`), CreatedAt: now},
 		},
 	}
 	mux := setupReleasesMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/releases", nil)
+	r := httptest.NewRequest(http.MethodGet, "/sources/s1/releases", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
@@ -84,7 +73,7 @@ func TestReleasesHandlerList(t *testing.T) {
 	}
 
 	var got struct {
-		Data []ReleaseView `json:"data"`
+		Data []models.Release `json:"data"`
 		Meta struct {
 			Total int `json:"total"`
 		} `json:"meta"`
@@ -100,35 +89,46 @@ func TestReleasesHandlerList(t *testing.T) {
 	}
 }
 
-func TestReleasesHandlerListWithFilters(t *testing.T) {
+func TestReleasesHandlerListByProject(t *testing.T) {
+	now := time.Now()
 	store := &mockReleasesStore{
-		releases: []ReleaseView{
-			{ID: "aaa-111", SourceID: 1, ProjectID: 2, RawVersion: "1.0.0", PipelineStatus: "completed", CreatedAt: "2026-01-15T00:00:00Z"},
+		projectReleases: []models.Release{
+			{ID: "ccc-333", SourceID: "s1", Version: "2.0.0", RawData: json.RawMessage(`{}`), CreatedAt: now},
 		},
 	}
 	mux := setupReleasesMux(store)
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/releases?project_id=2&source_id=1&sort=created_at&order=asc", nil)
+	r := httptest.NewRequest(http.MethodGet, "/projects/p1/releases", nil)
 	mux.ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
+
+	var got struct {
+		Data []models.Release `json:"data"`
+		Meta struct {
+			Total int `json:"total"`
+		} `json:"meta"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.Data) != 1 {
+		t.Fatalf("expected 1 release, got %d", len(got.Data))
+	}
 }
 
 func TestReleasesHandlerGet(t *testing.T) {
+	now := time.Now()
 	store := &mockReleasesStore{
-		release: &ReleaseView{
-			ID:             "aaa-111",
-			SourceID:       1,
-			SourceType:     "docker_hub",
-			Repository:     "library/nginx",
-			ProjectID:      1,
-			ProjectName:    "infra",
-			RawVersion:     "1.25.0",
-			PipelineStatus: "completed",
-			CreatedAt:      "2026-01-15T00:00:00Z",
+		release: &models.Release{
+			ID:        "aaa-111",
+			SourceID:  "s1",
+			Version:   "1.25.0",
+			RawData:   json.RawMessage(`{"digest":"sha256:abc"}`),
+			CreatedAt: now,
 		},
 	}
 	mux := setupReleasesMux(store)
@@ -142,7 +142,7 @@ func TestReleasesHandlerGet(t *testing.T) {
 	}
 
 	var got struct {
-		Data ReleaseView `json:"data"`
+		Data models.Release `json:"data"`
 	}
 	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -150,8 +150,8 @@ func TestReleasesHandlerGet(t *testing.T) {
 	if got.Data.ID != "aaa-111" {
 		t.Fatalf("expected id=aaa-111, got %s", got.Data.ID)
 	}
-	if got.Data.RawVersion != "1.25.0" {
-		t.Fatalf("expected version=1.25.0, got %s", got.Data.RawVersion)
+	if got.Data.Version != "1.25.0" {
+		t.Fatalf("expected version=1.25.0, got %s", got.Data.Version)
 	}
 }
 
@@ -165,82 +165,5 @@ func TestReleasesHandlerGetNotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", w.Code)
-	}
-}
-
-func TestReleasesHandlerPipeline(t *testing.T) {
-	now := time.Now()
-	node := "urgency_scorer"
-	store := &mockReleasesStore{
-		pipeline: &PipelineStatus{
-			ReleaseID:   "aaa-111",
-			State:       "running",
-			CurrentNode: &node,
-			NodeResults: json.RawMessage(`{"regex_normalizer":"passed"}`),
-			Attempt:     1,
-			CompletedAt: &now,
-		},
-	}
-	mux := setupReleasesMux(store)
-
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/releases/aaa-111/pipeline", nil)
-	mux.ServeHTTP(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-
-	var got struct {
-		Data PipelineStatus `json:"data"`
-	}
-	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if got.Data.State != "running" {
-		t.Fatalf("expected state=running, got %s", got.Data.State)
-	}
-	if *got.Data.CurrentNode != "urgency_scorer" {
-		t.Fatalf("expected current_node=urgency_scorer, got %s", *got.Data.CurrentNode)
-	}
-}
-
-func TestReleasesHandlerPipelineNotFound(t *testing.T) {
-	store := &mockReleasesStore{}
-	mux := setupReleasesMux(store)
-
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/releases/nonexistent/pipeline", nil)
-	mux.ServeHTTP(w, r)
-
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected status 404, got %d", w.Code)
-	}
-}
-
-func TestReleasesHandlerNotes(t *testing.T) {
-	store := &mockReleasesStore{
-		notes: "## Changelog\n- Fixed bug #123\n- Added feature X",
-	}
-	mux := setupReleasesMux(store)
-
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/releases/aaa-111/notes", nil)
-	mux.ServeHTTP(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-
-	var got struct {
-		Data struct {
-			Changelog string `json:"changelog"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if got.Data.Changelog != "## Changelog\n- Fixed bug #123\n- Added feature X" {
-		t.Fatalf("unexpected changelog: %s", got.Data.Changelog)
 	}
 }

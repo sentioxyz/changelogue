@@ -98,10 +98,10 @@ func TestHealthHandlerCheckUnhealthy(t *testing.T) {
 func TestHealthHandlerStats(t *testing.T) {
 	checker := &mockHealthChecker{
 		stats: &DashboardStats{
-			TotalReleases: 42,
-			ActiveSources: 5,
-			PendingJobs:   3,
-			FailedJobs:    1,
+			TotalReleases:    42,
+			ActiveSources:    5,
+			TotalProjects:    3,
+			PendingAgentRuns: 1,
 		},
 	}
 	mux := setupHealthMux(checker)
@@ -126,11 +126,11 @@ func TestHealthHandlerStats(t *testing.T) {
 	if got.Data.ActiveSources != 5 {
 		t.Fatalf("expected active_sources=5, got %d", got.Data.ActiveSources)
 	}
-	if got.Data.PendingJobs != 3 {
-		t.Fatalf("expected pending_jobs=3, got %d", got.Data.PendingJobs)
+	if got.Data.TotalProjects != 3 {
+		t.Fatalf("expected total_projects=3, got %d", got.Data.TotalProjects)
 	}
-	if got.Data.FailedJobs != 1 {
-		t.Fatalf("expected failed_jobs=1, got %d", got.Data.FailedJobs)
+	if got.Data.PendingAgentRuns != 1 {
+		t.Fatalf("expected pending_agent_runs=1, got %d", got.Data.PendingAgentRuns)
 	}
 }
 
