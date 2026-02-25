@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"google.golang.org/adk/tool"
 
 	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/releaseguard/internal/routing"
 )
 
 // OrchestratorStore defines all data access methods required by the agent
@@ -94,7 +96,7 @@ func (o *Orchestrator) RunAgent(ctx context.Context, run *models.AgentRun) error
 	}
 
 	// Execute the agent; capture any error to mark the run as failed.
-	semanticReleaseID, err := o.executeAgent(ctx, run)
+	result, err := o.executeAgent(ctx, run)
 	if err != nil {
 		slog.Error("agent run failed", "run_id", run.ID, "err", err)
 		// Best-effort: mark the run as failed (ignore status update error).
@@ -103,23 +105,35 @@ func (o *Orchestrator) RunAgent(ctx context.Context, run *models.AgentRun) error
 	}
 
 	// Link the semantic release to the agent run and mark completed.
-	if err := o.store.UpdateAgentRunResult(ctx, run.ID, semanticReleaseID); err != nil {
+	if err := o.store.UpdateAgentRunResult(ctx, run.ID, result.semanticReleaseID); err != nil {
 		return fmt.Errorf("update agent run result: %w", err)
 	}
 	if err := o.store.UpdateAgentRunStatus(ctx, run.ID, "completed"); err != nil {
 		return fmt.Errorf("update agent run status to completed: %w", err)
 	}
 
+	// Send project-level notifications (best-effort; errors are logged, not returned).
+	o.sendProjectNotifications(ctx, run, result)
+
 	return nil
 }
 
+// agentResult holds the output of a successful agent execution, used to
+// construct notifications after the semantic release is persisted.
+type agentResult struct {
+	semanticReleaseID string
+	version           string
+	reportText        string
+	projectName       string
+}
+
 // executeAgent performs the actual LLM agent interaction and returns the
-// created semantic release ID.
-func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (string, error) {
+// agentResult containing the semantic release ID and metadata for notifications.
+func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (*agentResult, error) {
 	// Load project.
 	project, err := o.store.GetProject(ctx, run.ProjectID)
 	if err != nil {
-		return "", fmt.Errorf("get project: %w", err)
+		return nil, fmt.Errorf("get project: %w", err)
 	}
 
 	// Build instruction from project's agent_prompt or use default.
@@ -133,13 +147,13 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 		APIKey: o.apiKey,
 	})
 	if err != nil {
-		return "", fmt.Errorf("create LLM model: %w", err)
+		return nil, fmt.Errorf("create LLM model: %w", err)
 	}
 
 	// Create project-scoped tools.
 	tools, err := NewTools(o.store, run.ProjectID)
 	if err != nil {
-		return "", fmt.Errorf("create agent tools: %w", err)
+		return nil, fmt.Errorf("create agent tools: %w", err)
 	}
 
 	// Create the ADK-Go LLM agent.
@@ -151,7 +165,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 		Tools:       tools,
 	})
 	if err != nil {
-		return "", fmt.Errorf("create LLM agent: %w", err)
+		return nil, fmt.Errorf("create LLM agent: %w", err)
 	}
 
 	// Create in-memory session service and a new session.
@@ -161,7 +175,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 		UserID:  "system",
 	})
 	if err != nil {
-		return "", fmt.Errorf("create session: %w", err)
+		return nil, fmt.Errorf("create session: %w", err)
 	}
 	sess := createResp.Session
 
@@ -172,7 +186,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 		SessionService: sessionService,
 	})
 	if err != nil {
-		return "", fmt.Errorf("create runner: %w", err)
+		return nil, fmt.Errorf("create runner: %w", err)
 	}
 
 	// Run the agent with a prompt requesting analysis.
@@ -184,7 +198,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	var finalText string
 	for event, err := range r.Run(ctx, "system", sess.ID(), userMsg, agent.RunConfig{}) {
 		if err != nil {
-			return "", fmt.Errorf("agent run event error: %w", err)
+			return nil, fmt.Errorf("agent run event error: %w", err)
 		}
 		if event != nil && event.IsFinalResponse() && event.Content != nil {
 			for _, part := range event.Content.Parts {
@@ -196,7 +210,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	}
 
 	if finalText == "" {
-		return "", fmt.Errorf("agent produced no output")
+		return nil, fmt.Errorf("agent produced no output")
 	}
 
 	// Parse the agent's response into a SemanticReport.
@@ -212,13 +226,13 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 
 	reportJSON, err := json.Marshal(report)
 	if err != nil {
-		return "", fmt.Errorf("marshal report: %w", err)
+		return nil, fmt.Errorf("marshal report: %w", err)
 	}
 
 	// Gather release IDs for the semantic_release_sources join table.
 	releases, _, err := o.store.ListReleasesByProject(ctx, run.ProjectID, 1, 50)
 	if err != nil {
-		return "", fmt.Errorf("list releases for semantic release: %w", err)
+		return nil, fmt.Errorf("list releases for semantic release: %w", err)
 	}
 	releaseIDs := make([]string, 0, len(releases))
 	for _, r := range releases {
@@ -241,7 +255,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	}
 
 	if err := o.store.CreateSemanticRelease(ctx, sr, releaseIDs); err != nil {
-		return "", fmt.Errorf("create semantic release: %w", err)
+		return nil, fmt.Errorf("create semantic release: %w", err)
 	}
 
 	slog.Info("agent run produced semantic release",
@@ -250,7 +264,69 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 		"version", sr.Version,
 	)
 
-	return sr.ID, nil
+	return &agentResult{
+		semanticReleaseID: sr.ID,
+		version:           version,
+		reportText:        finalText,
+		projectName:       project.Name,
+	}, nil
+}
+
+// defaultSenders returns a map of channel type to Sender for the supported
+// notification channel types (webhook, slack, discord).
+func defaultSenders() map[string]routing.Sender {
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	return map[string]routing.Sender{
+		"webhook": &routing.WebhookSender{Client: httpClient},
+		"slack":   &routing.SlackSender{Client: httpClient},
+		"discord": &routing.DiscordSender{Client: httpClient},
+	}
+}
+
+// sendProjectNotifications looks up project-level subscriptions and sends a
+// notification to each channel with the semantic release report. This is
+// best-effort: errors are logged but do not propagate to the caller.
+func (o *Orchestrator) sendProjectNotifications(ctx context.Context, run *models.AgentRun, result *agentResult) {
+	subs, err := o.store.ListProjectSubscriptions(ctx, run.ProjectID)
+	if err != nil {
+		slog.Error("list project subscriptions for notification",
+			"project_id", run.ProjectID, "err", err)
+		return
+	}
+	if len(subs) == 0 {
+		return
+	}
+
+	senders := defaultSenders()
+
+	msg := routing.Notification{
+		Title:   fmt.Sprintf("Semantic Release Report: %s %s", result.projectName, result.version),
+		Body:    result.reportText,
+		Version: result.version,
+	}
+
+	for _, sub := range subs {
+		ch, err := o.store.GetChannel(ctx, sub.ChannelID)
+		if err != nil {
+			slog.Error("get channel for project notification",
+				"channel_id", sub.ChannelID, "err", err)
+			continue
+		}
+
+		sender, ok := senders[ch.Type]
+		if !ok {
+			slog.Warn("unknown channel type for project notification", "type", ch.Type)
+			continue
+		}
+
+		if err := sender.Send(ctx, ch, msg); err != nil {
+			slog.Error("send project notification failed",
+				"channel", ch.Name, "type", ch.Type, "err", err)
+		} else {
+			slog.Info("project notification sent",
+				"channel", ch.Name, "project_id", run.ProjectID, "version", result.version)
+		}
+	}
 }
 
 // parseReport attempts to parse the agent's text output as a SemanticReport JSON.
