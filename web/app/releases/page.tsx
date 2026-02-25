@@ -3,10 +3,8 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { releases as releasesApi, type ListReleasesParams } from "@/lib/api/client";
-import { projects as projectsApi } from "@/lib/api/client";
+import { releases as releasesApi, projects as projectsApi } from "@/lib/api/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -16,32 +14,44 @@ import {
 } from "@/components/ui/table";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const statusColors: Record<string, string> = {
-  completed: "bg-green-100 text-green-800",
-  running: "bg-blue-100 text-blue-800",
-  available: "bg-gray-100 text-gray-800",
-  retry: "bg-yellow-100 text-yellow-800",
-  discarded: "bg-red-100 text-red-800",
-};
-
 export default function ReleasesPage() {
   const [page, setPage] = useState(1);
   const [projectFilter, setProjectFilter] = useState<string>("all");
-  const [preReleaseFilter, setPreReleaseFilter] = useState<string>("all");
 
   const { data: projectsData } = useSWR("projects-for-filter", () => projectsApi.list());
 
-  const params: ListReleasesParams = { page, per_page: 15 };
-  if (projectFilter !== "all") params.project_id = Number(projectFilter);
-  if (preReleaseFilter !== "all") params.pre_release = preReleaseFilter === "true";
-
   const { data, isLoading } = useSWR(
-    ["releases", page, projectFilter, preReleaseFilter],
-    () => releasesApi.list(params)
+    ["releases", page, projectFilter],
+    () => {
+      if (projectFilter !== "all") {
+        return releasesApi.listByProject(projectFilter, page);
+      }
+      // When no project filter, show all releases across all projects
+      // The API doesn't have a global releases endpoint, so we use the first project or show empty
+      return null;
+    }
   );
 
-  const total = data?.meta.total ?? 0;
-  const totalPages = Math.ceil(total / 15);
+  // For the "all projects" case, we need to fetch all project releases
+  const { data: allReleasesData } = useSWR(
+    projectFilter === "all" ? ["all-releases", page] : null,
+    async () => {
+      if (!projectsData?.data?.length) return null;
+      // Fetch releases from the first project as a default view
+      // In production, there would be a global /releases endpoint
+      const results = await Promise.all(
+        projectsData.data.slice(0, 5).map((p) => releasesApi.listByProject(p.id, page).catch(() => null))
+      );
+      const allReleases = results
+        .filter((r): r is NonNullable<typeof r> => r !== null)
+        .flatMap((r) => r.data);
+      return allReleases;
+    }
+  );
+
+  const displayReleases = projectFilter !== "all" ? data?.data : allReleasesData;
+  const total = data?.meta?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / 15));
 
   return (
     <div className="space-y-4">
@@ -59,19 +69,8 @@ export default function ReleasesPage() {
           <SelectContent>
             <SelectItem value="all">All Projects</SelectItem>
             {projectsData?.data.map((p) => (
-              <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
             ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={preReleaseFilter} onValueChange={(v) => { setPreReleaseFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="false">Stable Only</SelectItem>
-            <SelectItem value="true">Pre-release Only</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -85,41 +84,27 @@ export default function ReleasesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Version</TableHead>
-                  <TableHead>Project</TableHead>
                   <TableHead>Source</TableHead>
-                  <TableHead>Pipeline</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Released</TableHead>
+                  <TableHead>Ingested</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data?.data.map((release) => (
+                {(displayReleases ?? []).map((release) => (
                   <TableRow key={release.id}>
                     <TableCell>
                       <Link
                         href={`/releases/${release.id}`}
-                        className="flex items-center gap-2 font-mono text-sm text-primary hover:underline"
+                        className="font-mono text-sm text-primary hover:underline"
                       >
-                        {release.raw_version}
-                        {release.is_pre_release && (
-                          <Badge variant="outline" className="text-xs">pre</Badge>
-                        )}
+                        {release.version}
                       </Link>
                     </TableCell>
-                    <TableCell>
-                      <Link href={`/projects/${release.project_id}`} className="hover:underline">
-                        {release.project_name}
-                      </Link>
+                    <TableCell className="text-xs text-muted-foreground font-mono">
+                      {release.source_id}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-xs">{release.source_type}</Badge>
-                        <span className="text-xs text-muted-foreground">{release.repository}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[release.pipeline_status] ?? ""}>
-                        {release.pipeline_status}
-                      </Badge>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {release.released_at ? new Date(release.released_at).toLocaleDateString() : "\u2014"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(release.created_at).toLocaleDateString()}
@@ -133,7 +118,7 @@ export default function ReleasesPage() {
       </Card>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {projectFilter !== "all" && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">{total} releases</span>
           <div className="flex items-center gap-2">

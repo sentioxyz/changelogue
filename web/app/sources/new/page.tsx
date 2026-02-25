@@ -8,11 +8,21 @@ import { SourceForm } from "@/components/sources/source-form";
 function NewSourceContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project_id");
+
+  if (!projectId) {
+    return (
+      <div className="py-12 text-center text-muted-foreground">
+        Sources must be created within a project. Go to a project and add a source from there.
+      </div>
+    );
+  }
+
   return (
     <SourceForm
       title="Add Source"
-      defaultProjectId={projectId ? Number(projectId) : undefined}
-      onSubmit={async (input) => { await sourcesApi.create(input); }}
+      projectId={projectId}
+      onSubmit={async (input) => { await sourcesApi.create(projectId, input); }}
+      redirectTo={`/projects/${projectId}`}
     />
   );
 }

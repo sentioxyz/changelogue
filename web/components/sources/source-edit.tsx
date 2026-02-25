@@ -9,23 +9,27 @@ import { Trash2 } from "lucide-react";
 
 export function SourceEdit({ id }: { id: string }) {
   const router = useRouter();
-  const { data, isLoading } = useSWR(`source-${id}`, () => sourcesApi.get(Number(id)));
+  const { data, isLoading } = useSWR(`source-${id}`, () => sourcesApi.get(id));
 
   const handleDelete = async () => {
     if (!confirm("Delete this source?")) return;
-    await sourcesApi.delete(Number(id));
+    await sourcesApi.delete(id);
     router.push("/sources");
   };
 
   if (isLoading) return <div className="py-12 text-center text-muted-foreground">Loading...</div>;
   if (!data?.data) return <div className="py-12 text-center">Source not found</div>;
 
+  const source = data.data;
+
   return (
     <div className="space-y-4">
       <SourceForm
         title="Edit Source"
-        initial={data.data}
-        onSubmit={async (input) => { await sourcesApi.update(Number(id), input); }}
+        initial={source}
+        projectId={source.project_id}
+        onSubmit={async (input) => { await sourcesApi.update(id, input); }}
+        redirectTo={`/projects/${source.project_id}`}
       />
       <div className="mx-auto max-w-2xl flex justify-end">
         <Button variant="destructive" size="sm" onClick={handleDelete}>

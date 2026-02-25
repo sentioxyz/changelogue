@@ -20,7 +20,7 @@ export default function ProjectsPage() {
         <div>
           <h2 className="text-lg font-semibold">All Projects</h2>
           <p className="text-sm text-muted-foreground">
-            Manage tracked software projects and their pipeline configurations.
+            Manage tracked software projects and their agent configurations.
           </p>
         </div>
         <Link href="/projects/new">
@@ -41,8 +41,8 @@ export default function ProjectsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Pipeline Nodes</TableHead>
-                  <TableHead className="text-right">Subscriptions</TableHead>
+                  <TableHead>Agent Rules</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -61,14 +61,20 @@ export default function ProjectsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {Object.keys(project.pipeline_config).map((node) => (
-                          <Badge key={node} variant="secondary" className="text-xs">
-                            {node.replace(/_/g, " ")}
-                          </Badge>
-                        ))}
+                        {project.agent_rules?.on_major_release && (
+                          <Badge variant="secondary" className="text-xs">major</Badge>
+                        )}
+                        {project.agent_rules?.on_minor_release && (
+                          <Badge variant="secondary" className="text-xs">minor</Badge>
+                        )}
+                        {project.agent_rules?.on_security_patch && (
+                          <Badge variant="secondary" className="text-xs">security</Badge>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{project.subscription_count}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(project.created_at).toLocaleDateString()}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

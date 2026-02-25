@@ -2,53 +2,59 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import useSWR from "swr";
-import { projects as projectsApi, system } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Source, SourceInput } from "@/lib/api/types";
 
 interface SourceFormProps {
   initial?: Source;
-  defaultProjectId?: number;
+  projectId?: string;
   onSubmit: (input: SourceInput) => Promise<void>;
   title: string;
+  redirectTo?: string;
 }
 
-export function SourceForm({ initial, defaultProjectId, onSubmit, title }: SourceFormProps) {
+export function SourceForm({ initial, onSubmit, title, redirectTo }: SourceFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [projectId, setProjectId] = useState(String(initial?.project_id ?? defaultProjectId ?? ""));
-  const [type, setType] = useState(initial?.type ?? "dockerhub");
+  const [provider, setProvider] = useState(initial?.provider ?? "dockerhub");
   const [repository, setRepository] = useState(initial?.repository ?? "");
   const [pollInterval, setPollInterval] = useState(String(initial?.poll_interval_seconds ?? 300));
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
-  const [excludeRegexp, setExcludeRegexp] = useState(initial?.exclude_version_regexp ?? "");
-  const [excludePrereleases, setExcludePrereleases] = useState(initial?.exclude_prereleases ?? false);
-
-  const { data: projectsData } = useSWR("projects-for-form", () => projectsApi.list());
-  const { data: providersData } = useSWR("providers", () => system.providers());
+  const [configJson, setConfigJson] = useState(
+    JSON.stringify(initial?.config ?? {}, null, 2)
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    let parsedConfig: Record<string, unknown> | undefined;
+    if (configJson.trim() && configJson.trim() !== "{}") {
+      try {
+        parsedConfig = JSON.parse(configJson);
+      } catch {
+        setError("Config must be valid JSON");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await onSubmit({
-        project_id: Number(projectId),
-        type,
+        provider,
         repository,
         poll_interval_seconds: Number(pollInterval),
         enabled,
-        exclude_version_regexp: excludeRegexp || undefined,
-        exclude_prereleases: excludePrereleases || undefined,
+        config: parsedConfig,
       });
-      router.push("/sources");
+      router.push(redirectTo ?? "/sources");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -63,24 +69,12 @@ export function SourceForm({ initial, defaultProjectId, onSubmit, title }: Sourc
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
           <div className="space-y-2">
-            <Label>Project</Label>
-            <Select value={projectId} onValueChange={setProjectId} required>
-              <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
-              <SelectContent>
-                {projectsData?.data.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Source Type</Label>
-            <Select value={type} onValueChange={setType}>
+            <Label>Provider</Label>
+            <Select value={provider} onValueChange={setProvider}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {(providersData?.data ?? [{ type: "dockerhub", name: "Docker Hub" }, { type: "github", name: "GitHub" }]).map((p) => (
-                  <SelectItem key={p.type} value={p.type}>{p.name}</SelectItem>
-                ))}
+                <SelectItem value="dockerhub">Docker Hub</SelectItem>
+                <SelectItem value="github">GitHub</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -93,12 +87,15 @@ export function SourceForm({ initial, defaultProjectId, onSubmit, title }: Sourc
             <Input id="poll_interval" type="number" min={60} value={pollInterval} onChange={(e) => setPollInterval(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="exclude_regexp">Exclude Version Pattern (regex)</Label>
-            <Input id="exclude_regexp" value={excludeRegexp} onChange={(e) => setExcludeRegexp(e.target.value)} placeholder="e.g. -(alpha|beta|nightly)" />
-          </div>
-          <div className="flex items-center gap-3">
-            <Switch checked={excludePrereleases} onCheckedChange={setExcludePrereleases} />
-            <Label>Exclude pre-releases</Label>
+            <Label htmlFor="config">Config (JSON, optional)</Label>
+            <Textarea
+              id="config"
+              value={configJson}
+              onChange={(e) => setConfigJson(e.target.value)}
+              rows={4}
+              className="font-mono text-sm"
+              placeholder="{}"
+            />
           </div>
           <div className="flex items-center gap-3">
             <Switch checked={enabled} onCheckedChange={setEnabled} />
