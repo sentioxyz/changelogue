@@ -668,6 +668,100 @@ func (s *PgStore) EnqueueAgentRun(ctx context.Context, projectID, trigger string
 	return tx.Commit(ctx)
 }
 
+// --- OrchestratorStore (agent layer) ---
+
+// UpdateAgentRunStatus sets the status of an agent run and updates the
+// started_at timestamp when transitioning to "running".
+func (s *PgStore) UpdateAgentRunStatus(ctx context.Context, id, status string) error {
+	var query string
+	switch status {
+	case "running":
+		query = `UPDATE agent_runs SET status = $1, started_at = NOW() WHERE id = $2`
+	case "completed":
+		query = `UPDATE agent_runs SET status = $1, completed_at = NOW() WHERE id = $2`
+	default:
+		query = `UPDATE agent_runs SET status = $1 WHERE id = $2`
+	}
+	tag, err := s.pool.Exec(ctx, query, status, id)
+	if err != nil {
+		return fmt.Errorf("update agent run status: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("agent run not found: %s", id)
+	}
+	return nil
+}
+
+// CreateSemanticRelease inserts a semantic release and its source release links
+// in a single transaction. The sr.ID field is populated on success.
+func (s *PgStore) CreateSemanticRelease(ctx context.Context, sr *models.SemanticRelease, releaseIDs []string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	err = tx.QueryRow(ctx,
+		`INSERT INTO semantic_releases (project_id, version, report, status, completed_at)
+		 VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id, created_at`,
+		sr.ProjectID, sr.Version, sr.Report, sr.Status, sr.CompletedAt,
+	).Scan(&sr.ID, &sr.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("insert semantic release: %w", err)
+	}
+
+	for _, relID := range releaseIDs {
+		_, err = tx.Exec(ctx,
+			`INSERT INTO semantic_release_sources (semantic_release_id, release_id)
+			 VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+			sr.ID, relID,
+		)
+		if err != nil {
+			return fmt.Errorf("insert semantic release source: %w", err)
+		}
+	}
+
+	return tx.Commit(ctx)
+}
+
+// UpdateAgentRunResult sets the semantic_release_id for a completed agent run.
+func (s *PgStore) UpdateAgentRunResult(ctx context.Context, id string, semanticReleaseID string) error {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE agent_runs SET semantic_release_id = $1 WHERE id = $2`,
+		semanticReleaseID, id,
+	)
+	if err != nil {
+		return fmt.Errorf("update agent run result: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("agent run not found: %s", id)
+	}
+	return nil
+}
+
+// ListProjectSubscriptions returns all project-level subscriptions for a given project.
+func (s *PgStore) ListProjectSubscriptions(ctx context.Context, projectID string) ([]models.Subscription, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), created_at
+		 FROM subscriptions
+		 WHERE type = 'project' AND project_id = $1`, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("list project subscriptions: %w", err)
+	}
+	defer rows.Close()
+	var subs []models.Subscription
+	for rows.Next() {
+		var sub models.Subscription
+		if err := rows.Scan(&sub.ID, &sub.ChannelID, &sub.Type, &sub.SourceID,
+			&sub.ProjectID, &sub.VersionFilter, &sub.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan subscription: %w", err)
+		}
+		subs = append(subs, sub)
+	}
+	return subs, nil
+}
+
 // --- HealthChecker ---
 
 func (s *PgStore) Ping(ctx context.Context) error {

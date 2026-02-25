@@ -334,7 +334,86 @@ River picks up NotifyJobArgs {release_id, source_id}
 * **Store errors:** If the release or subscription list cannot be fetched, the job returns an error and River retries per its configured retry policy.
 * **Channel lookup failure:** If a specific channel cannot be found (e.g., deleted between subscription creation and notification), it is logged and skipped.
 
-## 5. Error Handling & Idempotency
+## 5. Agent Architecture (ADK-Go)
+
+### 5.1 Overview
+
+The agent layer uses Google's ADK-Go (`google.golang.org/adk v0.5.0`) to create LLM-powered agents that analyze upstream releases and produce structured semantic release reports. Each agent run is scoped to a project and orchestrated through the River job queue.
+
+### 5.2 Agent Tools
+
+The agent is provided with three function tools (via ADK `functiontool`), all scoped to the project being analyzed:
+
+| Tool | Input | Output | Purpose |
+|------|-------|--------|---------|
+| `get_releases` | `{page, per_page}` | Paginated release list | Fetch recent releases for the project |
+| `get_release_detail` | `{release_id}` | Full release with raw data | Inspect changelogs, commit lists, metadata |
+| `list_context_sources` | `{page, per_page}` | Context source list | Discover runbooks, docs, dashboards |
+
+Tools are created by `NewTools(store, projectID)` which returns `[]tool.Tool` compatible with the ADK `llmagent.Config.Tools` field. The `toolFactory` struct holds the data store and project ID, ensuring all tool invocations are properly scoped.
+
+### 5.3 Store Interfaces
+
+Two layered interfaces separate concerns:
+
+```go
+// AgentDataStore — read-only access for tool implementations
+type AgentDataStore interface {
+    ListReleasesByProject(ctx, projectID, page, perPage) ([]Release, int, error)
+    GetRelease(ctx, id) (*Release, error)
+    ListContextSources(ctx, projectID, page, perPage) ([]ContextSource, int, error)
+}
+
+// OrchestratorStore — full access for the orchestrator lifecycle
+type OrchestratorStore interface {
+    AgentDataStore
+    GetProject(ctx, id) (*Project, error)
+    GetAgentRun(ctx, id) (*AgentRun, error)
+    UpdateAgentRunStatus(ctx, id, status) error
+    CreateSemanticRelease(ctx, sr, releaseIDs) error
+    UpdateAgentRunResult(ctx, id, semanticReleaseID) error
+    ListProjectSubscriptions(ctx, projectID) ([]Subscription, error)
+    GetChannel(ctx, id) (*NotificationChannel, error)
+}
+```
+
+Both are implemented by `api.PgStore`.
+
+### 5.4 Orchestrator Lifecycle
+
+The `Orchestrator` manages the end-to-end agent run:
+
+1. **Mark running** — `UpdateAgentRunStatus(id, "running")` sets `started_at`.
+2. **Load project** — Fetches project config including `agent_prompt`.
+3. **Build instruction** — Merges the project's custom `agent_prompt` with a default system instruction that tells the agent to produce a JSON `SemanticReport`.
+4. **Create LLM model** — Initializes a Gemini model via `model/gemini.NewModel()` using the `GOOGLE_API_KEY` environment variable.
+5. **Create tools** — `NewTools(store, projectID)` creates project-scoped function tools.
+6. **Create ADK agent** — `llmagent.New()` wires the model, instruction, and tools into an ADK LLM agent.
+7. **Run agent** — Uses `runner.Runner.Run()` with an in-memory session service. Iterates over events and captures the final text response.
+8. **Parse report** — Attempts to parse the agent's output as a `SemanticReport` JSON. Falls back to storing raw text as the summary if parsing fails.
+9. **Persist** — Creates a `SemanticRelease` (with `semantic_release_sources` links) in a single transaction.
+10. **Mark completed** — Links the semantic release to the agent run and updates status.
+
+### 5.5 River Worker
+
+The `AgentWorker` implements `river.Worker[queue.AgentJobArgs]`:
+
+```go
+func (w *AgentWorker) Work(ctx, job) error {
+    run := w.store.GetAgentRun(job.Args.AgentRunID)
+    return w.orchestrator.RunAgent(ctx, run)
+}
+```
+
+The worker is registered conditionally in `main.go` — only when `GOOGLE_API_KEY` is set. If the key is missing, agent jobs remain in the River queue unprocessed until the server is restarted with the key configured.
+
+### 5.6 Graceful Degradation
+
+* **No API key** — `NewOrchestrator()` returns an error, the worker is not registered, and a warning is logged. The rest of the system (ingestion, notifications) continues to function.
+* **LLM failure** — The agent run is marked as "failed" with the error preserved in the `agent_runs` table.
+* **Invalid agent output** — If the LLM produces non-JSON output, the raw text is stored as the report summary rather than failing the entire run.
+
+## 6. Error Handling & Idempotency
 
 * **Idempotent Ingestion:** The `releases` table enforces a `UNIQUE(source_id, version)` constraint. If a polling worker and a webhook both report the same release from the same source simultaneously, the database rejects the duplicate, preventing duplicate notification or agent jobs.
 * **Source-Level Filtering:** Before events enter the system, the ingestion layer applies source-level exclusion rules (`exclude_version_regexp`, `exclude_prereleases`). Filtered releases are never inserted, reducing downstream load.

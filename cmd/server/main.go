@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/riverqueue/river"
+	agentpkg "github.com/sentioxyz/releaseguard/internal/agent"
 	"github.com/sentioxyz/releaseguard/internal/api"
 	"github.com/sentioxyz/releaseguard/internal/db"
 	"github.com/sentioxyz/releaseguard/internal/ingestion"
@@ -47,6 +48,18 @@ func main() {
 	workers := river.NewWorkers()
 	notifyWorker := routing.NewNotifyWorker(pgStore)
 	river.AddWorker(workers, notifyWorker)
+
+	// Agent worker: requires GOOGLE_API_KEY. If unavailable, agent jobs
+	// will remain in the queue until the key is configured and the server
+	// is restarted.
+	agentOrchestrator, err := agentpkg.NewOrchestrator(pgStore)
+	if err != nil {
+		slog.Warn("agent orchestrator not available — agent jobs will not be processed", "err", err)
+	} else {
+		agentWorker := agentpkg.NewAgentWorker(agentOrchestrator, pgStore)
+		river.AddWorker(workers, agentWorker)
+		slog.Info("agent worker registered")
+	}
 
 	riverClient, err := queue.NewRiverClient(pool, workers)
 	if err != nil {
