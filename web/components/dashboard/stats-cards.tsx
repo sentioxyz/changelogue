@@ -3,7 +3,7 @@
 
 import useSWR from "swr";
 import { system } from "@/lib/api/client";
-import { Package, Radio, Clock, AlertTriangle } from "lucide-react";
+import { Package, Radio, Clock, FolderKanban } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface StatItem {
@@ -20,7 +20,7 @@ export function StatsCards() {
     { label: "Total Releases", value: stats?.total_releases ?? "\u2014", icon: Package },
     { label: "Active Sources", value: stats?.total_sources ?? "\u2014", icon: Radio },
     { label: "Pending Jobs", value: stats?.pending_agent_runs ?? "\u2014", icon: Clock },
-    { label: "Total Projects", value: stats?.total_projects ?? "\u2014", icon: AlertTriangle },
+    { label: "Total Projects", value: stats?.total_projects ?? "\u2014", icon: FolderKanban },
   ];
 
   return (
@@ -36,7 +36,7 @@ export function StatsCards() {
             style={{ color: "#b0b0a8" }}
           />
           <p
-            className="text-xs uppercase tracking-wide"
+            className="text-xs uppercase tracking-[0.08em]"
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "12px",
@@ -51,7 +51,7 @@ export function StatsCards() {
               fontFamily: "var(--font-fraunces)",
               fontSize: "32px",
               lineHeight: 1.1,
-              color: "#1a1a1a",
+              color: "#111113",
             }}
           >
             {isLoading ? "\u00B7\u00B7\u00B7" : item.value}

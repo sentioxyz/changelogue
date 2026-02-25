@@ -313,12 +313,12 @@ export function ProjectDetail({ id }: { id: string }) {
                 <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
                   <thead>
                     <tr style={{ backgroundColor: "#fafaf9" }}>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Provider</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Repository</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Interval</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Status</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Last polled</th>
-                      <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}></th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Provider</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Repository</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Interval</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Status</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Last polled</th>
+                      <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -398,10 +398,10 @@ export function ProjectDetail({ id }: { id: string }) {
                 <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
                   <thead>
                     <tr style={{ backgroundColor: "#fafaf9" }}>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Type</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Name</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Config URL</th>
-                      <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}></th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Type</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Name</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Config URL</th>
+                      <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -601,11 +601,11 @@ export function ProjectDetail({ id }: { id: string }) {
                   <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
                     <thead>
                       <tr style={{ backgroundColor: "#fafaf9" }}>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Trigger</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Status</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Started</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Duration</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#9ca3af" }}>Semantic Release</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Trigger</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Status</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Started</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Duration</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Semantic Release</th>
                       </tr>
                     </thead>
                     <tbody>

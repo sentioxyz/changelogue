@@ -8,16 +8,7 @@ import { VersionChip } from "@/components/ui/version-chip";
 import { SectionLabel } from "@/components/ui/section-label";
 import { UrgencyCallout } from "@/components/ui/urgency-callout";
 import { ProviderBadge } from "@/components/ui/provider-badge";
-
-function timeAgo(dateStr?: string | null): string {
-  if (!dateStr) return "\u2014";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
+import { timeAgo } from "@/lib/format";
 
 export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; srId: string }) {
   const { data, isLoading } = useSWR(`sr-${srId}`, () => srApi.get(srId));
@@ -28,7 +19,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="text-[13px] text-[#9ca3af]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="text-[13px] text-[#9ca3af]" style={{ fontFamily: "var(--font-dm-sans)" }}>
           Loading...
         </div>
       </div>
@@ -39,7 +30,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
   if (!sr) {
     return (
       <div className="flex justify-center py-20">
-        <div className="text-[13px] text-[#9ca3af]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="text-[13px] text-[#9ca3af]" style={{ fontFamily: "var(--font-dm-sans)" }}>
           Semantic release not found
         </div>
       </div>
@@ -56,7 +47,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
       {/* 1. Breadcrumb */}
       <nav
         className="mb-6 flex items-center gap-1.5 text-[12px] text-[#9ca3af]"
-        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        style={{ fontFamily: "var(--font-dm-sans)" }}
       >
         <Link href="/projects" className="hover:text-[#111113] transition-colors">
           Projects
@@ -75,7 +66,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
       {project?.name && (
         <p
           className="mb-1 text-[13px] italic text-[#9ca3af]"
-          style={{ fontFamily: "'Fraunces', serif" }}
+          style={{ fontFamily: "var(--font-fraunces)" }}
         >
           {project.name}
         </p>
@@ -84,7 +75,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
       {/* 3. Version heading */}
       <h1
         className="text-[42px] font-bold tracking-tight text-[#111113] leading-[1.1]"
-        style={{ fontFamily: "'Fraunces', serif" }}
+        style={{ fontFamily: "var(--font-fraunces)" }}
       >
         {sr.version}
       </h1>
@@ -92,7 +83,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
       {/* 4. Meta line */}
       <div
         className="mt-3 flex items-center gap-2 text-[13px] text-[#6b7280]"
-        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        style={{ fontFamily: "var(--font-dm-sans)" }}
       >
         <StatusDot status={sr.status} />
         <span>
@@ -111,7 +102,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
           style={{
             border: "1px solid #fca5a5",
             backgroundColor: "#fef2f2",
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "var(--font-dm-sans)",
           }}
         >
           {sr.error}
@@ -125,7 +116,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
             <SectionLabel className="mb-3">Summary</SectionLabel>
             <p
               className="text-[16px] leading-[1.7] text-[#111113]"
-              style={{ fontFamily: "'DM Sans', sans-serif" }}
+              style={{ fontFamily: "var(--font-dm-sans)" }}
             >
               {sr.report.summary}
             </p>
@@ -143,7 +134,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
               <SectionLabel className="mb-2">Availability</SectionLabel>
               <p
                 className="text-[14px] leading-[1.6] text-[#111113]"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
+                style={{ fontFamily: "var(--font-dm-sans)" }}
               >
                 {sr.report.availability}
               </p>
@@ -155,7 +146,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
               <SectionLabel className="mb-2">Adoption</SectionLabel>
               <p
                 className="text-[14px] leading-[1.6] text-[#111113]"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
+                style={{ fontFamily: "var(--font-dm-sans)" }}
               >
                 {sr.report.adoption}
               </p>
@@ -167,7 +158,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
             <blockquote
               className="rounded-md px-5 py-4 text-[18px] italic leading-[1.6] text-[#16181c]"
               style={{
-                fontFamily: "'Fraunces', serif",
+                fontFamily: "var(--font-fraunces)",
                 borderLeft: "3px solid #e8601a",
                 backgroundColor: "#fafaf9",
               }}
@@ -190,26 +181,26 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
               <thead>
                 <tr style={{ backgroundColor: "#fafaf9", borderBottom: "1px solid #e8e8e5" }}>
                   <th
-                    className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-[#9ca3af]"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9ca3af]"
+                    style={{ fontFamily: "var(--font-dm-sans)" }}
                   >
                     Provider
                   </th>
                   <th
-                    className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-[#9ca3af]"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9ca3af]"
+                    style={{ fontFamily: "var(--font-dm-sans)" }}
                   >
                     Repository
                   </th>
                   <th
-                    className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-[#9ca3af]"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9ca3af]"
+                    style={{ fontFamily: "var(--font-dm-sans)" }}
                   >
                     Version
                   </th>
                   <th
-                    className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-[#9ca3af]"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9ca3af]"
+                    style={{ fontFamily: "var(--font-dm-sans)" }}
                   >
                     Date
                   </th>
@@ -245,7 +236,7 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
                       <td className="px-4 py-3">
                         <span
                           className="text-[13px] text-[#6b7280]"
-                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                          style={{ fontFamily: "var(--font-dm-sans)" }}
                         >
                           {timeAgo(rel.released_at ?? rel.created_at)}
                         </span>

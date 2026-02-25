@@ -123,7 +123,7 @@ export default function SubscriptionsPage() {
                         fontSize: "11px",
                         fontWeight: 500,
                         textTransform: "uppercase",
-                        letterSpacing: "0.05em",
+                        letterSpacing: "0.08em",
                         color: "#9ca3af",
                         borderBottom: "1px solid #e8e8e5",
                       }}
@@ -176,7 +176,7 @@ export default function SubscriptionsPage() {
                     className="px-5 py-3.5"
                     style={{
                       fontFamily: sub.version_filter
-                        ? "var(--font-jetbrains-mono)"
+                        ? "'JetBrains Mono', monospace"
                         : "var(--font-dm-sans)",
                       fontSize: "13px",
                       color: sub.version_filter ? "#111113" : "#9ca3af",
