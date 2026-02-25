@@ -118,7 +118,7 @@ export default function ChannelsPage() {
                         fontSize: "11px",
                         fontWeight: 500,
                         textTransform: "uppercase",
-                        letterSpacing: "0.05em",
+                        letterSpacing: "0.08em",
                         color: "#9ca3af",
                         borderBottom: "1px solid #e8e8e5",
                       }}
@@ -158,7 +158,7 @@ export default function ChannelsPage() {
                   <td
                     className="max-w-xs truncate px-5 py-3.5"
                     style={{
-                      fontFamily: "var(--font-jetbrains-mono)",
+                      fontFamily: "'JetBrains Mono', monospace",
                       fontSize: "12px",
                       color: "#6b7280",
                     }}

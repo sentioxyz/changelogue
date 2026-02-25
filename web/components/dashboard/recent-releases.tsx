@@ -10,15 +10,7 @@ import {
 } from "@/lib/api/client";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { Release, Source } from "@/lib/api/types";
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
+import { timeAgo } from "@/lib/format";
 
 interface ReleaseRow extends Release {
   _repository?: string;
@@ -88,7 +80,7 @@ export function RecentReleases() {
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#1a1a1a",
+            color: "#111113",
           }}
         >
           Recent Source Releases
@@ -121,9 +113,10 @@ export function RecentReleases() {
           </div>
         ) : allReleases && allReleases.length > 0 ? (
           allReleases.map((release: ReleaseRow, idx: number) => (
-            <div
+            <Link
               key={release.id}
-              className="flex items-center justify-between px-5 py-3"
+              href={`/releases/${release.id}`}
+              className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-[#fafaf9]"
               style={
                 idx < allReleases.length - 1
                   ? { borderBottom: "1px solid #e8e8e5" }
@@ -153,7 +146,7 @@ export function RecentReleases() {
                   {timeAgo(release.released_at ?? release.created_at)}
                 </span>
               </div>
-            </div>
+            </Link>
           ))
         ) : (
           <div className="py-12 text-center">

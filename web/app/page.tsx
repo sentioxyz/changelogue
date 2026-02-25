@@ -12,15 +12,7 @@ import {
 import { StatusDot } from "@/components/ui/status-dot";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { SemanticRelease } from "@/lib/api/types";
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
+import { timeAgo } from "@/lib/format";
 
 interface SRRow extends SemanticRelease {
   _projectName?: string;
@@ -78,7 +70,7 @@ function SemanticReleasesColumn() {
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#1a1a1a",
+            color: "#111113",
           }}
         >
           Semantic Releases
@@ -123,7 +115,7 @@ function SemanticReleasesColumn() {
                   style={{
                     fontFamily: "var(--font-fraunces)",
                     fontSize: "15px",
-                    color: "#1a1a1a",
+                    color: "#111113",
                   }}
                 >
                   {sr._projectName ?? "Unknown Project"}
