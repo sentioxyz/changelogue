@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "5107017e7819",
+  "session_id": "e48b14f0-7a3c-4d58-b2f3-553321eaa262",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-25T15:22:38.041171Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docker-compose.yml"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "43ae2c335b65",
+  "checkpoint_transcript_start": 183,
+  "transcript_lines_at_start": 183,
+  "token_usage": {
+    "input_tokens": 33,
+    "cache_creation_tokens": 126375,
+    "cache_read_tokens": 3697740,
+    "output_tokens": 294,
+    "api_call_count": 28
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-25T15:22:31.935054Z",
+    "agent_lines": 0,
+    "human_added": 7480,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 7480,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/e48b14f0-7a3c-4d58-b2f3-553321eaa262.jsonl"
+}
