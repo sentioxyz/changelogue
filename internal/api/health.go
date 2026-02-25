@@ -7,10 +7,10 @@ import (
 
 // DashboardStats holds aggregate statistics for the dashboard.
 type DashboardStats struct {
-	TotalReleases int `json:"total_releases"`
-	ActiveSources int `json:"active_sources"`
-	PendingJobs   int `json:"pending_jobs"`
-	FailedJobs    int `json:"failed_jobs"`
+	TotalReleases    int `json:"total_releases"`
+	ActiveSources    int `json:"active_sources"`
+	TotalProjects    int `json:"total_projects"`
+	PendingAgentRuns int `json:"pending_agent_runs"`
 }
 
 // HealthChecker defines operations for health checks and dashboard statistics.

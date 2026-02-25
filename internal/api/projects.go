@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/sentioxyz/releaseguard/internal/models"
@@ -14,9 +13,9 @@ import (
 type ProjectsStore interface {
 	ListProjects(ctx context.Context, page, perPage int) ([]models.Project, int, error)
 	CreateProject(ctx context.Context, p *models.Project) error
-	GetProject(ctx context.Context, id int) (*models.Project, error)
-	UpdateProject(ctx context.Context, id int, p *models.Project) error
-	DeleteProject(ctx context.Context, id int) error
+	GetProject(ctx context.Context, id string) (*models.Project, error)
+	UpdateProject(ctx context.Context, id string, p *models.Project) error
+	DeleteProject(ctx context.Context, id string) error
 }
 
 // ProjectsHandler implements HTTP handlers for the /projects resource.
@@ -56,9 +55,9 @@ func (h *ProjectsHandler) Create(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "Name is required")
 		return
 	}
-	// Default pipeline_config to empty object if not provided.
-	if p.PipelineConfig == nil {
-		p.PipelineConfig = json.RawMessage(`{}`)
+	// Default agent_rules to empty object if not provided.
+	if p.AgentRules == nil {
+		p.AgentRules = json.RawMessage(`{}`)
 	}
 	if err := h.store.CreateProject(r.Context(), &p); err != nil {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to create project")
@@ -69,8 +68,8 @@ func (h *ProjectsHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Get handles GET /projects/{id} — returns a single project.
 func (h *ProjectsHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	id := r.PathValue("id")
+	if id == "" {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid project ID")
 		return
 	}
@@ -84,8 +83,8 @@ func (h *ProjectsHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PUT /projects/{id} — updates an existing project.
 func (h *ProjectsHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	id := r.PathValue("id")
+	if id == "" {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid project ID")
 		return
 	}
@@ -99,8 +98,8 @@ func (h *ProjectsHandler) Update(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "Name is required")
 		return
 	}
-	if p.PipelineConfig == nil {
-		p.PipelineConfig = json.RawMessage(`{}`)
+	if p.AgentRules == nil {
+		p.AgentRules = json.RawMessage(`{}`)
 	}
 	if err := h.store.UpdateProject(r.Context(), id, &p); err != nil {
 		RespondError(w, r, http.StatusNotFound, "not_found", "Project not found")
@@ -112,8 +111,8 @@ func (h *ProjectsHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /projects/{id} — deletes a project.
 func (h *ProjectsHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	id := r.PathValue("id")
+	if id == "" {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid project ID")
 		return
 	}

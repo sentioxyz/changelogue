@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/sentioxyz/releaseguard/internal/models"
@@ -13,9 +12,9 @@ import (
 type SubscriptionsStore interface {
 	ListSubscriptions(ctx context.Context, page, perPage int) ([]models.Subscription, int, error)
 	CreateSubscription(ctx context.Context, sub *models.Subscription) error
-	GetSubscription(ctx context.Context, id int) (*models.Subscription, error)
-	UpdateSubscription(ctx context.Context, id int, sub *models.Subscription) error
-	DeleteSubscription(ctx context.Context, id int) error
+	GetSubscription(ctx context.Context, id string) (*models.Subscription, error)
+	UpdateSubscription(ctx context.Context, id string, sub *models.Subscription) error
+	DeleteSubscription(ctx context.Context, id string) error
 }
 
 // SubscriptionsHandler implements HTTP handlers for the /subscriptions resource.
@@ -49,18 +48,25 @@ func (h *SubscriptionsHandler) Create(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid JSON body")
 		return
 	}
-	sub.ChannelType = strings.TrimSpace(sub.ChannelType)
-	if sub.ProjectID == 0 {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_id is required")
+	sub.Type = strings.TrimSpace(sub.Type)
+	sub.ChannelID = strings.TrimSpace(sub.ChannelID)
+	// Validate type is source or project.
+	if sub.Type != "source" && sub.Type != "project" {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "type must be 'source' or 'project'")
 		return
 	}
-	if sub.ChannelType == "" {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "channel_type is required")
+	if sub.ChannelID == "" {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "channel_id is required")
 		return
 	}
-	// Default frequency to "instant" if not provided.
-	if strings.TrimSpace(sub.Frequency) == "" {
-		sub.Frequency = "instant"
+	// Validate that the corresponding ID is set for the type.
+	if sub.Type == "source" && (sub.SourceID == nil || *sub.SourceID == "") {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "source_id is required when type is 'source'")
+		return
+	}
+	if sub.Type == "project" && (sub.ProjectID == nil || *sub.ProjectID == "") {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_id is required when type is 'project'")
+		return
 	}
 	if err := h.store.CreateSubscription(r.Context(), &sub); err != nil {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to create subscription")
@@ -71,8 +77,8 @@ func (h *SubscriptionsHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Get handles GET /subscriptions/{id} — returns a single subscription.
 func (h *SubscriptionsHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	id := r.PathValue("id")
+	if id == "" {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid subscription ID")
 		return
 	}
@@ -86,8 +92,8 @@ func (h *SubscriptionsHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PUT /subscriptions/{id} — updates an existing subscription.
 func (h *SubscriptionsHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	id := r.PathValue("id")
+	if id == "" {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid subscription ID")
 		return
 	}
@@ -96,13 +102,23 @@ func (h *SubscriptionsHandler) Update(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid JSON body")
 		return
 	}
-	sub.ChannelType = strings.TrimSpace(sub.ChannelType)
-	if sub.ChannelType == "" {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "channel_type is required")
+	sub.Type = strings.TrimSpace(sub.Type)
+	sub.ChannelID = strings.TrimSpace(sub.ChannelID)
+	if sub.Type != "source" && sub.Type != "project" {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "type must be 'source' or 'project'")
 		return
 	}
-	if strings.TrimSpace(sub.Frequency) == "" {
-		sub.Frequency = "instant"
+	if sub.ChannelID == "" {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "channel_id is required")
+		return
+	}
+	if sub.Type == "source" && (sub.SourceID == nil || *sub.SourceID == "") {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "source_id is required when type is 'source'")
+		return
+	}
+	if sub.Type == "project" && (sub.ProjectID == nil || *sub.ProjectID == "") {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_id is required when type is 'project'")
+		return
 	}
 	if err := h.store.UpdateSubscription(r.Context(), id, &sub); err != nil {
 		RespondError(w, r, http.StatusNotFound, "not_found", "Subscription not found")
@@ -114,8 +130,8 @@ func (h *SubscriptionsHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /subscriptions/{id} — deletes a subscription.
 func (h *SubscriptionsHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	id := r.PathValue("id")
+	if id == "" {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid subscription ID")
 		return
 	}

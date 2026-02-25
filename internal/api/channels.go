@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/sentioxyz/releaseguard/internal/models"
@@ -13,9 +12,9 @@ import (
 type ChannelsStore interface {
 	ListChannels(ctx context.Context, page, perPage int) ([]models.NotificationChannel, int, error)
 	CreateChannel(ctx context.Context, ch *models.NotificationChannel) error
-	GetChannel(ctx context.Context, id int) (*models.NotificationChannel, error)
-	UpdateChannel(ctx context.Context, id int, ch *models.NotificationChannel) error
-	DeleteChannel(ctx context.Context, id int) error
+	GetChannel(ctx context.Context, id string) (*models.NotificationChannel, error)
+	UpdateChannel(ctx context.Context, id string, ch *models.NotificationChannel) error
+	DeleteChannel(ctx context.Context, id string) error
 }
 
 // ChannelsHandler implements HTTP handlers for the /channels resource.
@@ -72,8 +71,8 @@ func (h *ChannelsHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Get handles GET /channels/{id} — returns a single notification channel.
 func (h *ChannelsHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	id := r.PathValue("id")
+	if id == "" {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid channel ID")
 		return
 	}
@@ -87,8 +86,8 @@ func (h *ChannelsHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PUT /channels/{id} — updates an existing notification channel.
 func (h *ChannelsHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	id := r.PathValue("id")
+	if id == "" {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid channel ID")
 		return
 	}
@@ -121,8 +120,8 @@ func (h *ChannelsHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /channels/{id} — deletes a notification channel.
 func (h *ChannelsHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+	id := r.PathValue("id")
+	if id == "" {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid channel ID")
 		return
 	}

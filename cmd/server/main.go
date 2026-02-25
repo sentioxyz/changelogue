@@ -73,7 +73,7 @@ func main() {
 	})
 
 	// API layer
-	pgStore := api.NewPgStore(pool)
+	pgStore := api.NewPgStore(pool, riverClient)
 	broadcaster := api.NewBroadcaster()
 
 	mux := http.NewServeMux()
@@ -83,16 +83,19 @@ func main() {
 
 	// Register all API v1 routes
 	api.RegisterRoutes(mux, api.Dependencies{
-		DB:                 pool,
-		ProjectsStore:      pgStore,
-		ReleasesStore:      pgStore,
-		SubscriptionsStore: pgStore,
-		SourcesStore:       pgStore,
-		ChannelsStore:      pgStore,
-		KeyStore:           pgStore,
-		HealthChecker:      pgStore,
-		Broadcaster:        broadcaster,
-		NoAuth:             noAuth,
+		DB:                    pool,
+		ProjectsStore:         pgStore,
+		ReleasesStore:         pgStore,
+		SubscriptionsStore:    pgStore,
+		SourcesStore:          pgStore,
+		ChannelsStore:         pgStore,
+		ContextSourcesStore:   pgStore,
+		SemanticReleasesStore: pgStore,
+		AgentStore:            pgStore,
+		KeyStore:              pgStore,
+		HealthChecker:         pgStore,
+		Broadcaster:           broadcaster,
+		NoAuth:                noAuth,
 	})
 
 	srv := &http.Server{Addr: addr, Handler: api.CORS(mux)}
