@@ -8,7 +8,7 @@ import (
 )
 
 func TestDockerHubSourceName(t *testing.T) {
-	src := NewDockerHubSource(http.DefaultClient, "library/golang", 0)
+	src := NewDockerHubSource(http.DefaultClient, "library/golang", "")
 	if got := src.Name(); got != "dockerhub" {
 		t.Errorf("Name() = %q, want %q", got, "dockerhub")
 	}
@@ -28,7 +28,7 @@ func TestDockerHubFetchNewReleases(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	src := NewDockerHubSource(srv.Client(), "library/golang", 0)
+	src := NewDockerHubSource(srv.Client(), "library/golang", "")
 	src.baseURL = srv.URL
 
 	results, err := src.FetchNewReleases(context.Background())
@@ -54,7 +54,7 @@ func TestDockerHubFetchEmpty(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	src := NewDockerHubSource(srv.Client(), "library/golang", 0)
+	src := NewDockerHubSource(srv.Client(), "library/golang", "")
 	src.baseURL = srv.URL
 
 	results, err := src.FetchNewReleases(context.Background())

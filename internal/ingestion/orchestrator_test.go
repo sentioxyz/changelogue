@@ -9,13 +9,13 @@ import (
 
 type fakeSource struct {
 	name     string
-	sourceID int
+	sourceID string
 	calls    atomic.Int32
 	results  []IngestionResult
 }
 
-func (f *fakeSource) Name() string  { return f.name }
-func (f *fakeSource) SourceID() int { return f.sourceID }
+func (f *fakeSource) Name() string     { return f.name }
+func (f *fakeSource) SourceID() string { return f.sourceID }
 
 func (f *fakeSource) FetchNewReleases(_ context.Context) ([]IngestionResult, error) {
 	f.calls.Add(1)
