@@ -2,167 +2,178 @@
 
 // --- Response Envelope ---
 
-export interface ApiMeta {
-  request_id: string;
-  page?: number;
-  per_page?: number;
-  total?: number;
-}
-
 export interface ApiResponse<T> {
   data: T;
-  meta: ApiMeta;
+  meta?: ApiMeta;
+  error?: ApiError;
+}
+
+export interface ApiMeta {
+  page: number;
+  per_page: number;
+  total: number;
 }
 
 export interface ApiError {
-  error: {
-    code: string;
-    message: string;
-  };
-  meta: ApiMeta;
+  code: string;
+  message: string;
 }
 
-// --- Domain Models ---
-
-export interface SemanticVersion {
-  major: number;
-  minor: number;
-  patch: number;
-  pre_release: string;
-}
+// --- Domain Models (all IDs are UUID strings) ---
 
 export interface Project {
-  id: number;
+  id: string;
   name: string;
-  description: string;
-  url: string;
-  pipeline_config: Record<string, unknown>;
-  sources?: Source[];
-  subscription_count?: number;
+  description?: string;
+  agent_prompt?: string;
+  agent_rules?: AgentRules;
   created_at: string;
   updated_at: string;
 }
 
+export interface AgentRules {
+  on_major_release?: boolean;
+  on_minor_release?: boolean;
+  on_security_patch?: boolean;
+  version_pattern?: string;
+}
+
 export interface ProjectInput {
   name: string;
-  description: string;
-  url: string;
-  pipeline_config?: Record<string, unknown>;
-}
-
-export interface Release {
-  id: string;
-  source_id: number;
-  source_type: string;
-  repository: string;
-  project_id: number;
-  project_name: string;
-  raw_version: string;
-  semantic_version: SemanticVersion;
-  is_pre_release: boolean;
-  metadata: Record<string, string>;
-  pipeline_status: "available" | "running" | "completed" | "retry" | "discarded";
-  created_at: string;
-}
-
-export interface PipelineStatus {
-  release_id: string;
-  state: "available" | "running" | "completed" | "retry" | "discarded";
-  current_node: string | null;
-  node_results: Record<string, unknown>;
-  attempt: number;
-  completed_at: string | null;
+  description?: string;
+  agent_prompt?: string;
+  agent_rules?: AgentRules;
 }
 
 export interface Source {
-  id: number;
-  project_id: number;
-  type: string;
+  id: string;
+  project_id: string;
+  provider: string;
   repository: string;
   poll_interval_seconds: number;
   enabled: boolean;
-  exclude_version_regexp: string;
-  exclude_prereleases: boolean;
-  last_polled_at: string | null;
-  last_error: string | null;
+  config?: Record<string, unknown>;
+  last_polled_at?: string;
+  last_error?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface SourceInput {
-  project_id: number;
-  type: string;
+  provider: string;
   repository: string;
   poll_interval_seconds: number;
   enabled: boolean;
-  exclude_version_regexp?: string;
-  exclude_prereleases?: boolean;
+  config?: Record<string, unknown>;
 }
 
-export interface Subscription {
-  id: number;
-  project_id: number;
-  channel_type: string;
-  channel_id: number;
-  version_pattern: string;
-  frequency: "instant" | "hourly" | "daily" | "weekly";
-  enabled: boolean;
+export interface Release {
+  id: string;
+  source_id: string;
+  version: string;
+  raw_data?: Record<string, unknown>;
+  released_at?: string;
+  created_at: string;
+}
+
+export interface ContextSource {
+  id: string;
+  project_id: string;
+  type: string;
+  name: string;
+  config: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
 
-export interface SubscriptionInput {
-  project_id: number;
-  channel_type: string;
-  channel_id: number;
-  version_pattern?: string;
-  frequency?: "instant" | "hourly" | "daily" | "weekly";
-  enabled?: boolean;
+export interface ContextSourceInput {
+  type: string;
+  name: string;
+  config: Record<string, unknown>;
+}
+
+export interface SemanticRelease {
+  id: string;
+  project_id: string;
+  version: string;
+  report?: SemanticReport;
+  status: string;
+  error?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
+export interface SemanticReport {
+  summary: string;
+  availability: string;
+  adoption: string;
+  urgency: string;
+  recommendation: string;
+}
+
+export interface AgentRun {
+  id: string;
+  project_id: string;
+  semantic_release_id?: string;
+  trigger: string;
+  status: string;
+  prompt_used?: string;
+  error?: string;
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
 }
 
 export interface NotificationChannel {
-  id: number;
-  type: string;
+  id: string;
   name: string;
-  config: Record<string, string>;
-  enabled: boolean;
+  type: string;
+  config: Record<string, unknown>;
   created_at: string;
+  updated_at: string;
 }
 
 export interface ChannelInput {
   type: string;
   name: string;
-  config: Record<string, string>;
-  enabled?: boolean;
+  config: Record<string, unknown>;
 }
 
-export interface Provider {
-  type: string;
-  name: string;
-  description: string;
+export interface Subscription {
+  id: string;
+  channel_id: string;
+  type: "source" | "project";
+  source_id?: string;
+  project_id?: string;
+  version_filter?: string;
+  created_at: string;
 }
+
+export interface SubscriptionInput {
+  channel_id: string;
+  type: "source" | "project";
+  source_id?: string;
+  project_id?: string;
+  version_filter?: string;
+}
+
+// --- System Types ---
 
 export interface HealthStatus {
   status: string;
-  checks: Record<string, string>;
+  database: string;
 }
 
 export interface Stats {
+  total_projects: number;
+  total_sources: number;
   total_releases: number;
-  active_sources: number;
-  pending_jobs: number;
-  failed_jobs: number;
+  pending_agent_runs: number;
 }
 
 // --- SSE Event Types ---
 
-export type SSEEventType =
-  | "release.created"
-  | "pipeline.node_completed"
-  | "pipeline.completed"
-  | "pipeline.failed"
-  | "source.error"
-  | "source.polled";
+export type SSEEventType = "release" | "semantic_release";
 
 interface SSEBase {
   id: string;
@@ -171,26 +182,10 @@ interface SSEBase {
 
 export type SSEEvent =
   | (SSEBase & {
-      type: "release.created";
-      data: { id: string; source: string; repository: string; raw_version: string; created_at: string };
+      type: "release";
+      data: { id: string; source_id: string; version: string; created_at: string };
     })
   | (SSEBase & {
-      type: "pipeline.node_completed";
-      data: { release_id: string; node: string; result: Record<string, unknown> };
-    })
-  | (SSEBase & {
-      type: "pipeline.completed";
-      data: { release_id: string; state: string };
-    })
-  | (SSEBase & {
-      type: "pipeline.failed";
-      data: { release_id: string };
-    })
-  | (SSEBase & {
-      type: "source.polled";
-      data: { source_id: number; repository: string; new_releases: number };
-    })
-  | (SSEBase & {
-      type: "source.error";
-      data: { repository: string };
+      type: "semantic_release";
+      data: { id: string; project_id: string; version: string; status: string };
     });
