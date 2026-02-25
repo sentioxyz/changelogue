@@ -18,6 +18,7 @@
 
 **Files:**
 - Modify: `internal/db/migrations.go`
+- Modify: `DESIGN.md` — update Section 4 (Database Schema) to reflect new tables, UUID IDs, removed pipeline_jobs
 
 **Step 1: Write the new schema**
 
@@ -182,15 +183,19 @@ CREATE TRIGGER semantic_release_trigger
 - `notification_channels`: added `updated_at`
 - Added SSE trigger for `semantic_releases`
 
-**Step 2: Run `go vet ./internal/db/...`**
+**Step 2: Update DESIGN.md database schema section**
+
+Update `DESIGN.md` Section 4 (Database Schema) to document the new tables: `projects` (with `agent_prompt`, `agent_rules`), `sources` (renamed `source_type` → `provider`, UUID IDs), `context_sources`, `releases`, `semantic_releases`, `semantic_release_sources`, `notification_channels`, `subscriptions` (with `type` check constraint), `agent_runs`, `api_keys`. Remove documentation of `pipeline_jobs` and `pipeline_config`. Document the new SSE trigger for `semantic_releases`.
+
+**Step 3: Run `go vet ./internal/db/...`**
 
 Run: `go vet ./internal/db/...`
 Expected: PASS (schema is just a string constant)
 
-**Step 3: Commit**
+**Step 4: Commit**
 
 ```bash
-git add internal/db/migrations.go
+git add internal/db/migrations.go DESIGN.md
 git commit -m "refactor: update database schema for pivot — UUID IDs, context sources, semantic releases, agent runs"
 ```
 
@@ -207,6 +212,7 @@ git commit -m "refactor: update database schema for pivot — UUID IDs, context 
 - Create: `internal/models/context_source.go`
 - Create: `internal/models/semantic_release.go`
 - Create: `internal/models/agent_run.go`
+- Modify: `DESIGN.md` — update Section 2.1 (ReleaseEvent IR) to document the new `Release` model replacing `ReleaseEvent`
 
 **Step 1: Update Project model**
 
@@ -409,15 +415,19 @@ type AgentRun struct {
 }
 ```
 
-**Step 9: Build to check compilation**
+**Step 9: Update DESIGN.md Section 2.1**
+
+Replace the `ReleaseEvent` IR struct documentation in `DESIGN.md` Section 2.1 with documentation of the new `Release` model. Remove `SemanticData` struct docs. Add documentation for new model types: `ContextSource`, `SemanticRelease`, `SemanticReport`, `AgentRun`, `AgentRules`.
+
+**Step 10: Build to check compilation**
 
 Run: `go build ./internal/models/...`
 Expected: PASS (models are standalone, no external deps)
 
-**Step 10: Commit**
+**Step 11: Commit**
 
 ```bash
-git add internal/models/
+git add internal/models/ DESIGN.md
 git commit -m "refactor: update models for pivot — UUID IDs, context sources, semantic releases, agent runs"
 ```
 
@@ -427,6 +437,8 @@ git commit -m "refactor: update models for pivot — UUID IDs, context sources, 
 
 **Files:**
 - Delete: `internal/pipeline/` (entire directory)
+- Modify: `DESIGN.md` — remove Section 2.2 (Configurable Processing Pipeline), all node documentation
+- Modify: `ARCH.md` — update system diagram to remove Pipeline, replace with Agent + Notification Routing
 
 **Step 1: Delete the pipeline directory**
 
@@ -482,12 +494,28 @@ Replace with a placeholder comment:
 workers := river.NewWorkers()
 ```
 
-**Step 4: Build to verify**
+**Step 4: Update DESIGN.md**
+
+Remove Section 2.2 (Configurable Processing Pipeline) and all pipeline node documentation (Regex Normalizer, Subscription Router, Urgency Scorer, etc.). Replace with a brief note that the pipeline has been replaced by the agent and notification routing system (detailed in later tasks).
+
+**Step 5: Update ARCH.md**
+
+Update the mermaid system diagram to remove the `Processing Pipeline` subgraph. Replace with two new subgraphs:
+- `Notification Routing` — River worker sends to notification channels on new source releases
+- `Agent Layer` — ADK-Go agent researches releases, produces semantic reports
+
+Update the four-layer description to reflect the new architecture:
+1. Ingestion Layer (unchanged)
+2. Notification Routing (replaces pipeline for source-level notifications)
+3. Agent Layer (replaces pipeline for analysis, uses ADK-Go)
+4. Routing & Output (notification channels)
+
+**Step 6: Build to verify**
 
 Run: `go build ./...`
 Expected: PASS (or compilation errors from API layer referencing pipeline types — fix those in Task 4)
 
-**Step 5: Commit**
+**Step 7: Commit**
 
 ```bash
 git add -A
@@ -646,6 +674,7 @@ This is a large task. The API layer needs significant changes to support UUID ID
 - Create: `internal/api/context_sources.go` — new handler
 - Create: `internal/api/semantic_releases.go` — new handler
 - Create: `internal/api/agent.go` — new handler
+- Modify: `docs/designs/2026-02-24-api-design.md` — rewrite to document all new endpoints, request/response shapes, and entity relationships
 
 **Step 1: Update ProjectsStore interface and handler**
 
@@ -996,15 +1025,26 @@ type PgStore struct {
 }
 ```
 
-**Step 11: Build and verify**
+**Step 11: Rewrite API Design Doc**
+
+Rewrite `docs/designs/2026-02-24-api-design.md` to document the new API:
+- Update all endpoint tables to reflect new routes (nested sources under projects, context sources, semantic releases, agent endpoints)
+- Update all request/response shapes for UUID IDs and new model fields
+- Document the two subscription types (source and project) with check constraint behavior
+- Add documentation for context sources CRUD, semantic releases read endpoints, and agent trigger/status endpoints
+- Update SSE event types to include `semantic_release` events
+- Update query parameters (remove pipeline-related, add `has_report` filter)
+- Update authentication section if needed (unchanged but verify)
+
+**Step 12: Build and verify**
 
 Run: `go build ./...`
 Expected: PASS
 
-**Step 12: Commit**
+**Step 13: Commit**
 
 ```bash
-git add internal/api/
+git add internal/api/ docs/designs/2026-02-24-api-design.md
 git commit -m "refactor: update API layer for pivot — new handlers, stores, routes for context sources, semantic releases, agent"
 ```
 
@@ -1098,6 +1138,7 @@ git commit -m "test: update tests for pivot — UUID IDs, new models, removed pi
 - Create: `internal/routing/slack.go` — Slack sender
 - Create: `internal/routing/discord.go` — Discord sender
 - Create: `internal/routing/worker.go` — River worker for NotifyJobArgs
+- Modify: `DESIGN.md` — add Section on Notification Routing (sender interface, channel types, delivery flow)
 
 **Step 1: Write failing test for webhook sender**
 
@@ -1340,7 +1381,7 @@ Expected: PASS
 **Step 9: Commit**
 
 ```bash
-git add internal/routing/ cmd/server/main.go internal/api/pgstore.go
+git add internal/routing/ cmd/server/main.go internal/api/pgstore.go DESIGN.md
 git commit -m "feat: implement notification routing — webhook, Slack, Discord senders + River worker"
 ```
 
@@ -1487,6 +1528,7 @@ git commit -m "deps: add Google ADK-Go for agent orchestration"
 **Files:**
 - Create: `internal/agent/tools.go` — ADK function tools
 - Create: `internal/agent/tools_test.go` — tests
+- Modify: `DESIGN.md` — add Section on Agent Architecture (tools, LLM interface, ADK-Go integration)
 
 **Step 1: Write failing test for get_releases tool**
 
@@ -1571,6 +1613,8 @@ git commit -m "feat: implement ADK-Go agent tools — releases, context sources,
 **Files:**
 - Create: `internal/agent/orchestrator.go` — agent setup and execution
 - Create: `internal/agent/worker.go` — River worker for AgentJobArgs
+- Modify: `ARCH.md` — update Agent/Intelligence layer description with ADK-Go details
+- Modify: `DESIGN.md` — add SemanticReport structure, agent run lifecycle, context source browsing
 
 **Step 1: Implement orchestrator**
 
@@ -1975,28 +2019,18 @@ git commit -m "chore: fix build issues from pivot integration"
 
 ---
 
-### Task 18: Update Documentation
+### Task 18: Update CLAUDE.md
 
 **Files:**
-- Modify: `ARCH.md` — update architecture diagram for new entity model
-- Modify: `DESIGN.md` — update component design for agent, notifications
-- Modify: `CLAUDE.md` — update project overview and key interfaces
+- Modify: `CLAUDE.md` — update project overview, key interfaces, build commands
 
-**Step 1: Update ARCH.md**
+**Step 1: Update CLAUDE.md**
 
-Replace pipeline references with agent/notification routing. Update entity relationship diagram.
+Update the Key Interfaces section to remove pipeline references (`PipelineNode`, `Store`). Add new interfaces: `Sender` (notification), `AgentDataStore`, `LLM` (ADK-Go). Update entity descriptions, data flow diagram, and directory structure.
 
-**Step 2: Update DESIGN.md**
-
-Remove pipeline node descriptions. Add agent architecture, context sources, semantic releases, notification routing.
-
-**Step 3: Update CLAUDE.md**
-
-Update Key Interfaces section: remove pipeline, add agent, routing, context sources.
-
-**Step 4: Commit**
+**Step 2: Commit**
 
 ```bash
-git add ARCH.md DESIGN.md CLAUDE.md
-git commit -m "docs: update architecture and design docs for pivot"
+git add CLAUDE.md
+git commit -m "docs: update CLAUDE.md for pivot"
 ```
