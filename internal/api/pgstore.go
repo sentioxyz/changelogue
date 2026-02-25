@@ -615,6 +615,59 @@ func (s *PgStore) ListSourceSubscriptions(ctx context.Context, sourceID string) 
 	return subs, nil
 }
 
+// GetPreviousRelease returns the most recent release for a source that is not
+// the given version, ordered by created_at descending. Returns nil (no error)
+// if no previous release exists.
+func (s *PgStore) GetPreviousRelease(ctx context.Context, sourceID string, beforeVersion string) (*models.Release, error) {
+	var rel models.Release
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, source_id, version, COALESCE(raw_data,'{}'), released_at, created_at
+		 FROM releases
+		 WHERE source_id = $1 AND version != $2
+		 ORDER BY created_at DESC
+		 LIMIT 1`, sourceID, beforeVersion,
+	).Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get previous release: %w", err)
+	}
+	return &rel, nil
+}
+
+// EnqueueAgentRun creates an agent_run row and enqueues a River AgentJobArgs.
+// This follows the transactional outbox pattern for zero-loss guarantee.
+func (s *PgStore) EnqueueAgentRun(ctx context.Context, projectID, trigger string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var runID string
+	err = tx.QueryRow(ctx,
+		`INSERT INTO agent_runs (project_id, trigger, status)
+		 VALUES ($1, $2, 'pending')
+		 RETURNING id`, projectID, trigger,
+	).Scan(&runID)
+	if err != nil {
+		return fmt.Errorf("insert agent run: %w", err)
+	}
+
+	if s.river != nil {
+		_, err = s.river.InsertTx(ctx, tx, queue.AgentJobArgs{
+			AgentRunID: runID,
+			ProjectID:  projectID,
+		}, nil)
+		if err != nil {
+			return fmt.Errorf("enqueue agent job: %w", err)
+		}
+	}
+
+	return tx.Commit(ctx)
+}
+
 // --- HealthChecker ---
 
 func (s *PgStore) Ping(ctx context.Context) error {

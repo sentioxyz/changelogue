@@ -15,11 +15,23 @@ import (
 // --- mock store ---
 
 type mockNotifyStore struct {
-	releases      map[string]*models.Release
-	sources       map[string]*models.Source
-	subscriptions map[string][]models.Subscription // keyed by sourceID
-	channels      map[string]*models.NotificationChannel
-	err           error // if set, all methods return this error
+	releases         map[string]*models.Release
+	sources          map[string]*models.Source
+	subscriptions    map[string][]models.Subscription // keyed by sourceID
+	channels         map[string]*models.NotificationChannel
+	projects         map[string]*models.Project
+	previousReleases map[string]*models.Release // keyed by sourceID
+	err              error                      // if set, all methods return this error
+
+	// Track EnqueueAgentRun calls.
+	mu              sync.Mutex
+	agentRunCalls   []agentRunCall
+	enqueueAgentErr error
+}
+
+type agentRunCall struct {
+	ProjectID string
+	Trigger   string
 }
 
 func (m *mockNotifyStore) GetRelease(_ context.Context, id string) (*models.Release, error) {
@@ -62,12 +74,52 @@ func (m *mockNotifyStore) GetChannel(_ context.Context, id string) (*models.Noti
 	return ch, nil
 }
 
+func (m *mockNotifyStore) GetProject(_ context.Context, id string) (*models.Project, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	if m.projects == nil {
+		return nil, errors.New("project not found")
+	}
+	p, ok := m.projects[id]
+	if !ok {
+		return nil, errors.New("project not found")
+	}
+	return p, nil
+}
+
+func (m *mockNotifyStore) GetPreviousRelease(_ context.Context, sourceID string, _ string) (*models.Release, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	if m.previousReleases == nil {
+		return nil, nil
+	}
+	return m.previousReleases[sourceID], nil
+}
+
+func (m *mockNotifyStore) EnqueueAgentRun(_ context.Context, projectID, trigger string) error {
+	if m.enqueueAgentErr != nil {
+		return m.enqueueAgentErr
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.agentRunCalls = append(m.agentRunCalls, agentRunCall{ProjectID: projectID, Trigger: trigger})
+	return nil
+}
+
+func (m *mockNotifyStore) agentRunCallCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.agentRunCalls)
+}
+
 // --- mock sender ---
 
 type mockSender struct {
-	mu       sync.Mutex
-	sent     []Notification
-	sendErr  error
+	mu      sync.Mutex
+	sent    []Notification
+	sendErr error
 }
 
 func (m *mockSender) Send(_ context.Context, _ *models.NotificationChannel, msg Notification) error {
@@ -86,7 +138,7 @@ func (m *mockSender) sentCount() int {
 	return len(m.sent)
 }
 
-// --- tests ---
+// --- notification tests ---
 
 func TestNotifyWorker_Work(t *testing.T) {
 	sourceID := "src-1"
@@ -98,7 +150,7 @@ func TestNotifyWorker_Work(t *testing.T) {
 			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.14.0", RawData: json.RawMessage(`{"tag":"v1.14.0"}`)},
 		},
 		sources: map[string]*models.Source{
-			sourceID: {ID: sourceID, Provider: "github", Repository: "ethereum/go-ethereum"},
+			sourceID: {ID: sourceID, ProjectID: "proj-1", Provider: "github", Repository: "ethereum/go-ethereum"},
 		},
 		subscriptions: map[string][]models.Subscription{
 			sourceID: {
@@ -107,6 +159,9 @@ func TestNotifyWorker_Work(t *testing.T) {
 		},
 		channels: map[string]*models.NotificationChannel{
 			channelID: {ID: channelID, Name: "test-webhook", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},
+		},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "test", AgentRules: json.RawMessage(`{}`)},
 		},
 	}
 
@@ -146,7 +201,7 @@ func TestNotifyWorker_MultipleSubscriptions(t *testing.T) {
 			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v2.0.0", RawData: json.RawMessage(`{}`)},
 		},
 		sources: map[string]*models.Source{
-			sourceID: {ID: sourceID},
+			sourceID: {ID: sourceID, ProjectID: "proj-1"},
 		},
 		subscriptions: map[string][]models.Subscription{
 			sourceID: {
@@ -157,6 +212,9 @@ func TestNotifyWorker_MultipleSubscriptions(t *testing.T) {
 		channels: map[string]*models.NotificationChannel{
 			"ch-webhook": {ID: "ch-webhook", Name: "webhook", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},
 			"ch-slack":   {ID: "ch-slack", Name: "slack", Type: "slack", Config: json.RawMessage(`{"webhook_url":"http://slack.example.com"}`)},
+		},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "test", AgentRules: json.RawMessage(`{}`)},
 		},
 	}
 
@@ -212,8 +270,14 @@ func TestNotifyWorker_NoSubscriptions(t *testing.T) {
 		releases: map[string]*models.Release{
 			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.0.0", RawData: json.RawMessage(`{}`)},
 		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: "proj-1"},
+		},
 		subscriptions: map[string][]models.Subscription{},
 		channels:      map[string]*models.NotificationChannel{},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "test", AgentRules: json.RawMessage(`{}`)},
+		},
 	}
 
 	webhookSender := &mockSender{}
@@ -243,11 +307,17 @@ func TestNotifyWorker_UnknownChannelType(t *testing.T) {
 		releases: map[string]*models.Release{
 			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.0.0", RawData: json.RawMessage(`{}`)},
 		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: "proj-1"},
+		},
 		subscriptions: map[string][]models.Subscription{
 			sourceID: {{ID: "sub-1", ChannelID: "ch-1", Type: "source", SourceID: &sourceID}},
 		},
 		channels: map[string]*models.NotificationChannel{
 			"ch-1": {ID: "ch-1", Name: "pagerduty", Type: "pagerduty", Config: json.RawMessage(`{}`)},
+		},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "test", AgentRules: json.RawMessage(`{}`)},
 		},
 	}
 
@@ -275,11 +345,17 @@ func TestNotifyWorker_SenderError(t *testing.T) {
 		releases: map[string]*models.Release{
 			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.0.0", RawData: json.RawMessage(`{}`)},
 		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: "proj-1"},
+		},
 		subscriptions: map[string][]models.Subscription{
 			sourceID: {{ID: "sub-1", ChannelID: "ch-1", Type: "source", SourceID: &sourceID}},
 		},
 		channels: map[string]*models.NotificationChannel{
 			"ch-1": {ID: "ch-1", Name: "test", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},
+		},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "test", AgentRules: json.RawMessage(`{}`)},
 		},
 	}
 
@@ -297,5 +373,219 @@ func TestNotifyWorker_SenderError(t *testing.T) {
 	err := worker.Work(context.Background(), job)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// --- agent rule triggering tests ---
+
+func TestNotifyWorker_AgentRulesTriggered_MajorBump(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+	projectID := "proj-1"
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v2.0.0", RawData: json.RawMessage(`{}`)},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: projectID},
+		},
+		subscriptions: map[string][]models.Subscription{},
+		channels:      map[string]*models.NotificationChannel{},
+		projects: map[string]*models.Project{
+			projectID: {
+				ID:         projectID,
+				Name:       "test-project",
+				AgentRules: json.RawMessage(`{"on_major_release":true}`),
+			},
+		},
+		previousReleases: map[string]*models.Release{
+			sourceID: {ID: "rel-0", SourceID: sourceID, Version: "v1.5.3"},
+		},
+	}
+
+	worker := &NotifyWorker{store: store, senders: map[string]Sender{}}
+
+	job := &river.Job[queue.NotifyJobArgs]{
+		Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID},
+	}
+
+	err := worker.Work(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if store.agentRunCallCount() != 1 {
+		t.Fatalf("expected 1 EnqueueAgentRun call, got %d", store.agentRunCallCount())
+	}
+	if store.agentRunCalls[0].ProjectID != projectID {
+		t.Errorf("expected project ID %s, got %s", projectID, store.agentRunCalls[0].ProjectID)
+	}
+	expectedTrigger := "auto:version:v2.0.0"
+	if store.agentRunCalls[0].Trigger != expectedTrigger {
+		t.Errorf("expected trigger %q, got %q", expectedTrigger, store.agentRunCalls[0].Trigger)
+	}
+}
+
+func TestNotifyWorker_AgentRulesNotTriggered_PatchBump(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+	projectID := "proj-1"
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.5.4", RawData: json.RawMessage(`{}`)},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: projectID},
+		},
+		subscriptions: map[string][]models.Subscription{},
+		channels:      map[string]*models.NotificationChannel{},
+		projects: map[string]*models.Project{
+			projectID: {
+				ID:         projectID,
+				Name:       "test-project",
+				AgentRules: json.RawMessage(`{"on_major_release":true}`),
+			},
+		},
+		previousReleases: map[string]*models.Release{
+			sourceID: {ID: "rel-0", SourceID: sourceID, Version: "v1.5.3"},
+		},
+	}
+
+	worker := &NotifyWorker{store: store, senders: map[string]Sender{}}
+
+	job := &river.Job[queue.NotifyJobArgs]{
+		Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID},
+	}
+
+	err := worker.Work(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if store.agentRunCallCount() != 0 {
+		t.Fatalf("expected 0 EnqueueAgentRun calls, got %d", store.agentRunCallCount())
+	}
+}
+
+func TestNotifyWorker_AgentRulesTriggered_NoPreviousRelease(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+	projectID := "proj-1"
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.0.0", RawData: json.RawMessage(`{}`)},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: projectID},
+		},
+		subscriptions: map[string][]models.Subscription{},
+		channels:      map[string]*models.NotificationChannel{},
+		projects: map[string]*models.Project{
+			projectID: {
+				ID:         projectID,
+				Name:       "test-project",
+				AgentRules: json.RawMessage(`{"on_major_release":true}`),
+			},
+		},
+		// No previous releases — first release.
+	}
+
+	worker := &NotifyWorker{store: store, senders: map[string]Sender{}}
+
+	job := &river.Job[queue.NotifyJobArgs]{
+		Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID},
+	}
+
+	err := worker.Work(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// v1.0.0 vs "" — major > 0, so OnMajorRelease should trigger.
+	if store.agentRunCallCount() != 1 {
+		t.Fatalf("expected 1 EnqueueAgentRun call for first release, got %d", store.agentRunCallCount())
+	}
+}
+
+func TestNotifyWorker_AgentRulesEmptyRules(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+	projectID := "proj-1"
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v2.0.0", RawData: json.RawMessage(`{}`)},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: projectID},
+		},
+		subscriptions: map[string][]models.Subscription{},
+		channels:      map[string]*models.NotificationChannel{},
+		projects: map[string]*models.Project{
+			projectID: {
+				ID:         projectID,
+				Name:       "test-project",
+				AgentRules: json.RawMessage(`{}`),
+			},
+		},
+		previousReleases: map[string]*models.Release{
+			sourceID: {ID: "rel-0", SourceID: sourceID, Version: "v1.0.0"},
+		},
+	}
+
+	worker := &NotifyWorker{store: store, senders: map[string]Sender{}}
+
+	job := &river.Job[queue.NotifyJobArgs]{
+		Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID},
+	}
+
+	err := worker.Work(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// All rules are false — should not trigger.
+	if store.agentRunCallCount() != 0 {
+		t.Fatalf("expected 0 EnqueueAgentRun calls for empty rules, got %d", store.agentRunCallCount())
+	}
+}
+
+func TestNotifyWorker_AgentRulesTriggered_SecurityPatch(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+	projectID := "proj-1"
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.5.4-security", RawData: json.RawMessage(`{}`)},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: projectID},
+		},
+		subscriptions: map[string][]models.Subscription{},
+		channels:      map[string]*models.NotificationChannel{},
+		projects: map[string]*models.Project{
+			projectID: {
+				ID:         projectID,
+				Name:       "test-project",
+				AgentRules: json.RawMessage(`{"on_security_patch":true}`),
+			},
+		},
+		previousReleases: map[string]*models.Release{
+			sourceID: {ID: "rel-0", SourceID: sourceID, Version: "v1.5.3"},
+		},
+	}
+
+	worker := &NotifyWorker{store: store, senders: map[string]Sender{}}
+
+	job := &river.Job[queue.NotifyJobArgs]{
+		Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID},
+	}
+
+	err := worker.Work(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if store.agentRunCallCount() != 1 {
+		t.Fatalf("expected 1 EnqueueAgentRun call for security patch, got %d", store.agentRunCallCount())
 	}
 }
