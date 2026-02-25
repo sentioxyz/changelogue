@@ -5,75 +5,174 @@ import useSWR from "swr";
 import Link from "next/link";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { RecentReleases } from "@/components/dashboard/recent-releases";
-import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { projects as projectsApi, semanticReleases as srApi } from "@/lib/api/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  projects as projectsApi,
+  semanticReleases as srApi,
+} from "@/lib/api/client";
+import { StatusDot } from "@/components/ui/status-dot";
+import { VersionChip } from "@/components/ui/version-chip";
 import type { SemanticRelease } from "@/lib/api/types";
 
-const statusColors: Record<string, string> = {
-  completed: "bg-green-100 text-green-800",
-  running: "bg-blue-100 text-blue-800",
-  pending: "bg-gray-100 text-gray-800",
-  failed: "bg-red-100 text-red-800",
-};
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
-function RecentSemanticReleases() {
-  const { data: projectsData } = useSWR("projects-for-sr-dashboard", () => projectsApi.list());
+interface SRRow extends SemanticRelease {
+  _projectName?: string;
+}
+
+function SemanticReleasesColumn() {
+  const { data: projectsData } = useSWR("projects-for-sr-dashboard", () =>
+    projectsApi.list()
+  );
 
   const { data: allSRs, isLoading } = useSWR(
     projectsData ? "recent-semantic-releases" : null,
     async () => {
       if (!projectsData?.data?.length) return [];
+
+      const projectMap = new Map(
+        projectsData.data.map((p) => [p.id, p.name])
+      );
+
       const results = await Promise.all(
         projectsData.data.slice(0, 10).map((p) =>
           srApi.list(p.id, 1).catch(() => null)
         )
       );
-      return results
+
+      const srs: SRRow[] = results
         .filter((r): r is NonNullable<typeof r> => r !== null)
         .flatMap((r) => r.data)
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 6);
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        .slice(0, 6)
+        .map((sr) => ({
+          ...sr,
+          _projectName: projectMap.get(sr.project_id),
+        }));
+
+      return srs;
     }
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent Semantic Releases</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div
+      className="rounded-lg bg-white"
+      style={{ border: "1px solid #e8e8e5" }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-5 py-4"
+        style={{ borderBottom: "1px solid #e8e8e5" }}
+      >
+        <h3
+          className="font-medium"
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            color: "#1a1a1a",
+          }}
+        >
+          Semantic Releases
+        </h3>
+        <Link
+          href="/projects"
+          className="text-sm hover:underline"
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            color: "#e8601a",
+          }}
+        >
+          View all &rarr;
+        </Link>
+      </div>
+
+      {/* Body */}
+      <div className="p-4 space-y-3">
         {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">Loading...</div>
-        ) : allSRs && allSRs.length > 0 ? (
-          <div className="space-y-3">
-            {allSRs.map((sr: SemanticRelease) => (
-              <Link
-                key={sr.id}
-                href={`/projects/${sr.project_id}/semantic-releases/${sr.id}`}
-                className="block rounded-md border p-3 transition-colors hover:bg-muted/50"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-medium">{sr.version}</span>
-                    <Badge className={statusColors[sr.status] ?? ""}>{sr.status}</Badge>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(sr.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                {sr.report && (
-                  <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{sr.report.summary}</p>
-                )}
-              </Link>
-            ))}
+          <div
+            className="py-8 text-center"
+            style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "13px",
+              color: "#6b7280",
+            }}
+          >
+            Loading...
           </div>
+        ) : allSRs && allSRs.length > 0 ? (
+          allSRs.map((sr: SRRow) => (
+            <Link
+              key={sr.id}
+              href={`/projects/${sr.project_id}/semantic-releases/${sr.id}`}
+              className="block rounded-lg px-4 py-3 transition-colors hover:bg-[#fafaf9]"
+              style={{ border: "1px solid #e8e8e5" }}
+            >
+              <div className="flex items-center justify-between">
+                <span
+                  className="font-semibold"
+                  style={{
+                    fontFamily: "var(--font-fraunces)",
+                    fontSize: "15px",
+                    color: "#1a1a1a",
+                  }}
+                >
+                  {sr._projectName ?? "Unknown Project"}
+                </span>
+                <VersionChip version={sr.version} />
+              </div>
+              {sr.report?.summary && (
+                <p
+                  className="mt-1 line-clamp-1"
+                  style={{
+                    fontFamily: "var(--font-dm-sans)",
+                    fontStyle: "italic",
+                    fontSize: "13px",
+                    color: "#6b7280",
+                  }}
+                >
+                  {sr.report.summary}
+                </p>
+              )}
+              <div className="mt-2 flex items-center gap-2">
+                <StatusDot status={sr.status} />
+                <span
+                  style={{
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "12px",
+                    color: "#9ca3af",
+                  }}
+                >
+                  {timeAgo(sr.created_at)}
+                </span>
+              </div>
+            </Link>
+          ))
         ) : (
-          <div className="py-8 text-center text-muted-foreground">No semantic releases yet</div>
+          <div className="py-8 text-center">
+            <p
+              style={{
+                fontFamily: "var(--font-fraunces)",
+                fontStyle: "italic",
+                fontSize: "14px",
+                color: "#9ca3af",
+              }}
+            >
+              No semantic releases yet
+            </p>
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -83,9 +182,8 @@ export default function DashboardPage() {
       <StatsCards />
       <div className="grid gap-6 lg:grid-cols-2">
         <RecentReleases />
-        <RecentSemanticReleases />
+        <SemanticReleasesColumn />
       </div>
-      <ActivityFeed />
     </div>
   );
 }
