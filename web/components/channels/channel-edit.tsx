@@ -9,11 +9,11 @@ import { Trash2 } from "lucide-react";
 
 export function ChannelEdit({ id }: { id: string }) {
   const router = useRouter();
-  const { data, isLoading } = useSWR(`channel-${id}`, () => channelsApi.get(Number(id)));
+  const { data, isLoading } = useSWR(`channel-${id}`, () => channelsApi.get(id));
 
   const handleDelete = async () => {
     if (!confirm("Delete this channel?")) return;
-    await channelsApi.delete(Number(id));
+    await channelsApi.delete(id);
     router.push("/channels");
   };
 
@@ -25,7 +25,7 @@ export function ChannelEdit({ id }: { id: string }) {
       <ChannelForm
         title="Edit Channel"
         initial={data.data}
-        onSubmit={async (input) => { await channelsApi.update(Number(id), input); }}
+        onSubmit={async (input) => { await channelsApi.update(id, input); }}
       />
       <div className="mx-auto max-w-2xl flex justify-end">
         <Button variant="destructive" size="sm" onClick={handleDelete}>

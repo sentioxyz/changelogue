@@ -9,11 +9,11 @@ import { Trash2 } from "lucide-react";
 
 export function SubscriptionEdit({ id }: { id: string }) {
   const router = useRouter();
-  const { data, isLoading } = useSWR(`sub-${id}`, () => subsApi.get(Number(id)));
+  const { data, isLoading } = useSWR(`sub-${id}`, () => subsApi.get(id));
 
   const handleDelete = async () => {
     if (!confirm("Delete this subscription?")) return;
-    await subsApi.delete(Number(id));
+    await subsApi.delete(id);
     router.push("/subscriptions");
   };
 
@@ -25,7 +25,7 @@ export function SubscriptionEdit({ id }: { id: string }) {
       <SubscriptionForm
         title="Edit Subscription"
         initial={data.data}
-        onSubmit={async (input) => { await subsApi.update(Number(id), input); }}
+        onSubmit={async (input) => { await subsApi.update(id, input); }}
       />
       <div className="mx-auto max-w-2xl flex justify-end">
         <Button variant="destructive" size="sm" onClick={handleDelete}>

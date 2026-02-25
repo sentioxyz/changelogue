@@ -31,7 +31,7 @@ export default function ChannelsPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Config</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -39,8 +39,12 @@ export default function ChannelsPage() {
                   <TableRow key={ch.id}>
                     <TableCell><Link href={`/channels/${ch.id}/edit`} className="font-medium text-primary hover:underline">{ch.name}</Link></TableCell>
                     <TableCell><Badge variant="outline">{ch.type}</Badge></TableCell>
-                    <TableCell className="max-w-xs truncate text-xs text-muted-foreground font-mono">{Object.entries(ch.config).map(([k, v]) => `${k}: ${v}`).join(", ")}</TableCell>
-                    <TableCell><Badge variant={ch.enabled ? "default" : "secondary"}>{ch.enabled ? "active" : "disabled"}</Badge></TableCell>
+                    <TableCell className="max-w-xs truncate text-xs text-muted-foreground font-mono">
+                      {Object.entries(ch.config).map(([k, v]) => `${k}: ${String(v)}`).join(", ")}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(ch.created_at).toLocaleDateString()}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

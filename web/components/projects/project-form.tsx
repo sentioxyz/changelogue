@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Project, ProjectInput } from "@/lib/api/types";
 
@@ -20,25 +21,29 @@ export function ProjectForm({ initial, onSubmit, title }: ProjectFormProps) {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [url, setUrl] = useState(initial?.url ?? "");
-  const [pipelineConfig, setPipelineConfig] = useState(
-    JSON.stringify(initial?.pipeline_config ?? { changelog_summarizer: {}, urgency_scorer: {} }, null, 2)
-  );
+  const [agentPrompt, setAgentPrompt] = useState(initial?.agent_prompt ?? "");
+  const [onMajor, setOnMajor] = useState(initial?.agent_rules?.on_major_release ?? true);
+  const [onMinor, setOnMinor] = useState(initial?.agent_rules?.on_minor_release ?? false);
+  const [onSecurity, setOnSecurity] = useState(initial?.agent_rules?.on_security_patch ?? true);
+  const [versionPattern, setVersionPattern] = useState(initial?.agent_rules?.version_pattern ?? "");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    let parsedConfig: Record<string, unknown>;
-    try {
-      parsedConfig = JSON.parse(pipelineConfig);
-    } catch {
-      setError("Pipeline config must be valid JSON");
-      return;
-    }
     setSaving(true);
     try {
-      await onSubmit({ name, description, url, pipeline_config: parsedConfig });
+      await onSubmit({
+        name,
+        description: description || undefined,
+        agent_prompt: agentPrompt || undefined,
+        agent_rules: {
+          on_major_release: onMajor,
+          on_minor_release: onMinor,
+          on_security_patch: onSecurity,
+          version_pattern: versionPattern || undefined,
+        },
+      });
       router.push("/projects");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save");
@@ -64,18 +69,41 @@ export function ProjectForm({ initial, onSubmit, title }: ProjectFormProps) {
             <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="url">URL</Label>
-            <Input id="url" type="url" value={url} onChange={(e) => setUrl(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="pipeline_config">Pipeline Config (JSON)</Label>
+            <Label htmlFor="agent_prompt">Agent Prompt</Label>
             <Textarea
-              id="pipeline_config"
-              value={pipelineConfig}
-              onChange={(e) => setPipelineConfig(e.target.value)}
-              rows={8}
+              id="agent_prompt"
+              value={agentPrompt}
+              onChange={(e) => setAgentPrompt(e.target.value)}
+              rows={6}
+              placeholder="Custom instructions for the agent when analyzing releases for this project..."
               className="font-mono text-sm"
             />
+          </div>
+          <div className="space-y-3">
+            <Label>Agent Rules</Label>
+            <div className="rounded-md border p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <Switch checked={onMajor} onCheckedChange={setOnMajor} />
+                <Label>Trigger on major releases</Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch checked={onMinor} onCheckedChange={setOnMinor} />
+                <Label>Trigger on minor releases</Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch checked={onSecurity} onCheckedChange={setOnSecurity} />
+                <Label>Trigger on security patches</Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="version_pattern">Version Pattern (regex, optional)</Label>
+                <Input
+                  id="version_pattern"
+                  value={versionPattern}
+                  onChange={(e) => setVersionPattern(e.target.value)}
+                  placeholder='e.g. ^v\d+\.\d+\.\d+$'
+                />
+              </div>
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>

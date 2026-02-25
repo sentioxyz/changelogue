@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { projects as projectsApi, channels as channelsApi } from "@/lib/api/client";
+import { projects as projectsApi, channels as channelsApi, sources as sourcesApi } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Subscription, SubscriptionInput } from "@/lib/api/types";
@@ -22,15 +21,18 @@ export function SubscriptionForm({ initial, onSubmit, title }: SubscriptionFormP
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [projectId, setProjectId] = useState(String(initial?.project_id ?? ""));
-  const [channelType, setChannelType] = useState(initial?.channel_type ?? "stable");
-  const [channelId, setChannelId] = useState(String(initial?.channel_id ?? ""));
-  const [versionPattern, setVersionPattern] = useState(initial?.version_pattern ?? "");
-  const [frequency, setFrequency] = useState<string>(initial?.frequency ?? "instant");
-  const [enabled, setEnabled] = useState(initial?.enabled ?? true);
+  const [type, setType] = useState<"source" | "project">(initial?.type ?? "project");
+  const [channelId, setChannelId] = useState(initial?.channel_id ?? "");
+  const [projectId, setProjectId] = useState(initial?.project_id ?? "");
+  const [sourceId, setSourceId] = useState(initial?.source_id ?? "");
+  const [versionFilter, setVersionFilter] = useState(initial?.version_filter ?? "");
 
   const { data: projectsData } = useSWR("projects-for-sub", () => projectsApi.list());
   const { data: channelsData } = useSWR("channels-for-sub", () => channelsApi.list());
+  const { data: sourcesData } = useSWR(
+    type === "source" && projectId ? `sources-for-sub-${projectId}` : null,
+    () => sourcesApi.listByProject(projectId)
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,12 +40,11 @@ export function SubscriptionForm({ initial, onSubmit, title }: SubscriptionFormP
     setSaving(true);
     try {
       await onSubmit({
-        project_id: Number(projectId),
-        channel_type: channelType,
-        channel_id: Number(channelId),
-        version_pattern: versionPattern || undefined,
-        frequency: frequency as SubscriptionInput["frequency"],
-        enabled,
+        channel_id: channelId,
+        type,
+        source_id: type === "source" ? sourceId : undefined,
+        project_id: type === "project" ? projectId : undefined,
+        version_filter: versionFilter || undefined,
       });
       router.push("/subscriptions");
     } catch (err: unknown) {
@@ -60,57 +61,68 @@ export function SubscriptionForm({ initial, onSubmit, title }: SubscriptionFormP
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
           <div className="space-y-2">
-            <Label>Project</Label>
-            <Select value={projectId} onValueChange={setProjectId} required>
-              <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
-              <SelectContent>
-                {projectsData?.data.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Channel Type</Label>
-            <Select value={channelType} onValueChange={setChannelType}>
+            <Label>Subscription Type</Label>
+            <Select value={type} onValueChange={(v) => setType(v as "source" | "project")}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="stable">Stable</SelectItem>
-                <SelectItem value="pre-release">Pre-release</SelectItem>
-                <SelectItem value="security">Security</SelectItem>
+                <SelectItem value="project">Project</SelectItem>
+                <SelectItem value="source">Source</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {type === "project" && (
+            <div className="space-y-2">
+              <Label>Project</Label>
+              <Select value={projectId} onValueChange={setProjectId} required>
+                <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                <SelectContent>
+                  {projectsData?.data.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {type === "source" && (
+            <>
+              <div className="space-y-2">
+                <Label>Project (to list sources)</Label>
+                <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSourceId(""); }}>
+                  <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+                  <SelectContent>
+                    {projectsData?.data.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Source</Label>
+                <Select value={sourceId} onValueChange={setSourceId} required>
+                  <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
+                  <SelectContent>
+                    {sourcesData?.data.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.provider}: {s.repository}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
           <div className="space-y-2">
             <Label>Notification Channel</Label>
             <Select value={channelId} onValueChange={setChannelId} required>
               <SelectTrigger><SelectValue placeholder="Select channel" /></SelectTrigger>
               <SelectContent>
                 {channelsData?.data.map((ch) => (
-                  <SelectItem key={ch.id} value={String(ch.id)}>{ch.name} ({ch.type})</SelectItem>
+                  <SelectItem key={ch.id} value={ch.id}>{ch.name} ({ch.type})</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="version_pattern">Version Pattern (regex, optional)</Label>
-            <Input id="version_pattern" value={versionPattern} onChange={(e) => setVersionPattern(e.target.value)} placeholder='e.g. ^v\d+\.\d+\.\d+$' />
-          </div>
-          <div className="space-y-2">
-            <Label>Frequency</Label>
-            <Select value={frequency} onValueChange={setFrequency}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="instant">Instant</SelectItem>
-                <SelectItem value="hourly">Hourly Digest</SelectItem>
-                <SelectItem value="daily">Daily Digest</SelectItem>
-                <SelectItem value="weekly">Weekly Digest</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-3">
-            <Switch checked={enabled} onCheckedChange={setEnabled} />
-            <Label>Enabled</Label>
+            <Label htmlFor="version_filter">Version Filter (regex, optional)</Label>
+            <Input id="version_filter" value={versionFilter} onChange={(e) => setVersionFilter(e.target.value)} placeholder='e.g. ^v\d+\.\d+\.\d+$' />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
