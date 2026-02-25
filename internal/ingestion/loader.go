@@ -33,7 +33,7 @@ func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]IIngestionSour
 
 	var sources []IIngestionSource
 	for rows.Next() {
-		var id int
+		var id string
 		var sourceType, repository string
 		if err := rows.Scan(&id, &sourceType, &repository); err != nil {
 			return nil, fmt.Errorf("scan source row: %w", err)
@@ -51,20 +51,20 @@ func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]IIngestionSour
 }
 
 // LookupSourceID finds the source ID for a given (source_type, repository) pair.
-// Returns 0 and false if no matching enabled source exists.
-func (l *SourceLoader) LookupSourceID(ctx context.Context, sourceType, repository string) (int, bool) {
-	var id int
+// Returns empty string and false if no matching enabled source exists.
+func (l *SourceLoader) LookupSourceID(ctx context.Context, sourceType, repository string) (string, bool) {
+	var id string
 	err := l.pool.QueryRow(ctx,
 		`SELECT id FROM sources WHERE source_type = $1 AND repository = $2 AND enabled = true`,
 		sourceType, repository,
 	).Scan(&id)
 	if err != nil {
-		return 0, false
+		return "", false
 	}
 	return id, true
 }
 
-func (l *SourceLoader) buildSource(id int, sourceType, repository string) IIngestionSource {
+func (l *SourceLoader) buildSource(id string, sourceType, repository string) IIngestionSource {
 	switch sourceType {
 	case "dockerhub":
 		return NewDockerHubSource(l.client, repository, id)

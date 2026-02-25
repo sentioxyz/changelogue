@@ -1,13 +1,9 @@
 package ingestion
 
-import (
-	"context"
-
-	"github.com/sentioxyz/releaseguard/internal/models"
-)
+import "context"
 
 // ReleaseStore persists release events using the transactional outbox pattern.
-// The implementation inserts the release and enqueues a pipeline job atomically.
+// The implementation inserts the release and enqueues a notify job atomically.
 type ReleaseStore interface {
-	IngestRelease(ctx context.Context, sourceID int, event *models.ReleaseEvent) error
+	IngestRelease(ctx context.Context, sourceID string, result *IngestionResult) error
 }
