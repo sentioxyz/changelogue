@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "73fb7b221aa5",
+  "session_id": "14e95586-08e1-46bd-9f05-97a8aeecd672",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-25T14:39:50.505593Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/plans/2026-02-25-frontend-redesign-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "bc86a458be8a",
+  "transcript_identifier_at_start": "e8faa988-78ea-436d-a5ec-11546c20fb4d",
+  "token_usage": {
+    "input_tokens": 1799,
+    "cache_creation_tokens": 98957,
+    "cache_read_tokens": 2141997,
+    "output_tokens": 14046,
+    "api_call_count": 39
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-25T14:39:50.294384Z",
+    "agent_lines": 0,
+    "human_added": 257,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 257,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/14e95586-08e1-46bd-9f05-97a8aeecd672.jsonl"
+}
