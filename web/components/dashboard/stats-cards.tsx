@@ -3,32 +3,60 @@
 
 import useSWR from "swr";
 import { system } from "@/lib/api/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderKanban, Radio, Package, Bot } from "lucide-react";
+import { Package, Radio, Clock, AlertTriangle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+interface StatItem {
+  label: string;
+  value: number | string;
+  icon: LucideIcon;
+}
 
 export function StatsCards() {
   const { data, isLoading } = useSWR("stats", () => system.stats());
 
   const stats = data?.data;
-  const items = [
-    { label: "Projects", value: stats?.total_projects ?? "\u2014", icon: FolderKanban, color: "text-blue-600" },
-    { label: "Sources", value: stats?.total_sources ?? "\u2014", icon: Radio, color: "text-green-600" },
-    { label: "Releases", value: stats?.total_releases ?? "\u2014", icon: Package, color: "text-purple-600" },
-    { label: "Pending Agent Runs", value: stats?.pending_agent_runs ?? "\u2014", icon: Bot, color: "text-yellow-600" },
+  const items: StatItem[] = [
+    { label: "Total Releases", value: stats?.total_releases ?? "\u2014", icon: Package },
+    { label: "Active Sources", value: stats?.total_sources ?? "\u2014", icon: Radio },
+    { label: "Pending Jobs", value: stats?.pending_agent_runs ?? "\u2014", icon: Clock },
+    { label: "Total Projects", value: stats?.total_projects ?? "\u2014", icon: AlertTriangle },
   ];
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((item) => (
-        <Card key={item.label}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{item.label}</CardTitle>
-            <item.icon className={`h-4 w-4 ${item.color}`} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : item.value}</div>
-          </CardContent>
-        </Card>
+        <div
+          key={item.label}
+          className="relative rounded-lg bg-white px-5 py-4"
+          style={{ border: "1px solid #e8e8e5" }}
+        >
+          <item.icon
+            className="absolute right-4 top-4 h-4 w-4"
+            style={{ color: "#b0b0a8" }}
+          />
+          <p
+            className="text-xs uppercase tracking-wide"
+            style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "12px",
+              color: "#6b7280",
+            }}
+          >
+            {item.label}
+          </p>
+          <p
+            className="mt-1 font-bold"
+            style={{
+              fontFamily: "var(--font-fraunces)",
+              fontSize: "32px",
+              lineHeight: 1.1,
+              color: "#1a1a1a",
+            }}
+          >
+            {isLoading ? "\u00B7\u00B7\u00B7" : item.value}
+          </p>
+        </div>
       ))}
     </div>
   );
