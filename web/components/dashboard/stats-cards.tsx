@@ -4,17 +4,17 @@
 import useSWR from "swr";
 import { system } from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Radio, Clock, AlertTriangle } from "lucide-react";
+import { FolderKanban, Radio, Package, Bot } from "lucide-react";
 
 export function StatsCards() {
   const { data, isLoading } = useSWR("stats", () => system.stats());
 
   const stats = data?.data;
   const items = [
-    { label: "Total Releases", value: stats?.total_releases ?? "\u2014", icon: Package, color: "text-blue-600" },
-    { label: "Active Sources", value: stats?.active_sources ?? "\u2014", icon: Radio, color: "text-green-600" },
-    { label: "Pending Jobs", value: stats?.pending_jobs ?? "\u2014", icon: Clock, color: "text-yellow-600" },
-    { label: "Failed Jobs", value: stats?.failed_jobs ?? "\u2014", icon: AlertTriangle, color: "text-red-600" },
+    { label: "Projects", value: stats?.total_projects ?? "\u2014", icon: FolderKanban, color: "text-blue-600" },
+    { label: "Sources", value: stats?.total_sources ?? "\u2014", icon: Radio, color: "text-green-600" },
+    { label: "Releases", value: stats?.total_releases ?? "\u2014", icon: Package, color: "text-purple-600" },
+    { label: "Pending Agent Runs", value: stats?.pending_agent_runs ?? "\u2014", icon: Bot, color: "text-yellow-600" },
   ];
 
   return (
