@@ -19,7 +19,14 @@ ReleaseGuard is an event-driven, hybrid-architecture system designed to centrali
 
 ## 2. System Design & Abstractions
 
-The system is decoupled into four primary layers communicating entirely through PostgreSQL using the Transactional Outbox pattern. A **Project** is the central domain entity — it groups multiple ingestion sources and notification subscriptions under a single tracked piece of software.
+The system is decoupled into four primary layers communicating entirely through PostgreSQL using the Transactional Outbox pattern:
+
+1. **Ingestion Layer** — Polling workers and webhook handlers discover new releases from upstream registries.
+2. **Notification Routing** — River workers send immediate notifications to source-level subscribers on new releases.
+3. **Agent Layer** — ADK-Go agents research releases, consult context sources, and produce semantic release reports.
+4. **Routing & Output** — Notification channels (Slack, PagerDuty, webhooks) deliver alerts via `INotificationChannel`.
+
+A **Project** is the central domain entity — it groups multiple ingestion sources, context sources, and notification subscriptions under a single tracked piece of software.
 
 ```mermaid
 graph LR
@@ -35,21 +42,21 @@ graph LR
     end
 
     subgraph Core [Event Bus & Queue - PostgreSQL]
-        Engine((Go Engine)) --> |INSERT release + job\nTransactional Outbox| PG[(PostgreSQL)]
-        PG --> |SKIP LOCKED\nRiver| Pipeline[Processing Pipeline]
-        Pipeline --> |UPDATE node_results\ncurrent_node| PG
+        Engine((Go Engine)) --> |INSERT release + jobs\nTransactional Outbox| PG[(PostgreSQL)]
     end
 
-    subgraph Intelligence [Agentic Validation]
-        Pipeline -.-> |Trigger Tool| Agent[SRE Agent]
-        Agent -.-> |Verify| Sandbox[(Sandbox / Base A Box)]
+    subgraph Notification [Notification Routing]
+        PG --> |SKIP LOCKED\nRiver notify_release| NotifyWorker[Notify Worker]
+        NotifyWorker --> |INotificationChannel| O_Slack(Slack/Teams)
+        NotifyWorker --> |INotificationChannel| O_PD(PagerDuty)
+        NotifyWorker --> |INotificationChannel| O_Hook(Custom Webhooks)
     end
 
-    subgraph Output [Routing & Notification]
-        PG --> |LISTEN/NOTIFY| Router[Notification Matrix]
-        Router --> |INotificationChannel| O_Slack(Slack/Teams)
-        Router --> |INotificationChannel| O_PD(PagerDuty)
-        Router --> |INotificationChannel| O_Hook(Custom Webhooks)
+    subgraph AgentLayer [Agent Layer]
+        PG --> |SKIP LOCKED\nRiver agent_run| AgentWorker[Agent Worker]
+        AgentWorker --> |ADK-Go| LLM[LLM Provider]
+        AgentWorker --> |Research| ContextSources[Context Sources]
+        AgentWorker --> |Produce| SemanticRelease[Semantic Release + Report]
     end
 
 ```
@@ -59,41 +66,58 @@ graph LR
 ```mermaid
 erDiagram
     projects ||--o{ sources : "has many"
-    projects ||--o{ subscriptions : "has many"
+    projects ||--o{ context_sources : "has many"
+    projects ||--o{ semantic_releases : "has many"
+    projects ||--o{ agent_runs : "has many"
     sources ||--o{ releases : "produces"
-    releases ||--o{ pipeline_jobs : "triggers"
-    notification_channels ||--o{ subscriptions : "receives via"
+    subscriptions }o--|| notification_channels : "routes to"
+    subscriptions }o--o| sources : "source-level"
+    subscriptions }o--o| projects : "project-level"
+    semantic_releases ||--o{ semantic_release_sources : "composed of"
+    releases ||--o{ semantic_release_sources : "contributes to"
 
     projects {
-        int id PK
+        uuid id PK
         string name UK
-        string description
-        string url
-        jsonb pipeline_config
+        text agent_prompt
+        jsonb agent_rules
     }
     sources {
-        int id PK
-        int project_id FK
-        string source_type
-        string repository
-        int poll_interval_seconds
+        uuid id PK
+        uuid project_id FK
+        string provider
+        string repository UK
         boolean enabled
     }
     releases {
         uuid id PK
-        int source_id FK
+        uuid source_id FK
         string version
-        jsonb payload
+        jsonb raw_data
+    }
+    semantic_releases {
+        uuid id PK
+        uuid project_id FK
+        string version
+        jsonb report
+        string status
+    }
+    agent_runs {
+        uuid id PK
+        uuid project_id FK
+        uuid semantic_release_id FK
+        string trigger
+        string status
     }
     subscriptions {
-        int id PK
-        int project_id FK
-        int channel_id FK
-        string channel_type
-        string frequency
+        uuid id PK
+        uuid channel_id FK
+        string type
+        uuid source_id FK
+        uuid project_id FK
     }
     notification_channels {
-        int id PK
+        uuid id PK
         string type
         string name
         jsonb config
@@ -104,10 +128,10 @@ erDiagram
 
 Components do not call each other synchronously. Instead, they rely on PostgreSQL to guarantee delivery:
 
-* **The Transactional Outbox:** When a new release is detected, the ingestion worker writes the metadata to the `releases` table (linked to its `source_id`) and simultaneously inserts a processing job into the `pipeline_jobs` table *within the exact same SQL transaction*. This guarantees no events are ever lost.
+* **The Transactional Outbox:** When a new release is detected, the ingestion worker writes the metadata to the `releases` table (linked to its `source_id`) and simultaneously enqueues River jobs (notification and/or agent) *within the exact same SQL transaction*. This guarantees no events are ever lost.
 * **Real-time Pub/Sub:** Database triggers use `pg_notify` to broadcast lightweight events (e.g., telling the Next.js UI via SSE to refresh) over standard Postgres connections using `LISTEN`.
-* **Reliable Queues:** Go background workers poll the `pipeline_jobs` table using `FOR UPDATE SKIP LOCKED`, ensuring only one worker processes a specific release's pipeline at a time.
-* **Project-Centric Model:** All data flows through the `projects` → `sources` → `releases` hierarchy. Subscriptions attach to projects, so notification rules automatically cover releases from any of a project's sources.
+* **Reliable Queues:** River workers process jobs using `FOR UPDATE SKIP LOCKED`, ensuring exactly-once processing for both notification delivery and agent runs.
+* **Project-Centric Model:** All data flows through the `projects` → `sources` → `releases` hierarchy. Subscriptions can attach at the source level (for raw release notifications) or the project level (for semantic release notifications).
 
 ### 2.2 Provider Interfaces (I/O)
 
@@ -121,34 +145,31 @@ All external integrations are abstracted behind strict Go interfaces.
 The Go server exposes a RESTful API (`/api/v1`) serving the Next.js dashboard and external consumers:
 
 * **Resource CRUD:** Projects, sources, subscriptions, notification channels — all manageable through the API.
-* **Read-Only Releases:** Releases and pipeline status are queryable but not writable via the API — they're created exclusively through the ingestion layer.
-* **SSE Real-Time Events:** `GET /api/v1/events` streams server-sent events backed by PostgreSQL `LISTEN/NOTIFY`, pushing release and pipeline updates to connected dashboard clients.
+* **Read-Only Releases:** Releases and semantic releases are queryable but not writable via the API — they're created exclusively through the ingestion layer and agent runs.
+* **SSE Real-Time Events:** `GET /api/v1/events` streams server-sent events backed by PostgreSQL `LISTEN/NOTIFY`, pushing release and semantic release updates to connected dashboard clients.
 * **API Key Auth:** Bearer token authentication with hashed key storage. Webhooks use their own HMAC-based auth.
 * **Rate Limiting:** Per-key token bucket with standard `X-Ratelimit-*` response headers.
 
-### 2.4 The Configurable Processing Pipeline
+### 2.4 Notification Routing
 
-The core filtering and scoring logic is structured as a **configurable sequential pipeline**. Instead of monolithic conditional blocks, the system compiles a pipeline of independent execution nodes. **Which nodes run and how they behave is controlled per-project** via `pipeline_config` — an opaque JSONB map where each key is a node name and its value is that node's configuration. Nodes execute sequentially; independent nodes (e.g., Availability Checker, Risk Assessor) could be parallelized in a future iteration without changing the node interface.
+When a new source release is detected, a `notify_release` River job is enqueued in the same transaction as the release insert. The notification worker:
 
-**Always-on nodes** (structural — cannot be disabled):
+1. Resolves all source-level subscriptions for the release's source.
+2. For each subscription, sends a notification to the linked channel via `INotificationChannel`.
 
-1. **Regex Normalizer** — Parses version, applies source-level exclusion filters.
-2. **Subscription Router** — Checks project subscriptions, drops unsubscribed events.
+This provides immediate, low-latency alerts for raw releases without waiting for AI analysis. Source-level subscriptions are simple: "tell me when this source has a new release."
 
-**Configurable nodes** (opt-in per project, each with its own config schema):
+### 2.5 Agent Layer
 
-3. **Availability Checker** — Source-linked checks are automatic (Docker → verify image, GitHub → verify binaries). Config adds extra artifacts.
-4. **Risk Assessor** — Changelog keyword scanning is automatic. Config adds external signals (Discord, Telegram, GitHub Advisories).
-5. **Adoption Tracker** — Always requires config (provider + metrics source).
-6. **Changelog Summarizer** — Uses release changelog. Config can override LLM strategy.
-7. **Urgency Scorer** — Composite urgency from all preceding results. Config adjusts thresholds.
-8. **Validation Trigger** — Triggers SRE agent. Config sets urgency threshold.
+For project-level intelligence, an `agent_run` River job triggers an LLM agent (via ADK-Go) that:
 
-Every node implements a common `PipelineNode` interface and receives its config as raw JSON, which it unmarshals into its own typed struct. This means adding a new node or evolving a node's config requires no changes to the pipeline runner or database schema — just register the node and update the project's `pipeline_config`. The interface is designed to support **external plugin nodes** in the future — user-authored processing logic loaded via a plugin registry and executed over a transport layer (e.g., gRPC sidecar), with no changes to the runner or schema.
+1. Gathers recent source releases for the project.
+2. Consults context sources (runbooks, docs, monitoring dashboards) configured for the project.
+3. Produces a `SemanticRelease` with a structured `SemanticReport` (summary, availability, adoption, urgency, recommendation).
 
-The final notification is assembled as a fixed template with dynamic sections — each enabled configurable node maps to a section, and disabled nodes produce no section.
+Agent behavior is configured per-project via `agent_prompt` (custom instructions) and `agent_rules` (structured triggers like `on_major_release`, `on_security_patch`, `version_pattern`). Agent runs are tracked in the `agent_runs` table for observability and auditability.
 
-### 2.5 Agentic Tooling
+### 2.6 Agentic Tooling
 
 For deep validation, ReleaseGuard utilizes SRE agents. The agent is provided a suite of abstracted tools:
 
@@ -159,12 +180,12 @@ This allows the agent to autonomously deploy a sandbox, verify that the deployme
 
 ## 3. Data Flow: Lifecycle of a Release Event
 
-1. **Discovery:** A Go worker polling Docker Hub detects a new base image tag for a configured source (e.g., the "Docker Hub" source under the "Go Runtime" project). Source-level exclusion filters (`exclude_version_regexp`, `exclude_prereleases`) are applied — filtered versions are discarded immediately.
-2. **Ingestion & Transaction:** The worker standardizes the payload into a `ReleaseEvent` IR and executes a single database transaction to insert the record into `releases` (linked to its `source_id`) and queue a job in `pipeline_jobs`.
-3. **Processing (Queue Pull):** A Go worker pulls the job using `SKIP LOCKED` and routes the event through the processing pipeline. Each node updates `current_node` and accumulates results in `node_results`. The subscription router checks the parent project's subscriptions — unsubscribed events are marked as `skipped`.
-4. **Analysis & Validation:** For stable releases, the LLM analyzes the release notes to generate a "Production Record" summary. If the urgency score meets a threshold, an SRE agent is triggered to draft a master config update for Base A Box and run automated health checks.
-5. **Finalization & Broadcast:** The worker updates the job status to `completed` in PostgreSQL. A Postgres trigger fires a `NOTIFY` payload to alert the routing matrix and push SSE events to connected dashboard clients.
-6. **Notification:** The Notification Matrix reads the finalized data, resolves the project's subscriptions, and routes to the appropriate notification channels (e.g., a critical PagerDuty alert for hotfixes via instant delivery, or a batched daily digest to Slack for low-priority updates).
+1. **Discovery:** A Go worker polling Docker Hub detects a new base image tag for a configured source (e.g., the "Docker Hub" source under the "Go Runtime" project). Source-level exclusion filters (`exclude_version_regexp`, `exclude_prereleases`) are applied -- filtered versions are discarded immediately.
+2. **Ingestion & Transaction:** The worker stores the raw upstream payload and executes a single database transaction to insert the record into `releases` (linked to its `source_id`) and enqueue River jobs (`notify_release` for immediate notifications, optionally `agent_run` if the project's agent rules match).
+3. **Notification (Source-Level):** A River worker picks up the `notify_release` job, resolves source-level subscriptions, and sends alerts to configured notification channels (Slack, PagerDuty, webhooks).
+4. **Agent Analysis (Project-Level):** If triggered, a River worker picks up the `agent_run` job. The ADK-Go agent gathers recent releases, consults context sources, and produces a `SemanticRelease` with a structured report (summary, availability, adoption, urgency, recommendation).
+5. **Broadcast:** PostgreSQL triggers fire `NOTIFY` payloads on release insert and semantic release completion, pushing SSE events to connected dashboard clients.
+6. **Project-Level Notification:** When a semantic release is completed, project-level subscribers are notified with the AI-generated report (e.g., a critical PagerDuty alert for high-urgency releases, or a batched daily digest to Slack for low-priority updates).
 
 ## 4. Directory Structure
 
@@ -175,12 +196,11 @@ This allows the agent to autonomously deploy a sandbox, verify that the deployme
 ├── internal/
 │   ├── api/             # REST API handlers, middleware, SSE broadcaster
 │   ├── ingestion/       # Polling workers and webhook handlers (IIngestionSource)
-│   ├── pipeline/        # Pipeline node implementations for filtering & scoring
-│   ├── agents/          # LLM orchestration and validation tools
-│   ├── routing/         # Notification matrix and I/O providers (INotificationChannel)
+│   ├── agent/           # ADK-Go agent for semantic release analysis
+│   ├── notification/    # Notification routing worker and channel implementations
 │   ├── queue/           # PostgreSQL River queue setup and job definitions
 │   ├── db/              # Connection pool and schema migrations
-│   └── models/          # Shared domain structs (ReleaseEvent, Project, etc.)
+│   └── models/          # Shared domain structs (Release, Project, SemanticRelease, etc.)
 ├── web/                 # Next.js frontend application
 │   ├── app/
 │   └── components/
