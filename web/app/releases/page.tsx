@@ -3,132 +3,369 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { releases as releasesApi, projects as projectsApi } from "@/lib/api/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+  releases as releasesApi,
+  projects as projectsApi,
+  sources as sourcesApi,
+} from "@/lib/api/client";
+import { ProviderBadge } from "@/components/ui/provider-badge";
+import { VersionChip } from "@/components/ui/version-chip";
+import type { Release, Source, Project } from "@/lib/api/types";
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function timeAgo(dateStr?: string | null): string {
+  if (!dateStr) return "\u2014";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+interface ReleaseRow extends Release {
+  _projectName?: string;
+  _projectId?: string;
+  _provider?: string;
+  _repository?: string;
+}
+
+const PER_PAGE = 15;
+
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
 
 export default function ReleasesPage() {
   const [page, setPage] = useState(1);
   const [projectFilter, setProjectFilter] = useState<string>("all");
 
-  const { data: projectsData } = useSWR("projects-for-filter", () => projectsApi.list());
-
-  const { data, isLoading } = useSWR(
-    ["releases", page, projectFilter],
-    () => {
-      if (projectFilter !== "all") {
-        return releasesApi.listByProject(projectFilter, page);
-      }
-      // When no project filter, show all releases across all projects
-      // The API doesn't have a global releases endpoint, so we use the first project or show empty
-      return null;
-    }
+  /* Fetch projects for the filter dropdown + source enrichment */
+  const { data: projectsData } = useSWR("projects-for-filter", () =>
+    projectsApi.list()
   );
 
-  // For the "all projects" case, we need to fetch all project releases
-  const { data: allReleasesData } = useSWR(
-    projectFilter === "all" ? ["all-releases", page] : null,
+  /* Build a map: sourceId -> { provider, repository, projectName, projectId } */
+  const { data: sourceMap } = useSWR(
+    projectsData ? "source-map-for-releases" : null,
     async () => {
-      if (!projectsData?.data?.length) return null;
-      // Fetch releases from the first project as a default view
-      // In production, there would be a global /releases endpoint
-      const results = await Promise.all(
-        projectsData.data.slice(0, 5).map((p) => releasesApi.listByProject(p.id, page).catch(() => null))
+      if (!projectsData?.data?.length) return new Map<string, { provider: string; repository: string; projectName: string; projectId: string }>();
+      const map = new Map<string, { provider: string; repository: string; projectName: string; projectId: string }>();
+      await Promise.all(
+        projectsData.data.map(async (p: Project) => {
+          const res = await sourcesApi.listByProject(p.id).catch(() => null);
+          if (res?.data) {
+            for (const s of res.data) {
+              map.set(s.id, {
+                provider: s.provider,
+                repository: s.repository,
+                projectName: p.name,
+                projectId: p.id,
+              });
+            }
+          }
+        })
       );
-      const allReleases = results
-        .filter((r): r is NonNullable<typeof r> => r !== null)
-        .flatMap((r) => r.data);
-      return allReleases;
+      return map;
     }
   );
 
-  const displayReleases = projectFilter !== "all" ? data?.data : allReleasesData;
-  const total = data?.meta?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / 15));
+  /* Fetch releases — scoped by project or aggregated across all */
+  const { data: scopedData, isLoading: scopedLoading } = useSWR(
+    projectFilter !== "all" ? ["releases", page, projectFilter] : null,
+    () => releasesApi.listByProject(projectFilter, page)
+  );
+
+  const { data: allReleasesData, isLoading: allLoading } = useSWR(
+    projectFilter === "all" && projectsData
+      ? ["all-releases", page]
+      : null,
+    async () => {
+      if (!projectsData?.data?.length) return [];
+      const results = await Promise.all(
+        projectsData.data.map((p: Project) =>
+          releasesApi.listByProject(p.id, page).catch(() => null)
+        )
+      );
+      return results
+        .filter((r): r is NonNullable<typeof r> => r !== null)
+        .flatMap((r) => r.data)
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+    }
+  );
+
+  const isLoading = projectFilter !== "all" ? scopedLoading : allLoading;
+
+  /* Enrich releases with source metadata */
+  const rawReleases: Release[] =
+    projectFilter !== "all"
+      ? scopedData?.data ?? []
+      : allReleasesData ?? [];
+
+  const releases: ReleaseRow[] = rawReleases.map((r) => {
+    const info = sourceMap?.get(r.source_id);
+    return {
+      ...r,
+      _projectName: info?.projectName,
+      _projectId: info?.projectId,
+      _provider: info?.provider,
+      _repository: info?.repository,
+    };
+  });
+
+  /* Pagination math */
+  const total = projectFilter !== "all" ? (scopedData?.meta?.total ?? 0) : releases.length;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const startRow = (page - 1) * PER_PAGE + 1;
+  const endRow = Math.min(page * PER_PAGE, total);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Page title */}
+      <h1
+        style={{
+          fontFamily: "var(--font-fraunces)",
+          fontSize: "24px",
+          fontWeight: 700,
+          color: "#1a1a1a",
+        }}
+      >
+        Releases
+      </h1>
+
+      {/* Project filter */}
       <div>
-        <h2 className="text-lg font-semibold">All Releases</h2>
-        <p className="text-sm text-muted-foreground">Browse releases ingested from all sources.</p>
+        <select
+          value={projectFilter}
+          onChange={(e) => {
+            setProjectFilter(e.target.value);
+            setPage(1);
+          }}
+          className="appearance-none rounded-md bg-white px-3 py-2 pr-8 outline-none transition-shadow"
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            color: "#1a1a1a",
+            border: "1px solid #e8e8e5",
+          }}
+          onFocus={(e) =>
+            (e.currentTarget.style.boxShadow = "0 0 0 2px #e8601a40")
+          }
+          onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+        >
+          <option value="all">All Projects</option>
+          {projectsData?.data.map((p: Project) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3">
-        <Select value={projectFilter} onValueChange={(v) => { setProjectFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="All Projects" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Projects</SelectItem>
-            {projectsData?.data.map((p) => (
-              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="py-12 text-center text-muted-foreground">Loading...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Released</TableHead>
-                  <TableHead>Ingested</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(displayReleases ?? []).map((release) => (
-                  <TableRow key={release.id}>
-                    <TableCell>
+      {/* Table card */}
+      <div
+        className="overflow-hidden rounded-lg bg-white"
+        style={{ border: "1px solid #e8e8e5" }}
+      >
+        {isLoading ? (
+          <div
+            className="py-16 text-center"
+            style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "13px",
+              color: "#6b7280",
+            }}
+          >
+            Loading...
+          </div>
+        ) : releases.length === 0 ? (
+          <div className="py-16 text-center">
+            <p
+              style={{
+                fontFamily: "var(--font-fraunces)",
+                fontStyle: "italic",
+                fontSize: "15px",
+                color: "#9ca3af",
+              }}
+            >
+              No releases ingested yet
+            </p>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr style={{ borderBottom: "1px solid #e8e8e5", backgroundColor: "#fafaf9" }}>
+                {["Project", "Provider", "Repository", "Version", "Released", "Age"].map(
+                  (col) => (
+                    <th
+                      key={col}
+                      className="px-4 py-3 text-left"
+                      style={{
+                        fontFamily: "var(--font-dm-sans)",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        textTransform: "uppercase" as const,
+                        letterSpacing: "0.05em",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      {col}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {releases.map((release) => (
+                <tr
+                  key={release.id}
+                  className="transition-colors hover:bg-[#fafaf9]"
+                  style={{ borderBottom: "1px solid #e8e8e5" }}
+                >
+                  {/* Project */}
+                  <td className="px-4 py-3">
+                    {release._projectId ? (
                       <Link
-                        href={`/releases/${release.id}`}
-                        className="font-mono text-sm text-primary hover:underline"
+                        href={`/projects/${release._projectId}`}
+                        className="hover:underline"
+                        style={{
+                          fontFamily: "var(--font-dm-sans)",
+                          fontSize: "13px",
+                          color: "#1a1a1a",
+                          fontWeight: 500,
+                        }}
                       >
-                        {release.version}
+                        {release._projectName ?? "\u2014"}
                       </Link>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground font-mono">
-                      {release.source_id}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {release.released_at ? new Date(release.released_at).toLocaleDateString() : "\u2014"}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(release.created_at).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    ) : (
+                      <span
+                        style={{
+                          fontFamily: "var(--font-dm-sans)",
+                          fontSize: "13px",
+                          color: "#9ca3af",
+                        }}
+                      >
+                        {"\u2014"}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Provider */}
+                  <td className="px-4 py-3">
+                    {release._provider ? (
+                      <ProviderBadge provider={release._provider} />
+                    ) : (
+                      <span
+                        style={{
+                          fontFamily: "var(--font-dm-sans)",
+                          fontSize: "13px",
+                          color: "#9ca3af",
+                        }}
+                      >
+                        {"\u2014"}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Repository */}
+                  <td className="px-4 py-3">
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "12px",
+                        color: "#374151",
+                      }}
+                    >
+                      {release._repository ?? release.source_id}
+                    </span>
+                  </td>
+
+                  {/* Version */}
+                  <td className="px-4 py-3">
+                    <Link href={`/releases/${release.id}`}>
+                      <VersionChip version={release.version} />
+                    </Link>
+                  </td>
+
+                  {/* Released date */}
+                  <td className="px-4 py-3">
+                    <span
+                      style={{
+                        fontFamily: "var(--font-dm-sans)",
+                        fontSize: "13px",
+                        color: "#6b7280",
+                      }}
+                    >
+                      {release.released_at
+                        ? new Date(release.released_at).toLocaleDateString()
+                        : "\u2014"}
+                    </span>
+                  </td>
+
+                  {/* Age */}
+                  <td className="px-4 py-3">
+                    <span
+                      style={{
+                        fontFamily: "var(--font-dm-sans)",
+                        fontSize: "13px",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      {timeAgo(release.released_at ?? release.created_at)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {/* Pagination */}
-      {projectFilter !== "all" && totalPages > 1 && (
+      {total > 0 && (
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{total} releases</span>
+          <span
+            style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "13px",
+              color: "#9ca3af",
+            }}
+          >
+            {startRow}&ndash;{endRow} of {total}
+          </span>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm">Page {page} of {totalPages}</span>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage(page - 1)}
+              className="rounded-md bg-white px-3 py-1.5 transition-colors hover:bg-[#fafaf9] disabled:cursor-not-allowed disabled:opacity-40"
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "13px",
+                color: "#374151",
+                border: "1px solid #e8e8e5",
+              }}
+            >
+              Previous
+            </button>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage(page + 1)}
+              className="rounded-md bg-white px-3 py-1.5 transition-colors hover:bg-[#fafaf9] disabled:cursor-not-allowed disabled:opacity-40"
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "13px",
+                color: "#374151",
+                border: "1px solid #e8e8e5",
+              }}
+            >
+              Next
+            </button>
           </div>
         </div>
       )}

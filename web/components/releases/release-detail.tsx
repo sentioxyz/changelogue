@@ -2,75 +2,390 @@
 
 import useSWR from "swr";
 import Link from "next/link";
-import { releases as releasesApi } from "@/lib/api/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  releases as releasesApi,
+  sources as sourcesApi,
+  semanticReleases as srApi,
+  projects as projectsApi,
+} from "@/lib/api/client";
+import { ProviderBadge } from "@/components/ui/provider-badge";
+import { VersionChip } from "@/components/ui/version-chip";
+import type { SemanticRelease, Source, Project } from "@/lib/api/types";
 import { ArrowLeft } from "lucide-react";
 
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function timeAgo(dateStr?: string | null): string {
+  if (!dateStr) return "\u2014";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
+
 export function ReleaseDetail({ id }: { id: string }) {
-  const { data: releaseData, isLoading } = useSWR(
-    `release-${id}`, () => releasesApi.get(id)
+  /* Fetch release */
+  const { data: releaseData, isLoading } = useSWR(`release-${id}`, () =>
+    releasesApi.get(id)
   );
 
-  if (isLoading) return <div className="py-12 text-center text-muted-foreground">Loading...</div>;
-
   const release = releaseData?.data;
-  if (!release) return <div className="py-12 text-center">Release not found</div>;
+
+  /* Fetch source info once we have the release */
+  const { data: sourceData } = useSWR(
+    release ? `source-${release.source_id}` : null,
+    () => (release ? sourcesApi.get(release.source_id) : null)
+  );
+  const source: Source | undefined = sourceData?.data;
+
+  /* Fetch project info once we have the source */
+  const { data: projectData } = useSWR(
+    source ? `project-${source.project_id}` : null,
+    () => (source ? projectsApi.get(source.project_id) : null)
+  );
+  const project: Project | undefined = projectData?.data;
+
+  /* Fetch linked semantic releases (via project) */
+  const { data: srData } = useSWR(
+    source ? `sr-for-release-${id}` : null,
+    async () => {
+      if (!source) return [];
+      const res = await srApi.list(source.project_id, 1).catch(() => null);
+      if (!res?.data) return [];
+      /* Filter semantic releases whose version matches this release version */
+      return res.data.filter((sr: SemanticRelease) => sr.version === release?.version);
+    }
+  );
+
+  const linkedSRs: SemanticRelease[] = srData ?? [];
+
+  /* Loading state */
+  if (isLoading) {
+    return (
+      <div
+        className="py-16 text-center"
+        style={{
+          fontFamily: "var(--font-dm-sans)",
+          fontSize: "13px",
+          color: "#6b7280",
+        }}
+      >
+        Loading...
+      </div>
+    );
+  }
+
+  if (!release) {
+    return (
+      <div className="py-16 text-center">
+        <p
+          style={{
+            fontFamily: "var(--font-fraunces)",
+            fontStyle: "italic",
+            fontSize: "15px",
+            color: "#9ca3af",
+          }}
+        >
+          Release not found
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <Link href="/releases">
-        <Button variant="ghost" size="sm">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Releases
-        </Button>
+    <div className="space-y-8">
+      {/* Back link */}
+      <Link
+        href="/releases"
+        className="inline-flex items-center gap-1.5 transition-colors hover:opacity-70"
+        style={{
+          fontFamily: "var(--font-dm-sans)",
+          fontSize: "13px",
+          color: "#6b7280",
+        }}
+      >
+        <ArrowLeft size={14} />
+        Back to Releases
       </Link>
 
-      {/* Release Header */}
+      {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold font-mono">{release.version}</h2>
-        <div className="mt-1 flex items-center gap-2 text-muted-foreground">
-          <span className="text-sm">Source: {release.source_id}</span>
-          <span>&middot;</span>
-          <span>{new Date(release.created_at).toLocaleString()}</span>
+        <h1
+          style={{
+            fontFamily: "var(--font-fraunces)",
+            fontSize: "24px",
+            fontWeight: 700,
+            color: "#1a1a1a",
+          }}
+        >
+          Release {release.version}
+        </h1>
+        <div className="mt-2 flex items-center gap-3">
+          {source && <ProviderBadge provider={source.provider} />}
+          {source && (
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "12px",
+                color: "#374151",
+              }}
+            >
+              {source.repository}
+            </span>
+          )}
+          <VersionChip version={release.version} />
+        </div>
+        {project && (
+          <p
+            className="mt-2"
+            style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "13px",
+              color: "#6b7280",
+            }}
+          >
+            Project:{" "}
+            <Link
+              href={`/projects/${project.id}`}
+              className="hover:underline"
+              style={{ color: "#e8601a" }}
+            >
+              {project.name}
+            </Link>
+          </p>
+        )}
+      </div>
+
+      {/* Info grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Version Details card */}
+        <div
+          className="rounded-lg bg-white"
+          style={{ border: "1px solid #e8e8e5" }}
+        >
+          <div
+            className="px-5 py-4"
+            style={{ borderBottom: "1px solid #e8e8e5" }}
+          >
+            <h2
+              style={{
+                fontFamily: "var(--font-fraunces)",
+                fontSize: "16px",
+                fontWeight: 600,
+                color: "#1a1a1a",
+              }}
+            >
+              Version Details
+            </h2>
+          </div>
+          <div className="space-y-3 px-5 py-4">
+            <DetailRow label="Version" value={release.version} mono />
+            <DetailRow
+              label="Source ID"
+              value={release.source_id}
+              mono
+              small
+            />
+            {source && (
+              <>
+                <DetailRow label="Provider" value={source.provider} />
+                <DetailRow label="Repository" value={source.repository} mono />
+              </>
+            )}
+            {release.released_at && (
+              <DetailRow
+                label="Released At"
+                value={new Date(release.released_at).toLocaleString()}
+              />
+            )}
+            <DetailRow
+              label="Ingested At"
+              value={new Date(release.created_at).toLocaleString()}
+            />
+            <DetailRow
+              label="Age"
+              value={timeAgo(release.released_at ?? release.created_at)}
+            />
+          </div>
+        </div>
+
+        {/* Linked Semantic Releases */}
+        <div
+          className="rounded-lg bg-white"
+          style={{ border: "1px solid #e8e8e5" }}
+        >
+          <div
+            className="px-5 py-4"
+            style={{ borderBottom: "1px solid #e8e8e5" }}
+          >
+            <h2
+              style={{
+                fontFamily: "var(--font-fraunces)",
+                fontSize: "16px",
+                fontWeight: 600,
+                color: "#1a1a1a",
+              }}
+            >
+              Semantic Releases
+            </h2>
+          </div>
+          <div className="px-5 py-4">
+            {linkedSRs.length > 0 ? (
+              <div className="space-y-3">
+                {linkedSRs.map((sr) => (
+                  <Link
+                    key={sr.id}
+                    href={`/projects/${sr.project_id}/semantic-releases/${sr.id}`}
+                    className="block rounded-lg px-4 py-3 transition-colors hover:bg-[#fafaf9]"
+                    style={{ border: "1px solid #e8e8e5" }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <VersionChip version={sr.version} />
+                      <span
+                        className="rounded-full px-2 py-0.5"
+                        style={{
+                          fontFamily: "var(--font-dm-sans)",
+                          fontSize: "11px",
+                          fontWeight: 500,
+                          color:
+                            sr.status === "completed" ? "#16a34a" : "#e8601a",
+                          backgroundColor:
+                            sr.status === "completed" ? "#f0fdf4" : "#fff7ed",
+                        }}
+                      >
+                        {sr.status}
+                      </span>
+                    </div>
+                    {sr.report?.summary && (
+                      <p
+                        className="mt-2 line-clamp-2"
+                        style={{
+                          fontFamily: "var(--font-dm-sans)",
+                          fontStyle: "italic",
+                          fontSize: "13px",
+                          color: "#6b7280",
+                        }}
+                      >
+                        {sr.report.summary}
+                      </p>
+                    )}
+                    <p
+                      className="mt-1"
+                      style={{
+                        fontFamily: "var(--font-dm-sans)",
+                        fontSize: "12px",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      {timeAgo(sr.created_at)}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="py-6 text-center">
+                <p
+                  style={{
+                    fontFamily: "var(--font-fraunces)",
+                    fontStyle: "italic",
+                    fontSize: "14px",
+                    color: "#9ca3af",
+                  }}
+                >
+                  No semantic releases linked
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle className="text-base">Version Details</CardTitle></CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Version</span>
-              <span className="font-mono">{release.version}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Source ID</span>
-              <span className="font-mono text-xs">{release.source_id}</span>
-            </div>
-            {release.released_at && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Released At</span>
-                <span>{new Date(release.released_at).toLocaleString()}</span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Ingested At</span>
-              <span>{new Date(release.created_at).toLocaleString()}</span>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Raw data */}
+      {release.raw_data && Object.keys(release.raw_data).length > 0 && (
+        <div
+          className="rounded-lg bg-white"
+          style={{ border: "1px solid #e8e8e5" }}
+        >
+          <div
+            className="px-5 py-4"
+            style={{ borderBottom: "1px solid #e8e8e5" }}
+          >
+            <h2
+              style={{
+                fontFamily: "var(--font-fraunces)",
+                fontSize: "16px",
+                fontWeight: 600,
+                color: "#1a1a1a",
+              }}
+            >
+              Raw Data
+            </h2>
+          </div>
+          <div className="p-5">
+            <pre
+              className="overflow-x-auto rounded-lg p-4"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "12px",
+                lineHeight: 1.6,
+                color: "#374151",
+                backgroundColor: "#fafaf9",
+                border: "1px solid #e8e8e5",
+              }}
+            >
+              {JSON.stringify(release.raw_data, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-        {release.raw_data && Object.keys(release.raw_data).length > 0 && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">Raw Data</CardTitle></CardHeader>
-            <CardContent>
-              <pre className="rounded bg-muted p-3 text-xs overflow-x-auto whitespace-pre-wrap">
-                {JSON.stringify(release.raw_data, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+/* ------------------------------------------------------------------ */
+/*  Sub-components                                                     */
+/* ------------------------------------------------------------------ */
+
+function DetailRow({
+  label,
+  value,
+  mono,
+  small,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  small?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <span
+        style={{
+          fontFamily: "var(--font-dm-sans)",
+          fontSize: "13px",
+          color: "#9ca3af",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        className="text-right"
+        style={{
+          fontFamily: mono ? "'JetBrains Mono', monospace" : "var(--font-dm-sans)",
+          fontSize: small ? "11px" : "13px",
+          color: "#374151",
+        }}
+      >
+        {value}
+      </span>
     </div>
   );
 }
