@@ -22,10 +22,10 @@ func NewSourceLoader(pool *pgxpool.Pool, client *http.Client) *SourceLoader {
 }
 
 // LoadEnabledSources queries all enabled sources and constructs the
-// appropriate IIngestionSource for each one based on source_type.
+// appropriate IIngestionSource for each one based on provider.
 func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]IIngestionSource, error) {
 	rows, err := l.pool.Query(ctx,
-		`SELECT id, source_type, repository FROM sources WHERE enabled = true`)
+		`SELECT id, provider, repository FROM sources WHERE enabled = true`)
 	if err != nil {
 		return nil, fmt.Errorf("query enabled sources: %w", err)
 	}
@@ -50,13 +50,13 @@ func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]IIngestionSour
 	return sources, rows.Err()
 }
 
-// LookupSourceID finds the source ID for a given (source_type, repository) pair.
+// LookupSourceID finds the source ID for a given (provider, repository) pair.
 // Returns empty string and false if no matching enabled source exists.
-func (l *SourceLoader) LookupSourceID(ctx context.Context, sourceType, repository string) (string, bool) {
+func (l *SourceLoader) LookupSourceID(ctx context.Context, provider, repository string) (string, bool) {
 	var id string
 	err := l.pool.QueryRow(ctx,
-		`SELECT id FROM sources WHERE source_type = $1 AND repository = $2 AND enabled = true`,
-		sourceType, repository,
+		`SELECT id FROM sources WHERE provider = $1 AND repository = $2 AND enabled = true`,
+		provider, repository,
 	).Scan(&id)
 	if err != nil {
 		return "", false
