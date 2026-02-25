@@ -12,26 +12,96 @@
 
 ## 2. Component Design & Interactions
 
-### 2.1 The Ingestion Engine & Standardized Payload
+### 2.1 Core Models
 
-The ingestion layer normalizes fragmented data formats (a GitHub webhook looks very different from a Docker Hub poll) into a single, standardized format.
+The system uses a set of Go structs that map directly to the database schema. These models replace the previous `ReleaseEvent` IR approach -- instead of normalizing into an intermediate representation, raw provider data is stored as JSONB and analyzed by AI agents.
 
-This payload acts as the **Intermediate Representation (IR)** of the event, which is then passed downstream.
+#### Release
+
+The primary release representation. Stores the raw provider payload as JSONB in `RawData`, preserving full fidelity from the upstream source. Replaces the old `ReleaseEvent` IR.
 
 ```go
-// The Intermediate Representation (IR) of a Release Event
-type ReleaseEvent struct {
-    ID              string            `json:"id"`               // UUID
-    Source          string            `json:"source"`           // e.g., "dockerhub", "github"
-    Repository      string            `json:"repository"`       // e.g., "golang/go"
-    RawVersion      string            `json:"raw_version"`      // e.g., "v1.21.0-rc.1"
-    SemanticVersion SemanticData      `json:"semantic_version"` // Parsed major/minor/patch
-    Changelog       string            `json:"changelog"`        // Markdown or raw text
-    IsPreRelease    bool              `json:"is_pre_release"`   // Flagged by regex
-    Metadata        map[string]string `json:"metadata"`         // Upstream-specific data
-    Timestamp       time.Time         `json:"timestamp"`
+type Release struct {
+    ID         string          `json:"id"`                    // UUID
+    SourceID   string          `json:"source_id"`             // FK to sources table
+    Version    string          `json:"version"`               // e.g., "v1.21.0-rc.1"
+    RawData    json.RawMessage `json:"raw_data,omitempty"`    // Full upstream payload as JSONB
+    ReleasedAt *time.Time      `json:"released_at,omitempty"` // Upstream release timestamp
+    CreatedAt  time.Time       `json:"created_at"`
+}
+```
+
+#### ContextSource
+
+Read-only references that agents consult during analysis (runbooks, deployment docs, monitoring dashboards). These are not polled -- they provide background context for generating richer semantic release reports.
+
+```go
+type ContextSource struct {
+    ID        string          `json:"id"`         // UUID
+    ProjectID string          `json:"project_id"` // FK to projects table
+    Type      string          `json:"type"`       // 'url', 'github_repo', 'confluence', etc.
+    Name      string          `json:"name"`
+    Config    json.RawMessage `json:"config"`     // Type-specific config (URL, credentials ref, etc.)
+    CreatedAt time.Time       `json:"created_at"`
+    UpdatedAt time.Time       `json:"updated_at"`
+}
+```
+
+#### SemanticRelease & SemanticReport
+
+AI-generated, project-level analysis. An agent correlates one or more source-level releases into a single semantic release with a structured report. Replaces the old pipeline node-by-node result accumulation.
+
+```go
+type SemanticReport struct {
+    Summary        string `json:"summary"`        // Human-readable summary of the release
+    Availability   string `json:"availability"`   // Artifact availability status
+    Adoption       string `json:"adoption"`       // Network/ecosystem adoption metrics
+    Urgency        string `json:"urgency"`        // LOW / MEDIUM / HIGH / CRITICAL
+    Recommendation string `json:"recommendation"` // Agent's recommended action
 }
 
+type SemanticRelease struct {
+    ID          string          `json:"id"`                      // UUID
+    ProjectID   string          `json:"project_id"`              // FK to projects table
+    Version     string          `json:"version"`
+    Report      json.RawMessage `json:"report,omitempty"`        // SemanticReport as JSONB
+    Status      string          `json:"status"`                  // pending, processing, completed, failed
+    Error       string          `json:"error,omitempty"`
+    CreatedAt   time.Time       `json:"created_at"`
+    CompletedAt *time.Time      `json:"completed_at,omitempty"`
+}
+```
+
+#### AgentRun
+
+Provides observability into agent executions. Each run is scoped to a project and optionally linked to a semantic release. Captures the exact prompt for debugging and auditability.
+
+```go
+type AgentRun struct {
+    ID                string     `json:"id"`                              // UUID
+    ProjectID         string     `json:"project_id"`                      // FK to projects table
+    SemanticReleaseID *string    `json:"semantic_release_id,omitempty"`   // FK to semantic_releases
+    Trigger           string     `json:"trigger"`                         // 'release', 'manual', etc.
+    Status            string     `json:"status"`                          // pending, running, completed, failed
+    PromptUsed        string     `json:"prompt_used,omitempty"`           // Exact prompt sent to LLM
+    Error             string     `json:"error,omitempty"`
+    StartedAt         *time.Time `json:"started_at,omitempty"`
+    CompletedAt       *time.Time `json:"completed_at,omitempty"`
+    CreatedAt         time.Time  `json:"created_at"`
+}
+```
+
+#### AgentRules
+
+Structured rules governing when and how an agent should analyze releases for a project. Stored as JSONB in the `projects.agent_rules` column.
+
+```go
+type AgentRules struct {
+    OnMajorRelease  bool   `json:"on_major_release,omitempty"`  // Trigger on major version bumps
+    OnMinorRelease  bool   `json:"on_minor_release,omitempty"`  // Trigger on minor version bumps
+    OnSecurityPatch bool   `json:"on_security_patch,omitempty"` // Trigger on security patches
+    VersionPattern  string `json:"version_pattern,omitempty"`   // Regex for custom version matching
+}
 ```
 
 ### 2.2 The Configurable Processing Pipeline

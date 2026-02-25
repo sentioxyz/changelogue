@@ -5,12 +5,19 @@ import (
 	"time"
 )
 
+type AgentRules struct {
+	OnMajorRelease  bool   `json:"on_major_release,omitempty"`
+	OnMinorRelease  bool   `json:"on_minor_release,omitempty"`
+	OnSecurityPatch bool   `json:"on_security_patch,omitempty"`
+	VersionPattern  string `json:"version_pattern,omitempty"`
+}
+
 type Project struct {
-	ID             int             `json:"id"`
-	Name           string          `json:"name"`
-	Description    string          `json:"description,omitempty"`
-	URL            string          `json:"url,omitempty"`
-	PipelineConfig json.RawMessage `json:"pipeline_config"`
-	CreatedAt      time.Time       `json:"created_at"`
-	UpdatedAt      time.Time       `json:"updated_at"`
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	AgentPrompt string          `json:"agent_prompt,omitempty"`
+	AgentRules  json.RawMessage `json:"agent_rules,omitempty"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
 }
