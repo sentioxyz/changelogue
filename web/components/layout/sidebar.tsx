@@ -1,53 +1,49 @@
-// web/components/layout/sidebar.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, FolderKanban, Package, Radio,
-  Bell, Megaphone, ChevronLeft, ChevronRight,
+  LayoutDashboard,
+  FolderKanban,
+  Package,
+  Bell,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/releases", label: "Releases", icon: Package },
-  { href: "/sources", label: "Sources", icon: Radio },
-  { href: "/subscriptions", label: "Subscriptions", icon: Bell },
   { href: "/channels", label: "Channels", icon: Megaphone },
+  { href: "/subscriptions", label: "Subscriptions", icon: Bell },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <aside
-      className={cn(
-        "flex flex-col border-r bg-muted/30 transition-all duration-200",
-        collapsed ? "w-16" : "w-56"
-      )}
+      className="flex w-[200px] shrink-0 flex-col"
+      style={{ backgroundColor: "#16181c" }}
     >
-      <div className="flex h-14 items-center border-b px-4">
-        {!collapsed && (
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <Package className="h-5 w-5 text-primary" />
-            <span>ReleaseBeacon</span>
-          </Link>
-        )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn(
-            "ml-auto rounded-md p-1 hover:bg-muted",
-            collapsed && "mx-auto"
-          )}
+      {/* Logo */}
+      <div className="flex h-12 items-center gap-2 px-4">
+        <span
+          className="h-2.5 w-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: "#e8601a" }}
+        />
+        <Link
+          href="/"
+          className="text-[16px] italic text-white"
+          style={{ fontFamily: "var(--font-fraunces)" }}
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+          ReleaseBeacon
+        </Link>
       </div>
-      <nav className="flex-1 space-y-1 p-2">
+
+      {/* Nav */}
+      <nav className="flex-1 px-0 pt-2">
         {navItems.map((item) => {
           const isActive =
             item.href === "/"
@@ -58,14 +54,23 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                "flex items-center gap-3 py-2 pl-4 pr-3 text-[13px] transition-colors duration-150",
                 isActive
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "text-white"
+                  : "text-[#9ca3af] hover:text-white"
               )}
+              style={
+                isActive
+                  ? {
+                      borderLeft: "3px solid #e8601a",
+                      backgroundColor: "rgba(255,255,255,0.06)",
+                      paddingLeft: "13px",
+                    }
+                  : { borderLeft: "3px solid transparent" }
+              }
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              <span style={{ fontFamily: "var(--font-dm-sans)" }}>{item.label}</span>
             </Link>
           );
         })}
