@@ -69,20 +69,19 @@ section() {
     echo -e "${BOLD}--- $1 ---${NC}"
 }
 
-# Make an API call and return the response body. Sets HTTP_CODE global.
+# Make an API call. Sets globals: HTTP_CODE, API_BODY.
+# Usage: api METHOD /path [-d 'json']
 api() {
     local method="$1" path="$2"
     shift 2
-    local response
-    response=$(curl -s -w "\n%{http_code}" -X "$method" "${BASE_URL}${path}" \
+    HTTP_CODE=$(curl -s -o /tmp/api-response.txt -w "%{http_code}" -X "$method" "${BASE_URL}${path}" \
         -H "Content-Type: application/json" "$@")
-    HTTP_CODE=$(echo "$response" | tail -1)
-    echo "$response" | sed '$d'
+    API_BODY=$(cat /tmp/api-response.txt)
 }
 
-# Extract .data.id from JSON response
+# Extract .data.id from API_BODY
 extract_id() {
-    echo "$1" | jq -r '.data.id'
+    echo "$API_BODY" | jq -r '.data.id'
 }
 
 # --- 1. Start Postgres ---
@@ -119,7 +118,7 @@ DATABASE_URL="$DATABASE_URL" \
 GITHUB_WEBHOOK_SECRET="$WEBHOOK_SECRET" \
 LISTEN_ADDR=":${SERVER_PORT}" \
 NO_AUTH=true \
-    /tmp/releaseguard-test &
+    /tmp/releaseguard-test >/tmp/releaseguard-test.log 2>&1 &
 SERVER_PID=$!
 sleep 2
 
@@ -146,12 +145,12 @@ fi
 section "Project CRUD"
 
 # Create project
-BODY=$(api POST "/api/v1/projects" -d '{"name":"integration-test-project","description":"Created by integration test"}')
+api POST "/api/v1/projects" -d '{"name":"integration-test-project","description":"Created by integration test"}'
 if [ "$HTTP_CODE" = "201" ]; then
-    PROJECT_ID=$(extract_id "$BODY")
+    PROJECT_ID=$(extract_id)
     pass "Create project (id: $PROJECT_ID)"
 else
-    fail "Create project returned $HTTP_CODE (expected 201). Body: $BODY"
+    fail "Create project returned $HTTP_CODE (expected 201). Body: $API_BODY"
     PROJECT_ID=""
 fi
 
@@ -178,13 +177,13 @@ section "Source CRUD"
 
 if [ -n "$PROJECT_ID" ]; then
     # Create source (github provider matching the webhook repo)
-    BODY=$(api POST "/api/v1/projects/$PROJECT_ID/sources" \
-        -d '{"provider":"github","repository":"testorg/testrepo","poll_interval_seconds":3600}')
+    api POST "/api/v1/projects/$PROJECT_ID/sources" \
+        -d '{"provider":"github","repository":"testorg/testrepo","poll_interval_seconds":3600,"enabled":true}'
     if [ "$HTTP_CODE" = "201" ]; then
-        SOURCE_ID=$(extract_id "$BODY")
+        SOURCE_ID=$(extract_id)
         pass "Create source (id: $SOURCE_ID)"
     else
-        fail "Create source returned $HTTP_CODE (expected 201). Body: $BODY"
+        fail "Create source returned $HTTP_CODE (expected 201). Body: $API_BODY"
         SOURCE_ID=""
     fi
 else
@@ -226,9 +225,9 @@ fi
 
 # Verify release via API
 if [ -n "$SOURCE_ID" ]; then
-    BODY=$(api GET "/api/v1/sources/$SOURCE_ID/releases")
+    api GET "/api/v1/sources/$SOURCE_ID/releases"
     if [ "$HTTP_CODE" = "200" ]; then
-        RELEASE_COUNT=$(echo "$BODY" | jq '.data | length')
+        RELEASE_COUNT=$(echo "$API_BODY" | jq '.data | length')
         if [ "$RELEASE_COUNT" = "1" ]; then
             pass "Release visible via API (1 release for source)"
         else
@@ -296,25 +295,25 @@ fi
 section "Channel & subscription CRUD"
 
 # Create channel
-BODY=$(api POST "/api/v1/channels" \
-    -d '{"name":"test-webhook","type":"webhook","config":{"url":"https://example.com/hook"}}')
+api POST "/api/v1/channels" \
+    -d '{"name":"test-webhook","type":"webhook","config":{"url":"https://example.com/hook"}}'
 if [ "$HTTP_CODE" = "201" ]; then
-    CHANNEL_ID=$(extract_id "$BODY")
+    CHANNEL_ID=$(extract_id)
     pass "Create channel (id: $CHANNEL_ID)"
 else
-    fail "Create channel returned $HTTP_CODE (expected 201). Body: $BODY"
+    fail "Create channel returned $HTTP_CODE (expected 201). Body: $API_BODY"
     CHANNEL_ID=""
 fi
 
 # Create source subscription
 if [ -n "$CHANNEL_ID" ] && [ -n "$SOURCE_ID" ]; then
-    BODY=$(api POST "/api/v1/subscriptions" \
-        -d "{\"type\":\"source\",\"channel_id\":\"$CHANNEL_ID\",\"source_id\":\"$SOURCE_ID\"}")
+    api POST "/api/v1/subscriptions" \
+        -d "{\"type\":\"source\",\"channel_id\":\"$CHANNEL_ID\",\"source_id\":\"$SOURCE_ID\"}"
     if [ "$HTTP_CODE" = "201" ]; then
-        SUB_ID=$(extract_id "$BODY")
+        SUB_ID=$(extract_id)
         pass "Create source subscription (id: $SUB_ID)"
     else
-        fail "Create subscription returned $HTTP_CODE (expected 201). Body: $BODY"
+        fail "Create subscription returned $HTTP_CODE (expected 201). Body: $API_BODY"
         SUB_ID=""
     fi
 fi
