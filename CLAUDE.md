@@ -36,6 +36,32 @@ go vet ./...
 bash scripts/integration-test.sh
 ```
 
+## Local Development
+
+```bash
+# Start Postgres (docker-compose)
+make up
+
+# Run server (builds + starts with NO_AUTH, requires Postgres)
+make run
+
+# One command: start Postgres + run server
+make dev
+
+# Reset database
+make db-reset
+
+# Frontend
+make frontend-install
+make frontend-dev
+
+# Integration tests (spins up its own Postgres on port 5433)
+make integration-test
+
+# Cleanup everything (binary + containers + volumes)
+make clean
+```
+
 ## Environment Variables
 
 | Variable | Default | Purpose |
