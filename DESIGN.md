@@ -104,110 +104,13 @@ type AgentRules struct {
 }
 ```
 
-### 2.2 The Configurable Processing Pipeline
+### 2.2 Processing Architecture (Agent + Notification Routing)
 
-Instead of a rigid, procedural filtering function, the event processing is designed as a **configurable sequential pipeline**. The IR payload is passed through nodes sequentially. This compiler-like approach makes it trivial to add new evaluation steps without breaking existing flows. Independent nodes could be parallelized in a future iteration without changing the node interface.
+The configurable processing pipeline has been replaced by an agent-driven architecture with two distinct paths:
 
-**Which nodes run is configurable per project** via `pipeline_config` — an opaque JSONB map where each key is a node name and its value is the node's configuration blob. A key being present means the node is enabled; absent or `null` means disabled. Each node owns and validates its own config schema independently.
+1. **Notification Routing** -- When a new source release is detected, a `NotifyJobArgs` River job is enqueued. The notification worker resolves source-level subscriptions and sends alerts to configured channels (Slack, PagerDuty, webhooks). This provides immediate, low-latency notifications without waiting for AI analysis.
 
-Two nodes are **always-on** (structural — cannot be disabled). The rest are **configurable** and receive their config blob at runtime.
-
-#### Always-On Nodes
-
-1. **Node: Regex Normalizer** — Parses `RawVersion` into `SemanticData` and sets `IsPreRelease`. Applies source-level exclusion rules (`exclude_version_regexp`, `exclude_prereleases`).
-2. **Node: Subscription Router** — Checks the Postgres DB to see if any team is subscribed to this project's channel type. If not, execution halts (the event is dropped).
-
-#### Configurable Nodes
-
-Each configurable node has a **source-linked mode** (auto-resolves targets from the project's sources — no config needed) and may support **external targets** via explicit config.
-
-3. **Node: Availability Checker** (`availability_checker`) — Verifies the release artifact is obtainable. Source-linked checks are automatic (Docker Hub → verify image digest, GitHub → verify binary download URLs). Extra artifacts beyond the project's sources can be configured explicitly.
-
-4. **Node: Risk Assessor** (`risk_assessor`) — Scans for high-risk signals. Changelog keyword scanning is automatic (uses the release payload). External signal sources (Discord channels, Telegram groups, GitHub security advisories) are configured explicitly per project.
-
-5. **Node: Adoption Tracker** (`adoption_tracker`) — Queries domain-specific metrics for release adoption. Always requires explicit config since adoption data comes from external APIs (ethernodes for blockchain, npm registry for packages, Docker Hub pulls for containers).
-
-6. **Node: Changelog Summarizer** (`changelog_summarizer`) — Calls the LLM to generate a concise summary. Uses the release changelog from the payload. Config can override LLM provider or prompt strategy.
-
-7. **Node: Urgency Scorer** (`urgency_scorer`) — Computes a composite urgency (LOW / MEDIUM / HIGH / CRITICAL) from all preceding node results. Config can adjust thresholds and weighting.
-
-8. **Node: Validation Trigger** (`validation_trigger`) — Triggers the SRE agent if the urgency score meets a threshold. Only relevant for projects with sandbox validation configured.
-
-#### Node Interface (Go)
-
-```go
-// Every pipeline node implements this interface.
-// The runner passes the node's config blob from pipeline_config as raw JSON.
-type PipelineNode interface {
-    Name() string
-    Execute(ctx context.Context, event *ReleaseEvent, config json.RawMessage, prior map[string]json.RawMessage) (json.RawMessage, error)
-}
-```
-
-Each node unmarshals `config` into its own typed struct. If the node's needs grow complex enough to warrant dedicated storage (e.g., a `discord_monitors` table), its config can reference an ID (`{"monitor_id": 5}`) — the pipeline_config contract stays the same.
-
-#### Future: External Plugin Nodes
-
-The `PipelineNode` interface and opaque config model are designed to support **user-authored plugin nodes** in the future. The runner already treats nodes as interchangeable — it resolves a name to an implementation and passes raw JSON config. Extending this to external plugins requires only a transport layer (e.g., gRPC sidecar or HTTP callback) and a plugin registry that discovers external nodes at startup. Each plugin would ship a manifest declaring its node name, config JSON schema, and execution endpoint. No changes to the pipeline runner, database schema, or `pipeline_config` contract would be needed.
-
-#### Example: pipeline_config for a Blockchain Project (Geth)
-
-```json
-{
-  "availability_checker": {
-    "extra_artifacts": [
-      {"type": "npm_package", "name": "geth"}
-    ]
-  },
-  "risk_assessor": {
-    "keywords": ["hard fork", "breaking change", "CVE", "security"],
-    "external_signals": [
-      {"type": "discord", "guild_id": "714888", "channel_id": "announcements"},
-      {"type": "github_advisories"}
-    ]
-  },
-  "adoption_tracker": {
-    "provider": "ethernodes",
-    "config": {"network": "mainnet"}
-  },
-  "changelog_summarizer": {},
-  "urgency_scorer": {}
-}
-```
-
-#### Example: pipeline_config for a Simple Library (lodash)
-
-```json
-{
-  "changelog_summarizer": {},
-  "urgency_scorer": {}
-}
-```
-
-Source-linked availability checks (GitHub binary verification) happen automatically. No risk assessor, no adoption tracking — just summary and urgency.
-
-#### Notification Assembly
-
-The final notification is assembled from `pipeline_jobs.node_results` using a fixed template with dynamic sections. Each enabled node maps to a notification section — disabled nodes produce no section:
-
-```
-🚀 Ready to Deploy: {project} {version} ({urgency} Update)
-
-Status: ✅ Docker Image Verified | ✅ Binaries Available    ← availability_checker
-Risk Level: 🔴 CRITICAL (Keyword "Hard Fork" detected)      ← risk_assessor
-Adoption: 📊 12% of network updated                         ← adoption_tracker
-Summary: "Fixes sync bug in block 14,000,000."              ← changelog_summarizer
-Urgency: HIGH                                                ← urgency_scorer
-```
-
-For the lodash project (only `changelog_summarizer` and `urgency_scorer` enabled):
-
-```
-🚀 New Release: lodash v4.18.0
-
-Summary: "Adds array chunking utility, fixes deep clone edge case."
-Urgency: LOW
-```
+2. **Agent Layer** -- For project-level intelligence, an `AgentJobArgs` River job triggers an LLM agent (via ADK-Go) that researches releases, consults context sources, and produces a `SemanticRelease` with a structured `SemanticReport`. Agent behavior is configured per-project via `agent_prompt` and `agent_rules`. Detailed design for both paths will be specified in later tasks (Phase 2: Notification, Phase 3: Agent).
 
 ### 2.3 SRE Agent Orchestration (The Validation Sandbox)
 
@@ -227,7 +130,7 @@ To maintain predictable execution, the agent is modeled as a state machine (suit
 1. **Observe:** Agent receives the `ReleaseEvent` IR and the "Production Record" summary.
 2. **Act:** Agent uses `DraftConfigUpgrade` and `DeploySandbox`.
 3. **Evaluate:** Agent uses `QueryAgentStatus` to ensure no regressions occurred (e.g., login failures).
-4. **Resolve:** If healthy, the agent approves the pipeline job. If degraded, it formats a critical error summary for the Notification Matrix.
+4. **Resolve:** If healthy, the agent approves the release. If degraded, it formats a critical error summary for the Notification Matrix.
 
 ## 3. Database Schema (PostgreSQL)
 
@@ -378,9 +281,9 @@ Two PostgreSQL triggers publish real-time events via `pg_notify` on the `release
 
 ## 4. Error Handling & Idempotency
 
-* **Idempotent Ingestion:** The `releases` table enforces a `UNIQUE(source_id, version)` constraint. If a polling worker and a webhook both report the same release from the same source simultaneously, the database rejects the duplicate, preventing duplicate pipeline jobs.
-* **Source-Level Filtering:** Before events enter the pipeline, the ingestion layer applies source-level exclusion rules (`exclude_version_regexp`, `exclude_prereleases`). Filtered releases are never inserted, reducing pipeline load.
-* **Dead-Letter Queue (DLQ):** If a pipeline job fails `max_attempts` (e.g., the LLM API is down), the `pipeline_jobs` state is updated to `discarded` and `error_message` captures the failure reason. A separate Postgres trigger alerts the system admin that an event requires manual intervention.
-* **Pipeline Observability:** Each pipeline job tracks its `current_node` and accumulates `node_results` as it progresses through the pipeline. If a job fails mid-pipeline, the exact failure point and partial results are preserved for debugging.
+* **Idempotent Ingestion:** The `releases` table enforces a `UNIQUE(source_id, version)` constraint. If a polling worker and a webhook both report the same release from the same source simultaneously, the database rejects the duplicate, preventing duplicate notification or agent jobs.
+* **Source-Level Filtering:** Before events enter the system, the ingestion layer applies source-level exclusion rules (`exclude_version_regexp`, `exclude_prereleases`). Filtered releases are never inserted, reducing downstream load.
+* **Dead-Letter Queue (DLQ):** If a River job fails `max_attempts` (e.g., the LLM API is down), River marks it as `discarded`. The failure reason is captured for debugging. A monitoring hook alerts the system admin that the job requires manual intervention.
+* **Agent Observability:** Each agent run tracks its status (`pending`, `running`, `completed`, `failed`), the prompt used, and any error encountered. If an agent run fails, the exact failure context is preserved in the `agent_runs` table for debugging.
 * **Agent Fallback:** If the SRE Agent sandbox deployment fails due to infrastructure timeout (unrelated to the software release itself), the agent safely aborts the validation phase, flags the release event as "Unverified," and routes it to a human reviewer rather than dropping the notification.
 * **Notification Digest Fallback:** If a digest batch fails to send (e.g., Slack API outage), the batch is retried on the next interval. Individual items within the batch are not lost — they remain queued until the channel recovers.

@@ -12,7 +12,6 @@ import (
 	"github.com/sentioxyz/releaseguard/internal/api"
 	"github.com/sentioxyz/releaseguard/internal/db"
 	"github.com/sentioxyz/releaseguard/internal/ingestion"
-	"github.com/sentioxyz/releaseguard/internal/pipeline"
 	"github.com/sentioxyz/releaseguard/internal/queue"
 )
 
@@ -38,22 +37,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Pipeline
-	pipelineStore := pipeline.NewPgStore(pool)
-	pipelineRunner := pipeline.NewRunner(
-		pipelineStore,
-		[]pipeline.PipelineNode{
-			pipeline.NewRegexNormalizer(),
-			pipeline.NewSubscriptionRouter(pipelineStore),
-		},
-		[]pipeline.PipelineNode{
-			pipeline.NewUrgencyScorer(),
-		},
-	)
-
-	// River queue with pipeline worker
+	// Workers will be added in Phase 2 (notification) and Phase 3 (agent)
 	workers := river.NewWorkers()
-	river.AddWorker(workers, pipeline.NewWorker(pipelineRunner))
 
 	riverClient, err := queue.NewRiverClient(pool, workers)
 	if err != nil {
