@@ -4,16 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ReleaseBeacon** (internal name: ReleaseGuard) is an event-driven release management system that polls upstream registries (Docker Hub, GitHub) for new releases, processes them through a configurable pipeline, and routes notifications to downstream systems (Slack, PagerDuty, Ops Opsack).
+**ReleaseBeacon** (internal name: ReleaseGuard) is an agent-driven release intelligence platform that polls upstream registries (Docker Hub, GitHub) for new releases, sends source-level notifications, and uses LLM agents (ADK-Go) to produce semantic release reports.
 
 Go module: `github.com/sentioxyz/releaseguard`
 
 ## Tech Stack
 
-- **Backend:** Go 1.25 — polling engine, configurable pipeline, API server
+- **Backend:** Go 1.25 — polling engine, notification routing, API server
 - **Database/Queue/PubSub:** PostgreSQL + [River](https://github.com/riverqueue/river) v0.31.0 for job queue (`FOR UPDATE SKIP LOCKED`), native `LISTEN`/`NOTIFY` for real-time events
-- **Frontend:** Next.js (React) + Tailwind CSS — dashboard (not yet started, `web/` is empty)
-- **Intelligence:** LLMs (Gemini/GPT-4o-mini) via agent frameworks for changelog analysis and SRE validation (planned)
+- **Frontend:** Next.js (React) + Tailwind CSS — dashboard (`web/`)
+- **Agent Intelligence:** [Google ADK-Go](https://google.github.io/adk-go/) v0.5.0 for agent orchestration — Gemini-powered semantic release analysis
 - **Deployment:** Single binary — Go `//go:embed` serves Next.js static export
 
 ## Build & Test Commands
@@ -43,52 +43,61 @@ bash scripts/integration-test.sh
 | `DATABASE_URL` | `postgres://localhost:5432/releaseguard?sslmode=disable` | PostgreSQL connection |
 | `GITHUB_WEBHOOK_SECRET` | (empty) | HMAC-SHA256 verification for GitHub webhooks |
 | `LISTEN_ADDR` | `:8080` | HTTP server bind address |
+| `GOOGLE_API_KEY` | (empty) | Gemini API key for agent LLM (agent worker disabled if unset) |
 
 ## Architecture
 
 Four decoupled layers communicate exclusively through PostgreSQL:
 
-1. **Ingestion Layer** *(implemented)* — Polling workers and webhook handlers behind `IIngestionSource` interface
-2. **Processing Pipeline** *(planned)* — Sequential configurable nodes processing a `ReleaseEvent` IR
-3. **Agentic Validation** *(planned)* — SRE agent for autonomous sandbox testing
-4. **Routing & Notification** *(planned)* — Notification Matrix behind `INotificationChannel` interface
+1. **Ingestion Layer** — Polling workers behind `IIngestionSource` interface discover new releases from upstream registries
+2. **Notification Routing** — River `NotifyWorker` sends source-level notifications to subscribed channels on new releases
+3. **Agent Layer** — ADK-Go agent (`internal/agent/`) researches releases via project-scoped tools and produces semantic release reports
+4. **Routing & Output** — Notification channels (Slack, Discord, webhooks) behind `Sender` interface
 
 ### Transactional Outbox Pattern
 
 The critical data integrity pattern: release insert + River job enqueue happen in the same SQL transaction (`internal/ingestion/pgstore.go`). If either fails, both rollback — zero-loss guarantee.
 
-### Key Interfaces (implemented)
+### Key Interfaces
 
-- `IIngestionSource` (`internal/ingestion/source.go`) — Polling-based providers must implement `FetchLatest(ctx) ([]IngestionResult, error)`
-- `ReleaseStore` (`internal/ingestion/store.go`) — Persistence abstraction with `Save(ctx, source, results) error`
-
-### Key Interfaces (planned)
-
-- `PipelineNode` — Pipeline processing stages
-- `INotificationChannel` — Output providers (Slack, PagerDuty, webhooks)
+- `IIngestionSource` (`internal/ingestion/source.go`) — Polling-based providers implement `FetchNewReleases(ctx) ([]IngestionResult, error)`
+- `ReleaseStore` (`internal/ingestion/store.go`) — Persistence: `IngestRelease(ctx, sourceID string, result *IngestionResult) error`
+- `Sender` (`internal/routing/sender.go`) — Notification channel output: `Send(ctx, channel, msg) error`
+- `NotifyStore` (`internal/routing/worker.go`) — Data access for the notification worker
+- `AgentDataStore` (`internal/agent/tools.go`) — Data access for agent tools (releases, context sources)
+- `OrchestratorStore` (`internal/agent/orchestrator.go`) — Full data access for agent orchestrator (project, agent runs, semantic releases)
 
 ### Data Flow
 
 ```
-IIngestionSource.FetchLatest() → IngestionResult
-    → IngestionService.ProcessResults() normalizes to ReleaseEvent IR
-    → PgStore.Save() in single TX: INSERT release + River InsertTx(PipelineJobArgs)
-    → River worker picks up job → pipeline processes → notifications sent
+IIngestionSource.FetchNewReleases() → IngestionResult
+    → Service.ProcessResults() processes results
+    → PgStore.IngestRelease() in single TX: INSERT release + River InsertTx(NotifyJobArgs)
+    → NotifyWorker picks up job → sends source notifications + checks agent rules
+    → If rules match → enqueue AgentJobArgs
+    → AgentWorker picks up → runs ADK-Go agent → creates semantic release
+    → Sends project notifications
 ```
 
 ## Database
 
 Schema lives in `internal/db/migrations.go` (idempotent, runs on startup). Current tables:
-- `releases` — unique on `(repository, version)` for idempotent ingestion
-- `subscriptions` — maps repositories to notification channels
+- `projects` — tracked software projects (central entity)
+- `sources` — configured ingestion sources per project (provider, repository, poll interval)
+- `context_sources` — read-only references for agent research (runbooks, docs)
+- `releases` — source-level releases, unique on `(source_id, version)`
+- `semantic_releases` — AI-generated project-level reports, unique on `(project_id, version)`
+- `semantic_release_sources` — join table linking semantic releases to source releases
+- `notification_channels` — standalone channels (webhook, Slack, Discord)
+- `subscriptions` — source-level and project-level notification subscriptions
+- `agent_runs` — agent execution records scoped to a project
+- `api_keys` — API authentication keys
 - River's own tables (created by `rivermigrate`)
 
 ## Key Design References
 
-- `ARCH.md` — Full architecture: system diagram, data flow lifecycle, pipeline design
-- `DESIGN.md` — Component design: ReleaseEvent IR struct, database schema, SRE agent workflow, error handling
-- `docs/designs/` — Feature-specific design docs (API design, etc.)
-- `docs/plans/` — Implementation plans and task tracking
+- `ARCH.md` — Full architecture: system diagram, data flow lifecycle
+- `DESIGN.md` — Component design: database schema, agent workflow, error handling
 
 ## Workflow Orchestration
 
