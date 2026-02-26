@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "7441d2ff22e4",
+  "session_id": "4e9f8350-b274-4442-bb56-9f3b9f94bd35",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-26T14:09:43.414991Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "web/app/projects/[id]/semantic-releases/page.tsx",
+    "web/app/semantic-releases/page.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "8456a79d3f78",
+  "transcript_identifier_at_start": "ee9cb53f-a60a-4b08-97d4-d306f46cb71b",
+  "checkpoint_transcript_start": 230,
+  "transcript_lines_at_start": 230,
+  "token_usage": {
+    "input_tokens": 1734809,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 4842,
+    "api_call_count": 21
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-26T14:09:43.111351Z",
+    "agent_lines": 5,
+    "human_added": 403,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 408,
+    "agent_percentage": 1.2254901960784315
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/4e9f8350-b274-4442-bb56-9f3b9f94bd35.jsonl"
+}
