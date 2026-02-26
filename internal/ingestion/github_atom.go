@@ -18,7 +18,6 @@ type atomFeed struct {
 
 type atomEntry struct {
 	ID      string `xml:"id"`
-	Title   string `xml:"title"`
 	Updated string `xml:"updated"`
 	Content string `xml:"content"`
 	Link    struct {
@@ -47,9 +46,9 @@ func (s *GitHubAtomSource) Name() string     { return "github" }
 func (s *GitHubAtomSource) SourceID() string  { return s.sourceID }
 
 func (s *GitHubAtomSource) FetchNewReleases(ctx context.Context) ([]IngestionResult, error) {
-	url := fmt.Sprintf("%s/%s/releases.atom", s.baseURL, s.repository)
+	feedURL := fmt.Sprintf("%s/%s/releases.atom", s.baseURL, s.repository)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -80,6 +79,7 @@ func (s *GitHubAtomSource) FetchNewReleases(ctx context.Context) ([]IngestionRes
 			Repository: s.repository,
 			RawVersion: version,
 			Changelog:  entry.Content,
+			Metadata:   map[string]string{"release_url": entry.Link.Href},
 			Timestamp:  ts,
 		})
 	}
