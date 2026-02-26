@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "3445eb24242d",
+  "session_id": "ab707189-48de-4dd5-9a35-83655d18ce1e",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-26T13:14:15.501984Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CLAUDE.md",
+    "cmd/server/main.go",
+    "internal/agent/model.go",
+    "internal/agent/openai/openai.go",
+    "internal/agent/orchestrator.go",
+    "internal/agent/orchestrator_test.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "70079fb36255",
+  "token_usage": {
+    "input_tokens": 2901015,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 13517,
+    "api_call_count": 44
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-26T13:14:15.287951Z",
+    "agent_lines": 484,
+    "human_added": 14,
+    "human_modified": 3,
+    "human_removed": 0,
+    "total_committed": 501,
+    "agent_percentage": 96.6067864271457
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/ab707189-48de-4dd5-9a35-83655d18ce1e.jsonl"
+}
