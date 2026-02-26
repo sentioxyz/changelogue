@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "a9306cc02372",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".gitignore",
+    "ARCH.md",
+    "CLAUDE.md",
+    "DESIGN.md",
+    "Makefile",
+    "cmd/server/main.go",
+    "docker-compose.yml",
+    "docs/plans/2026-02-26-github-atom-feed-design.md",
+    "docs/plans/2026-02-26-github-atom-feed.md",
+    "go.mod",
+    "internal/agent/orchestrator.go",
+    "internal/agents/.gitkeep",
+    "internal/ingestion/github.go",
+    "internal/ingestion/github_test.go",
+    "releaseguard",
+    "scripts/integration-test.sh",
+    "web/app/layout.tsx",
+    "web/components/layout/sidebar.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a9/306cc02372/0/metadata.json",
+      "transcript": "/a9/306cc02372/0/full.jsonl",
+      "context": "/a9/306cc02372/0/context.md",
+      "content_hash": "/a9/306cc02372/0/content_hash.txt",
+      "prompt": "/a9/306cc02372/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1553504,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 8407,
+    "api_call_count": 23
+  }
+}
