@@ -1,6 +1,6 @@
 .PHONY: up down db-reset build run dev test vet lint \
         frontend-install frontend-dev frontend-build \
-        integration-test clean
+        integration-test agent-dev clean
 
 # --- Configuration ---
 DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/changelogue?sslmode=disable
@@ -36,6 +36,11 @@ vet:
 	go vet ./...
 
 lint: vet
+
+# --- Agent Dev ---
+agent-dev:
+	@if [ -z "$(PROJECT_ID)" ]; then echo "error: PROJECT_ID is required. Usage: make agent-dev PROJECT_ID=<uuid>"; exit 1; fi
+	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/agent --project-id=$(PROJECT_ID) web api webui
 
 # --- Frontend ---
 frontend-install:
