@@ -3,7 +3,7 @@
   "checkpoint_id": "65c77bef6570",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "internal/ingestion/github_atom.go",
     "internal/ingestion/github_atom_test.go"
@@ -15,13 +15,20 @@
       "context": "/65/c77bef6570/0/context.md",
       "content_hash": "/65/c77bef6570/0/content_hash.txt",
       "prompt": "/65/c77bef6570/0/prompt.txt"
+    },
+    {
+      "metadata": "/65/c77bef6570/1/metadata.json",
+      "transcript": "/65/c77bef6570/1/full.jsonl",
+      "context": "/65/c77bef6570/1/context.md",
+      "content_hash": "/65/c77bef6570/1/content_hash.txt",
+      "prompt": "/65/c77bef6570/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 132760,
+    "input_tokens": 2638973,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 1506,
-    "api_call_count": 4
+    "output_tokens": 11887,
+    "api_call_count": 53
   }
 }
