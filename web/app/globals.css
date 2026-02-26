@@ -94,3 +94,74 @@
     to { opacity: 1; }
   }
 }
+
+/* Release notes rendered HTML */
+.release-notes-content h1,
+.release-notes-content h2,
+.release-notes-content h3 {
+  font-weight: 600;
+  color: #111113;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+.release-notes-content h1 { font-size: 1.25em; }
+.release-notes-content h2 { font-size: 1.1em; }
+.release-notes-content h3 { font-size: 1em; }
+.release-notes-content p {
+  margin-bottom: 0.75em;
+}
+.release-notes-content ul,
+.release-notes-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+.release-notes-content ul { list-style-type: disc; }
+.release-notes-content ol { list-style-type: decimal; }
+.release-notes-content li {
+  margin-bottom: 0.25em;
+}
+.release-notes-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.release-notes-content a:hover {
+  color: #1d4ed8;
+}
+.release-notes-content code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  background: #f3f3f1;
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+}
+.release-notes-content pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  background: #f3f3f1;
+  padding: 0.75em 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-bottom: 0.75em;
+}
+.release-notes-content pre code {
+  background: none;
+  padding: 0;
+}
+.release-notes-content blockquote {
+  border-left: 3px solid #e8e8e5;
+  padding-left: 1em;
+  color: #6b7280;
+  margin-bottom: 0.75em;
+}
+.release-notes-content img {
+  max-width: 100%;
+  height: auto;
+}
+.release-notes-content hr {
+  border: none;
+  border-top: 1px solid #e8e8e5;
+  margin: 1em 0;
+}
+.release-notes-content > *:first-child {
+  margin-top: 0;
+}

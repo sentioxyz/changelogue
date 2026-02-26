@@ -367,17 +367,18 @@ export function ReleaseDetail({ id }: { id: string }) {
         </div>
         <div className="px-5 py-4">
           {release.raw_data?.changelog ? (
-            <pre
-              className="whitespace-pre-wrap"
+            <div
+              className="release-notes-content"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "13px",
                 lineHeight: 1.7,
                 color: "#374151",
               }}
-            >
-              {String(release.raw_data.changelog)}
-            </pre>
+              dangerouslySetInnerHTML={{
+                __html: String(release.raw_data.changelog),
+              }}
+            />
           ) : (
             <p
               style={{
@@ -392,45 +393,6 @@ export function ReleaseDetail({ id }: { id: string }) {
           )}
         </div>
       </div>
-
-      {/* Raw data */}
-      {release.raw_data && Object.keys(release.raw_data).length > 0 && (
-        <div
-          className="rounded-lg bg-white"
-          style={{ border: "1px solid #e8e8e5" }}
-        >
-          <div
-            className="px-5 py-4"
-            style={{ borderBottom: "1px solid #e8e8e5" }}
-          >
-            <h2
-              style={{
-                fontFamily: "var(--font-fraunces)",
-                fontSize: "16px",
-                fontWeight: 600,
-                color: "#111113",
-              }}
-            >
-              Raw Data
-            </h2>
-          </div>
-          <div className="p-5">
-            <pre
-              className="overflow-x-auto rounded-lg p-4"
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "12px",
-                lineHeight: 1.6,
-                color: "#374151",
-                backgroundColor: "#fafaf9",
-                border: "1px solid #e8e8e5",
-              }}
-            >
-              {JSON.stringify(release.raw_data, null, 2)}
-            </pre>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
