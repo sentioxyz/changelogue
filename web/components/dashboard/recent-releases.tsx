@@ -59,7 +59,7 @@ export function RecentReleases() {
         .flatMap((r) => r.data)
         .sort(
           (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            new Date(b.released_at ?? b.created_at).getTime() - new Date(a.released_at ?? a.created_at).getTime()
         )
         .slice(0, 8)
         .map((rel) => ({

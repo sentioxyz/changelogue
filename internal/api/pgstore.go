@@ -197,7 +197,7 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 	offset := (page - 1) * perPage
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, source_id, version, COALESCE(raw_data,'{}'), released_at, created_at
-		 FROM releases WHERE source_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
+		 FROM releases WHERE source_id = $1 ORDER BY COALESCE(released_at, created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by source: %w", err)
 	}
@@ -225,7 +225,7 @@ func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, p
 	rows, err := s.pool.Query(ctx,
 		`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at
 		 FROM releases r JOIN sources s ON r.source_id = s.id
-		 WHERE s.project_id = $1 ORDER BY r.created_at DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
+		 WHERE s.project_id = $1 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by project: %w", err)
 	}
@@ -504,7 +504,7 @@ func (s *PgStore) GetSemanticReleaseSources(ctx context.Context, id string) ([]m
 		`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at
 		 FROM releases r
 		 JOIN semantic_release_sources srs ON srs.release_id = r.id
-		 WHERE srs.semantic_release_id = $1 ORDER BY r.created_at DESC`, id)
+		 WHERE srs.semantic_release_id = $1 ORDER BY COALESCE(r.released_at, r.created_at) DESC`, id)
 	if err != nil {
 		return nil, fmt.Errorf("list semantic release sources: %w", err)
 	}
@@ -624,7 +624,7 @@ func (s *PgStore) GetPreviousRelease(ctx context.Context, sourceID string, befor
 		`SELECT id, source_id, version, COALESCE(raw_data,'{}'), released_at, created_at
 		 FROM releases
 		 WHERE source_id = $1 AND version != $2
-		 ORDER BY created_at DESC
+		 ORDER BY COALESCE(released_at, created_at) DESC
 		 LIMIT 1`, sourceID, beforeVersion,
 	).Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt)
 	if err != nil {

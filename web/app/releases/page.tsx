@@ -99,7 +99,7 @@ export default function ReleasesPage() {
         .flatMap((r) => r.data)
         .sort(
           (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            new Date(b.released_at ?? b.created_at).getTime() - new Date(a.released_at ?? a.created_at).getTime()
         );
     }
   );
