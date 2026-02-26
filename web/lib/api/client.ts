@@ -112,6 +112,8 @@ export const contextSources = {
 // --- Semantic Releases ---
 
 export const semanticReleases = {
+  listAll: (page = 1, perPage = 25) =>
+    request<ApiResponse<SemanticRelease[]>>(`/semantic-releases?page=${page}&per_page=${perPage}`),
   list: (projectId: string, page = 1, perPage = 25) =>
     request<ApiResponse<SemanticRelease[]>>(`/projects/${projectId}/semantic-releases?page=${page}&per_page=${perPage}`),
   get: (id: string) =>

@@ -65,8 +65,9 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("GET /api/v1/projects/{projectId}/releases", chain(http.HandlerFunc(releases.ListByProject)))
 	mux.Handle("GET /api/v1/releases/{id}", chain(http.HandlerFunc(releases.Get)))
 
-	// Semantic Releases (nested under projects)
+	// Semantic Releases (nested under projects + top-level list)
 	semanticReleases := NewSemanticReleasesHandler(deps.SemanticReleasesStore)
+	mux.Handle("GET /api/v1/semantic-releases", chain(http.HandlerFunc(semanticReleases.ListAll)))
 	mux.Handle("GET /api/v1/projects/{projectId}/semantic-releases", chain(http.HandlerFunc(semanticReleases.List)))
 	mux.Handle("GET /api/v1/semantic-releases/{id}", chain(http.HandlerFunc(semanticReleases.Get)))
 	mux.Handle("DELETE /api/v1/semantic-releases/{id}", chain(http.HandlerFunc(semanticReleases.Delete)))

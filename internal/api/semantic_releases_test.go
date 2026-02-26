@@ -22,6 +22,13 @@ type mockSemanticReleasesStore struct {
 	deleteErr  error
 }
 
+func (m *mockSemanticReleasesStore) ListAllSemanticReleases(_ context.Context, page, perPage int) ([]models.SemanticRelease, int, error) {
+	if m.listErr != nil {
+		return nil, 0, m.listErr
+	}
+	return m.releases, len(m.releases), nil
+}
+
 func (m *mockSemanticReleasesStore) ListSemanticReleases(_ context.Context, projectID string, page, perPage int) ([]models.SemanticRelease, int, error) {
 	if m.listErr != nil {
 		return nil, 0, m.listErr
@@ -64,6 +71,7 @@ func (m *mockSemanticReleasesStore) DeleteSemanticRelease(_ context.Context, id 
 func setupSemanticReleasesMux(store SemanticReleasesStore) *http.ServeMux {
 	h := NewSemanticReleasesHandler(store)
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /semantic-releases", h.ListAll)
 	mux.HandleFunc("GET /projects/{projectId}/semantic-releases", h.List)
 	mux.HandleFunc("GET /semantic-releases/{id}", h.Get)
 	mux.HandleFunc("DELETE /semantic-releases/{id}", h.Delete)
@@ -235,5 +243,45 @@ func TestSemanticReleasesHandlerDeleteNotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", w.Code)
+	}
+}
+
+func TestSemanticReleasesHandlerListAll(t *testing.T) {
+	store := &mockSemanticReleasesStore{
+		releases: []models.SemanticRelease{
+			{ID: "sr-1", ProjectID: "p1", Version: "1.0.0", Status: "completed", Report: json.RawMessage(`{"summary":"stable release"}`), CreatedAt: time.Now()},
+			{ID: "sr-2", ProjectID: "p2", Version: "2.0.0", Status: "pending", CreatedAt: time.Now()},
+		},
+	}
+	mux := setupSemanticReleasesMux(store)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/semantic-releases", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var got struct {
+		Data []models.SemanticRelease `json:"data"`
+		Meta struct {
+			Page    int `json:"page"`
+			PerPage int `json:"per_page"`
+			Total   int `json:"total"`
+		} `json:"meta"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.Data) != 2 {
+		t.Fatalf("expected 2 semantic releases, got %d", len(got.Data))
+	}
+	if got.Meta.Total != 2 {
+		t.Fatalf("expected total=2, got %d", got.Meta.Total)
+	}
+	// Verify releases span different projects
+	if got.Data[0].ProjectID == got.Data[1].ProjectID {
+		t.Fatalf("expected releases from different projects")
 	}
 }

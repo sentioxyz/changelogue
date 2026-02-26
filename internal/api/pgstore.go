@@ -483,6 +483,33 @@ func (s *PgStore) DeleteContextSource(ctx context.Context, id string) error {
 
 // --- SemanticReleasesStore ---
 
+func (s *PgStore) ListAllSemanticReleases(ctx context.Context, page, perPage int) ([]models.SemanticRelease, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM semantic_releases`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count semantic releases: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, project_id, version, COALESCE(report,'{}'), status, COALESCE(error,''),
+		        created_at, completed_at
+		 FROM semantic_releases ORDER BY created_at DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list all semantic releases: %w", err)
+	}
+	defer rows.Close()
+	var releases []models.SemanticRelease
+	for rows.Next() {
+		var sr models.SemanticRelease
+		if err := rows.Scan(&sr.ID, &sr.ProjectID, &sr.Version, &sr.Report, &sr.Status, &sr.Error,
+			&sr.CreatedAt, &sr.CompletedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan semantic release: %w", err)
+		}
+		releases = append(releases, sr)
+	}
+	return releases, total, nil
+}
+
 func (s *PgStore) ListSemanticReleases(ctx context.Context, projectID string, page, perPage int) ([]models.SemanticRelease, int, error) {
 	var total int
 	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM semantic_releases WHERE project_id = $1`, projectID).Scan(&total)

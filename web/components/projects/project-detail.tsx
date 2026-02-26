@@ -18,7 +18,7 @@ import { NewContextSourceForm } from "@/components/context-sources/new-context-s
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { SectionLabel } from "@/components/ui/section-label";
-import { Pencil, Trash2, Play, Plus } from "lucide-react";
+import { Pencil, Trash2, Play, Plus, ArrowLeft } from "lucide-react";
 
 /* ---------- Tabs ---------- */
 
@@ -84,11 +84,11 @@ export function ProjectDetail({ id }: { id: string }) {
   /* Data fetching */
   const { data, isLoading, mutate: mutateProject } = useSWR(`project-${id}`, () => projectsApi.get(id));
   const { data: sourcesData, mutate: mutateSources } = useSWR(
-    activeTab === "sources" ? `project-${id}-sources` : null,
+    `project-${id}-sources`,
     () => sourcesApi.listByProject(id),
   );
   const { data: ctxData, mutate: mutateCtx } = useSWR(
-    activeTab === "context" ? `project-${id}-ctx` : null,
+    `project-${id}-ctx`,
     () => ctxApi.list(id),
   );
   const { data: runsData, mutate: mutateRuns } = useSWR(
@@ -211,6 +211,19 @@ export function ProjectDetail({ id }: { id: string }) {
         className="-m-6 mb-0 border-b px-6 py-5"
         style={{ backgroundColor: "#ffffff", borderColor: "#e8e8e5" }}
       >
+        {/* Back link */}
+        <Link
+          href="/projects"
+          className="mb-4 inline-flex items-center gap-1.5 transition-colors hover:opacity-70"
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            color: "#6b7280",
+          }}
+        >
+          <ArrowLeft size={14} />
+          Back to Projects
+        </Link>
         <div className="flex items-start justify-between">
           {/* Left: project info */}
           <div className="min-w-0 flex-1">

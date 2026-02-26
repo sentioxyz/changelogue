@@ -8,6 +8,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { VersionChip } from "@/components/ui/version-chip";
 import { SectionLabel } from "@/components/ui/section-label";
 import { UrgencyCallout } from "@/components/ui/urgency-callout";
+import { ArrowLeft } from "lucide-react";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
 
@@ -47,28 +48,24 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
   const handleDelete = async () => {
     if (!confirm("Delete this semantic release?")) return;
     await srApi.delete(srId);
-    router.push(`/projects/${projectId}/semantic-releases`);
+    router.push("/semantic-releases");
   };
 
   return (
     <div className="fade-in mx-auto max-w-[760px]">
-      {/* 1. Breadcrumb */}
-      <nav
-        className="mb-6 flex items-center gap-1.5 text-[12px] text-[#9ca3af]"
-        style={{ fontFamily: "var(--font-dm-sans)" }}
+      {/* Back link */}
+      <Link
+        href="/semantic-releases"
+        className="mb-6 inline-flex items-center gap-1.5 transition-colors hover:opacity-70"
+        style={{
+          fontFamily: "var(--font-dm-sans)",
+          fontSize: "13px",
+          color: "#6b7280",
+        }}
       >
-        <Link href="/projects" className="hover:text-[#111113] transition-colors">
-          Projects
-        </Link>
-        <span>/</span>
-        <Link href={`/projects/${projectId}`} className="hover:text-[#111113] transition-colors">
-          {project?.name ?? projectId}
-        </Link>
-        <span>/</span>
-        <Link href={`/projects/${projectId}/semantic-releases`} className="hover:text-[#111113] transition-colors">
-          Semantic Releases
-        </Link>
-      </nav>
+        <ArrowLeft size={14} />
+        Back to Semantic Releases
+      </Link>
 
       {/* 2. Byline */}
       {project?.name && (

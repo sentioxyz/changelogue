@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   FolderKanban,
   Package,
+  Brain,
   Bell,
   Megaphone,
   PanelLeftOpen,
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/releases", label: "Releases", icon: Package },
+  { href: "/semantic-releases", label: "Semantic Releases", icon: Brain },
   { href: "/channels", label: "Channels", icon: Megaphone },
   { href: "/subscriptions", label: "Subscriptions", icon: Bell },
 ];

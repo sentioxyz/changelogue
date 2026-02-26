@@ -9,6 +9,7 @@ import (
 
 // SemanticReleasesStore defines the persistence operations for semantic releases.
 type SemanticReleasesStore interface {
+	ListAllSemanticReleases(ctx context.Context, page, perPage int) ([]models.SemanticRelease, int, error)
 	ListSemanticReleases(ctx context.Context, projectID string, page, perPage int) ([]models.SemanticRelease, int, error)
 	GetSemanticRelease(ctx context.Context, id string) (*models.SemanticRelease, error)
 	GetSemanticReleaseSources(ctx context.Context, id string) ([]models.Release, error)
@@ -23,6 +24,20 @@ type SemanticReleasesHandler struct {
 // NewSemanticReleasesHandler returns a new SemanticReleasesHandler.
 func NewSemanticReleasesHandler(store SemanticReleasesStore) *SemanticReleasesHandler {
 	return &SemanticReleasesHandler{store: store}
+}
+
+// ListAll handles GET /semantic-releases — returns all semantic releases across all projects.
+func (h *SemanticReleasesHandler) ListAll(w http.ResponseWriter, r *http.Request) {
+	page, perPage := ParsePagination(r)
+	releases, total, err := h.store.ListAllSemanticReleases(r.Context(), page, perPage)
+	if err != nil {
+		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to list semantic releases")
+		return
+	}
+	if releases == nil {
+		releases = []models.SemanticRelease{}
+	}
+	RespondList(w, r, http.StatusOK, releases, page, perPage, total)
 }
 
 // List handles GET /projects/{projectId}/semantic-releases — returns a paginated list of semantic releases for a project.

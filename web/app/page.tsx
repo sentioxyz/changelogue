@@ -76,7 +76,7 @@ function SemanticReleasesColumn() {
           Semantic Releases
         </h3>
         <Link
-          href="/projects"
+          href="/semantic-releases"
           className="text-sm hover:underline"
           style={{
             fontFamily: "var(--font-dm-sans)",

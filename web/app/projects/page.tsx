@@ -339,7 +339,7 @@ function SemanticReleasesSection({ projectId }: { projectId: string }) {
             );
           })}
           <Link
-            href={`/projects/${projectId}/semantic-releases`}
+            href={`/semantic-releases?project=${projectId}`}
             className="block text-[11px] mt-1 hover:underline"
             style={{ color: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
           >
