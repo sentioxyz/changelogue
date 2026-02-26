@@ -5,7 +5,8 @@
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "web/app/projects/page.tsx"
+    "web/app/projects/page.tsx",
+    "web/app/releases/page.tsx"
   ],
   "sessions": [
     {
@@ -14,13 +15,20 @@
       "context": "/1d/ac0f7556db/0/context.md",
       "content_hash": "/1d/ac0f7556db/0/content_hash.txt",
       "prompt": "/1d/ac0f7556db/0/prompt.txt"
+    },
+    {
+      "metadata": "/1d/ac0f7556db/1/metadata.json",
+      "transcript": "/1d/ac0f7556db/1/full.jsonl",
+      "context": "/1d/ac0f7556db/1/context.md",
+      "content_hash": "/1d/ac0f7556db/1/content_hash.txt",
+      "prompt": "/1d/ac0f7556db/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 12775364,
+    "input_tokens": 24013550,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 23252,
-    "api_call_count": 116
+    "output_tokens": 45146,
+    "api_call_count": 225
   }
 }
