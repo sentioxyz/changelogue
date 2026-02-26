@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "94de9cbe5778",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/plans/2026-02-26-projects-redesign.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/94/de9cbe5778/0/metadata.json",
+      "transcript": "/94/de9cbe5778/0/full.jsonl",
+      "context": "/94/de9cbe5778/0/context.md",
+      "content_hash": "/94/de9cbe5778/0/content_hash.txt",
+      "prompt": "/94/de9cbe5778/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8173963,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 17611,
+    "api_call_count": 85
+  }
+}
