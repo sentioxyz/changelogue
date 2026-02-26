@@ -3,7 +3,7 @@
   "checkpoint_id": "a9306cc02372",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     ".gitignore",
     "ARCH.md",
@@ -38,13 +38,20 @@
       "context": "/a9/306cc02372/1/context.md",
       "content_hash": "/a9/306cc02372/1/content_hash.txt",
       "prompt": "/a9/306cc02372/1/prompt.txt"
+    },
+    {
+      "metadata": "/a9/306cc02372/2/metadata.json",
+      "transcript": "/a9/306cc02372/2/full.jsonl",
+      "context": "/a9/306cc02372/2/context.md",
+      "content_hash": "/a9/306cc02372/2/content_hash.txt",
+      "prompt": "/a9/306cc02372/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1976954,
+    "input_tokens": 6833165,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 12099,
-    "api_call_count": 34
+    "output_tokens": 26830,
+    "api_call_count": 108
   }
 }
