@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "6886dbb87914",
+  "session_id": "ab707189-48de-4dd5-9a35-83655d18ce1e",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-26T12:45:50.62965Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/plans/2026-02-26-flat-ui-design.md",
+    "docs/plans/2026-02-26-flat-ui-implementation.md",
+    "web/app/channels/[id]/edit/page.tsx",
+    "web/app/channels/new/page.tsx",
+    "web/app/projects/[id]/context-sources/new/page.tsx",
+    "web/app/projects/[id]/context-sources/page.tsx",
+    "web/app/projects/[id]/edit/page.tsx",
+    "web/app/projects/[id]/sources/new/page.tsx",
+    "web/app/projects/new/page.tsx",
+    "web/app/sources/[id]/edit/page.tsx",
+    "web/app/sources/new/page.tsx",
+    "web/app/subscriptions/[id]/edit/page.tsx",
+    "web/app/subscriptions/new/page.tsx",
+    "web/components/channels/channel-edit.tsx",
+    "web/components/context-sources/context-sources-list.tsx",
+    "web/components/projects/project-edit.tsx",
+    "web/components/sources/new-project-source.tsx",
+    "web/components/sources/source-edit.tsx",
+    "web/components/subscriptions/subscription-edit.tsx",
+    "web/components/ui/confirm-dialog.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "b69f147f69de",
+  "token_usage": {
+    "input_tokens": 2098751,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 11801,
+    "api_call_count": 32
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-26T12:45:50.437366Z",
+    "agent_lines": 1430,
+    "human_added": 713,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 2143,
+    "agent_percentage": 66.72888474101727
+  }
+}
