@@ -298,13 +298,13 @@ function ProjectCard({ project }: { project: Project }) {
 
   return (
     <div
-      className="overflow-hidden rounded-md"
+      className="overflow-hidden rounded-md max-w-2xl"
       style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
     >
       {/* Header */}
       <div className="px-4 py-3">
         {editing ? (
-          <div className="space-y-2">
+          <div className="space-y-2 max-w-sm">
             <input
               type="text"
               value={name}
@@ -329,14 +329,7 @@ function ProjectCard({ project }: { project: Project }) {
                 borderColor: "#e8e8e5",
               }}
             />
-            <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={handleCancel}
-                className="text-[12px] text-[#9ca3af] hover:text-[#6b7280]"
-                style={{ fontFamily: "var(--font-dm-sans)" }}
-              >
-                Cancel
-              </button>
+            <div className="flex items-center gap-2">
               <button
                 onClick={handleSave}
                 disabled={saving || !name.trim()}
@@ -345,6 +338,13 @@ function ProjectCard({ project }: { project: Project }) {
               >
                 <Check className="h-3 w-3" />
                 {saving ? "Saving..." : "Save"}
+              </button>
+              <button
+                onClick={handleCancel}
+                className="text-[12px] text-[#9ca3af] hover:text-[#6b7280]"
+                style={{ fontFamily: "var(--font-dm-sans)" }}
+              >
+                Cancel
               </button>
             </div>
           </div>
