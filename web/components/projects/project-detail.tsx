@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   projects as projectsApi,
@@ -85,6 +85,14 @@ export function ProjectDetail({ id }: { id: string }) {
   const [rulesDraft, setRulesDraft] = useState<AgentRules | null>(null);
   const [saving, setSaving] = useState(false);
 
+  /* Inline edit state */
+  const [editingName, setEditingName] = useState(false);
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [descDraft, setDescDraft] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
+  const descRef = useRef<HTMLInputElement>(null);
+
   /* Data fetching */
   const { data, isLoading, mutate: mutateProject } = useSWR(`project-${id}`, () => projectsApi.get(id));
   const { data: sourcesData, mutate: mutateSources } = useSWR(
@@ -103,6 +111,47 @@ export function ProjectDetail({ id }: { id: string }) {
     activeTab === "agent" ? `project-${id}-runs` : null,
     () => agentApi.listRuns(id),
   );
+
+  const saveName = useCallback(async () => {
+    const p = data?.data;
+    if (!p) return;
+    const trimmed = nameDraft.trim();
+    if (trimmed && trimmed !== p.name) {
+      await projectsApi.update(id, { name: trimmed, description: p.description });
+      mutateProject();
+    }
+    setEditingName(false);
+  }, [nameDraft, data, id, mutateProject]);
+
+  const saveDesc = useCallback(async () => {
+    const p = data?.data;
+    if (!p) return;
+    const trimmed = descDraft.trim();
+    if (trimmed !== (p.description ?? "")) {
+      await projectsApi.update(id, { name: p.name, description: trimmed || undefined });
+      mutateProject();
+    }
+    setEditingDesc(false);
+  }, [descDraft, data, id, mutateProject]);
+
+  /* Click-outside handlers */
+  useEffect(() => {
+    if (!editingName) return;
+    const handler = (e: MouseEvent) => {
+      if (nameRef.current && !nameRef.current.contains(e.target as Node)) saveName();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [editingName, saveName]);
+
+  useEffect(() => {
+    if (!editingDesc) return;
+    const handler = (e: MouseEvent) => {
+      if (descRef.current && !descRef.current.contains(e.target as Node)) saveDesc();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [editingDesc, saveDesc]);
 
   /* Handlers */
   const handleDelete = async () => {
@@ -199,18 +248,65 @@ export function ProjectDetail({ id }: { id: string }) {
         <div className="flex items-start justify-between">
           {/* Left: project info */}
           <div className="min-w-0 flex-1">
-            <h1
-              className="text-[28px] font-bold leading-tight"
-              style={{ fontFamily: "var(--font-fraunces), serif" }}
-            >
-              {project.name}
-            </h1>
-            {project.description && (
-              <p
-                className="mt-1 text-[14px]"
-                style={{ fontFamily: "var(--font-dm-sans), sans-serif", color: "#6b7280" }}
+            {editingName ? (
+              <input
+                ref={nameRef}
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveName();
+                  if (e.key === "Escape") setEditingName(false);
+                }}
+                autoFocus
+                className="w-full max-w-md rounded-md border px-2 py-1 text-[28px] font-bold leading-tight focus:outline-none focus:ring-1"
+                style={{
+                  fontFamily: "var(--font-fraunces), serif",
+                  borderColor: "#e8e8e5",
+                  color: "#111113",
+                }}
+              />
+            ) : (
+              <h1
+                className="group inline-flex cursor-pointer items-center gap-2 text-[28px] font-bold leading-tight"
+                style={{ fontFamily: "var(--font-fraunces), serif" }}
+                onClick={() => {
+                  setNameDraft(project.name);
+                  setEditingName(true);
+                }}
               >
-                {project.description}
+                {project.name}
+                <Pencil className="h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-40" />
+              </h1>
+            )}
+            {editingDesc ? (
+              <input
+                ref={descRef}
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveDesc();
+                  if (e.key === "Escape") setEditingDesc(false);
+                }}
+                autoFocus
+                placeholder="Add a description..."
+                className="mt-1 w-full max-w-lg rounded-md border px-2 py-1 text-[14px] focus:outline-none focus:ring-1"
+                style={{
+                  fontFamily: "var(--font-dm-sans), sans-serif",
+                  borderColor: "#e8e8e5",
+                  color: "#6b7280",
+                }}
+              />
+            ) : (
+              <p
+                className="group mt-1 inline-flex cursor-pointer items-center gap-2 text-[14px]"
+                style={{ fontFamily: "var(--font-dm-sans), sans-serif", color: "#6b7280" }}
+                onClick={() => {
+                  setDescDraft(project.description ?? "");
+                  setEditingDesc(true);
+                }}
+              >
+                {project.description || "Add a description..."}
+                <Pencil className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-40" />
               </p>
             )}
             <p
@@ -225,19 +321,6 @@ export function ProjectDetail({ id }: { id: string }) {
 
           {/* Right: actions */}
           <div className="flex shrink-0 items-center gap-2 ml-4">
-            <Link href={`/projects/${id}/edit`}>
-              <button
-                className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-[#f3f3f1]"
-                style={{
-                  fontFamily: "var(--font-dm-sans), sans-serif",
-                  borderColor: "#e8e8e5",
-                  color: "#374151",
-                }}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </button>
-            </Link>
             <button
               onClick={handleDelete}
               className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-red-50"
