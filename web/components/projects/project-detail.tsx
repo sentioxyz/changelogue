@@ -133,6 +133,17 @@ export function ProjectDetail({ id }: { id: string }) {
     mutateCtx();
   };
 
+  const handleToggleSource = async (source: { id: string; provider: string; repository: string; poll_interval_seconds: number; enabled: boolean; config?: Record<string, unknown> }) => {
+    await sourcesApi.update(source.id, {
+      provider: source.provider,
+      repository: source.repository,
+      poll_interval_seconds: source.poll_interval_seconds,
+      enabled: !source.enabled,
+      config: source.config,
+    });
+    mutateSources();
+  };
+
   const handleSaveAgentConfig = async () => {
     if (!project) return;
     setSaving(true);
@@ -336,12 +347,16 @@ export function ProjectDetail({ id }: { id: string }) {
                           {formatInterval(source.poll_interval_seconds)}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleToggleSource(source)}
+                            className="flex items-center gap-2 transition-colors hover:opacity-70"
+                            title={source.enabled ? "Click to disable polling" : "Click to enable polling"}
+                          >
                             <StatusDot status={source.enabled ? "completed" : "pending"} />
-                            <span style={{ color: source.enabled ? "#16a34a" : "#d97706" }}>
+                            <span style={{ color: source.enabled ? "#16a34a" : "#d97706", fontSize: "13px" }}>
                               {source.enabled ? "Active" : "Disabled"}
                             </span>
-                          </div>
+                          </button>
                         </td>
                         <td className="px-4 py-3" style={{ color: "#9ca3af" }}>
                           {source.last_polled_at
