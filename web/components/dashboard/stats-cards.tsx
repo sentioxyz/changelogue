@@ -18,7 +18,7 @@ export function StatsCards() {
   const stats = data?.data;
   const items: StatItem[] = [
     { label: "Total Releases", value: stats?.total_releases ?? "\u2014", icon: Package },
-    { label: "Active Sources", value: stats?.total_sources ?? "\u2014", icon: Radio },
+    { label: "Active Sources", value: stats?.active_sources ?? "\u2014", icon: Radio },
     { label: "Pending Jobs", value: stats?.pending_agent_runs ?? "\u2014", icon: Clock },
     { label: "Total Projects", value: stats?.total_projects ?? "\u2014", icon: FolderKanban },
   ];

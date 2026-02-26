@@ -166,7 +166,7 @@ export interface HealthStatus {
 
 export interface Stats {
   total_projects: number;
-  total_sources: number;
+  active_sources: number;
   total_releases: number;
   pending_agent_runs: number;
 }
