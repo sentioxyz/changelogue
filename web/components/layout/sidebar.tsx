@@ -29,10 +29,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex h-12 items-center gap-2 px-4">
-        <span
-          className="h-2.5 w-2.5 rounded-full shrink-0"
-          style={{ backgroundColor: "#e8601a" }}
-        />
+        <img src="/logo.svg" alt="" className="h-5 w-5 shrink-0" />
         <Link
           href="/"
           className="text-[16px] italic text-white"

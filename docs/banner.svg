@@ -48,10 +48,10 @@
     <circle cx="550" cy="45" r="4" fill="#e8601a" filter="url(#glow)" />
   </g>
 
-  <!-- ── Registries (left) ── -->
+  <!-- ── Providers (left) ── -->
   <g transform="translate(60, 160)">
     <rect width="140" height="130" rx="12" fill="#18181b" stroke="#27272a" stroke-width="1.5" />
-    <text x="70" y="25" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#e4e4e7">Registries</text>
+    <text x="70" y="25" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#e4e4e7">Providers</text>
 
     <g transform="translate(15, 42)">
       <rect width="110" height="22" rx="4" fill="#27272a" />
@@ -70,7 +70,7 @@
     </g>
   </g>
 
-  <!-- Arrow: Registries → Changelogue -->
+  <!-- Arrow: Providers → Changelogue -->
   <line x1="205" y1="227" x2="280" y2="227" stroke="#71717a" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrowGray)" />
 
   <!-- ── Changelogue core (center) ── -->

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8601a" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+
+  <!-- C-Delta: Letter C that morphs into a delta triangle -->
+  <!-- The C arc opens on the right, and the gap forms a triangular point -->
+  <path d="
+    M 22 6
+    C 18 3, 10 3, 7 8
+    C 4 13, 4 19, 7 24
+    C 10 29, 18 29, 22 26
+    L 16 16
+    Z
+  " fill="url(#brandGrad)" />
+
+  <!-- Inner cutout to create the C shape with delta negative space -->
+  <path d="
+    M 19 9
+    C 17 7.5, 13 7, 11 10
+    C 9 13, 9 19, 11 22
+    C 13 25, 17 24.5, 19 23
+    L 16 16
+    Z
+  " fill="#16181c" />
+</svg>
