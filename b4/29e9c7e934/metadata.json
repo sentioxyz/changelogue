@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b429e9c7e934",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "internal/ingestion/github_atom.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b4/29e9c7e934/0/metadata.json",
+      "transcript": "/b4/29e9c7e934/0/full.jsonl",
+      "context": "/b4/29e9c7e934/0/context.md",
+      "content_hash": "/b4/29e9c7e934/0/content_hash.txt",
+      "prompt": "/b4/29e9c7e934/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 423450,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 3692,
+    "api_call_count": 11
+  }
+}
