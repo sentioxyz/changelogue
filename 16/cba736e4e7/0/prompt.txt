@@ -1,0 +1,13 @@
+There are duplicated headers in the page like projects, releases.. And dashboard's page doesn't have the header
+
+---
+
+Dashboard and projects bold size looks different from others
+
+---
+
+commit and push
+
+---
+
+In the dashboard, recent source releases, and projects page, recent releases and releases page. All the releases are sorted by polling time not the release time, please sort by  age
