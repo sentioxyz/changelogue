@@ -80,7 +80,7 @@ func main() {
 	svc := ingestion.NewService(ingestionStore)
 
 	loader := ingestion.NewSourceLoader(pool, http.DefaultClient)
-	orch := ingestion.NewOrchestrator(svc, loader, 5*time.Minute)
+	orch := ingestion.NewOrchestrator(svc, loader, pool, 5*time.Minute)
 
 	broadcaster := api.NewBroadcaster()
 
