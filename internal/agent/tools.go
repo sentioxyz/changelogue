@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"google.golang.org/adk/tool"
@@ -29,12 +28,12 @@ type GetReleasesInput struct {
 
 // ReleaseItem is a single release in the tool output.
 type ReleaseItem struct {
-	ID         string          `json:"id"`
-	SourceID   string          `json:"source_id"`
-	Version    string          `json:"version"`
-	RawData    json.RawMessage `json:"raw_data,omitempty"`
-	ReleasedAt string          `json:"released_at,omitempty"`
-	CreatedAt  string          `json:"created_at"`
+	ID         string `json:"id"`
+	SourceID   string `json:"source_id"`
+	Version    string `json:"version"`
+	RawData    any    `json:"raw_data,omitempty"`
+	ReleasedAt string `json:"released_at,omitempty"`
+	CreatedAt  string `json:"created_at"`
 }
 
 // GetReleasesOutput is the output for the get_releases tool.
@@ -52,12 +51,12 @@ type GetReleaseDetailInput struct {
 
 // GetReleaseDetailOutput is the output for the get_release_detail tool.
 type GetReleaseDetailOutput struct {
-	ID         string          `json:"id"`
-	SourceID   string          `json:"source_id"`
-	Version    string          `json:"version"`
-	RawData    json.RawMessage `json:"raw_data,omitempty"`
-	ReleasedAt string          `json:"released_at,omitempty"`
-	CreatedAt  string          `json:"created_at"`
+	ID         string `json:"id"`
+	SourceID   string `json:"source_id"`
+	Version    string `json:"version"`
+	RawData    any    `json:"raw_data,omitempty"`
+	ReleasedAt string `json:"released_at,omitempty"`
+	CreatedAt  string `json:"created_at"`
 }
 
 // ListContextSourcesInput is the input for the list_context_sources tool.
@@ -68,10 +67,10 @@ type ListContextSourcesInput struct {
 
 // ContextSourceItem is a single context source in the tool output.
 type ContextSourceItem struct {
-	ID     string          `json:"id"`
-	Type   string          `json:"type"`
-	Name   string          `json:"name"`
-	Config json.RawMessage `json:"config"`
+	ID     string `json:"id"`
+	Type   string `json:"type"`
+	Name   string `json:"name"`
+	Config any    `json:"config"`
 }
 
 // ListContextSourcesOutput is the output for the list_context_sources tool.
