@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
-import { Plus, X, Pencil, Check, ArrowRight } from "lucide-react";
+import { Plus, X, ArrowRight } from "lucide-react";
 import type { Project, Source } from "@/lib/api/types";
 
 /* ---------- Inline Add Source Form ---------- */
@@ -356,34 +356,6 @@ function SemanticReleasesSection({ projectId }: { projectId: string }) {
 /* ---------- Project Card ---------- */
 
 function ProjectCard({ project }: { project: Project }) {
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(project.name);
-  const [description, setDescription] = useState(project.description ?? "");
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = async () => {
-    if (!name.trim()) return;
-    setSaving(true);
-    try {
-      await projectsApi.update(project.id, {
-        name: name.trim(),
-        description: description.trim() || undefined,
-      });
-      mutate("projects");
-      setEditing(false);
-    } catch {
-      // keep editing on error
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setName(project.name);
-    setDescription(project.description ?? "");
-    setEditing(false);
-  };
-
   return (
     <div
       className="overflow-hidden rounded-md"
@@ -391,85 +363,24 @@ function ProjectCard({ project }: { project: Project }) {
     >
       {/* Header */}
       <div className="px-4 py-3">
-        {editing ? (
-          <div className="space-y-2 max-w-sm">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border px-2 py-1 text-[16px] font-bold focus:outline-none focus:ring-1"
-              style={{
-                fontFamily: "var(--font-fraunces)",
-                color: "#111113",
-                borderColor: "#e8e8e5",
-              }}
-              autoFocus
-            />
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description (optional)"
-              className="w-full rounded-md border px-2 py-1 text-[13px] focus:outline-none focus:ring-1"
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                color: "#6b7280",
-                borderColor: "#e8e8e5",
-              }}
-            />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSave}
-                disabled={saving || !name.trim()}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-white disabled:opacity-40"
-                style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
-              >
-                <Check className="h-3 w-3" />
-                {saving ? "Saving..." : "Save"}
-              </button>
-              <button
-                onClick={handleCancel}
-                className="text-[12px] text-[#9ca3af] hover:text-[#6b7280]"
-                style={{ fontFamily: "var(--font-dm-sans)" }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <Link
-                href={`/projects/${project.id}`}
-                className="group inline-flex items-center gap-1.5 text-[16px] font-bold transition-colors"
-                style={{ fontFamily: "var(--font-fraunces)", color: "#e8601a" }}
-              >
-                {project.name}
-                <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
-              </Link>
-              {project.description && (
-                <p
-                  className="mt-0.5 text-[13px] truncate"
-                  style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
-                >
-                  {project.description}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => setEditing(true)}
-              className="shrink-0 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[12px] font-medium transition-colors hover:bg-[#f3f3f1]"
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                borderColor: "#e8e8e5",
-                color: "#6b7280",
-              }}
+        <div className="min-w-0">
+          <Link
+            href={`/projects/${project.id}`}
+            className="group inline-flex items-center gap-1.5 text-[16px] font-bold transition-colors"
+            style={{ fontFamily: "var(--font-fraunces)", color: "#e8601a" }}
+          >
+            {project.name}
+            <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+          </Link>
+          {project.description && (
+            <p
+              className="mt-0.5 text-[13px] truncate"
+              style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
             >
-              <Pencil className="h-3 w-3" />
-              Edit
-            </button>
-          </div>
-        )}
+              {project.description}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Content columns: sources | recent releases | semantic releases */}
