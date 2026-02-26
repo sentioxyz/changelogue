@@ -29,6 +29,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const body = await res.json().catch(() => null);
     throw new Error(body?.error?.message ?? `Request failed: ${res.status}`);
   }
+  if (res.status === 204) return null as T;
   return res.json();
 }
 
@@ -115,13 +116,15 @@ export const semanticReleases = {
     request<ApiResponse<SemanticRelease[]>>(`/projects/${projectId}/semantic-releases?page=${page}&per_page=${perPage}`),
   get: (id: string) =>
     request<ApiResponse<SemanticRelease>>(`/semantic-releases/${id}`),
+  delete: (id: string) =>
+    request<ApiResponse<null>>(`/semantic-releases/${id}`, { method: "DELETE" }),
 };
 
 // --- Agent ---
 
 export const agent = {
   triggerRun: (projectId: string) =>
-    request<ApiResponse<AgentRun>>(`/projects/${projectId}/agent/run`, { method: "POST" }),
+    request<ApiResponse<AgentRun>>(`/projects/${projectId}/agent/run`, { method: "POST", body: "{}" }),
   listRuns: (projectId: string, page = 1) =>
     request<ApiResponse<AgentRun[]>>(`/projects/${projectId}/agent/runs?page=${page}`),
   getRun: (id: string) =>

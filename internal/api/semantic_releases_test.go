@@ -19,6 +19,7 @@ type mockSemanticReleasesStore struct {
 	listErr    error
 	getErr     error
 	sourcesErr error
+	deleteErr  error
 }
 
 func (m *mockSemanticReleasesStore) ListSemanticReleases(_ context.Context, projectID string, page, perPage int) ([]models.SemanticRelease, int, error) {
@@ -47,11 +48,25 @@ func (m *mockSemanticReleasesStore) GetSemanticReleaseSources(_ context.Context,
 	return m.sources, nil
 }
 
+func (m *mockSemanticReleasesStore) DeleteSemanticRelease(_ context.Context, id string) error {
+	if m.deleteErr != nil {
+		return m.deleteErr
+	}
+	for i := range m.releases {
+		if m.releases[i].ID == id {
+			m.releases = append(m.releases[:i], m.releases[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("not found")
+}
+
 func setupSemanticReleasesMux(store SemanticReleasesStore) *http.ServeMux {
 	h := NewSemanticReleasesHandler(store)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /projects/{projectId}/semantic-releases", h.List)
 	mux.HandleFunc("GET /semantic-releases/{id}", h.Get)
+	mux.HandleFunc("DELETE /semantic-releases/{id}", h.Delete)
 	return mux
 }
 
@@ -187,5 +202,38 @@ func TestSemanticReleasesHandlerGetNotFound(t *testing.T) {
 	}
 	if got.Error.Code != "not_found" {
 		t.Fatalf("expected error.code=not_found, got %s", got.Error.Code)
+	}
+}
+
+func TestSemanticReleasesHandlerDelete(t *testing.T) {
+	store := &mockSemanticReleasesStore{
+		releases: []models.SemanticRelease{
+			{ID: "sr-99", ProjectID: "p1", Version: "4.0.0", Status: "completed", CreatedAt: time.Now()},
+		},
+	}
+	mux := setupSemanticReleasesMux(store)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodDelete, "/semantic-releases/sr-99", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", w.Code)
+	}
+	if len(store.releases) != 0 {
+		t.Fatalf("expected release to be removed from store, got %d remaining", len(store.releases))
+	}
+}
+
+func TestSemanticReleasesHandlerDeleteNotFound(t *testing.T) {
+	store := &mockSemanticReleasesStore{}
+	mux := setupSemanticReleasesMux(store)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodDelete, "/semantic-releases/nonexistent", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", w.Code)
 	}
 }

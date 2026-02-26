@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import Link from "next/link";
 import { semanticReleases as srApi, projects as projectsApi, releases as releasesApi, sources as sourcesApi } from "@/lib/api/client";
+import { useRouter } from "next/navigation";
 import { StatusDot } from "@/components/ui/status-dot";
 import { VersionChip } from "@/components/ui/version-chip";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -11,6 +12,7 @@ import { ProviderBadge } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
 
 export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; srId: string }) {
+  const router = useRouter();
   const { data, isLoading } = useSWR(`sr-${srId}`, () => srApi.get(srId));
   const { data: projectData } = useSWR(`project-${projectId}`, () => projectsApi.get(projectId));
   const { data: releasesData } = useSWR(`project-releases-${projectId}`, () => releasesApi.listByProject(projectId));
@@ -41,6 +43,12 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
   const releasesList = releasesData?.data ?? [];
   const sourcesList = sourcesData?.data ?? [];
   const sourcesById = Object.fromEntries(sourcesList.map((s) => [s.id, s]));
+
+  const handleDelete = async () => {
+    if (!confirm("Delete this semantic release?")) return;
+    await srApi.delete(srId);
+    router.push(`/projects/${projectId}/semantic-releases`);
+  };
 
   return (
     <div className="fade-in mx-auto max-w-[760px]">
@@ -86,10 +94,17 @@ export function SemanticReleaseDetail({ projectId, srId }: { projectId: string; 
         style={{ fontFamily: "var(--font-dm-sans)" }}
       >
         <StatusDot status={sr.status} />
-        <span>
+        <span className="flex-1">
           {sr.status}
           {sr.completed_at && ` \u00b7 generated ${timeAgo(sr.completed_at)}`}
         </span>
+        <button
+          onClick={handleDelete}
+          className="rounded-md px-2.5 py-1 text-[12px] font-medium text-[#991b1b] transition-colors hover:bg-[#fef2f2]"
+          style={{ fontFamily: "var(--font-dm-sans)" }}
+        >
+          Delete
+        </button>
       </div>
 
       {/* 5. Divider */}

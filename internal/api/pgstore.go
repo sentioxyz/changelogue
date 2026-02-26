@@ -545,6 +545,17 @@ func (s *PgStore) GetSemanticReleaseSources(ctx context.Context, id string) ([]m
 	return releases, nil
 }
 
+func (s *PgStore) DeleteSemanticRelease(ctx context.Context, id string) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM semantic_releases WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("not found")
+	}
+	return nil
+}
+
 // --- AgentStore ---
 
 func (s *PgStore) TriggerAgentRun(ctx context.Context, projectID, trigger string) (*models.AgentRun, error) {

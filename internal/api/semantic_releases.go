@@ -7,11 +7,12 @@ import (
 	"github.com/sentioxyz/changelogue/internal/models"
 )
 
-// SemanticReleasesStore defines the persistence operations for semantic releases (read-only).
+// SemanticReleasesStore defines the persistence operations for semantic releases.
 type SemanticReleasesStore interface {
 	ListSemanticReleases(ctx context.Context, projectID string, page, perPage int) ([]models.SemanticRelease, int, error)
 	GetSemanticRelease(ctx context.Context, id string) (*models.SemanticRelease, error)
 	GetSemanticReleaseSources(ctx context.Context, id string) ([]models.Release, error)
+	DeleteSemanticRelease(ctx context.Context, id string) error
 }
 
 // SemanticReleasesHandler implements HTTP handlers for the /semantic-releases resource.
@@ -56,4 +57,18 @@ func (h *SemanticReleasesHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondJSON(w, r, http.StatusOK, sr)
+}
+
+// Delete handles DELETE /semantic-releases/{id} — deletes a single semantic release.
+func (h *SemanticReleasesHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		RespondError(w, r, http.StatusBadRequest, "bad_request", "Semantic release ID is required")
+		return
+	}
+	if err := h.store.DeleteSemanticRelease(r.Context(), id); err != nil {
+		RespondError(w, r, http.StatusNotFound, "not_found", "Semantic release not found")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
