@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
-import { Plus, X, Pencil, Check } from "lucide-react";
+import { Plus, X, Pencil, Check, ArrowRight } from "lucide-react";
 import type { Project, Source } from "@/lib/api/types";
 
 /* ---------- Inline Add Source Form ---------- */
@@ -441,10 +441,11 @@ function ProjectCard({ project }: { project: Project }) {
             <div className="min-w-0 flex-1">
               <Link
                 href={`/projects/${project.id}`}
-                className="text-[16px] font-bold hover:underline"
-                style={{ fontFamily: "var(--font-fraunces)", color: "#111113" }}
+                className="group inline-flex items-center gap-1.5 text-[16px] font-bold transition-colors"
+                style={{ fontFamily: "var(--font-fraunces)", color: "#e8601a" }}
               >
                 {project.name}
+                <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
               </Link>
               {project.description && (
                 <p
