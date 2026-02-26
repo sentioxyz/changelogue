@@ -80,12 +80,12 @@ export default function ReleasesPage() {
   /* Fetch releases — scoped by project or all */
   const { data: scopedData, isLoading: scopedLoading } = useSWR(
     projectFilter !== "all" ? ["releases", page, projectFilter] : null,
-    () => releasesApi.listByProject(projectFilter, page)
+    () => releasesApi.listByProject(projectFilter, page, PER_PAGE)
   );
 
   const { data: allReleasesData, isLoading: allLoading } = useSWR(
     projectFilter === "all" ? ["all-releases", page] : null,
-    () => releasesApi.list(page)
+    () => releasesApi.list(page, PER_PAGE)
   );
 
   const isLoading = projectFilter !== "all" ? scopedLoading : allLoading;
