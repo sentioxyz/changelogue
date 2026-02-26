@@ -349,13 +349,14 @@ export function ProjectDetail({ id }: { id: string }) {
                         <td className="px-4 py-3">
                           <button
                             onClick={() => handleToggleSource(source)}
-                            className="flex items-center gap-2 transition-colors hover:opacity-70"
-                            title={source.enabled ? "Click to disable polling" : "Click to enable polling"}
+                            className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
+                            style={{ backgroundColor: source.enabled ? "#16a34a" : "#d1d5db" }}
+                            title={source.enabled ? "Disable polling" : "Enable polling"}
                           >
-                            <StatusDot status={source.enabled ? "completed" : "pending"} />
-                            <span style={{ color: source.enabled ? "#16a34a" : "#d97706", fontSize: "13px" }}>
-                              {source.enabled ? "Active" : "Disabled"}
-                            </span>
+                            <span
+                              className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200"
+                              style={{ transform: source.enabled ? "translateX(18px)" : "translateX(3px)" }}
+                            />
                           </button>
                         </td>
                         <td className="px-4 py-3" style={{ color: "#9ca3af" }}>
