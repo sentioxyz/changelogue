@@ -79,8 +79,8 @@ export const sources = {
 export const releases = {
   listBySource: (sourceId: string, page = 1) =>
     request<ApiResponse<Release[]>>(`/sources/${sourceId}/releases?page=${page}`),
-  listByProject: (projectId: string, page = 1) =>
-    request<ApiResponse<Release[]>>(`/projects/${projectId}/releases?page=${page}`),
+  listByProject: (projectId: string, page = 1, perPage = 25) =>
+    request<ApiResponse<Release[]>>(`/projects/${projectId}/releases?page=${page}&per_page=${perPage}`),
   get: (id: string) =>
     request<ApiResponse<Release>>(`/releases/${id}`),
 };
@@ -109,8 +109,8 @@ export const contextSources = {
 // --- Semantic Releases ---
 
 export const semanticReleases = {
-  list: (projectId: string, page = 1) =>
-    request<ApiResponse<SemanticRelease[]>>(`/projects/${projectId}/semantic-releases?page=${page}`),
+  list: (projectId: string, page = 1, perPage = 25) =>
+    request<ApiResponse<SemanticRelease[]>>(`/projects/${projectId}/semantic-releases?page=${page}&per_page=${perPage}`),
   get: (id: string) =>
     request<ApiResponse<SemanticRelease>>(`/semantic-releases/${id}`),
 };
