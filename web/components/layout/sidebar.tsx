@@ -29,7 +29,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex h-12 items-center gap-2 px-4">
-        <img src="/logo.svg" alt="" className="h-5 w-5 shrink-0" />
+        <img src="/logo.svg" alt="" className="h-7 w-7 shrink-0" />
         <Link
           href="/"
           className="text-[16px] italic text-white"
