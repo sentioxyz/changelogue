@@ -9,6 +9,7 @@ import (
 
 // ReleasesStore defines the persistence operations for releases (read-only).
 type ReleasesStore interface {
+	ListAllReleases(ctx context.Context, page, perPage int) ([]models.Release, int, error)
 	ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int) ([]models.Release, int, error)
 	ListReleasesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Release, int, error)
 	GetRelease(ctx context.Context, id string) (*models.Release, error)
@@ -22,6 +23,20 @@ type ReleasesHandler struct {
 // NewReleasesHandler returns a new ReleasesHandler.
 func NewReleasesHandler(store ReleasesStore) *ReleasesHandler {
 	return &ReleasesHandler{store: store}
+}
+
+// List handles GET /releases — returns all releases across all projects.
+func (h *ReleasesHandler) List(w http.ResponseWriter, r *http.Request) {
+	page, perPage := ParsePagination(r)
+	releases, total, err := h.store.ListAllReleases(r.Context(), page, perPage)
+	if err != nil {
+		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to list releases")
+		return
+	}
+	if releases == nil {
+		releases = []models.Release{}
+	}
+	RespondList(w, r, http.StatusOK, releases, page, perPage, total)
 }
 
 // ListBySource handles GET /sources/{id}/releases — returns releases for a specific source.

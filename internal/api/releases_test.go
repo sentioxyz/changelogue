@@ -14,11 +14,19 @@ import (
 
 // mockReleasesStore implements ReleasesStore for testing.
 type mockReleasesStore struct {
+	allReleases     []models.Release
 	sourceReleases  []models.Release
 	projectReleases []models.Release
 	release         *models.Release
 	listErr         error
 	getErr          error
+}
+
+func (m *mockReleasesStore) ListAllReleases(_ context.Context, page, perPage int) ([]models.Release, int, error) {
+	if m.listErr != nil {
+		return nil, 0, m.listErr
+	}
+	return m.allReleases, len(m.allReleases), nil
 }
 
 func (m *mockReleasesStore) ListReleasesBySource(_ context.Context, sourceID string, page, perPage int) ([]models.Release, int, error) {

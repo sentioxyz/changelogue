@@ -60,6 +60,7 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 
 	// Releases (read-only, nested under sources and projects)
 	releases := NewReleasesHandler(deps.ReleasesStore)
+	mux.Handle("GET /api/v1/releases", chain(http.HandlerFunc(releases.List)))
 	mux.Handle("GET /api/v1/sources/{id}/releases", chain(http.HandlerFunc(releases.ListBySource)))
 	mux.Handle("GET /api/v1/projects/{projectId}/releases", chain(http.HandlerFunc(releases.ListByProject)))
 	mux.Handle("GET /api/v1/releases/{id}", chain(http.HandlerFunc(releases.Get)))

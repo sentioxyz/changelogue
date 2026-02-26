@@ -188,6 +188,31 @@ func (s *PgStore) DeleteSource(ctx context.Context, id string) error {
 
 // --- ReleasesStore ---
 
+func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int) ([]models.Release, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM releases`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count releases: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, source_id, version, COALESCE(raw_data,'{}'), released_at, created_at
+		 FROM releases ORDER BY COALESCE(released_at, created_at) DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list all releases: %w", err)
+	}
+	defer rows.Close()
+	var releases []models.Release
+	for rows.Next() {
+		var rel models.Release
+		if err := rows.Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan release: %w", err)
+		}
+		releases = append(releases, rel)
+	}
+	return releases, total, nil
+}
+
 func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int) ([]models.Release, int, error) {
 	var total int
 	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM releases WHERE source_id = $1`, sourceID).Scan(&total)

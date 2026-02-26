@@ -77,31 +77,15 @@ export default function ReleasesPage() {
     }
   );
 
-  /* Fetch releases — scoped by project or aggregated across all */
+  /* Fetch releases — scoped by project or all */
   const { data: scopedData, isLoading: scopedLoading } = useSWR(
     projectFilter !== "all" ? ["releases", page, projectFilter] : null,
     () => releasesApi.listByProject(projectFilter, page)
   );
 
   const { data: allReleasesData, isLoading: allLoading } = useSWR(
-    projectFilter === "all" && projectsData
-      ? ["all-releases", page]
-      : null,
-    async () => {
-      if (!projectsData?.data?.length) return [];
-      const results = await Promise.all(
-        projectsData.data.map((p: Project) =>
-          releasesApi.listByProject(p.id, page).catch(() => null)
-        )
-      );
-      return results
-        .filter((r): r is NonNullable<typeof r> => r !== null)
-        .flatMap((r) => r.data)
-        .sort(
-          (a, b) =>
-            new Date(b.released_at ?? b.created_at).getTime() - new Date(a.released_at ?? a.created_at).getTime()
-        );
-    }
+    projectFilter === "all" ? ["all-releases", page] : null,
+    () => releasesApi.list(page)
   );
 
   const isLoading = projectFilter !== "all" ? scopedLoading : allLoading;
@@ -110,7 +94,7 @@ export default function ReleasesPage() {
   const rawReleases: Release[] =
     projectFilter !== "all"
       ? scopedData?.data ?? []
-      : allReleasesData ?? [];
+      : allReleasesData?.data ?? [];
 
   const releases: ReleaseRow[] = rawReleases.map((r) => {
     const info = sourceMap?.get(r.source_id);
@@ -124,7 +108,8 @@ export default function ReleasesPage() {
   });
 
   /* Pagination math */
-  const total = projectFilter !== "all" ? (scopedData?.meta?.total ?? 0) : releases.length;
+  const activeData = projectFilter !== "all" ? scopedData : allReleasesData;
+  const total = activeData?.meta?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
   const startRow = (page - 1) * PER_PAGE + 1;
   const endRow = Math.min(page * PER_PAGE, total);

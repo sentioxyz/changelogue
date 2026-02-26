@@ -77,6 +77,8 @@ export const sources = {
 // --- Releases ---
 
 export const releases = {
+  list: (page = 1, perPage = 25) =>
+    request<ApiResponse<Release[]>>(`/releases?page=${page}&per_page=${perPage}`),
   listBySource: (sourceId: string, page = 1) =>
     request<ApiResponse<Release[]>>(`/sources/${sourceId}/releases?page=${page}`),
   listByProject: (projectId: string, page = 1, perPage = 25) =>
