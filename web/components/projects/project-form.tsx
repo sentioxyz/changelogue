@@ -6,44 +6,57 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Project, ProjectInput } from "@/lib/api/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Project, ProjectInput, SourceInput } from "@/lib/api/types";
+import { Plus, X } from "lucide-react";
+
+export interface ProjectFormResult {
+  project: ProjectInput;
+  source?: SourceInput;
+}
 
 interface ProjectFormProps {
   initial?: Project;
-  onSubmit: (input: ProjectInput) => Promise<void>;
+  onSubmit: (result: ProjectFormResult) => Promise<void>;
   title: string;
+  /** Hide the source section (used in edit mode) */
+  hideSource?: boolean;
 }
 
-export function ProjectForm({ initial, onSubmit, title }: ProjectFormProps) {
+export function ProjectForm({ initial, onSubmit, title, hideSource }: ProjectFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [agentPrompt, setAgentPrompt] = useState(initial?.agent_prompt ?? "");
-  const [onMajor, setOnMajor] = useState(initial?.agent_rules?.on_major_release ?? true);
-  const [onMinor, setOnMinor] = useState(initial?.agent_rules?.on_minor_release ?? false);
-  const [onSecurity, setOnSecurity] = useState(initial?.agent_rules?.on_security_patch ?? true);
-  const [versionPattern, setVersionPattern] = useState(initial?.agent_rules?.version_pattern ?? "");
   const [error, setError] = useState("");
+
+  /* Source fields (only for create) */
+  const [showSource, setShowSource] = useState(false);
+  const [provider, setProvider] = useState("github");
+  const [repository, setRepository] = useState("");
+  const [pollInterval, setPollInterval] = useState("300");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSaving(true);
     try {
-      await onSubmit({
-        name,
-        description: description || undefined,
-        agent_prompt: agentPrompt || undefined,
-        agent_rules: {
-          on_major_release: onMajor,
-          on_minor_release: onMinor,
-          on_security_patch: onSecurity,
-          version_pattern: versionPattern || undefined,
+      const result: ProjectFormResult = {
+        project: {
+          name,
+          description: description || undefined,
         },
-      });
+      };
+      if (showSource && repository.trim()) {
+        result.source = {
+          provider,
+          repository: repository.trim(),
+          poll_interval_seconds: Number(pollInterval) || 300,
+          enabled: true,
+        };
+      }
+      await onSubmit(result);
       router.push("/projects");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save");
@@ -68,43 +81,66 @@ export function ProjectForm({ initial, onSubmit, title }: ProjectFormProps) {
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="agent_prompt">Agent Prompt</Label>
-            <Textarea
-              id="agent_prompt"
-              value={agentPrompt}
-              onChange={(e) => setAgentPrompt(e.target.value)}
-              rows={6}
-              placeholder="Custom instructions for the agent when analyzing releases for this project..."
-              className="font-mono text-sm"
-            />
-          </div>
-          <div className="space-y-3">
-            <Label>Agent Rules</Label>
-            <div className="rounded-md border p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <Switch checked={onMajor} onCheckedChange={setOnMajor} />
-                <Label>Trigger on major releases</Label>
-              </div>
-              <div className="flex items-center gap-3">
-                <Switch checked={onMinor} onCheckedChange={setOnMinor} />
-                <Label>Trigger on minor releases</Label>
-              </div>
-              <div className="flex items-center gap-3">
-                <Switch checked={onSecurity} onCheckedChange={setOnSecurity} />
-                <Label>Trigger on security patches</Label>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="version_pattern">Version Pattern (regex, optional)</Label>
-                <Input
-                  id="version_pattern"
-                  value={versionPattern}
-                  onChange={(e) => setVersionPattern(e.target.value)}
-                  placeholder='e.g. ^v\d+\.\d+\.\d+$'
-                />
-              </div>
+
+          {/* Optional source section — only in create mode */}
+          {!hideSource && (
+            <div className="space-y-3">
+              {!showSource ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSource(true)}
+                  className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors hover:opacity-80"
+                  style={{ color: "#e8601a" }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add a Source
+                </button>
+              ) : (
+                <div className="rounded-md border p-4 space-y-3" style={{ borderColor: "#e8e8e5" }}>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[13px] font-medium">Add a Source</Label>
+                    <button
+                      type="button"
+                      onClick={() => { setShowSource(false); setRepository(""); }}
+                      className="text-[#9ca3af] hover:text-[#6b7280]"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Provider</Label>
+                    <Select value={provider} onValueChange={setProvider}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="github">GitHub</SelectItem>
+                        <SelectItem value="dockerhub">Docker Hub</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="repository">Repository</Label>
+                    <Input
+                      id="repository"
+                      value={repository}
+                      onChange={(e) => setRepository(e.target.value)}
+                      placeholder="e.g. ethereum/go-ethereum"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="poll_interval">Poll Interval (seconds)</Label>
+                    <Input
+                      id="poll_interval"
+                      type="number"
+                      min={60}
+                      value={pollInterval}
+                      onChange={(e) => setPollInterval(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
             <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
