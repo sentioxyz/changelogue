@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "3445eb24242d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CLAUDE.md",
+    "cmd/server/main.go",
+    "internal/agent/model.go",
+    "internal/agent/openai/openai.go",
+    "internal/agent/orchestrator.go",
+    "internal/agent/orchestrator_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/34/45eb24242d/0/metadata.json",
+      "transcript": "/34/45eb24242d/0/full.jsonl",
+      "context": "/34/45eb24242d/0/context.md",
+      "content_hash": "/34/45eb24242d/0/content_hash.txt",
+      "prompt": "/34/45eb24242d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12775364,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 23252,
+    "api_call_count": 116
+  }
+}
