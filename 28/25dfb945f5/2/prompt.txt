@@ -1,0 +1,58 @@
+Implement the following plan:
+
+# Consolidate Semantic Releases Views
+
+## Context
+There are two places showing a project's semantic releases: a "Semantic Releases" tab inside the project detail page (`project-detail.tsx`) and a standalone page at `/projects/[id]/semantic-releases`. They show the same data with different styling. The standalone page uses generic shadcn components (Card, Badge, Button) which is inconsistent with the flat design system used everywhere else. We need to remove the tab from the project detail page and restyle the standalone page to match.
+
+## Changes
+
+### 1. Remove the "Semantic Releases" tab from the project detail page
+**File:** `web/components/projects/project-detail.tsx`
+- Remove `"semantic"` from the `tabs` array (line 30)
+- Remove the `srApi` import and `srData` SWR fetch (lines 11, 118-121)
+- Remove the `UrgencyChip` component and `URGENCY_COLORS` constant (lines 59-78)
+- Remove the entire `{activeTab === "semantic" && ...}` block (lines 557-599)
+
+### 2. Restyle the standalone semantic releases list page
+**File:** `web/components/semantic-releases/semantic-releases-list.tsx`
+- Replace shadcn imports (Card, Badge, Button) with inline styles matching the flat design system
+- Use the existing `VersionChip` component from `@/components/ui/version-chip`
+- Follow the design patterns from releases list page:
+  - Fraunces serif for headings (`fontSize: "24px"`, `fontWeight: 700`, `color: "#111113"`)
+  - DM Sans for body text
+  - Back link using `ArrowLeft` icon + inline style (color `#6b7280`, fontSize `13px`)
+  - Card-style list items with `border: 1px solid #e8e8e5`, `hover:bg-[#fafaf9]`
+  - Status displayed as colored text (green `#16a34a` for completed, orange `#e8601a` otherwise)
+  - Urgency chips matching the pattern in the current project-detail.tsx
+  - Empty state: centered Fraunces italic text
+  - Delete button per row (Trash2 icon, red hover)
+
+### 3. Already done: Fix "View all" link
+**File:** `web/app/projects/page.tsx` (already fixed)
+- "View all" in Semantic Releases section now correctly points to `/projects/${projectId}/semantic-releases`
+
+## Files Modified
+- `web/components/projects/project-detail.tsx` — remove semantic tab + related code
+- `web/components/semantic-releases/semantic-releases-list.tsx` — full restyle to flat design
+
+## Verification
+- Navigate to `/projects` and click "View all" on semantic releases section — should go to `/projects/[id]/semantic-releases`
+- The standalone semantic releases page should match the visual style of the releases list page
+- Project detail page should no longer have a "Semantic Releases" tab (only Sources, Context Sources, Agent)
+- Individual semantic release links should still work: `/projects/[id]/semantic-releases/[srId]`
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+
+---
+
+Commit change
+
+---
+
+In the dashboard page, click "view all" for semantic releases jumps to the projects page, should we change the standalone per-project semantic releases page into releases page like implementation, so that "view all" can go there, remember the semantic release detail page's head needs to be updated as well
+
+---
+
+[Request interrupted by user for tool use]
