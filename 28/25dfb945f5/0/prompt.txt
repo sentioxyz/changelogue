@@ -1,0 +1,110 @@
+Implement the following plan:
+
+# Top-level Semantic Releases Page
+
+## Context
+The dashboard "View all" link for semantic releases currently points to `/projects/[id]/semantic-releases`, a per-project page. We want a top-level `/semantic-releases` page (like the existing `/releases` page) that shows all semantic releases across projects with a project filter dropdown. The dashboard "View all" links to `/semantic-releases?project={id}`. The semantic release detail page breadcrumb also needs updating to link back to `/semantic-releases`.
+
+## Changes
+
+### 1. Backend: Add `ListAllSemanticReleases` endpoint
+
+**`internal/api/semantic_releases.go`** — Add `ListAllSemanticReleases` to the store interface and a `ListAll` handler method
+- Add `ListAllSemanticReleases(ctx, page, perPage) ([]models.SemanticRelease, int, error)` to `SemanticReleasesStore` interface
+- Add `ListAll` handler: `GET /api/v1/semantic-releases` → calls `ListAllSemanticReleases()`
+- Pattern: copy from `releases.go` `List` handler
+
+**`internal/api/pgstore.go`** — Implement `ListAllSemanticReleases`
+- `SELECT COUNT(*) FROM semantic_releases` for total
+- `SELECT ... FROM semantic_releases ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+- Pattern: copy from existing `ListSemanticReleases`, remove `WHERE project_id = $1`
+
+**`internal/api/server.go`** — Register the new route
+- Add `mux.Handle("GET /api/v1/semantic-releases", chain(http.HandlerFunc(semanticReleases.ListAll)))` before the `{id}` routes
+
+**`internal/api/semantic_releases_test.go`** — Update mock + add test
+- Add `ListAllSemanticReleases` to `mockSemanticReleasesStore`
+- Register `GET /semantic-releases` in `setupSemanticReleasesMux`
+- Add `TestSemanticReleasesHandlerListAll` test
+
+### 2. Frontend API client: Add `listAll`
+
+**`web/lib/api/client.ts`** — Add to `semanticReleases` object:
+```ts
+listAll: (page = 1, perPage = 25) =>
+  request<ApiResponse<SemanticRelease[]>>(`/semantic-releases?page=${page}&per_page=${perPage}`),
+```
+
+### 3. New top-level `/semantic-releases` page (mirrors `/releases`)
+
+**`web/app/semantic-releases/page.tsx`** — New route page (thin wrapper)
+
+**`web/components/semantic-releases/semantic-releases-list.tsx`** — Rewrite to match releases page pattern:
+- Accept optional `initialProject` from `?project=` query param (via `useSearchParams`)
+- Project filter dropdown (fetch all projects, "All Projects" default)
+- Two SWR calls: `srApi.listAll()` for all, `srApi.list(projectId)` for filtered
+- Table or card rows with: project name, version (VersionChip), status (colored text), urgency chip, age, delete button
+- Pagination (Previous/Next, N–M of total)
+- Empty state: centered Fraunces italic
+- No back link (it's a top-level page now)
+
+### 4. Update dashboard "View all" link
+
+**`web/app/projects/page.tsx`** — Change link:
+- From: `/projects/${projectId}/semantic-releases`
+- To: `/semantic-releases?project=${projectId}`
+
+### 5. Update semantic release detail page breadcrumb
+
+**`web/components/semantic-releases/semantic-release-detail.tsx`** — Update breadcrumb and delete redirect:
+- "Semantic Releases" breadcrumb link: `/semantic-releases?project=${projectId}` (instead of `/projects/${projectId}/semantic-releases`)
+- `handleDelete` redirect: `/semantic-releases?project=${projectId}` (instead of `/projects/${projectId}/semantic-releases`)
+
+### 6. Add sidebar nav entry
+
+**`web/components/layout/sidebar.tsx`** — Add nav item:
+- `{ href: "/semantic-releases", label: "Semantic Releases", icon: Brain }` after Releases
+- Import `Brain` from lucide-react
+
+### 7. Delete old per-project route
+
+**`web/app/projects/[id]/semantic-releases/page.tsx`** — Delete this file
+- The detail route `web/app/projects/[id]/semantic-releases/[srId]/page.tsx` stays (linked from agent runs)
+
+## Files Modified
+1. `internal/api/semantic_releases.go` — interface + ListAll handler
+2. `internal/api/pgstore.go` — ListAllSemanticReleases implementation
+3. `internal/api/server.go` — register GET /api/v1/semantic-releases
+4. `internal/api/semantic_releases_test.go` — mock + test for ListAll
+5. `web/lib/api/client.ts` — add `listAll` method
+6. `web/app/semantic-releases/page.tsx` — new route page
+7. `web/components/semantic-releases/semantic-releases-list.tsx` — full rewrite
+8. `web/app/projects/page.tsx` — update "View all" link
+9. `web/components/semantic-releases/semantic-release-detail.tsx` — update breadcrumb + delete redirect
+10. `web/components/layout/sidebar.tsx` — add nav entry
+11. `web/app/projects/[id]/semantic-releases/page.tsx` — delete
+
+## Verification
+- `go test ./internal/api/...` — all tests pass including new ListAll test
+- `npx tsc --noEmit` — no type errors
+- Dashboard "View all" → `/semantic-releases?project=...` → shows filtered list
+- Filter dropdown → "All Projects" shows everything, specific project filters correctly
+- Pagination works
+- Delete button works with confirmation dialog
+- Click a row → detail page, breadcrumb links back to `/semantic-releases?project=...`
+- Sidebar shows "Semantic Releases" entry, active state highlights correctly
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+
+---
+
+Click "view all" in the semantic releases in the dashboard page doesn't go to the semantic releases page
+
+---
+
+in the semantic release detail page, should have a Back to semantic releases similar to release detail page
+
+---
+
+but it automatically filter by project id, I think we should let what it is, if the previous show all the projects' semantic releases, then we should sho all

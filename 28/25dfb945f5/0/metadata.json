@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "2825dfb945f5",
+  "session_id": "001d3525-6897-4e35-b5e7-2fd70a0a5d29",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-26T14:02:44.997037Z",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "docs/plans/2026-02-26-adk-web-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "8ccc88351f74",
+  "token_usage": {
+    "input_tokens": 8094736,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 15977,
+    "api_call_count": 82
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-26T14:02:44.738546Z",
+    "agent_lines": 0,
+    "human_added": 77,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 77,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/001d3525-6897-4e35-b5e7-2fd70a0a5d29.jsonl"
+}
