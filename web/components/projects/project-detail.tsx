@@ -8,7 +8,6 @@ import {
   projects as projectsApi,
   sources as sourcesApi,
   contextSources as ctxApi,
-  semanticReleases as srApi,
   agent as agentApi,
 } from "@/lib/api/client";
 import type { AgentRules, Source } from "@/lib/api/types";
@@ -18,7 +17,6 @@ import { SourceForm } from "@/components/sources/source-form";
 import { NewContextSourceForm } from "@/components/context-sources/new-context-source-form";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { StatusDot } from "@/components/ui/status-dot";
-import { VersionChip } from "@/components/ui/version-chip";
 import { SectionLabel } from "@/components/ui/section-label";
 import { Pencil, Trash2, Play, Plus } from "lucide-react";
 
@@ -27,7 +25,6 @@ import { Pencil, Trash2, Play, Plus } from "lucide-react";
 const tabs = [
   { key: "sources", label: "Sources" },
   { key: "context", label: "Context Sources" },
-  { key: "semantic", label: "Semantic Releases" },
   { key: "agent", label: "Agent" },
 ] as const;
 
@@ -54,27 +51,6 @@ function formatInterval(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
   if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
   return `${(seconds / 3600).toFixed(1)}h`;
-}
-
-/* ---------- Urgency chip ---------- */
-
-const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
-  critical: { bg: "#dc2626", text: "#ffffff" },
-  high: { bg: "#f97316", text: "#ffffff" },
-};
-
-function UrgencyChip({ urgency }: { urgency: string }) {
-  const u = urgency.toLowerCase();
-  const style = URGENCY_COLORS[u];
-  if (!style) return null;
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-none"
-      style={{ backgroundColor: style.bg, color: style.text }}
-    >
-      {urgency}
-    </span>
-  );
 }
 
 /* ---------- Main component ---------- */
@@ -114,10 +90,6 @@ export function ProjectDetail({ id }: { id: string }) {
   const { data: ctxData, mutate: mutateCtx } = useSWR(
     activeTab === "context" ? `project-${id}-ctx` : null,
     () => ctxApi.list(id),
-  );
-  const { data: srData } = useSWR(
-    activeTab === "semantic" ? `project-${id}-sr` : null,
-    () => srApi.list(id),
   );
   const { data: runsData, mutate: mutateRuns } = useSWR(
     activeTab === "agent" ? `project-${id}-runs` : null,
@@ -549,50 +521,6 @@ export function ProjectDetail({ id }: { id: string }) {
                 style={{ borderColor: "#e8e8e5", color: "#9ca3af" }}
               >
                 No context sources configured
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* --- Semantic Releases tab --- */}
-        {activeTab === "semantic" && (
-          <div>
-            <SectionLabel className="mb-4">Semantic Releases</SectionLabel>
-
-            {srData?.data && srData.data.length > 0 ? (
-              <div className="space-y-3">
-                {srData.data.map((sr) => (
-                  <Link
-                    key={sr.id}
-                    href={`/projects/${id}/semantic-releases/${sr.id}`}
-                    className="block rounded-md border p-4 transition-colors hover:bg-[#fafaf9]"
-                    style={{ borderColor: "#e8e8e5" }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <VersionChip version={sr.version} />
-                      <StatusDot status={sr.status} />
-                      <span className="text-[13px]" style={{ color: "#6b7280" }}>
-                        {sr.status}
-                      </span>
-                      {sr.report?.urgency && <UrgencyChip urgency={sr.report.urgency} />}
-                    </div>
-                    {sr.report?.summary && (
-                      <p
-                        className="mt-2 text-[13px] italic leading-relaxed"
-                        style={{ color: "#6b7280" }}
-                      >
-                        {truncate(sr.report.summary, 200)}
-                      </p>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div
-                className="flex h-32 items-center justify-center rounded-md border text-[13px]"
-                style={{ borderColor: "#e8e8e5", color: "#9ca3af" }}
-              >
-                No semantic releases yet
               </div>
             )}
           </div>
