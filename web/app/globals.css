@@ -15,6 +15,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: #ffffff;
+  --color-popover-foreground: #111113;
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -54,6 +56,8 @@
   --text-muted: #9ca3af;
 
   /* shadcn variable mappings */
+  --popover: #ffffff;
+  --popover-foreground: #111113;
   --card: #ffffff;
   --card-foreground: #111113;
   --primary: #e8601a;
