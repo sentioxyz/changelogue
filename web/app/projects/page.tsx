@@ -7,11 +7,12 @@ import {
   projects as projectsApi,
   releases as releasesApi,
   sources as sourcesApi,
+  semanticReleases as srApi,
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
 import { Plus, X, Pencil, Check } from "lucide-react";
-import type { Project, Source, Release } from "@/lib/api/types";
+import type { Project, Source } from "@/lib/api/types";
 
 /* ---------- Inline Add Source Form ---------- */
 
@@ -40,7 +41,6 @@ function InlineSourceForm({
         poll_interval_seconds: Number(pollInterval) || 300,
         enabled: true,
       });
-      // Revalidate sources for this project
       mutate(`project-${projectId}-card-sources`);
       onDone();
     } catch (err: unknown) {
@@ -112,10 +112,7 @@ function SourcesSection({ projectId }: { projectId: string }) {
   const sources = data?.data ?? [];
 
   return (
-    <div
-      className="border-t px-4 py-3"
-      style={{ borderColor: "#e8e8e5" }}
-    >
+    <div className="px-4 py-3 md:border-r" style={{ borderColor: "#e8e8e5" }}>
       <div className="flex items-center justify-between mb-1">
         <span
           className="text-[11px] font-medium uppercase tracking-[0.08em]"
@@ -207,7 +204,7 @@ function RecentReleasesSection({ projectId }: { projectId: string }) {
   for (const s of sources) sourceMap.set(s.id, s);
 
   return (
-    <div className="border-t px-4 py-3" style={{ borderColor: "#e8e8e5" }}>
+    <div className="border-t md:border-t-0 md:border-r px-4 py-3" style={{ borderColor: "#e8e8e5" }}>
       <span
         className="text-[11px] font-medium uppercase tracking-[0.08em] mb-1 block"
         style={{ color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}
@@ -265,6 +262,97 @@ function RecentReleasesSection({ projectId }: { projectId: string }) {
   );
 }
 
+/* ---------- Semantic Releases Section ---------- */
+
+const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
+  critical: { bg: "#dc2626", text: "#ffffff" },
+  high: { bg: "#f97316", text: "#ffffff" },
+};
+
+function SemanticReleasesSection({ projectId }: { projectId: string }) {
+  const { data } = useSWR(`project-${projectId}-card-sr`, () =>
+    srApi.list(projectId, 1, 3)
+  );
+  const items = data?.data ?? [];
+
+  return (
+    <div className="border-t md:border-t-0 px-4 py-3" style={{ borderColor: "#e8e8e5" }}>
+      <span
+        className="text-[11px] font-medium uppercase tracking-[0.08em] mb-1 block"
+        style={{ color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}
+      >
+        Semantic Releases
+      </span>
+
+      {items.length > 0 ? (
+        <div className="space-y-1">
+          {items.map((sr) => {
+            const urgencyStyle = sr.report?.urgency
+              ? URGENCY_COLORS[sr.report.urgency.toLowerCase()]
+              : undefined;
+            return (
+              <Link
+                key={sr.id}
+                href={`/projects/${projectId}/semantic-releases/${sr.id}`}
+                className="flex items-center gap-2 text-[12px] transition-colors hover:bg-[#fafaf9] rounded px-1 -mx-1 py-0.5"
+              >
+                <span
+                  className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none"
+                  style={{
+                    backgroundColor: "#eff6ff",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    color: "#1d4ed8",
+                  }}
+                >
+                  {sr.version}
+                </span>
+                <span
+                  className="text-[11px]"
+                  style={{ color: "#9ca3af" }}
+                >
+                  {sr.status}
+                </span>
+                {urgencyStyle && (
+                  <span
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none"
+                    style={{ backgroundColor: urgencyStyle.bg, color: urgencyStyle.text }}
+                  >
+                    {sr.report!.urgency}
+                  </span>
+                )}
+                {sr.report?.summary && (
+                  <span
+                    className="text-[11px] truncate flex-1"
+                    style={{ color: "#c4c4c0" }}
+                  >
+                    {sr.report.summary.length > 60
+                      ? sr.report.summary.slice(0, 60) + "\u2026"
+                      : sr.report.summary}
+                  </span>
+                )}
+                <span className="ml-auto text-[11px] shrink-0" style={{ color: "#c4c4c0" }}>
+                  {timeAgo(sr.completed_at || sr.created_at)}
+                </span>
+              </Link>
+            );
+          })}
+          <Link
+            href={`/projects/${projectId}`}
+            className="block text-[11px] mt-1 hover:underline"
+            style={{ color: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
+          >
+            View all &rarr;
+          </Link>
+        </div>
+      ) : (
+        <p className="text-[12px] italic" style={{ color: "#c4c4c0" }}>
+          No semantic releases yet
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Project Card ---------- */
 
 function ProjectCard({ project }: { project: Project }) {
@@ -298,7 +386,7 @@ function ProjectCard({ project }: { project: Project }) {
 
   return (
     <div
-      className="overflow-hidden rounded-md max-w-2xl"
+      className="overflow-hidden rounded-md"
       style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
     >
       {/* Header */}
@@ -349,7 +437,7 @@ function ProjectCard({ project }: { project: Project }) {
             </div>
           </div>
         ) : (
-          <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <Link
                 href={`/projects/${project.id}`}
@@ -369,7 +457,7 @@ function ProjectCard({ project }: { project: Project }) {
             </div>
             <button
               onClick={() => setEditing(true)}
-              className="ml-2 shrink-0 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[12px] font-medium transition-colors hover:bg-[#f3f3f1]"
+              className="shrink-0 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[12px] font-medium transition-colors hover:bg-[#f3f3f1]"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 borderColor: "#e8e8e5",
@@ -383,11 +471,12 @@ function ProjectCard({ project }: { project: Project }) {
         )}
       </div>
 
-      {/* Sources */}
-      <SourcesSection projectId={project.id} />
-
-      {/* Recent Releases */}
-      <RecentReleasesSection projectId={project.id} />
+      {/* Content columns: sources | recent releases | semantic releases */}
+      <div className="grid grid-cols-1 md:grid-cols-3 border-t" style={{ borderColor: "#e8e8e5" }}>
+        <SourcesSection projectId={project.id} />
+        <RecentReleasesSection projectId={project.id} />
+        <SemanticReleasesSection projectId={project.id} />
+      </div>
     </div>
   );
 }
