@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "6886dbb87914",
+  "session_id": "8f4d8a08-9d26-47fe-ba37-221d95afb411",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-26T12:45:48.98436Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/plans/2026-02-26-flat-ui-implementation.md",
+    "web/components/ui/confirm-dialog.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "4ee8c745132e",
+  "transcript_identifier_at_start": "f3426517-5ec9-46c2-878a-dab52c9e14af",
+  "checkpoint_transcript_start": 159,
+  "transcript_lines_at_start": 159,
+  "token_usage": {
+    "input_tokens": 2304576,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 5649,
+    "api_call_count": 24
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-26T12:45:48.633975Z",
+    "agent_lines": 1321,
+    "human_added": 822,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 2143,
+    "agent_percentage": 61.6425571628558
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/8f4d8a08-9d26-47fe-ba37-221d95afb411.jsonl"
+}
