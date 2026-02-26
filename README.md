@@ -1,6 +1,6 @@
-# Changelogue
-
-Agent-driven release intelligence — polls upstream registries, routes notifications, and uses LLM agents to produce semantic release reports.
+<p align="center">
+  <img src="docs/banner.svg" alt="Changelogue — what changed, and why it matters." width="800" />
+</p>
 
 ## What it does
 

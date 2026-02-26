@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#09090b" />
+      <stop offset="100%" stop-color="#18181b" />
+    </linearGradient>
+
+    <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8601a" /> <stop offset="100%" stop-color="#f59e0b" /> </linearGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="heavyGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="24" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#71717a" />
+    </marker>
+
+    <marker id="arrowBrand" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+    </marker>
+
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#27272a" stroke-width="0.5" stroke-opacity="0.5" />
+    </pattern>
+  </defs>
+
+  <rect width="800" height="400" fill="url(#bgGradient)" />
+  <rect width="800" height="400" fill="url(#grid)" />
+
+  <circle cx="400" cy="230" r="120" fill="url(#brandGradient)" opacity="0.06" filter="url(#heavyGlow)" />
+
+  <!-- Title -->
+  <g text-anchor="middle" font-family="system-ui, -apple-system, sans-serif">
+    <text x="400" y="65" font-size="44" font-weight="800" letter-spacing="-1">
+      <tspan fill="#ffffff">Change</tspan>
+      <tspan fill="url(#brandGradient)">logue</tspan>
+    </text>
+    <text x="400" y="95" font-size="16" font-weight="400" fill="#a1a1aa" letter-spacing="0.5">
+      What changed, and why it matters.
+    </text>
+    <circle cx="550" cy="45" r="4" fill="#e8601a" filter="url(#glow)" />
+  </g>
+
+  <!-- ── Registries (left) ── -->
+  <g transform="translate(60, 160)">
+    <rect width="140" height="130" rx="12" fill="#18181b" stroke="#27272a" stroke-width="1.5" />
+    <text x="70" y="25" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#e4e4e7">Registries</text>
+
+    <g transform="translate(15, 42)">
+      <rect width="110" height="22" rx="4" fill="#27272a" />
+      <circle cx="15" cy="11" r="4" fill="#ef4444" />
+      <text x="28" y="14" font-family="system-ui" font-size="10" fill="#a1a1aa">Docker Hub</text>
+    </g>
+    <g transform="translate(15, 70)">
+      <rect width="110" height="22" rx="4" fill="#27272a" />
+      <circle cx="15" cy="11" r="4" fill="#3b82f6" />
+      <text x="28" y="14" font-family="system-ui" font-size="10" fill="#a1a1aa">GitHub</text>
+    </g>
+    <g transform="translate(15, 98)">
+      <rect width="110" height="22" rx="4" fill="#27272a" />
+      <circle cx="15" cy="11" r="4" fill="#71717a" />
+      <text x="28" y="14" font-family="system-ui" font-size="10" fill="#52525b">npm, PyPI …</text>
+    </g>
+  </g>
+
+  <!-- Arrow: Registries → Changelogue -->
+  <line x1="205" y1="227" x2="280" y2="227" stroke="#71717a" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrowGray)" />
+
+  <!-- ── Changelogue core (center) ── -->
+  <g transform="translate(285, 155)">
+    <rect width="200" height="145" rx="12" fill="url(#brandGradient)" filter="url(#glow)" opacity="0.12" />
+    <rect width="200" height="145" rx="12" fill="#18181b" stroke="url(#brandGradient)" stroke-width="1.5" />
+
+    <text x="100" y="28" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#e4e4e7">Changelogue</text>
+
+    <!-- Agent icon -->
+    <g transform="translate(100, 75)">
+      <circle cx="0" cy="0" r="28" fill="url(#brandGradient)" opacity="0.2" filter="url(#glow)" />
+      <path d="M 0 -20 Q 0 0 -20 0 Q 0 0 0 20 Q 0 0 20 0 Q 0 0 0 -20 Z" fill="url(#brandGradient)" />
+      <path d="M 0 -10 Q 0 0 -10 0 Q 0 0 0 10 Q 0 0 10 0 Q 0 0 0 -10 Z" fill="#ffffff" />
+      <ellipse cx="0" cy="0" rx="30" ry="9" fill="none" stroke="#e8601a" stroke-width="0.8" opacity="0.4" transform="rotate(30)" />
+      <ellipse cx="0" cy="0" rx="30" ry="9" fill="none" stroke="#f59e0b" stroke-width="0.8" opacity="0.4" transform="rotate(-30)" />
+    </g>
+
+    <text x="100" y="120" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="400" fill="#71717a">detect · analyze · notify</text>
+  </g>
+
+  <!-- Arrow: Changelogue → Semantic Reports -->
+  <path d="M 490 200 C 520 200, 530 170, 565 170" fill="none" stroke="url(#brandGradient)" stroke-width="1.5" marker-end="url(#arrowBrand)" />
+
+  <!-- Arrow: Changelogue → Notifications -->
+  <path d="M 490 255 C 520 255, 530 285, 565 285" fill="none" stroke="url(#brandGradient)" stroke-width="1.5" marker-end="url(#arrowBrand)" />
+
+  <!-- ── Semantic Reports (top-right) ── -->
+  <g transform="translate(570, 125)">
+    <rect width="165" height="90" rx="12" fill="#18181b" stroke="#27272a" stroke-width="1.5" />
+
+    <text x="14" y="24" font-family="system-ui" font-size="12" font-weight="700" fill="#e4e4e7">Semantic Reports</text>
+
+    <rect x="14" y="38" width="100" height="6" rx="3" fill="#3f3f46" />
+    <rect x="14" y="52" width="80" height="6" rx="3" fill="#3f3f46" />
+    <rect x="14" y="66" width="60" height="6" rx="3" fill="#3f3f46" />
+
+    <rect x="105" y="62" width="40" height="14" rx="4" fill="#10b981" opacity="0.2" />
+    <text x="125" y="72" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="800" fill="#10b981">v2.1.0</text>
+
+    <path d="M 135 18 L 142 26 L 152 14" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- ── Notifications (bottom-right) ── -->
+  <g transform="translate(570, 240)">
+    <rect width="165" height="90" rx="12" fill="#18181b" stroke="#27272a" stroke-width="1.5" />
+
+    <text x="14" y="24" font-family="system-ui" font-size="12" font-weight="700" fill="#e4e4e7">Notifications</text>
+
+    <g transform="translate(14, 42)">
+      <circle cx="14" cy="14" r="12" fill="#5865F2" opacity="0.9" />
+      <path d="M 9 14 L 12 17 L 18 10" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+      <circle cx="47" cy="14" r="12" fill="#ef4444" opacity="0.9" />
+      <path d="M 41 11 L 47 15 L 53 11" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <rect x="41" y="10" width="12" height="8" rx="1" fill="none" stroke="#ffffff" stroke-width="1.5" />
+
+      <circle cx="80" cy="14" r="12" fill="#3b82f6" opacity="0.9" />
+      <circle cx="80" cy="14" r="4" fill="none" stroke="#ffffff" stroke-width="1.5" />
+      <path d="M 80 10 L 80 6 M 80 18 L 80 22 M 76 14 L 72 14 M 84 14 L 88 14" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+    </g>
+
+    <circle cx="150" cy="14" r="6" fill="#ef4444" filter="url(#glow)" />
+    <text x="150" y="17" text-anchor="middle" font-family="system-ui" font-size="8" font-weight="bold" fill="#ffffff">3</text>
+  </g>
+
+  <!-- ── Dashboard (bottom-center) ── -->
+  <g transform="translate(310, 330)">
+    <rect width="150" height="36" rx="8" fill="#18181b" stroke="#27272a" stroke-width="1.5" />
+    <text x="75" y="16" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#e4e4e7">Dashboard</text>
+    <text x="75" y="29" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="400" fill="#71717a">real-time updates</text>
+  </g>
+
+  <!-- Arrow: Changelogue → Dashboard -->
+  <line x1="385" y1="302" x2="385" y2="326" stroke="#52525b" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arrowGray)" />
+
+</svg>
