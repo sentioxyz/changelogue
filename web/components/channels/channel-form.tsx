@@ -27,9 +27,11 @@ interface ChannelFormProps {
   initial?: NotificationChannel;
   onSubmit: (input: ChannelInput) => Promise<void>;
   title: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export function ChannelForm({ initial, onSubmit, title }: ChannelFormProps) {
+export function ChannelForm({ initial, onSubmit, title, onSuccess, onCancel }: ChannelFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -50,7 +52,11 @@ export function ChannelForm({ initial, onSubmit, title }: ChannelFormProps) {
     setSaving(true);
     try {
       await onSubmit({ type, name, config });
-      router.push("/channels");
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/channels");
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -58,41 +64,57 @@ export function ChannelForm({ initial, onSubmit, title }: ChannelFormProps) {
     }
   };
 
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      router.back();
+    }
+  };
+
+  const formContent = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      <div className="space-y-2">
+        <Label htmlFor="name">Name</Label>
+        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Engineering Releases" required />
+      </div>
+      <div className="space-y-2">
+        <Label>Type</Label>
+        <Select value={type} onValueChange={(v) => { setType(v); setConfig({}); }}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="slack">Slack</SelectItem>
+            <SelectItem value="pagerduty">PagerDuty</SelectItem>
+            <SelectItem value="webhook">Webhook</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {fields.map((field) => {
+        const key = field.label.toLowerCase().replace(/ /g, "_");
+        return (
+          <div key={key} className="space-y-2">
+            <Label htmlFor={key}>{field.label}</Label>
+            <Input id={key} value={String(config[key] ?? "")} onChange={(e) => handleConfigChange(field.label, e.target.value)} placeholder={field.placeholder} />
+          </div>
+        );
+      })}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+        <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+      </div>
+    </form>
+  );
+
+  if (onSuccess) {
+    return formContent;
+  }
+
   return (
     <Card className="mx-auto max-w-2xl">
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Engineering Releases" required />
-          </div>
-          <div className="space-y-2">
-            <Label>Type</Label>
-            <Select value={type} onValueChange={(v) => { setType(v); setConfig({}); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="slack">Slack</SelectItem>
-                <SelectItem value="pagerduty">PagerDuty</SelectItem>
-                <SelectItem value="webhook">Webhook</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {fields.map((field) => {
-            const key = field.label.toLowerCase().replace(/ /g, "_");
-            return (
-              <div key={key} className="space-y-2">
-                <Label htmlFor={key}>{field.label}</Label>
-                <Input id={key} value={String(config[key] ?? "")} onChange={(e) => handleConfigChange(field.label, e.target.value)} placeholder={field.placeholder} />
-              </div>
-            );
-          })}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
-          </div>
-        </form>
+        {formContent}
       </CardContent>
     </Card>
   );

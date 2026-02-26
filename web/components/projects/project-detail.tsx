@@ -11,7 +11,11 @@ import {
   semanticReleases as srApi,
   agent as agentApi,
 } from "@/lib/api/client";
-import type { AgentRules } from "@/lib/api/types";
+import type { AgentRules, Source } from "@/lib/api/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SourceForm } from "@/components/sources/source-form";
+import { NewContextSourceForm } from "@/components/context-sources/new-context-source-form";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { VersionChip } from "@/components/ui/version-chip";
@@ -93,6 +97,14 @@ export function ProjectDetail({ id }: { id: string }) {
   const nameRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLInputElement>(null);
 
+  /* Dialog state */
+  const [sourceCreateOpen, setSourceCreateOpen] = useState(false);
+  const [editingSource, setEditingSource] = useState<Source | null>(null);
+  const [deletingSourceId, setDeletingSourceId] = useState<string | null>(null);
+  const [ctxCreateOpen, setCtxCreateOpen] = useState(false);
+  const [deletingCtxId, setDeletingCtxId] = useState<string | null>(null);
+  const [deletingProject, setDeletingProject] = useState(false);
+
   /* Data fetching */
   const { data, isLoading, mutate: mutateProject } = useSWR(`project-${id}`, () => projectsApi.get(id));
   const { data: sourcesData, mutate: mutateSources } = useSWR(
@@ -154,12 +166,6 @@ export function ProjectDetail({ id }: { id: string }) {
   }, [editingDesc, saveDesc]);
 
   /* Handlers */
-  const handleDelete = async () => {
-    if (!confirm("Delete this project? This will cascade to sources and subscriptions.")) return;
-    await projectsApi.delete(id);
-    router.push("/projects");
-  };
-
   const handleTriggerRun = async () => {
     setTriggering(true);
     try {
@@ -168,18 +174,6 @@ export function ProjectDetail({ id }: { id: string }) {
     } finally {
       setTriggering(false);
     }
-  };
-
-  const handleDeleteSource = async (sourceId: string) => {
-    if (!confirm("Delete this source?")) return;
-    await sourcesApi.delete(sourceId);
-    mutateSources();
-  };
-
-  const handleDeleteCtx = async (ctxId: string) => {
-    if (!confirm("Delete this context source?")) return;
-    await ctxApi.delete(ctxId);
-    mutateCtx();
   };
 
   const handleToggleSource = async (source: { id: string; provider: string; repository: string; poll_interval_seconds: number; enabled: boolean; config?: Record<string, unknown> }) => {
@@ -322,7 +316,7 @@ export function ProjectDetail({ id }: { id: string }) {
           {/* Right: actions */}
           <div className="flex shrink-0 items-center gap-2 ml-4">
             <button
-              onClick={handleDelete}
+              onClick={() => setDeletingProject(true)}
               className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-red-50"
               style={{
                 fontFamily: "var(--font-dm-sans), sans-serif",
@@ -387,19 +381,18 @@ export function ProjectDetail({ id }: { id: string }) {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <SectionLabel>Sources</SectionLabel>
-              <Link href={`/projects/${id}/sources/new`}>
-                <button
-                  className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-[#f3f3f1]"
-                  style={{
-                    fontFamily: "var(--font-dm-sans), sans-serif",
-                    borderColor: "#e8e8e5",
-                    color: "#374151",
-                  }}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Source
-                </button>
-              </Link>
+              <button
+                onClick={() => setSourceCreateOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-[#f3f3f1]"
+                style={{
+                  fontFamily: "var(--font-dm-sans), sans-serif",
+                  borderColor: "#e8e8e5",
+                  color: "#374151",
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Source
+              </button>
             </div>
 
             {sourcesData?.data && sourcesData.data.length > 0 ? (
@@ -449,15 +442,15 @@ export function ProjectDetail({ id }: { id: string }) {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Link
-                              href={`/sources/${source.id}/edit`}
+                            <button
+                              onClick={() => setEditingSource(source)}
                               className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
                               title="Edit source"
                             >
                               <Pencil className="h-4 w-4" />
-                            </Link>
+                            </button>
                             <button
-                              onClick={() => handleDeleteSource(source.id)}
+                              onClick={() => setDeletingSourceId(source.id)}
                               className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
                               title="Delete source"
                             >
@@ -486,19 +479,18 @@ export function ProjectDetail({ id }: { id: string }) {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <SectionLabel>Context Sources</SectionLabel>
-              <Link href={`/projects/${id}/context-sources/new`}>
-                <button
-                  className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-[#f3f3f1]"
-                  style={{
-                    fontFamily: "var(--font-dm-sans), sans-serif",
-                    borderColor: "#e8e8e5",
-                    color: "#374151",
-                  }}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Context Source
-                </button>
-              </Link>
+              <button
+                onClick={() => setCtxCreateOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-[#f3f3f1]"
+                style={{
+                  fontFamily: "var(--font-dm-sans), sans-serif",
+                  borderColor: "#e8e8e5",
+                  color: "#374151",
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Context Source
+              </button>
             </div>
 
             {ctxData?.data && ctxData.data.length > 0 ? (
@@ -539,7 +531,7 @@ export function ProjectDetail({ id }: { id: string }) {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
-                            onClick={() => handleDeleteCtx(ctx.id)}
+                            onClick={() => setDeletingCtxId(ctx.id)}
                             className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
                             title="Delete context source"
                           >
@@ -766,6 +758,76 @@ export function ProjectDetail({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {/* Source create dialog */}
+      <Dialog open={sourceCreateOpen} onOpenChange={setSourceCreateOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Add Source</DialogTitle></DialogHeader>
+          <SourceForm
+            title="Add Source"
+            projectId={id}
+            onSubmit={async (input) => { await sourcesApi.create(id, input); }}
+            onSuccess={() => { setSourceCreateOpen(false); mutateSources(); }}
+            onCancel={() => setSourceCreateOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Source edit dialog */}
+      <Dialog open={!!editingSource} onOpenChange={(open) => { if (!open) setEditingSource(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Edit Source</DialogTitle></DialogHeader>
+          {editingSource && (
+            <SourceForm
+              key={editingSource.id}
+              title="Edit Source"
+              initial={editingSource}
+              onSubmit={async (input) => { await sourcesApi.update(editingSource.id, input); }}
+              onSuccess={() => { setEditingSource(null); mutateSources(); }}
+              onCancel={() => setEditingSource(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Source delete dialog */}
+      <ConfirmDialog
+        open={!!deletingSourceId}
+        onOpenChange={(open) => { if (!open) setDeletingSourceId(null); }}
+        title="Delete Source"
+        description="This will permanently delete this source and its releases."
+        onConfirm={async () => { if (deletingSourceId) { await sourcesApi.delete(deletingSourceId); mutateSources(); } }}
+      />
+
+      {/* Context source create dialog */}
+      <Dialog open={ctxCreateOpen} onOpenChange={setCtxCreateOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Add Context Source</DialogTitle></DialogHeader>
+          <NewContextSourceForm
+            projectId={id}
+            onSuccess={() => { setCtxCreateOpen(false); mutateCtx(); }}
+            onCancel={() => setCtxCreateOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Context source delete dialog */}
+      <ConfirmDialog
+        open={!!deletingCtxId}
+        onOpenChange={(open) => { if (!open) setDeletingCtxId(null); }}
+        title="Delete Context Source"
+        description="This will permanently delete this context source."
+        onConfirm={async () => { if (deletingCtxId) { await ctxApi.delete(deletingCtxId); mutateCtx(); } }}
+      />
+
+      {/* Project delete dialog */}
+      <ConfirmDialog
+        open={deletingProject}
+        onOpenChange={setDeletingProject}
+        title="Delete Project"
+        description="This will permanently delete this project, including all sources, releases, and subscriptions."
+        onConfirm={async () => { await projectsApi.delete(id); router.push("/projects"); }}
+      />
     </div>
   );
 }

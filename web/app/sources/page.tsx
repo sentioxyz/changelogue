@@ -1,11 +1,16 @@
 "use client";
 
-import useSWR from "swr";
+import { useState } from "react";
+import useSWR, { mutate } from "swr";
 import Link from "next/link";
+import { Pencil, Trash2 } from "lucide-react";
 import { projects as projectsApi, sources as sourcesApi } from "@/lib/api/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SourceForm } from "@/components/sources/source-form";
 import type { Source } from "@/lib/api/types";
 
 interface SourceWithProject extends Source {
@@ -28,6 +33,9 @@ export default function SourcesPage() {
       return results.flat() as SourceWithProject[];
     }
   );
+
+  const [editingSource, setEditingSource] = useState<SourceWithProject | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
@@ -63,13 +71,14 @@ export default function SourcesPage() {
                   <TableHead>Poll Interval</TableHead>
                   <TableHead>Last Polled</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(allSources ?? []).map((source) => (
                   <TableRow key={source.id}>
                     <TableCell>
-                      <Link href={`/sources/${source.id}/edit`} className="font-mono text-sm text-primary hover:underline">{source.repository}</Link>
+                      <span className="font-mono text-sm">{source.repository}</span>
                     </TableCell>
                     <TableCell><Badge variant="outline">{source.provider}</Badge></TableCell>
                     <TableCell>
@@ -86,6 +95,22 @@ export default function SourcesPage() {
                         <Badge variant={source.enabled ? "default" : "secondary"}>{source.enabled ? "active" : "disabled"}</Badge>
                       )}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setEditingSource(source)}
+                          className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingId(source.id)}
+                          className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -93,6 +118,32 @@ export default function SourcesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editingSource} onOpenChange={(open) => { if (!open) setEditingSource(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Edit Source</DialogTitle></DialogHeader>
+          {editingSource && (
+            <SourceForm
+              key={editingSource.id}
+              title="Edit Source"
+              initial={editingSource}
+              onSubmit={async (input) => { await sourcesApi.update(editingSource.id, input); }}
+              onSuccess={() => { setEditingSource(null); mutate("all-sources"); }}
+              onCancel={() => setEditingSource(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(open) => { if (!open) setDeletingId(null); }}
+        title="Delete Source"
+        description="This will permanently delete this source. This cannot be undone."
+        onConfirm={async () => { if (deletingId) { await sourcesApi.delete(deletingId); mutate("all-sources"); } }}
+      />
     </div>
   );
 }

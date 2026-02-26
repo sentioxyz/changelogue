@@ -17,9 +17,11 @@ interface SourceFormProps {
   onSubmit: (input: SourceInput) => Promise<void>;
   title: string;
   redirectTo?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export function SourceForm({ initial, onSubmit, title, redirectTo }: SourceFormProps) {
+export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, onCancel }: SourceFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -54,7 +56,11 @@ export function SourceForm({ initial, onSubmit, title, redirectTo }: SourceFormP
         enabled,
         config: parsedConfig,
       });
-      router.push(redirectTo ?? "/sources");
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push(redirectTo ?? "/sources");
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -62,50 +68,66 @@ export function SourceForm({ initial, onSubmit, title, redirectTo }: SourceFormP
     }
   };
 
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      router.back();
+    }
+  };
+
+  const formContent = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      <div className="space-y-2">
+        <Label>Provider</Label>
+        <Select value={provider} onValueChange={setProvider}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="dockerhub">Docker Hub</SelectItem>
+            <SelectItem value="github">GitHub</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="repository">Repository</Label>
+        <Input id="repository" value={repository} onChange={(e) => setRepository(e.target.value)} placeholder="e.g. library/golang or ethereum/go-ethereum" required />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="poll_interval">Poll Interval (seconds)</Label>
+        <Input id="poll_interval" type="number" min={60} value={pollInterval} onChange={(e) => setPollInterval(e.target.value)} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="config">Config (JSON, optional)</Label>
+        <Textarea
+          id="config"
+          value={configJson}
+          onChange={(e) => setConfigJson(e.target.value)}
+          rows={4}
+          className="font-mono text-sm"
+          placeholder="{}"
+        />
+      </div>
+      <div className="flex items-center gap-3">
+        <Switch checked={enabled} onCheckedChange={setEnabled} />
+        <Label>Enabled</Label>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+        <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+      </div>
+    </form>
+  );
+
+  if (onSuccess) {
+    return formContent;
+  }
+
   return (
     <Card className="mx-auto max-w-2xl">
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-          <div className="space-y-2">
-            <Label>Provider</Label>
-            <Select value={provider} onValueChange={setProvider}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dockerhub">Docker Hub</SelectItem>
-                <SelectItem value="github">GitHub</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="repository">Repository</Label>
-            <Input id="repository" value={repository} onChange={(e) => setRepository(e.target.value)} placeholder="e.g. library/golang or ethereum/go-ethereum" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="poll_interval">Poll Interval (seconds)</Label>
-            <Input id="poll_interval" type="number" min={60} value={pollInterval} onChange={(e) => setPollInterval(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="config">Config (JSON, optional)</Label>
-            <Textarea
-              id="config"
-              value={configJson}
-              onChange={(e) => setConfigJson(e.target.value)}
-              rows={4}
-              className="font-mono text-sm"
-              placeholder="{}"
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <Switch checked={enabled} onCheckedChange={setEnabled} />
-            <Label>Enabled</Label>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
-          </div>
-        </form>
+        {formContent}
       </CardContent>
     </Card>
   );

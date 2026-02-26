@@ -1,12 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import useSWR, { mutate } from "swr";
-import Link from "next/link";
 import { channels as channelsApi } from "@/lib/api/client";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { FaSlack, FaDiscord } from "react-icons/fa";
 import { TbWebhook } from "react-icons/tb";
 import type { IconType } from "react-icons";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ChannelForm } from "@/components/channels/channel-form";
+import type { NotificationChannel } from "@/lib/api/types";
 
 const TYPE_STYLES: Record<string, { bg: string; text: string; icon: IconType }> = {
   slack: { bg: "#4A154B", text: "#ffffff", icon: FaSlack },
@@ -39,11 +43,9 @@ function TypeBadge({ type }: { type: string }) {
 export default function ChannelsPage() {
   const { data, isLoading } = useSWR("channels", () => channelsApi.list());
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this channel? This cannot be undone.")) return;
-    await channelsApi.delete(id);
-    mutate("channels");
-  };
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editingChannel, setEditingChannel] = useState<NotificationChannel | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const channels = data?.data ?? [];
 
@@ -61,21 +63,20 @@ export default function ChannelsPage() {
         >
           Channels
         </h1>
-        <Link href="/channels/new">
-          <button
-            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 transition-colors hover:opacity-90"
-            style={{
-              backgroundColor: "#e8601a",
-              color: "#ffffff",
-              fontFamily: "var(--font-dm-sans)",
-              fontSize: "13px",
-              fontWeight: 500,
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            New Channel
-          </button>
-        </Link>
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 transition-colors hover:opacity-90"
+          style={{
+            backgroundColor: "#e8601a",
+            color: "#ffffff",
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            fontWeight: 500,
+          }}
+        >
+          <Plus className="h-4 w-4" />
+          New Channel
+        </button>
       </div>
 
       {/* Table card */}
@@ -186,14 +187,14 @@ export default function ChannelsPage() {
                   {/* Actions */}
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <Link
-                        href={`/channels/${ch.id}/edit`}
+                      <button
+                        onClick={() => setEditingChannel(ch)}
                         className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
                       >
                         <Pencil className="h-4 w-4" />
-                      </Link>
+                      </button>
                       <button
-                        onClick={() => handleDelete(ch.id)}
+                        onClick={() => setDeletingId(ch.id)}
                         className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -206,6 +207,45 @@ export default function ChannelsPage() {
           </table>
         )}
       </div>
+
+      {/* Create dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Add Channel</DialogTitle></DialogHeader>
+          <ChannelForm
+            title="Add Channel"
+            onSubmit={async (input) => { await channelsApi.create(input); }}
+            onSuccess={() => { setCreateOpen(false); mutate("channels"); }}
+            onCancel={() => setCreateOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editingChannel} onOpenChange={(open) => { if (!open) setEditingChannel(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Edit Channel</DialogTitle></DialogHeader>
+          {editingChannel && (
+            <ChannelForm
+              key={editingChannel.id}
+              title="Edit Channel"
+              initial={editingChannel}
+              onSubmit={async (input) => { await channelsApi.update(editingChannel.id, input); }}
+              onSuccess={() => { setEditingChannel(null); mutate("channels"); }}
+              onCancel={() => setEditingChannel(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(open) => { if (!open) setDeletingId(null); }}
+        title="Delete Channel"
+        description="This will permanently delete this notification channel. This cannot be undone."
+        onConfirm={async () => { if (deletingId) { await channelsApi.delete(deletingId); mutate("channels"); } }}
+      />
     </div>
   );
 }

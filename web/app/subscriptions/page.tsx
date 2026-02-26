@@ -1,12 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import useSWR, { mutate } from "swr";
-import Link from "next/link";
 import {
   subscriptions as subsApi,
   channels as channelsApi,
 } from "@/lib/api/client";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SubscriptionForm } from "@/components/subscriptions/subscription-form";
+import type { Subscription } from "@/lib/api/types";
 
 const SUB_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   source: { bg: "#1a1a1a", text: "#ffffff" },
@@ -38,14 +42,12 @@ export default function SubscriptionsPage() {
     channelsApi.list()
   );
 
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editingSub, setEditingSub] = useState<Subscription | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const getChannelName = (id: string) =>
     channelsData?.data.find((c) => c.id === id)?.name ?? id;
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this subscription? This cannot be undone.")) return;
-    await subsApi.delete(id);
-    mutate("subscriptions");
-  };
 
   const subscriptions = data?.data ?? [];
 
@@ -63,21 +65,20 @@ export default function SubscriptionsPage() {
         >
           Subscriptions
         </h1>
-        <Link href="/subscriptions/new">
-          <button
-            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 transition-colors hover:opacity-90"
-            style={{
-              backgroundColor: "#e8601a",
-              color: "#ffffff",
-              fontFamily: "var(--font-dm-sans)",
-              fontSize: "13px",
-              fontWeight: 500,
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            New Subscription
-          </button>
-        </Link>
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 transition-colors hover:opacity-90"
+          style={{
+            backgroundColor: "#e8601a",
+            color: "#ffffff",
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            fontWeight: 500,
+          }}
+        >
+          <Plus className="h-4 w-4" />
+          New Subscription
+        </button>
       </div>
 
       {/* Table card */}
@@ -188,14 +189,14 @@ export default function SubscriptionsPage() {
                   {/* Actions */}
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <Link
-                        href={`/subscriptions/${sub.id}/edit`}
+                      <button
+                        onClick={() => setEditingSub(sub)}
                         className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
                       >
                         <Pencil className="h-4 w-4" />
-                      </Link>
+                      </button>
                       <button
-                        onClick={() => handleDelete(sub.id)}
+                        onClick={() => setDeletingId(sub.id)}
                         className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -208,6 +209,71 @@ export default function SubscriptionsPage() {
           </table>
         )}
       </div>
+
+      {/* Create dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create Subscription</DialogTitle>
+          </DialogHeader>
+          <SubscriptionForm
+            title="Create Subscription"
+            onSubmit={async (input) => {
+              await subsApi.create(input);
+            }}
+            onSuccess={() => {
+              setCreateOpen(false);
+              mutate("subscriptions");
+            }}
+            onCancel={() => setCreateOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog
+        open={!!editingSub}
+        onOpenChange={(open) => {
+          if (!open) setEditingSub(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Subscription</DialogTitle>
+          </DialogHeader>
+          {editingSub && (
+            <SubscriptionForm
+              key={editingSub.id}
+              title="Edit Subscription"
+              initial={editingSub}
+              onSubmit={async (input) => {
+                await subsApi.update(editingSub.id, input);
+              }}
+              onSuccess={() => {
+                setEditingSub(null);
+                mutate("subscriptions");
+              }}
+              onCancel={() => setEditingSub(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(open) => {
+          if (!open) setDeletingId(null);
+        }}
+        title="Delete Subscription"
+        description="This will permanently delete this subscription. This cannot be undone."
+        onConfirm={async () => {
+          if (deletingId) {
+            await subsApi.delete(deletingId);
+            mutate("subscriptions");
+          }
+        }}
+      />
     </div>
   );
 }

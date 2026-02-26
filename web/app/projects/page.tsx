@@ -12,6 +12,8 @@ import {
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
 import { Plus, X, ArrowRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ProjectForm } from "@/components/projects/project-form";
 import type { Project, Source } from "@/lib/api/types";
 
 /* ---------- Inline Add Source Form ---------- */
@@ -396,6 +398,7 @@ function ProjectCard({ project }: { project: Project }) {
 /* ---------- Page ---------- */
 
 export default function ProjectsPage() {
+  const [createOpen, setCreateOpen] = useState(false);
   const { data, isLoading } = useSWR("projects", () => projectsApi.list());
   const items = data?.data ?? [];
 
@@ -420,14 +423,14 @@ export default function ProjectsPage() {
             Tracked software projects and their recent releases.
           </p>
         </div>
-        <Link
-          href="/projects/new"
+        <button
+          onClick={() => setCreateOpen(true)}
           className="flex items-center gap-1.5 rounded px-3 py-1.5 text-[13px] text-white transition-opacity hover:opacity-90"
           style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
         >
           <Plus className="h-3.5 w-3.5" />
           New Project
-        </Link>
+        </button>
       </div>
 
       {isLoading ? (
@@ -448,14 +451,14 @@ export default function ProjectsPage() {
           >
             No projects yet — create one to start tracking releases
           </p>
-          <Link
-            href="/projects/new"
+          <button
+            onClick={() => setCreateOpen(true)}
             className="mt-4 flex items-center gap-1.5 rounded px-3 py-1.5 text-[13px] text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
           >
             <Plus className="h-3.5 w-3.5" />
             New Project
-          </Link>
+          </button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -464,6 +467,25 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create Project</DialogTitle>
+          </DialogHeader>
+          <ProjectForm
+            title="Create Project"
+            onSubmit={async (result) => {
+              const created = await projectsApi.create(result.project);
+              if (result.source && created.data?.id) {
+                await sourcesApi.create(created.data.id, result.source);
+              }
+            }}
+            onSuccess={() => { setCreateOpen(false); mutate("projects"); }}
+            onCancel={() => setCreateOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

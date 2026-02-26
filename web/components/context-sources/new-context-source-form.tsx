@@ -10,7 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export function NewContextSourceForm({ projectId }: { projectId: string }) {
+interface NewContextSourceFormProps {
+  projectId: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export function NewContextSourceForm({ projectId, onSuccess, onCancel }: NewContextSourceFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +39,11 @@ export function NewContextSourceForm({ projectId }: { projectId: string }) {
     setSaving(true);
     try {
       await ctxApi.create(projectId, { type, name, config: parsedConfig });
-      router.push(`/projects/${projectId}`);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push(`/projects/${projectId}`);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -41,44 +51,60 @@ export function NewContextSourceForm({ projectId }: { projectId: string }) {
     }
   };
 
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      router.back();
+    }
+  };
+
+  const formContent = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      <div className="space-y-2">
+        <Label htmlFor="name">Name</Label>
+        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Go Release Notes" required />
+      </div>
+      <div className="space-y-2">
+        <Label>Type</Label>
+        <Select value={type} onValueChange={setType}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="documentation">Documentation</SelectItem>
+            <SelectItem value="changelog">Changelog</SelectItem>
+            <SelectItem value="github_issues">GitHub Issues</SelectItem>
+            <SelectItem value="custom">Custom</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="config">Config (JSON)</Label>
+        <Textarea
+          id="config"
+          value={configJson}
+          onChange={(e) => setConfigJson(e.target.value)}
+          rows={6}
+          className="font-mono text-sm"
+          placeholder='{"url": "https://..."}'
+        />
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+        <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+      </div>
+    </form>
+  );
+
+  if (onSuccess) {
+    return formContent;
+  }
+
   return (
     <Card className="mx-auto max-w-2xl">
       <CardHeader><CardTitle>Add Context Source</CardTitle></CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Go Release Notes" required />
-          </div>
-          <div className="space-y-2">
-            <Label>Type</Label>
-            <Select value={type} onValueChange={setType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="documentation">Documentation</SelectItem>
-                <SelectItem value="changelog">Changelog</SelectItem>
-                <SelectItem value="github_issues">GitHub Issues</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="config">Config (JSON)</Label>
-            <Textarea
-              id="config"
-              value={configJson}
-              onChange={(e) => setConfigJson(e.target.value)}
-              rows={6}
-              className="font-mono text-sm"
-              placeholder='{"url": "https://..."}'
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
-          </div>
-        </form>
+        {formContent}
       </CardContent>
     </Card>
   );
