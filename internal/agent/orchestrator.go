@@ -35,7 +35,7 @@ type OrchestratorStore interface {
 	GetChannel(ctx context.Context, id string) (*models.NotificationChannel, error)
 }
 
-const defaultInstruction = `You are a release intelligence agent for a software project.
+const DefaultInstruction = `You are a release intelligence agent for a software project.
 Your job is to analyze recent upstream releases from the project's tracked sources
 and produce a structured semantic release report.
 
@@ -55,6 +55,38 @@ The JSON object must have exactly these fields:
   "urgency": "How urgent is upgrading? (e.g., 'Critical', 'High', 'Medium', 'Low')",
   "recommendation": "A concrete 1-2 sentence recommendation for the team."
 }`
+
+// BuildAgent creates the ADK-Go LLM agent for a given project. This is used
+// by both the production orchestrator and the dev entrypoint to ensure the
+// same agent configuration is used everywhere.
+func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Project, llmConfig LLMConfig) (agent.Agent, error) {
+	// Build instruction from project's agent_prompt or use default.
+	instruction := DefaultInstruction
+	if project.AgentPrompt != "" {
+		instruction = project.AgentPrompt + "\n\n" + instruction
+	}
+
+	// Create LLM model.
+	llmModel, err := NewLLMModel(ctx, llmConfig)
+	if err != nil {
+		return nil, fmt.Errorf("create LLM model: %w", err)
+	}
+
+	// Create project-scoped tools.
+	tools, err := NewTools(store, project.ID)
+	if err != nil {
+		return nil, fmt.Errorf("create agent tools: %w", err)
+	}
+
+	// Create agent.
+	return llmagent.New(llmagent.Config{
+		Name:        "release_analyst",
+		Description: "Analyzes upstream releases and produces semantic release reports.",
+		Model:       llmModel,
+		Instruction: instruction,
+		Tools:       tools,
+	})
+}
 
 // Orchestrator manages the lifecycle of an agent run: loading project config,
 // creating an ADK-Go agent with project-specific tools and instructions,
@@ -144,39 +176,12 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	}
 	slog.Info("agent: project loaded", "run_id", run.ID, "project", project.Name)
 
-	// Build instruction from project's agent_prompt or use default.
-	instruction := defaultInstruction
-	if project.AgentPrompt != "" {
-		instruction = project.AgentPrompt + "\n\n" + defaultInstruction
-		slog.Debug("agent: using custom agent prompt", "run_id", run.ID)
-	}
-
-	// Create the LLM model.
-	slog.Info("agent: creating LLM model", "run_id", run.ID,
+	// Build the agent using the shared constructor.
+	slog.Info("agent: building agent", "run_id", run.ID,
 		"provider", o.llmConfig.Provider, "model", o.llmConfig.Model)
-	llmModel, err := NewLLMModel(ctx, o.llmConfig)
+	agentInstance, err := BuildAgent(ctx, o.store, project, o.llmConfig)
 	if err != nil {
-		return nil, fmt.Errorf("create LLM model: %w", err)
-	}
-
-	// Create project-scoped tools.
-	slog.Debug("agent: creating tools", "run_id", run.ID, "project_id", run.ProjectID)
-	tools, err := NewTools(o.store, run.ProjectID)
-	if err != nil {
-		return nil, fmt.Errorf("create agent tools: %w", err)
-	}
-
-	// Create the ADK-Go LLM agent.
-	slog.Debug("agent: creating ADK agent", "run_id", run.ID)
-	agentInstance, err := llmagent.New(llmagent.Config{
-		Name:        "release_analyst",
-		Description: "Analyzes upstream releases and produces semantic release reports.",
-		Model:       llmModel,
-		Instruction: instruction,
-		Tools:       tools,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create LLM agent: %w", err)
+		return nil, fmt.Errorf("build agent: %w", err)
 	}
 
 	// Create in-memory session service and a new session.
