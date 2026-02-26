@@ -1,0 +1,41 @@
+There are duplicated headers in the page like projects, releases.. And dashboard's page doesn't have the header
+
+---
+
+Dashboard and projects bold size looks different from others
+
+---
+
+commit and push
+
+---
+
+In the dashboard, recent source releases, and projects page, recent releases and releases page. All the releases are sorted by polling time not the release time, please sort by  age
+
+---
+
+looks not right, the sort should happen on backend otherwise the only the releases on the same page are sorted
+
+---
+
+The issues happen on the releases page
+
+---
+
+In thre releases page, it shows 1-15 of 35, however it lists 20+ releases
+
+---
+
+make the left side bar collapsable, by default it is collapsed, and only the icon of dashboard, projects.. can be visiable
+
+---
+
+The "active sources" in the dashboard paghe shows nothing why?
+
+---
+
+The last polled of sources in the project detailed page shows "Never" why?
+
+---
+
+What doesn't the active status of the source provider, I dont see any place we can disable the poll?
