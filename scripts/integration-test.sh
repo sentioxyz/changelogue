@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Integration test for ReleaseBeacon.
+# Integration test for Changelogue.
 # Requires: docker, go, curl, jq
 #
 # Tests:
@@ -17,11 +17,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # --- Config ---
-CONTAINER_NAME="releaseguard-test-pg"
+CONTAINER_NAME="changelogue-test-pg"
 DB_PORT=5433
 DB_USER="postgres"
 DB_PASS="testpass"
-DB_NAME="releaseguard_test"
+DB_NAME="changelogue_test"
 DATABASE_URL="postgres://${DB_USER}:${DB_PASS}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable"
 WEBHOOK_SECRET="integration-test-secret"
 SERVER_PORT=8089
@@ -110,7 +110,7 @@ done
 # --- 2. Build and start server ---
 section "Building server"
 cd "$PROJECT_ROOT"
-go build -o /tmp/releaseguard-test ./cmd/server/
+go build -o /tmp/changelogue-test ./cmd/server/
 pass "Build succeeded"
 
 section "Starting server"
@@ -118,7 +118,7 @@ DATABASE_URL="$DATABASE_URL" \
 GITHUB_WEBHOOK_SECRET="$WEBHOOK_SECRET" \
 LISTEN_ADDR=":${SERVER_PORT}" \
 NO_AUTH=true \
-    /tmp/releaseguard-test >/tmp/releaseguard-test.log 2>&1 &
+    /tmp/changelogue-test >/tmp/changelogue-test.log 2>&1 &
 SERVER_PID=$!
 sleep 2
 

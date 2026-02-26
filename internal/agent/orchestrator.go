@@ -19,8 +19,8 @@ import (
 	"google.golang.org/adk/session"
 	"google.golang.org/adk/tool"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
-	"github.com/sentioxyz/releaseguard/internal/routing"
+	"github.com/sentioxyz/changelogue/internal/models"
+	"github.com/sentioxyz/changelogue/internal/routing"
 )
 
 // OrchestratorStore defines all data access methods required by the agent
@@ -171,7 +171,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	// Create in-memory session service and a new session.
 	sessionService := session.InMemoryService()
 	createResp, err := sessionService.Create(ctx, &session.CreateRequest{
-		AppName: "releaseguard",
+		AppName: "changelogue",
 		UserID:  "system",
 	})
 	if err != nil {
@@ -181,7 +181,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 
 	// Create the runner.
 	r, err := runner.New(runner.Config{
-		AppName:        "releaseguard",
+		AppName:        "changelogue",
 		Agent:          agentInstance,
 		SessionService: sessionService,
 	})

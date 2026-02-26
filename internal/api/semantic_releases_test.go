@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
 // mockSemanticReleasesStore implements SemanticReleasesStore for testing.

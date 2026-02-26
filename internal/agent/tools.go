@@ -8,7 +8,7 @@ import (
 	"google.golang.org/adk/tool"
 	"google.golang.org/adk/tool/functiontool"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
 // AgentDataStore defines the data access methods that agent tools use to

@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/riverqueue/river"
-	"github.com/sentioxyz/releaseguard/internal/models"
-	"github.com/sentioxyz/releaseguard/internal/queue"
+	"github.com/sentioxyz/changelogue/internal/models"
+	"github.com/sentioxyz/changelogue/internal/queue"
 )
 
 // --- mock store ---

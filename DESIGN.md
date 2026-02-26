@@ -1,8 +1,8 @@
-# Design Document: ReleaseGuard
+# Design Document: Changelogue
 
 ## 1. System Context & Principles
 
-**ReleaseGuard** is designed to solve the "release noise" problem by acting as an intelligent middleware between upstream software registries (Docker Hub, GitHub) and downstream operational systems (Base A Box, Ops Opsack, Slack).
+**Changelogue** is designed to solve the "release noise" problem by acting as an intelligent middleware between upstream software registries (Docker Hub, GitHub) and downstream operational systems (Base A Box, Ops Opsack, Slack).
 
 ### Core Design Principles
 
@@ -114,7 +114,7 @@ The configurable processing pipeline has been replaced by an agent-driven archit
 
 ### 2.3 SRE Agent Orchestration (The Validation Sandbox)
 
-For high-urgency releases or critical internal projects (like the token compiler), ReleaseGuard employs an SRE agent to validate the build.
+For high-urgency releases or critical internal projects (like the token compiler), Changelogue employs an SRE agent to validate the build.
 
 To maintain predictable execution, the agent is modeled as a state machine (suitable for implementation via frameworks like LangGraph or the Claude Agent SDK).
 

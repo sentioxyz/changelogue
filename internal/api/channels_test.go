@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
 // mockChannelsStore implements ChannelsStore for testing.

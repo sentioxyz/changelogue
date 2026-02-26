@@ -7,7 +7,7 @@
 *.test
 *.out
 /vendor/
-releaseguard
+changelogue
 /server
 
 # Next.js

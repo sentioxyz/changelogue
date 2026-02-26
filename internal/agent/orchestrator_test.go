@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
-	"github.com/sentioxyz/releaseguard/internal/routing"
+	"github.com/sentioxyz/changelogue/internal/models"
+	"github.com/sentioxyz/changelogue/internal/routing"
 )
 
 // --- mock orchestrator store ---

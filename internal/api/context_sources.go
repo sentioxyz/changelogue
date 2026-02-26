@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
 // ContextSourcesStore defines the persistence operations for context sources.

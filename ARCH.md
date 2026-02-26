@@ -1,8 +1,8 @@
-# Architecture: ReleaseGuard
+# Architecture: Changelogue
 
 ## Overview
 
-ReleaseGuard is an event-driven, hybrid-architecture system designed to centralize release discovery, automate validation, manage configurations, and distribute targeted notifications. It combines the high-concurrency performance of a Go-based polling engine with the reasoning capabilities of LLM-based SRE agents. By leveraging PostgreSQL for both persistent storage and message brokering, the system maintains high reliability and transactional consistency within a streamlined, single-binary deployment.
+Changelogue is an event-driven, hybrid-architecture system designed to centralize release discovery, automate validation, manage configurations, and distribute targeted notifications. It combines the high-concurrency performance of a Go-based polling engine with the reasoning capabilities of LLM-based SRE agents. By leveraging PostgreSQL for both persistent storage and message brokering, the system maintains high reliability and transactional consistency within a streamlined, single-binary deployment.
 
 ## 1. Tech Stack & Infrastructure
 
@@ -179,7 +179,7 @@ Agent behavior is configured per-project via `agent_prompt` (custom instructions
 
 ### 2.6 Agentic Tooling (Planned: SRE Validation)
 
-For deep validation, ReleaseGuard will utilize SRE agents with a suite of abstracted tools:
+For deep validation, Changelogue will utilize SRE agents with a suite of abstracted tools:
 
 * `UpgradeBaseABoxConfig(version)`
 * `CheckAgentStatus(environment)`
@@ -198,7 +198,7 @@ This will allow the agent to autonomously deploy a sandbox, verify that the depl
 ## 4. Directory Structure
 
 ```text
-/releaseguard
+/changelogue
 ├── cmd/
 │   └── server/          # Main Go application entry point
 ├── internal/

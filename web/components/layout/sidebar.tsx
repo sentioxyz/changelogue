@@ -38,7 +38,7 @@ export function Sidebar() {
           className="text-[16px] italic text-white"
           style={{ fontFamily: "var(--font-fraunces)" }}
         >
-          ReleaseBeacon
+          Changelogue
         </Link>
       </div>
 

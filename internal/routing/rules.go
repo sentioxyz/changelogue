@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
 // CheckAgentRules evaluates the agent rules against the new and previous version

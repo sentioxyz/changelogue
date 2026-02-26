@@ -18,7 +18,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "ReleaseBeacon",
+  title: "Changelogue",
   description: "Agent-driven release intelligence platform",
 };
 

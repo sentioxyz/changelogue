@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
-	"github.com/sentioxyz/releaseguard/internal/models"
-	"github.com/sentioxyz/releaseguard/internal/queue"
+	"github.com/sentioxyz/changelogue/internal/models"
+	"github.com/sentioxyz/changelogue/internal/queue"
 )
 
 // PgStore implements all store interfaces using a PostgreSQL connection pool.

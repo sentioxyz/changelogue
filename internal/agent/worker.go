@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/riverqueue/river"
-	"github.com/sentioxyz/releaseguard/internal/queue"
+	"github.com/sentioxyz/changelogue/internal/queue"
 )
 
 // AgentWorker is a River worker that processes AgentJobArgs by running the

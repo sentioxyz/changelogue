@@ -9,20 +9,19 @@ import (
 	"time"
 
 	"github.com/riverqueue/river"
-	agentpkg "github.com/sentioxyz/releaseguard/internal/agent"
-	"github.com/sentioxyz/releaseguard/internal/api"
-	"github.com/sentioxyz/releaseguard/internal/db"
-	"github.com/sentioxyz/releaseguard/internal/ingestion"
-	"github.com/sentioxyz/releaseguard/internal/queue"
-	"github.com/sentioxyz/releaseguard/internal/routing"
+	agentpkg "github.com/sentioxyz/changelogue/internal/agent"
+	"github.com/sentioxyz/changelogue/internal/api"
+	"github.com/sentioxyz/changelogue/internal/db"
+	"github.com/sentioxyz/changelogue/internal/ingestion"
+	"github.com/sentioxyz/changelogue/internal/queue"
+	"github.com/sentioxyz/changelogue/internal/routing"
 )
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	dbURL := envOr("DATABASE_URL", "postgres://localhost:5432/releaseguard?sslmode=disable")
-	ghSecret := envOr("GITHUB_WEBHOOK_SECRET", "")
+	dbURL := envOr("DATABASE_URL", "postgres://localhost:5432/changelogue?sslmode=disable")
 	addr := envOr("LISTEN_ADDR", ":8080")
 	noAuth := os.Getenv("NO_AUTH") == "true"
 
@@ -83,25 +82,9 @@ func main() {
 	loader := ingestion.NewSourceLoader(pool, http.DefaultClient)
 	orch := ingestion.NewOrchestrator(svc, loader, 5*time.Minute)
 
-	// GitHub webhook handler
-	webhookHandler := ingestion.NewGitHubWebhookHandler(ghSecret, func(results []ingestion.IngestionResult) {
-		for _, r := range results {
-			sourceID, found := loader.LookupSourceID(ctx, "github", r.Repository)
-			if !found {
-				slog.Warn("github webhook: no matching source", "repo", r.Repository)
-				continue
-			}
-			if err := svc.ProcessResults(ctx, sourceID, "github", []ingestion.IngestionResult{r}); err != nil {
-				slog.Error("github webhook processing failed", "repo", r.Repository, "err", err)
-			}
-		}
-	})
 	broadcaster := api.NewBroadcaster()
 
 	mux := http.NewServeMux()
-
-	// Register webhook route
-	mux.Handle("POST /webhook/github", webhookHandler)
 
 	// Register all API v1 routes
 	api.RegisterRoutes(mux, api.Dependencies{

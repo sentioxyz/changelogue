@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/riverqueue/river"
-	"github.com/sentioxyz/releaseguard/internal/models"
-	"github.com/sentioxyz/releaseguard/internal/queue"
+	"github.com/sentioxyz/changelogue/internal/models"
+	"github.com/sentioxyz/changelogue/internal/queue"
 )
 
 // NotifyStore is the data access interface required by the notification worker.

@@ -3,9 +3,9 @@
         integration-test clean
 
 # --- Configuration ---
-DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/releaseguard?sslmode=disable
+DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/changelogue?sslmode=disable
 LISTEN_ADDR  ?= :8080
-BINARY       := releaseguard
+BINARY       := changelogue
 
 # --- Infrastructure ---
 up:
@@ -18,8 +18,8 @@ down:
 	docker compose down
 
 db-reset:
-	docker compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS releaseguard;"
-	docker compose exec -T postgres psql -U postgres -c "CREATE DATABASE releaseguard;"
+	docker compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS changelogue;"
+	docker compose exec -T postgres psql -U postgres -c "CREATE DATABASE changelogue;"
 	@echo "Database reset."
 
 # --- Backend ---

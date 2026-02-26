@@ -3,7 +3,7 @@ package routing
 import (
 	"testing"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
 func TestCheckAgentRules_MajorRelease(t *testing.T) {

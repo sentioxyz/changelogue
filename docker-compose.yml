@@ -1,11 +1,11 @@
 services:
   postgres:
     image: postgres:16
-    container_name: releaseguard-pg
+    container_name: changelogue-pg
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: releaseguard
+      POSTGRES_DB: changelogue
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:

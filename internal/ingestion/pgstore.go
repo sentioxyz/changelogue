@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
-	"github.com/sentioxyz/releaseguard/internal/queue"
+	"github.com/sentioxyz/changelogue/internal/queue"
 )
 
 // PgStore implements ReleaseStore using PostgreSQL + River for the transactional outbox.

@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ReleaseBeacon** (internal name: ReleaseGuard) is an agent-driven release intelligence platform that polls upstream registries (Docker Hub, GitHub) for new releases, sends source-level notifications, and uses LLM agents (ADK-Go) to produce semantic release reports.
+**Changelogue** is an agent-driven release intelligence platform that polls upstream registries (Docker Hub, GitHub) for new releases, sends source-level notifications, and uses LLM agents (ADK-Go) to produce semantic release reports.
 
-Go module: `github.com/sentioxyz/releaseguard`
+Go module: `github.com/sentioxyz/changelogue`
 
 ## Tech Stack
 
@@ -20,7 +20,7 @@ Go module: `github.com/sentioxyz/releaseguard`
 
 ```bash
 # Build
-go build -o releaseguard ./cmd/server
+go build -o changelogue ./cmd/server
 
 # Test all packages
 go test ./...
@@ -66,7 +66,7 @@ make clean
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `DATABASE_URL` | `postgres://localhost:5432/releaseguard?sslmode=disable` | PostgreSQL connection |
+| `DATABASE_URL` | `postgres://localhost:5432/changelogue?sslmode=disable` | PostgreSQL connection |
 | `GITHUB_WEBHOOK_SECRET` | (empty) | HMAC-SHA256 verification for GitHub webhooks |
 | `LISTEN_ADDR` | `:8080` | HTTP server bind address |
 | `GOOGLE_API_KEY` | (empty) | Gemini API key for agent LLM (agent worker disabled if unset) |

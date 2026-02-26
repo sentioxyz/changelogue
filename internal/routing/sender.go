@@ -3,7 +3,7 @@ package routing
 import (
 	"context"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
 // Notification is the payload sent through all notification channels.

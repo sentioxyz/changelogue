@@ -1,4 +1,4 @@
-module github.com/sentioxyz/releaseguard
+module github.com/sentioxyz/changelogue
 
 go 1.25.0
 

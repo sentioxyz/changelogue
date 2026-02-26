@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
 // mockReleasesStore implements ReleasesStore for testing.

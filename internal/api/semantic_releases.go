@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sentioxyz/releaseguard/internal/models"
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
 // SemanticReleasesStore defines the persistence operations for semantic releases (read-only).
