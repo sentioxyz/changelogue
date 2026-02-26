@@ -48,10 +48,22 @@ func main() {
 	notifyWorker := routing.NewNotifyWorker(pgStore)
 	river.AddWorker(workers, notifyWorker)
 
-	// Agent worker: requires GOOGLE_API_KEY. If unavailable, agent jobs
+	// Agent worker: requires an LLM API key. If unavailable, agent jobs
 	// will remain in the queue until the key is configured and the server
 	// is restarted.
-	agentOrchestrator, err := agentpkg.NewOrchestrator(pgStore)
+	llmProvider := envOr("LLM_PROVIDER", "gemini")
+	llmModelDefault := "gemini-2.5-flash"
+	if llmProvider == "openai" {
+		llmModelDefault = "gpt-5.2"
+	}
+	llmConfig := agentpkg.LLMConfig{
+		Provider:      llmProvider,
+		Model:         envOr("LLM_MODEL", llmModelDefault),
+		GoogleAPIKey:  os.Getenv("GOOGLE_API_KEY"),
+		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
+		OpenAIBaseURL: os.Getenv("OPENAI_BASE_URL"),
+	}
+	agentOrchestrator, err := agentpkg.NewOrchestrator(pgStore, llmConfig)
 	if err != nil {
 		slog.Warn("agent orchestrator not available — agent jobs will not be processed", "err", err)
 	} else {

@@ -145,7 +145,7 @@ func TestSendProjectNotifications_WithSubscriptions(t *testing.T) {
 		},
 	}
 
-	orch := &Orchestrator{store: store, apiKey: "test-key"}
+	orch := &Orchestrator{store: store, llmConfig: LLMConfig{GoogleAPIKey: "test-key"}}
 
 	run := &models.AgentRun{ID: "run-1", ProjectID: projectID}
 	result := &agentResult{
@@ -181,7 +181,7 @@ func TestSendProjectNotifications_NoSubscriptions(t *testing.T) {
 		channels:             map[string]*models.NotificationChannel{},
 	}
 
-	orch := &Orchestrator{store: store, apiKey: "test-key"}
+	orch := &Orchestrator{store: store, llmConfig: LLMConfig{GoogleAPIKey: "test-key"}}
 
 	run := &models.AgentRun{ID: "run-1", ProjectID: projectID}
 	result := &agentResult{
@@ -202,7 +202,7 @@ func TestSendProjectNotifications_StoreError(t *testing.T) {
 		err: errors.New("database unavailable"),
 	}
 
-	orch := &Orchestrator{store: store, apiKey: "test-key"}
+	orch := &Orchestrator{store: store, llmConfig: LLMConfig{GoogleAPIKey: "test-key"}}
 
 	run := &models.AgentRun{ID: "run-1", ProjectID: projectID}
 	result := &agentResult{
@@ -227,7 +227,7 @@ func TestSendProjectNotifications_ChannelNotFound(t *testing.T) {
 		channels: map[string]*models.NotificationChannel{}, // empty — channel lookup will fail
 	}
 
-	orch := &Orchestrator{store: store, apiKey: "test-key"}
+	orch := &Orchestrator{store: store, llmConfig: LLMConfig{GoogleAPIKey: "test-key"}}
 
 	run := &models.AgentRun{ID: "run-1", ProjectID: projectID}
 	result := &agentResult{
@@ -260,7 +260,7 @@ func TestSendProjectNotifications_UnknownChannelType(t *testing.T) {
 		},
 	}
 
-	orch := &Orchestrator{store: store, apiKey: "test-key"}
+	orch := &Orchestrator{store: store, llmConfig: LLMConfig{GoogleAPIKey: "test-key"}}
 
 	run := &models.AgentRun{ID: "run-1", ProjectID: projectID}
 	result := &agentResult{
@@ -291,7 +291,7 @@ func TestSendProjectNotifications_MultipleSubscriptions(t *testing.T) {
 		},
 	}
 
-	orch := &Orchestrator{store: store, apiKey: "test-key"}
+	orch := &Orchestrator{store: store, llmConfig: LLMConfig{GoogleAPIKey: "test-key"}}
 
 	run := &models.AgentRun{ID: "run-1", ProjectID: projectID}
 	result := &agentResult{

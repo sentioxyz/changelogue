@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 
 	"google.golang.org/adk/agent"
 	"google.golang.org/adk/agent/llmagent"
-	"google.golang.org/adk/model/gemini"
 	"google.golang.org/adk/runner"
 	"google.golang.org/adk/session"
 	"google.golang.org/adk/tool"
@@ -36,8 +34,6 @@ type OrchestratorStore interface {
 	ListProjectSubscriptions(ctx context.Context, projectID string) ([]models.Subscription, error)
 	GetChannel(ctx context.Context, id string) (*models.NotificationChannel, error)
 }
-
-const defaultModel = "gemini-2.5-flash"
 
 const defaultInstruction = `You are a release intelligence agent for a software project.
 Your job is to analyze recent upstream releases from the project's tracked sources
@@ -64,21 +60,27 @@ The JSON object must have exactly these fields:
 // creating an ADK-Go agent with project-specific tools and instructions,
 // running the agent, and persisting the result as a semantic release.
 type Orchestrator struct {
-	store  OrchestratorStore
-	apiKey string
+	store     OrchestratorStore
+	llmConfig LLMConfig
 }
 
-// NewOrchestrator creates a new Orchestrator. It reads GOOGLE_API_KEY from the
-// environment. If the key is missing, it returns an error so the caller can
-// degrade gracefully (log a warning, skip registering the agent worker).
-func NewOrchestrator(store OrchestratorStore) (*Orchestrator, error) {
-	apiKey := os.Getenv("GOOGLE_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("GOOGLE_API_KEY is not set; agent orchestrator requires an LLM API key")
+// NewOrchestrator creates a new Orchestrator. It validates that the provided
+// LLMConfig has the required API key for the configured provider. If the key
+// is missing, it returns an error so the caller can degrade gracefully.
+func NewOrchestrator(store OrchestratorStore, cfg LLMConfig) (*Orchestrator, error) {
+	switch cfg.Provider {
+	case "openai":
+		if cfg.OpenAIAPIKey == "" {
+			return nil, fmt.Errorf("OPENAI_API_KEY is not set; agent orchestrator requires an LLM API key")
+		}
+	default: // gemini
+		if cfg.GoogleAPIKey == "" {
+			return nil, fmt.Errorf("GOOGLE_API_KEY is not set; agent orchestrator requires an LLM API key")
+		}
 	}
 	return &Orchestrator{
-		store:  store,
-		apiKey: apiKey,
+		store:     store,
+		llmConfig: cfg,
 	}, nil
 }
 
@@ -149,11 +151,10 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 		slog.Debug("agent: using custom agent prompt", "run_id", run.ID)
 	}
 
-	// Create the Gemini model.
-	slog.Info("agent: creating LLM model", "run_id", run.ID, "model", defaultModel)
-	llmModel, err := gemini.NewModel(ctx, defaultModel, &genai.ClientConfig{
-		APIKey: o.apiKey,
-	})
+	// Create the LLM model.
+	slog.Info("agent: creating LLM model", "run_id", run.ID,
+		"provider", o.llmConfig.Provider, "model", o.llmConfig.Model)
+	llmModel, err := NewLLMModel(ctx, o.llmConfig)
 	if err != nil {
 		return nil, fmt.Errorf("create LLM model: %w", err)
 	}

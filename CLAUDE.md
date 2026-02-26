@@ -68,7 +68,11 @@ make clean
 |----------|---------|---------|
 | `DATABASE_URL` | `postgres://localhost:5432/changelogue?sslmode=disable` | PostgreSQL connection |
 | `LISTEN_ADDR` | `:8080` | HTTP server bind address |
-| `GOOGLE_API_KEY` | (empty) | Gemini API key for agent LLM (agent worker disabled if unset) |
+| `GOOGLE_API_KEY` | (empty) | Gemini API key for agent LLM (required when `LLM_PROVIDER=gemini`) |
+| `LLM_PROVIDER` | `gemini` | LLM provider: `gemini` or `openai` |
+| `LLM_MODEL` | `gemini-2.5-flash` (gemini) / `gpt-5.2` (openai) | Model name |
+| `OPENAI_API_KEY` | (empty) | OpenAI API key (required when `LLM_PROVIDER=openai`) |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible API base URL |
 
 ## Architecture
 
