@@ -48,16 +48,17 @@ Use the available tools to:
 2. Inspect individual release details (changelogs, commit data, raw payloads).
 3. Review the project's context sources (runbooks, documentation) for background.
 
-After your research, produce a JSON report with exactly these fields:
+CRITICAL: Your final response MUST be a single JSON object and nothing else.
+Do not include any explanation, commentary, or markdown formatting — just the raw JSON.
+
+The JSON object must have exactly these fields:
 {
   "summary": "A 2-3 sentence high-level summary of what changed across the releases.",
   "availability": "Are these releases available and stable? (e.g., 'GA', 'RC', 'Beta')",
   "adoption": "What is the recommended adoption timeline? (e.g., 'Immediate', 'Next sprint', 'Monitor')",
   "urgency": "How urgent is upgrading? (e.g., 'Critical', 'High', 'Medium', 'Low')",
   "recommendation": "A concrete 1-2 sentence recommendation for the team."
-}
-
-Return ONLY the JSON object, with no markdown formatting or extra text.`
+}`
 
 // Orchestrator manages the lifecycle of an agent run: loading project config,
 // creating an ADK-Go agent with project-specific tools and instructions,
@@ -99,8 +100,11 @@ func (o *Orchestrator) RunAgent(ctx context.Context, run *models.AgentRun) error
 	result, err := o.executeAgent(ctx, run)
 	if err != nil {
 		slog.Error("agent run failed", "run_id", run.ID, "err", err)
-		// Best-effort: mark the run as failed (ignore status update error).
-		_ = o.store.UpdateAgentRunStatus(ctx, run.ID, "failed")
+		// Best-effort: mark the run as failed.
+		if statusErr := o.store.UpdateAgentRunStatus(ctx, run.ID, "failed"); statusErr != nil {
+			slog.Error("agent: failed to mark run as failed",
+				"run_id", run.ID, "status_err", statusErr)
+		}
 		return err
 	}
 
@@ -131,18 +135,22 @@ type agentResult struct {
 // agentResult containing the semantic release ID and metadata for notifications.
 func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (*agentResult, error) {
 	// Load project.
+	slog.Info("agent: loading project", "run_id", run.ID, "project_id", run.ProjectID)
 	project, err := o.store.GetProject(ctx, run.ProjectID)
 	if err != nil {
 		return nil, fmt.Errorf("get project: %w", err)
 	}
+	slog.Info("agent: project loaded", "run_id", run.ID, "project", project.Name)
 
 	// Build instruction from project's agent_prompt or use default.
 	instruction := defaultInstruction
 	if project.AgentPrompt != "" {
 		instruction = project.AgentPrompt + "\n\n" + defaultInstruction
+		slog.Debug("agent: using custom agent prompt", "run_id", run.ID)
 	}
 
 	// Create the Gemini model.
+	slog.Info("agent: creating LLM model", "run_id", run.ID, "model", defaultModel)
 	llmModel, err := gemini.NewModel(ctx, defaultModel, &genai.ClientConfig{
 		APIKey: o.apiKey,
 	})
@@ -151,12 +159,14 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	}
 
 	// Create project-scoped tools.
+	slog.Debug("agent: creating tools", "run_id", run.ID, "project_id", run.ProjectID)
 	tools, err := NewTools(o.store, run.ProjectID)
 	if err != nil {
 		return nil, fmt.Errorf("create agent tools: %w", err)
 	}
 
 	// Create the ADK-Go LLM agent.
+	slog.Debug("agent: creating ADK agent", "run_id", run.ID)
 	agentInstance, err := llmagent.New(llmagent.Config{
 		Name:        "release_analyst",
 		Description: "Analyzes upstream releases and produces semantic release reports.",
@@ -190,16 +200,24 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	}
 
 	// Run the agent with a prompt requesting analysis.
+	slog.Info("agent: starting LLM run", "run_id", run.ID, "project", project.Name)
 	userMsg := genai.NewContentFromText(
 		"Analyze the recent releases for this project and produce a semantic release report.",
 		"user",
 	)
 
 	var finalText string
+	eventCount := 0
 	for event, err := range r.Run(ctx, "system", sess.ID(), userMsg, agent.RunConfig{}) {
 		if err != nil {
+			slog.Error("agent: run event error",
+				"run_id", run.ID,
+				"event_count", eventCount,
+				"err", err,
+			)
 			return nil, fmt.Errorf("agent run event error: %w", err)
 		}
+		eventCount++
 		if event != nil && event.IsFinalResponse() && event.Content != nil {
 			for _, part := range event.Content.Parts {
 				if part.Text != "" {
@@ -208,8 +226,18 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 			}
 		}
 	}
+	slog.Info("agent: LLM run finished",
+		"run_id", run.ID,
+		"event_count", eventCount,
+		"output_length", len(finalText),
+	)
 
 	if finalText == "" {
+		slog.Error("agent: produced no output",
+			"run_id", run.ID,
+			"project_id", run.ProjectID,
+			"event_count", eventCount,
+		)
 		return nil, fmt.Errorf("agent produced no output")
 	}
 
@@ -217,7 +245,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	report, err := parseReport(finalText)
 	if err != nil {
 		slog.Warn("agent output was not valid JSON report, storing raw",
-			"run_id", run.ID, "parse_err", err)
+			"run_id", run.ID, "parse_err", err, "raw_output", finalText)
 		// Fall back to storing the raw text as the summary.
 		report = &models.SemanticReport{
 			Summary: finalText,
@@ -294,6 +322,8 @@ func (o *Orchestrator) sendProjectNotifications(ctx context.Context, run *models
 		return
 	}
 	if len(subs) == 0 {
+		slog.Debug("agent: no project subscriptions configured",
+			"project_id", run.ProjectID)
 		return
 	}
 
