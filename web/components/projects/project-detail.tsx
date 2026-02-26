@@ -267,7 +267,7 @@ export function ProjectDetail({ id }: { id: string }) {
               />
             ) : (
               <h1
-                className="group inline-flex cursor-pointer items-center gap-2 text-[28px] font-bold leading-tight"
+                className="group flex cursor-pointer items-center gap-2 text-[28px] font-bold leading-tight"
                 style={{ fontFamily: "var(--font-fraunces), serif" }}
                 onClick={() => {
                   setNameDraft(project.name);
@@ -298,7 +298,7 @@ export function ProjectDetail({ id }: { id: string }) {
               />
             ) : (
               <p
-                className="group mt-1 inline-flex cursor-pointer items-center gap-2 text-[14px]"
+                className="group mt-1 flex cursor-pointer items-center gap-2 text-[14px]"
                 style={{ fontFamily: "var(--font-dm-sans), sans-serif", color: "#6b7280" }}
                 onClick={() => {
                   setDescDraft(project.description ?? "");
