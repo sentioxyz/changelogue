@@ -1,0 +1,48 @@
+Implement the following plan:
+
+# Add Provider Icons to Release Chips on Projects Page
+
+## Context
+
+The projects list page (`web/app/projects/page.tsx`) shows recent releases as version chips (e.g. `v1.25.0`), but there's no visual indicator of which source provider (GitHub vs Docker Hub) each release came from. Users want to see at a glance which provider a release originated from.
+
+## Approach: Frontend-only lookup
+
+The `ReleaseChips` component already has `projectId`. We'll fetch sources for that project (a small list, typically 1-3 items) and build a `source_id → provider` map to look up the provider for each release chip. This avoids any backend model changes.
+
+**Why not modify the backend Release model?** That would be a larger change touching the Go model, multiple SQL queries, and tests — overkill for this UI-only need on one page. The releases list page (`/releases`) already uses this same frontend-join pattern successfully.
+
+## Changes
+
+### 1. `web/app/projects/page.tsx` — `ReleaseChips` component
+
+- Import `sourcesApi` from the API client
+- Import the provider icon utilities (see step 2)
+- Add a `useSWR` call to fetch sources for the project: `sourcesApi.listByProject(projectId)`
+- Build a `Map<string, string>` from `source_id → provider`
+- For each release chip, look up `provider` from the map and render the provider icon inline before the version text
+
+### 2. `web/components/ui/provider-badge.tsx` — Export provider icon lookup
+
+- Export a `getProviderIcon` helper function that returns the icon component for a given provider string (github → FaGithub, dockerhub → FaDocker)
+- This lets `ReleaseChips` render just the icon (not the full badge) alongside the version
+
+### Files to modify
+- `web/app/projects/page.tsx` — add source fetch + icon rendering in `ReleaseChips`
+- `web/components/ui/provider-badge.tsx` — export icon lookup helper
+
+## Verification
+
+1. Run `npx tsc --noEmit` — no type errors
+2. Visually check `/projects` page — each release chip should show a small provider icon before the version string
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/541981d4-ecf9-43c8-b6ae-e788e76b0c3f.jsonl
+
+---
+
+I would like to see the similar icon on the dashboard "recent source releases" as well
+
+---
+
+looks good, commit and push
