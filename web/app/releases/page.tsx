@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import Link from "next/link";
 import {
@@ -44,8 +45,18 @@ function getProviderUrl(
 /* ------------------------------------------------------------------ */
 
 export default function ReleasesPage() {
+  return (
+    <Suspense>
+      <ReleasesPageInner />
+    </Suspense>
+  );
+}
+
+function ReleasesPageInner() {
+  const searchParams = useSearchParams();
+  const initialProject = searchParams.get("project") ?? "all";
   const [page, setPage] = useState(1);
-  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [projectFilter, setProjectFilter] = useState<string>(initialProject);
 
   /* Fetch projects for the filter dropdown + source enrichment */
   const { data: projectsData } = useSWR("projects-for-filter", () =>
