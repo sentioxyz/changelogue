@@ -10,7 +10,7 @@ import {
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
-import { Plus, X, Pencil } from "lucide-react";
+import { Plus, X, Pencil, Check } from "lucide-react";
 import type { Project, Source, Release } from "@/lib/api/types";
 
 /* ---------- Inline Add Source Form ---------- */
@@ -268,42 +268,119 @@ function RecentReleasesSection({ projectId }: { projectId: string }) {
 /* ---------- Project Card ---------- */
 
 function ProjectCard({ project }: { project: Project }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(project.name);
+  const [description, setDescription] = useState(project.description ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await projectsApi.update(project.id, {
+        name: name.trim(),
+        description: description.trim() || undefined,
+      });
+      mutate("projects");
+      setEditing(false);
+    } catch {
+      // keep editing on error
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setName(project.name);
+    setDescription(project.description ?? "");
+    setEditing(false);
+  };
+
   return (
     <div
       className="overflow-hidden rounded-md"
       style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
     >
       {/* Header */}
-      <div className="flex items-start justify-between px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <Link
-            href={`/projects/${project.id}`}
-            className="text-[16px] font-bold hover:underline"
-            style={{ fontFamily: "var(--font-fraunces)", color: "#111113" }}
-          >
-            {project.name}
-          </Link>
-          {project.description && (
-            <p
-              className="mt-0.5 text-[13px] truncate"
-              style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+      <div className="px-4 py-3">
+        {editing ? (
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-md border px-2 py-1 text-[16px] font-bold focus:outline-none focus:ring-1"
+              style={{
+                fontFamily: "var(--font-fraunces)",
+                color: "#111113",
+                borderColor: "#e8e8e5",
+              }}
+              autoFocus
+            />
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description (optional)"
+              className="w-full rounded-md border px-2 py-1 text-[13px] focus:outline-none focus:ring-1"
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                color: "#6b7280",
+                borderColor: "#e8e8e5",
+              }}
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={handleCancel}
+                className="text-[12px] text-[#9ca3af] hover:text-[#6b7280]"
+                style={{ fontFamily: "var(--font-dm-sans)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || !name.trim()}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-white disabled:opacity-40"
+                style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
+              >
+                <Check className="h-3 w-3" />
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start justify-between">
+            <div className="min-w-0 flex-1">
+              <Link
+                href={`/projects/${project.id}`}
+                className="text-[16px] font-bold hover:underline"
+                style={{ fontFamily: "var(--font-fraunces)", color: "#111113" }}
+              >
+                {project.name}
+              </Link>
+              {project.description && (
+                <p
+                  className="mt-0.5 text-[13px] truncate"
+                  style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  {project.description}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setEditing(true)}
+              className="ml-2 shrink-0 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[12px] font-medium transition-colors hover:bg-[#f3f3f1]"
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                borderColor: "#e8e8e5",
+                color: "#6b7280",
+              }}
             >
-              {project.description}
-            </p>
-          )}
-        </div>
-        <Link
-          href={`/projects/${project.id}/edit`}
-          className="ml-2 shrink-0 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[12px] font-medium transition-colors hover:bg-[#f3f3f1]"
-          style={{
-            fontFamily: "var(--font-dm-sans)",
-            borderColor: "#e8e8e5",
-            color: "#6b7280",
-          }}
-        >
-          <Pencil className="h-3 w-3" />
-          Edit
-        </Link>
+              <Pencil className="h-3 w-3" />
+              Edit
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Sources */}
