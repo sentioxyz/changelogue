@@ -5,7 +5,10 @@
   "branch": "main",
   "checkpoints_count": 2,
   "files_touched": [
-    "cmd/agent/main.go"
+    "cmd/agent/main.go",
+    "go.mod",
+    "go.sum",
+    "internal/agent/orchestrator.go"
   ],
   "sessions": [
     {
@@ -14,6 +17,13 @@
       "context": "/6b/263c17b5b9/0/context.md",
       "content_hash": "/6b/263c17b5b9/0/content_hash.txt",
       "prompt": "/6b/263c17b5b9/0/prompt.txt"
+    },
+    {
+      "metadata": "/6b/263c17b5b9/1/metadata.json",
+      "transcript": "/6b/263c17b5b9/1/full.jsonl",
+      "context": "/6b/263c17b5b9/1/context.md",
+      "content_hash": "/6b/263c17b5b9/1/content_hash.txt",
+      "prompt": "/6b/263c17b5b9/1/prompt.txt"
     }
   ],
   "token_usage": {
