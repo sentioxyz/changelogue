@@ -145,8 +145,12 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1
-            className="text-[24px] font-semibold text-[#111113]"
-            style={{ fontFamily: "var(--font-fraunces)" }}
+            style={{
+              fontFamily: "var(--font-fraunces)",
+              fontSize: "24px",
+              fontWeight: 700,
+              color: "#111113",
+            }}
           >
             Projects
           </h1>

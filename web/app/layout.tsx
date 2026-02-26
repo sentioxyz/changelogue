@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, DM_Sans } from "next/font/google";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -33,7 +32,6 @@ export default function RootLayout({
         <div className="flex h-screen">
           <Sidebar />
           <div className="flex flex-1 flex-col overflow-hidden">
-            <Header />
             <main className="flex-1 overflow-y-auto p-6 fade-in">{children}</main>
           </div>
         </div>

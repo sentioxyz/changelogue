@@ -32,8 +32,20 @@ export default function SourcesPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">All Sources</h2>
-        <p className="text-sm text-muted-foreground">
+        <h1
+          style={{
+            fontFamily: "var(--font-fraunces)",
+            fontSize: "24px",
+            fontWeight: 700,
+            color: "#111113",
+          }}
+        >
+          Sources
+        </h1>
+        <p
+          className="mt-1 text-[13px] text-[#6b7280]"
+          style={{ fontFamily: "var(--font-dm-sans)" }}
+        >
           Ingestion sources across all projects. Sources are managed within their project.
         </p>
       </div>

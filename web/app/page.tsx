@@ -171,6 +171,16 @@ function SemanticReleasesColumn() {
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
+      <h1
+        style={{
+          fontFamily: "var(--font-fraunces)",
+          fontSize: "24px",
+          fontWeight: 700,
+          color: "#111113",
+        }}
+      >
+        Dashboard
+      </h1>
       <StatsCards />
       <div className="grid gap-6 lg:grid-cols-2">
         <RecentReleases />
