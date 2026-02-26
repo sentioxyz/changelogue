@@ -365,13 +365,22 @@ export function ProjectDetail({ id }: { id: string }) {
                             : "Never"}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => handleDeleteSource(source.id)}
-                            className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
-                            title="Delete source"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={`/sources/${source.id}/edit`}
+                              className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
+                              title="Edit source"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                            <button
+                              onClick={() => handleDeleteSource(source.id)}
+                              className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
+                              title="Delete source"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
