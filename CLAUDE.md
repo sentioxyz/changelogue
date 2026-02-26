@@ -67,7 +67,6 @@ make clean
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `DATABASE_URL` | `postgres://localhost:5432/changelogue?sslmode=disable` | PostgreSQL connection |
-| `GITHUB_WEBHOOK_SECRET` | (empty) | HMAC-SHA256 verification for GitHub webhooks |
 | `LISTEN_ADDR` | `:8080` | HTTP server bind address |
 | `GOOGLE_API_KEY` | (empty) | Gemini API key for agent LLM (agent worker disabled if unset) |
 
