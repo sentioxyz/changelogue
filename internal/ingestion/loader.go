@@ -68,6 +68,8 @@ func (l *SourceLoader) buildSource(id string, sourceType, repository string) IIn
 	switch sourceType {
 	case "dockerhub":
 		return NewDockerHubSource(l.client, repository, id)
+	case "github":
+		return NewGitHubAtomSource(l.client, repository, id)
 	default:
 		return nil
 	}
