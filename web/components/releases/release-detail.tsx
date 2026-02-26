@@ -11,9 +11,39 @@ import {
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { SemanticRelease, Source, Project } from "@/lib/api/types";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 
 import { timeAgo } from "@/lib/format";
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function getProviderUrl(
+  provider: string,
+  repository: string,
+  version: string
+): string | null {
+  switch (provider) {
+    case "github":
+      return `https://github.com/${repository}/releases/tag/${version}`;
+    case "dockerhub":
+      return `https://hub.docker.com/r/${repository}/tags?name=${encodeURIComponent(version)}`;
+    default:
+      return null;
+  }
+}
+
+function getProviderLabel(provider: string): string {
+  switch (provider) {
+    case "github":
+      return "GitHub";
+    case "dockerhub":
+      return "Docker Hub";
+    default:
+      return provider;
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -130,6 +160,25 @@ export function ReleaseDetail({ id }: { id: string }) {
             </span>
           )}
           <VersionChip version={release.version} />
+          {source && (() => {
+            const url = getProviderUrl(source.provider, source.repository, release.version);
+            return url ? (
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 transition-colors hover:opacity-70"
+                style={{
+                  fontFamily: "var(--font-dm-sans)",
+                  fontSize: "12px",
+                  color: "#e8601a",
+                }}
+              >
+                View on {getProviderLabel(source.provider)}
+                <ExternalLink size={12} />
+              </a>
+            ) : null;
+          })()}
         </div>
         {project && (
           <p
@@ -293,6 +342,54 @@ export function ReleaseDetail({ id }: { id: string }) {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Release Notes */}
+      <div
+        className="rounded-lg bg-white"
+        style={{ border: "1px solid #e8e8e5" }}
+      >
+        <div
+          className="px-5 py-4"
+          style={{ borderBottom: "1px solid #e8e8e5" }}
+        >
+          <h2
+            style={{
+              fontFamily: "var(--font-fraunces)",
+              fontSize: "16px",
+              fontWeight: 600,
+              color: "#111113",
+            }}
+          >
+            Release Notes
+          </h2>
+        </div>
+        <div className="px-5 py-4">
+          {release.raw_data?.changelog ? (
+            <pre
+              className="whitespace-pre-wrap"
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "13px",
+                lineHeight: 1.7,
+                color: "#374151",
+              }}
+            >
+              {String(release.raw_data.changelog)}
+            </pre>
+          ) : (
+            <p
+              style={{
+                fontFamily: "var(--font-fraunces)",
+                fontStyle: "italic",
+                fontSize: "14px",
+                color: "#9ca3af",
+              }}
+            >
+              No release notes available
+            </p>
+          )}
         </div>
       </div>
 

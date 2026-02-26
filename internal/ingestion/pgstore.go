@@ -31,7 +31,15 @@ func (s *PgStore) IngestRelease(ctx context.Context, sourceID string, result *In
 	}
 	defer tx.Rollback(ctx)
 
-	rawData, err := json.Marshal(result.Metadata)
+	// Build raw_data from Metadata + Changelog so nothing is lost.
+	raw := make(map[string]string)
+	for k, v := range result.Metadata {
+		raw[k] = v
+	}
+	if result.Changelog != "" {
+		raw["changelog"] = result.Changelog
+	}
+	rawData, err := json.Marshal(raw)
 	if err != nil {
 		return fmt.Errorf("marshal raw_data: %w", err)
 	}

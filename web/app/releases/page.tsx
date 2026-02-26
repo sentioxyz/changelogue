@@ -11,6 +11,7 @@ import {
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { Release, Source, Project } from "@/lib/api/types";
+import { ExternalLink } from "lucide-react";
 
 import { timeAgo } from "@/lib/format";
 
@@ -22,6 +23,21 @@ interface ReleaseRow extends Release {
 }
 
 const PER_PAGE = 15;
+
+function getProviderUrl(
+  provider: string,
+  repository: string,
+  version: string
+): string | null {
+  switch (provider) {
+    case "github":
+      return `https://github.com/${repository}/releases/tag/${version}`;
+    case "dockerhub":
+      return `https://hub.docker.com/r/${repository}/tags?name=${encodeURIComponent(version)}`;
+    default:
+      return null;
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
@@ -189,7 +205,7 @@ export default function ReleasesPage() {
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid #e8e8e5", backgroundColor: "#fafaf9" }}>
-                {["Project", "Provider", "Repository", "Version", "Released", "Age"].map(
+                {["Project", "Provider", "Repository", "Version", "Released", "Age", ""].map(
                   (col) => (
                     <th
                       key={col}
@@ -307,6 +323,25 @@ export default function ReleasesPage() {
                     >
                       {timeAgo(release.released_at ?? release.created_at)}
                     </span>
+                  </td>
+
+                  {/* Provider link */}
+                  <td className="px-4 py-3">
+                    {release._provider && release._repository && (() => {
+                      const url = getProviderUrl(release._provider, release._repository, release.version);
+                      return url ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center transition-colors hover:opacity-70"
+                          style={{ color: "#9ca3af" }}
+                          title="View on provider"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      ) : null;
+                    })()}
                   </td>
                 </tr>
               ))}
