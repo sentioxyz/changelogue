@@ -96,6 +96,42 @@ func TestGitHubAtomFetchEmpty(t *testing.T) {
 	}
 }
 
+// TestGitHubAtomLiveGoEthereum hits the real GitHub Atom feed for ethereum/go-ethereum.
+// Skipped in CI — run with: go test -v -run TestGitHubAtomLive ./internal/ingestion/...
+func TestGitHubAtomLiveGoEthereum(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping live test in short mode")
+	}
+
+	src := NewGitHubAtomSource(http.DefaultClient, "ethereum/go-ethereum", "live-test")
+	results, err := src.FetchNewReleases(context.Background())
+	if err != nil {
+		t.Fatalf("FetchNewReleases: %v", err)
+	}
+
+	if len(results) == 0 {
+		t.Fatal("expected at least one release from go-ethereum")
+	}
+
+	t.Logf("got %d releases from ethereum/go-ethereum", len(results))
+	for i, r := range results {
+		if r.RawVersion == "" {
+			t.Errorf("results[%d].RawVersion is empty", i)
+		}
+		if r.Repository != "ethereum/go-ethereum" {
+			t.Errorf("results[%d].Repository = %q, want %q", i, r.Repository, "ethereum/go-ethereum")
+		}
+		if r.Timestamp.IsZero() {
+			t.Errorf("results[%d].Timestamp is zero for version %s", i, r.RawVersion)
+		}
+		if r.Metadata["release_url"] == "" {
+			t.Errorf("results[%d].Metadata[release_url] is empty for version %s", i, r.RawVersion)
+		}
+		t.Logf("  [%d] %s  released=%s  changelog_len=%d  url=%s",
+			i, r.RawVersion, r.Timestamp.Format("2006-01-02"), len(r.Changelog), r.Metadata["release_url"])
+	}
+}
+
 func TestGitHubAtomFetchHTTPError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
