@@ -1,0 +1,699 @@
+let's redesign the projets page and project onboarding experience, I found some issues: 1. the in the projectes page, we should able to easily discover its sources and recent releases for each sources, the current display don't have enough information on that page 2. We can able to easily add a source directly on the projects page for a project. 3. While adding a project, we don't need configurations like agent prompt or agent rules, this is an advanced feature only when semantic release is needed for this project. Instead, we should able to add sources and configure sources
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/brainstorming
+
+# Brainstorming Ideas Into Designs
+
+## Overview
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+
+<HARD-GATE>
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+</HARD-GATE>
+
+## Anti-Pattern: "This Is Too Simple To Need A Design"
+
+Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Explore project context** — check files, docs, recent commits
+2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+3. **Propose 2-3 approaches** — with trade-offs and your recommendation
+4. **Present design** — in sections scaled to their complexity, get user approval after each section
+5. **Write design doc** — save to `docs/plans/YYYY-MM-DD-<topic>-design.md` and commit
+6. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+
+## Process Flow
+
+```dot
+digraph brainstorming {
+    "Explore project context" [shape=box];
+    "Ask clarifying questions" [shape=box];
+    "Propose 2-3 approaches" [shape=box];
+    "Present design sections" [shape=box];
+    "User approves design?" [shape=diamond];
+    "Write design doc" [shape=box];
+    "Invoke writing-plans skill" [shape=doublecircle];
+
+    "Explore project context" -> "Ask clarifying questions";
+    "Ask clarifying questions" -> "Propose 2-3 approaches";
+    "Propose 2-3 approaches" -> "Present design sections";
+    "Present design sections" -> "User approves design?";
+    "User approves design?" -> "Present design sections" [label="no, revise"];
+    "User approves design?" -> "Write design doc" [label="yes"];
+    "Write design doc" -> "Invoke writing-plans skill";
+}
+```
+
+**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+
+## The Process
+
+**Understanding the idea:**
+- Check out the current project state first (files, docs, recent commits)
+- Ask questions one at a time to refine the idea
+- Prefer multiple choice questions when possible, but open-ended is fine too
+- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Focus on understanding: purpose, constraints, success criteria
+
+**Exploring approaches:**
+- Propose 2-3 different approaches with trade-offs
+- Present options conversationally with your recommendation and reasoning
+- Lead with your recommended option and explain why
+
+**Presenting the design:**
+- Once you believe you understand what you're building, present the design
+- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- Ask after each section whether it looks right so far
+- Cover: architecture, components, data flow, error handling, testing
+- Be ready to go back and clarify if something doesn't make sense
+
+## After the Design
+
+**Documentation:**
+- Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Use elements-of-style:writing-clearly-and-concisely skill if available
+- Commit the design document to git
+
+**Implementation:**
+- Invoke the writing-plans skill to create a detailed implementation plan
+- Do NOT invoke any other skill. writing-plans is the next step.
+
+## Key Principles
+
+- **One question at a time** - Don't overwhelm with multiple questions
+- **Multiple choice preferred** - Easier to answer than open-ended when possible
+- **YAGNI ruthlessly** - Remove unnecessary features from all designs
+- **Explore alternatives** - Always propose 2-3 approaches before settling
+- **Incremental validation** - Present design, get approval before moving on
+- **Be flexible** - Go back and clarify when something doesn't make sense
+
+---
+
+yes
+
+---
+
+yes
+
+---
+
+yes
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/writing-plans
+
+# Writing Plans
+
+## Overview
+
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+
+Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+
+**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+
+**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+
+**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+
+## Bite-Sized Task Granularity
+
+**Each step is one action (2-5 minutes):**
+- "Write the failing test" - step
+- "Run it to make sure it fails" - step
+- "Implement the minimal code to make the test pass" - step
+- "Run the tests and make sure they pass" - step
+- "Commit" - step
+
+## Plan Document Header
+
+**Every plan MUST start with this header:**
+
+```markdown
+# [Feature Name] Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** [One sentence describing what this builds]
+
+**Architecture:** [2-3 sentences about approach]
+
+**Tech Stack:** [Key technologies/libraries]
+
+---
+```
+
+## Task Structure
+
+````markdown
+### Task N: [Component Name]
+
+**Files:**
+- Create: `exact/path/to/file.py`
+- Modify: `exact/path/to/existing.py:123-145`
+- Test: `tests/exact/path/to/test.py`
+
+**Step 1: Write the failing test**
+
+```python
+def test_specific_behavior():
+    result = function(input)
+    assert result == expected
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: FAIL with "function not defined"
+
+**Step 3: Write minimal implementation**
+
+```python
+def function(input):
+    return expected
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: PASS
+
+**Step 5: Commit**
+
+```bash
+git add tests/path/test.py src/path/file.py
+git commit -m "feat: add specific feature"
+```
+````
+
+## Remember
+- Exact file paths always
+- Complete code in plan (not "add validation")
+- Exact commands with expected output
+- Reference relevant skills with @ syntax
+- DRY, YAGNI, TDD, frequent commits
+
+## Execution Handoff
+
+After saving the plan, offer execution choice:
+
+**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+
+**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+
+**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
+
+**Which approach?"**
+
+**If Subagent-Driven chosen:**
+- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+- Stay in this session
+- Fresh subagent per task + code review
+
+**If Parallel Session chosen:**
+- Guide them to open new session in worktree
+- **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+
+---
+
+1
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation plan?" [shape=diamond];
+    "Tasks mostly independent?" [shape=diamond];
+    "Stay in this session?" [shape=diamond];
+    "subagent-driven-development" [shape=box];
+    "executing-plans" [shape=box];
+    "Manual execution or brainstorm first" [shape=box];
+
+    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
+    "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
+    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
+    "Stay in this session?" -> "subagent-driven-development" [label="yes"];
+    "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
+}
+```
+
+**vs. Executing Plans (parallel session):**
+- Same session (no context switch)
+- Fresh subagent per task (no context pollution)
+- Two-stage review after each task: spec compliance first, then code quality
+- Faster iteration (no human-in-loop between tasks)
+
+## The Process
+
+```dot
+digraph process {
+    rankdir=TB;
+
+    subgraph cluster_per_task {
+        label="Per Task";
+        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Implementer subagent asks questions?" [shape=diamond];
+        "Answer questions, provide context" [shape=box];
+        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
+        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
+        "Implementer subagent fixes spec gaps" [shape=box];
+        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
+        "Code quality reviewer subagent approves?" [shape=diamond];
+        "Implementer subagent fixes quality issues" [shape=box];
+        "Mark task complete in TodoWrite" [shape=box];
+    }
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "More tasks remain?" [shape=diamond];
+    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
+    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
+    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+}
+```
+
+## Prompt Templates
+
+- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+
+## Example Workflow
+
+```
+You: I'm using Subagent-Driven Development to execute this plan.
+
+[Read plan file once: docs/plans/feature-plan.md]
+[Extract all 5 tasks with full text and context]
+[Create TodoWrite with all tasks]
+
+Task 1: Hook installation script
+
+[Get Task 1 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: "Before I begin - should the hook be installed at user or system level?"
+
+You: "User level (~/.config/superpowers/hooks/)"
+
+Implementer: "Got it. Implementing now..."
+[Later] Implementer:
+  - Implemented install-hook command
+  - Added tests, 5/5 passing
+  - Self-review: Found I missed --force flag, added it
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+
+[Get git SHAs, dispatch code quality reviewer]
+Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
+
+[Mark Task 1 complete]
+
+Task 2: Recovery modes
+
+[Get Task 2 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: [No questions, proceeds]
+Implementer:
+  - Added verify/repair modes
+  - 8/8 tests passing
+  - Self-review: All good
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ❌ Issues:
+  - Missing: Progress reporting (spec says "report every 100 items")
+  - Extra: Added --json flag (not requested)
+
+[Implementer fixes issues]
+Implementer: Removed --json flag, added progress reporting
+
+[Spec reviewer reviews again]
+Spec reviewer: ✅ Spec compliant now
+
+[Dispatch code quality reviewer]
+Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
+
+[Implementer fixes]
+Implementer: Extracted PROGRESS_INTERVAL constant
+
+[Code reviewer reviews again]
+Code reviewer: ✅ Approved
+
+[Mark Task 2 complete]
+
+...
+
+[After all tasks]
+[Dispatch final code-reviewer]
+Final reviewer: All requirements met, ready to merge
+
+Done!
+```
+
+## Advantages
+
+**vs. Manual execution:**
+- Subagents follow TDD naturally
+- Fresh context per task (no confusion)
+- Parallel-safe (subagents don't interfere)
+- Subagent can ask questions (before AND during work)
+
+**vs. Executing Plans:**
+- Same session (no handoff)
+- Continuous progress (no waiting)
+- Review checkpoints automatic
+
+**Efficiency gains:**
+- No file reading overhead (controller provides full text)
+- Controller curates exactly what context is needed
+- Subagent gets complete information upfront
+- Questions surfaced before work begins (not after)
+
+**Quality gates:**
+- Self-review catches issues before handoff
+- Two-stage review: spec compliance, then code quality
+- Review loops ensure fixes actually work
+- Spec compliance prevents over/under-building
+- Code quality ensures implementation is well-built
+
+**Cost:**
+- More subagent invocations (implementer + 2 reviewers per task)
+- Controller does more prep work (extracting all tasks upfront)
+- Review loops add iterations
+- But catches issues early (cheaper than debugging later)
+
+## Red Flags
+
+**Never:**
+- Start implementation on main/master branch without explicit user consent
+- Skip reviews (spec compliance OR code quality)
+- Proceed with unfixed issues
+- Dispatch multiple implementation subagents in parallel (conflicts)
+- Make subagent read plan file (provide full text instead)
+- Skip scene-setting context (subagent needs to understand where task fits)
+- Ignore subagent questions (answer before letting them proceed)
+- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
+- Skip review loops (reviewer found issues = implementer fixes = review again)
+- Let implementer self-review replace actual review (both are needed)
+- **Start code quality review before spec compliance is ✅** (wrong order)
+- Move to next task while either review has open issues
+
+**If subagent asks questions:**
+- Answer clearly and completely
+- Provide additional context if needed
+- Don't rush them into implementation
+
+**If reviewer finds issues:**
+- Implementer (same subagent) fixes them
+- Reviewer reviews again
+- Repeat until approved
+- Don't skip the re-review
+
+**If subagent fails task:**
+- Dispatch fix subagent with specific instructions
+- Don't try to fix manually (context pollution)
+
+## Integration
+
+**Required workflow skills:**
+- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+
+**Subagents should use:**
+- **superpowers:test-driven-development** - Subagents follow TDD for each task
+
+**Alternative workflow:**
+- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+---
+
+Click the view all in the recent releases should go to the page of releases which filter by this project
+
+---
+
+While adding a new source we should be able to set he version filter
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+It's fine we can create a sperate task for it; another feedback: click the edit button for the project, now it pops up a window to edit the name or description of the project, we shouldn't do this, it should be configuratble through an in-line approach
+
+---
+
+The edit button and "add source" button are too far way from the title so in the wide screen it's no very user-friendly. Also edit the title for the project and description create a very wide text box, can we optimize it?
+
+---
+
+Now it also looks not very good, the "New project" button still on the very right of the screen, can we optimize the layout, also please include the recent semantic releases in the card as well
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **Initial Request**: User wants to redesign the projects page and project onboarding experience with 3 specific issues:
+   - Projects page should show sources and recent releases for each source
+   - Should be able to add a source directly on the projects page
+   - Project creation shouldn't include agent prompt/rules (advanced feature), should instead add sources
+
+2. **Brainstorming Phase**: Used brainstorming skill to explore the design:
+   - Explored project context via subagent (thoroughly mapped all frontend files, components, API)
+   - Asked 3 clarifying questions with multiple choice options:
+     - User chose "Dashboard cards with sections" for projects page layout
+     - User chose "Simple form swap" for project creation flow
+     - User chose "Inline form in card" for adding sources from projects page
+   - Presented design in 3 sections (projects page, creation form, detail page adjustments), all approved
+   - Wrote design doc to `docs/plans/2026-02-26-projects-redesign-design.md`
+
+3. **Implementation Planning**: Created implementation plan with 5 tasks:
+   - Task 1: Simplify ProjectForm (remove agent fields, add source fields)
+   - Task 2: Update NewProjectPage for source creation
+   - Task 3: Update ProjectEdit for new form interface
+   - Task 4: Rewrite projects page with dashboard cards
+   - Task 5: Verification
+   - Saved to `docs/plans/2026-02-26-projects-redesign.md`
+
+4. **Implementation via Subagent-Driven Development**:
+   - Tasks 1-3 implemented by one subagent (project-form.tsx, new/page.tsx, project-edit.tsx)
+   - Task 4 implemented by another subagent (projects/page.tsx full rewrite)
+   - Task 5: Build verification passed
+
+5. **User Feedback 1**: "View all" in recent releases should go to releases page filtered by project
+   - Changed link from `/projects/${projectId}` to `/releases?project=${projectId}`
+   - Updated releases page to read `?project=` query param via `useSearchParams()`
+   - Hit error: `useSearchParams()` needs Suspense boundary
+   - Fixed by wrapping in `<Suspense>` with inner component pattern
+   - Committed
+
+6. **User Feedback 2**: Want version filter when adding sources
+   - Explored backend - `version_filter` exists on subscriptions, not sources
+   - Source model doesn't have it, would need full-stack change
+   - User interrupted and said to create separate task for it
+
+7. **User Feedback 3**: Edit button navigates to separate page, should be inline
+   - Replaced `<Link>` to edit page with inline editing on card
+   - Added editing state, input fields for name/description, Save/Cancel buttons
+   - Committed
+
+8. **User Feedback 4**: Edit button and "Add Source" too far from title on wide screens, edit inputs too wide
+   - Added `max-w-2xl` to card, `max-w-sm` to edit inputs
+   - Left-aligned Save/Cancel
+   - Committed
+
+9. **User Feedback 5** (most recent): 
+   - "New Project" button still on very right of screen (page header not constrained)
+   - Should include recent semantic releases in the card
+   - I was in the middle of rewriting the full page file when summary was requested
+
+Let me trace the current state of the file that was just written.
+
+The most recent write to `web/app/projects/page.tsx` includes:
+- `max-w-2xl` moved to the page-level container (`<div className="flex flex-col gap-4 fade-in max-w-2xl">`)
+- Removed `max-w-2xl` from individual cards
+- Added new `SemanticReleasesSection` component that shows latest 3 semantic releases with version chip (blue), status, urgency badge, truncated summary, and timestamp
+- Added urgency color mapping (critical=red, high=orange)
+- Added `srApi` import
+- Card now renders 4 sections: header, sources, releases, semantic releases
+
+The build has NOT been run yet, and the commit has NOT been made yet.
+
+Summary:
+1. Primary Request and Intent:
+   The user requested a redesign of the projects page and project onboarding experience with three specific issues:
+   - The projects page should easily show sources and recent releases per source (current table layout lacks information)
+   - Users should be able to add a source directly on the projects page for a project
+   - Project creation should NOT include agent prompt or agent rules (advanced features for semantic release only); instead should allow adding sources and configuring them
+   
+   After implementation, the user provided iterative feedback:
+   - "View all" in recent releases should link to the releases page filtered by project
+   - Version filter should be settable when adding sources (deferred to separate task)
+   - Edit button should use inline editing, not navigate to a separate page
+   - Layout too wide on wide screens (buttons too far from content, edit inputs too wide)
+   - "New Project" button still on far right; also add semantic releases to cards
+
+2. Key Technical Concepts:
+   - Next.js App Router (app directory structure)
+   - SWR for data fetching and cache revalidation (`useSWR`, `mutate`)
+   - React `useState` for inline editing and form state
+   - `useSearchParams()` requires `<Suspense>` boundary in Next.js for static rendering
+   - Inline form patterns (expand/collapse within cards)
+   - Dashboard card layout replacing table layout
+   - CSS max-width constraints (`max-w-2xl`, `max-w-sm`) for wide screen optimization
+   - Project/Source/Release/SemanticRelease domain models
+   - Two-step API flow: create project, then create source (no transactional endpoint)
+   - Brand fonts: Fraunces (serif headings), DM Sans (body), JetBrains Mono (code/versions)
+   - Brand colors: Primary orange `#e8601a`, borders `#e8e8e5`, muted `#9ca3af`
+
+3. Files and Code Sections:
+   - **`web/components/projects/project-form.tsx`** (rewritten)
+     - Removed agent prompt, agent rules (Switch toggles, version pattern)
+     - Added optional "Add a Source" section (provider dropdown, repository, poll interval)
+     - Changed `onSubmit` signature from `(input: ProjectInput) => Promise<void>` to `(result: ProjectFormResult) => Promise<void>`
+     - Exported new `ProjectFormResult` interface: `{ project: ProjectInput; source?: SourceInput }`
+     - Added `hideSource` prop for edit mode
+
+   - **`web/app/projects/new/page.tsx`** (rewritten)
+     - Updated to use new `ProjectFormResult` interface
+     - Two-step submit: `projectsApi.create(result.project)` then conditional `sourcesApi.create(resp.data.id, result.source)`
+
+   - **`web/components/projects/project-edit.tsx`** (rewritten)
+     - Passes `hideSource` prop to `ProjectForm`
+     - Destructures `result.project` for update API call
+
+   - **`web/app/projects/page.tsx`** (fully rewritten, most recently modified)
+     - This is the main projects page - the core of the redesign
+     - Replaced table layout with dashboard cards
+     - Components: `InlineSourceForm`, `SourcesSection`, `RecentReleasesSection`, `SemanticReleasesSection`, `ProjectCard`
+     - Inline project editing (name/description) with Save/Cancel
+     - Inline source addition within cards
+     - `max-w-2xl` on page container (not individual cards) to constrain entire layout
+     - `max-w-sm` on edit inputs to prevent overly wide text boxes
+     - Most recent write added `SemanticReleasesSection` and moved `max-w-2xl` to page level
+     - The file was just written but NOT yet build-verified or committed
+
+   - **`web/app/releases/page.tsx`** (modified)
+     - Added `useSearchParams()` to read `?project=` query param
+     - Initialized `projectFilter` state from URL param
+     - Wrapped component in `<Suspense>` boundary (renamed inner to `ReleasesPageInner`)
+
+   - **`web/lib/api/types.ts`** (read, not modified)
+     - Key types: `Project`, `ProjectInput`, `Source`, `SourceInput`, `Release`, `SemanticRelease`, `SemanticReport`
+
+   - **`web/lib/api/client.ts`** (read, not modified)
+     - API methods: `projects.{list,get,create,update,delete}`, `sources.{listByProject,create}`, `releases.{listByProject}`, `semanticReleases.{list}`
+
+   - **`docs/plans/2026-02-26-projects-redesign-design.md`** (created, committed)
+   - **`docs/plans/2026-02-26-projects-redesign.md`** (created, committed)
+
+4. Errors and fixes:
+   - **`useSearchParams()` Suspense error**: When adding URL query param support to releases page, Next.js build failed with `useSearchParams() should be wrapped in a suspense boundary at page "/releases"`. Fixed by importing `Suspense`, renaming `ReleasesPage` to `ReleasesPageInner`, and creating a wrapper default export that wraps in `<Suspense>`.
+   - **User feedback on edit behavior**: User said clicking Edit shouldn't navigate to a separate page (`/projects/{id}/edit`). Changed from `<Link>` navigation to inline state-based editing with `useState` for editing mode.
+   - **User feedback on wide screen layout**: User said Edit button and Add Source button are too far from title on wide screens, and edit inputs create very wide text boxes. Fixed by adding `max-w-2xl` to cards and `max-w-sm` to edit input containers.
+   - **User feedback on continued wide layout**: User said "New Project" button still on far right. The `max-w-2xl` was only on cards, not the page header. Fixed by moving `max-w-2xl` to the page-level container.
+
+5. Problem Solving:
+   - Solved the information density problem on projects page by replacing table with dashboard cards showing sources, releases, and semantic releases inline
+   - Solved the source addition friction by adding inline forms within project cards
+   - Solved the overly complex project creation by removing agent config fields and adding optional source fields
+   - Solved the wide-screen layout issues by constraining the entire page layout with `max-w-2xl`
+   - Version filter on sources identified as requiring full-stack changes (DB migration, Go model, API, frontend) - deferred to separate task
+
+6. All user messages:
+   - "let's redesign the projets page and project onboarding experience, I found some issues: 1. the in the projectes page, we should able to easily discover its sources and recent releases for each sources, the current display don't have enough information on that page 2. We can able to easily add a source directly on the projects page for a project. 3. While adding a project, we don't need configurations like agent prompt or agent rules, this is an advanced feature only when semantic release is needed for this project. Instead, we should able to add sources and configure sources"
+   - Selected "Dashboard cards with sections" for projects page layout
+   - Selected "Simple form swap (Recommended)" for project creation flow
+   - Selected "Inline form in card (Recommended)" for add source UX
+   - "yes" (approving design section 1: projects page dashboard cards)
+   - "yes" (approving design section 2: project creation form)
+   - "yes" (approving design section 3: project detail page adjustments)
+   - "1" (choosing subagent-driven execution over parallel session)
+   - "Click the view all in the recent releases should go to the page of releases which filter by this project"
+   - "While adding a new source we should be able to set he version filter"
+   - "[Request interrupted by user] It's fine we can create a sperate task for it; another feedback: click the edit button for the project, now it pops up a window to edit the name or description of the project, we shouldn't do this, it should be configuratble through an in-line approach"
+   - "The edit button and 'add source' button are too far way from the title so in the wide screen it's no very user-friendly. Also edit the title for the project and description create a very wide text box, can we optimize it?"
+   - "Now it also looks not very good, the 'New project' button still on the very right of the screen, can we optimize the layout, also please include the recent semantic releases in the card as well"
+
+7. Pending Tasks:
+   - Add version filter support when adding sources (user explicitly deferred: "we can create a separate task for it")
+   - Build verification and commit for the latest changes (max-w-2xl on page container + SemanticReleasesSection)
+
+8. Current Work:
+   The most recent user message was: "Now it also looks not very good, the 'New project' button still on the very right of the screen, can we optimize the layout, also please include the recent semantic releases in the card as well"
+   
+   I just wrote the complete updated `web/app/projects/page.tsx` file with two changes:
+   1. Moved `max-w-2xl` from individual cards to the page-level container (`<div className="flex flex-col gap-4 fade-in max-w-2xl">`) so the header with "New Project" button is also constrained
+   2. Added a new `SemanticReleasesSection` component showing latest 3 semantic releases per project with version chip (blue `#eff6ff`/`#1d4ed8`), status text, urgency badge (critical=red, high=orange), truncated summary, and relative timestamp. Added to each `ProjectCard` as a fourth section after Recent Releases.
+   
+   The file has been written but the build has NOT been run and the changes have NOT been committed yet.
+
+9. Optional Next Step:
+   Run the build verification (`cd /Users/pc/web3/ReleaseBeacon/web && npx next build`) and commit the changes. This directly follows from the user's most recent request to optimize the layout and add semantic releases to cards, which I've just written to the file but not yet verified/committed.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/78263eb0-2b29-4a07-b6e8-0bd9b0f7cad9.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+How can we make it more visible that the project name is clickable to go to the project deatil page?
+
+---
+
+can we just remove the edit button on the projects page? and only support edit name and description on the project detail page?
+
+---
+
+Then in the project detail page, we should delete the Edit button, since it's now only can be used to change the name and description. Instead, we can have pencil icon when we hover to the title and description, click other place trigger the save
+
+---
+
+Now the title and description are on the same line which should be two lines?
