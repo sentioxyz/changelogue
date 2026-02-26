@@ -4,21 +4,23 @@ import useSWR, { mutate } from "swr";
 import Link from "next/link";
 import { channels as channelsApi } from "@/lib/api/client";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { FaSlack, FaDiscord } from "react-icons/fa";
+import { TbWebhook } from "react-icons/tb";
+import type { IconType } from "react-icons";
 
-const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  slack: { bg: "#4A154B", text: "#ffffff" },
-  discord: { bg: "#5865F2", text: "#ffffff" },
-  webhook: { bg: "#1a1a1a", text: "#ffffff" },
+const TYPE_STYLES: Record<string, { bg: string; text: string; icon: IconType }> = {
+  slack: { bg: "#4A154B", text: "#ffffff", icon: FaSlack },
+  discord: { bg: "#5865F2", text: "#ffffff", icon: FaDiscord },
+  webhook: { bg: "#1a1a1a", text: "#ffffff", icon: TbWebhook },
 };
 
 function TypeBadge({ type }: { type: string }) {
-  const colors = TYPE_COLORS[type.toLowerCase()] ?? {
-    bg: "#6b7280",
-    text: "#ffffff",
-  };
+  const style = TYPE_STYLES[type.toLowerCase()];
+  const colors = style ?? { bg: "#6b7280", text: "#ffffff" };
+  const Icon = style?.icon;
   return (
     <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5"
       style={{
         backgroundColor: colors.bg,
         color: colors.text,
@@ -28,6 +30,7 @@ function TypeBadge({ type }: { type: string }) {
         lineHeight: "16px",
       }}
     >
+      {Icon && <Icon size={12} />}
       {type}
     </span>
   );

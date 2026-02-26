@@ -7,7 +7,9 @@ import {
   projects as projectsApi,
   releases as releasesApi,
   semanticReleases as srApi,
+  sources as sourcesApi,
 } from "@/lib/api/client";
+import { getProviderIcon } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
 import { Plus } from "lucide-react";
 import type { Project } from "@/lib/api/types";
@@ -20,25 +22,39 @@ function ReleaseChips({ projectId }: { projectId: string }) {
     `projects/${projectId}/releases?limit=${limit + 1}`,
     () => releasesApi.listByProject(projectId, 1, limit + 1)
   );
+  const { data: sourcesData } = useSWR(
+    `projects/${projectId}/sources`,
+    () => sourcesApi.listByProject(projectId)
+  );
   const items = data?.data ?? [];
   const hasMore = items.length > limit;
   const shown = items.slice(0, limit);
+
+  const providerMap = new Map<string, string>();
+  for (const s of sourcesData?.data ?? []) {
+    providerMap.set(s.id, s.provider);
+  }
 
   if (!data) return <span className="text-[12px] text-[#c4c4c0] italic">loading…</span>;
   if (shown.length === 0) return <span className="text-[12px] text-[#c4c4c0]">—</span>;
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {shown.map((r) => (
-        <Link
-          key={r.id}
-          href={`/releases/${r.id}`}
-          className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none text-[#374151] transition-colors hover:bg-[#e8e8e5]"
-          style={{ backgroundColor: "#f3f3f1", fontFamily: "'JetBrains Mono', monospace" }}
-        >
-          {r.version}
-        </Link>
-      ))}
+      {shown.map((r) => {
+        const provider = providerMap.get(r.source_id);
+        const Icon = provider ? getProviderIcon(provider) : undefined;
+        return (
+          <Link
+            key={r.id}
+            href={`/releases/${r.id}`}
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[12px] leading-none text-[#374151] transition-colors hover:bg-[#e8e8e5]"
+            style={{ backgroundColor: "#f3f3f1", fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            {Icon && <Icon size={11} className="shrink-0 text-[#6b7280]" />}
+            {r.version}
+          </Link>
+        );
+      })}
       {hasMore && (
         <button
           onClick={() => setLimit((n) => n + CHUNK_SIZE)}
