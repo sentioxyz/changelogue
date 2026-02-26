@@ -367,10 +367,10 @@ export function ProjectDetail({ id }: { id: string }) {
                         <td className="px-4 py-3 text-right">
                           <button
                             onClick={() => handleDeleteSource(source.id)}
-                            className="text-[12px] font-medium transition-colors hover:text-[#dc2626]"
-                            style={{ color: "#9ca3af" }}
+                            className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
+                            title="Delete source"
                           >
-                            Delete
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </td>
                       </tr>
@@ -448,10 +448,10 @@ export function ProjectDetail({ id }: { id: string }) {
                         <td className="px-4 py-3 text-right">
                           <button
                             onClick={() => handleDeleteCtx(ctx.id)}
-                            className="text-[12px] font-medium transition-colors hover:text-[#dc2626]"
-                            style={{ color: "#9ca3af" }}
+                            className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
+                            title="Delete context source"
                           >
-                            Delete
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </td>
                       </tr>
