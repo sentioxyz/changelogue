@@ -34,6 +34,15 @@ node_modules/
 .claude/
 .entire/
 .worktrees/
+.playwright-mcp/
+
+# Screenshots / images (design references)
+*.png
+*.jpeg
+*.jpg
+
+# Debug logs
+*-debug.log
 
 # OS
 .DS_Store
