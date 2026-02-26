@@ -14,7 +14,8 @@ export function ProjectEdit({ id }: { id: string }) {
     <ProjectForm
       title="Edit Project"
       initial={data.data}
-      onSubmit={async (input) => { await projectsApi.update(id, input); }}
+      hideSource
+      onSubmit={async (result) => { await projectsApi.update(id, result.project); }}
     />
   );
 }
