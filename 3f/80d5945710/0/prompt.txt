@@ -1,0 +1,9 @@
+There are duplicated headers in the page like projects, releases.. And dashboard's page doesn't have the header
+
+---
+
+Dashboard and projects bold size looks different from others
+
+---
+
+commit and push
