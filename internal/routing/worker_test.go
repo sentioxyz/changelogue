@@ -32,6 +32,7 @@ type mockNotifyStore struct {
 type agentRunCall struct {
 	ProjectID string
 	Trigger   string
+	Version   string
 }
 
 func (m *mockNotifyStore) GetRelease(_ context.Context, id string) (*models.Release, error) {
@@ -98,13 +99,13 @@ func (m *mockNotifyStore) GetPreviousRelease(_ context.Context, sourceID string,
 	return m.previousReleases[sourceID], nil
 }
 
-func (m *mockNotifyStore) EnqueueAgentRun(_ context.Context, projectID, trigger string) error {
+func (m *mockNotifyStore) EnqueueAgentRun(_ context.Context, projectID, trigger, version string) error {
 	if m.enqueueAgentErr != nil {
 		return m.enqueueAgentErr
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.agentRunCalls = append(m.agentRunCalls, agentRunCall{ProjectID: projectID, Trigger: trigger})
+	m.agentRunCalls = append(m.agentRunCalls, agentRunCall{ProjectID: projectID, Trigger: trigger, Version: version})
 	return nil
 }
 

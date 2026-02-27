@@ -21,7 +21,7 @@ type NotifyStore interface {
 	GetChannel(ctx context.Context, id string) (*models.NotificationChannel, error)
 	GetProject(ctx context.Context, id string) (*models.Project, error)
 	GetPreviousRelease(ctx context.Context, sourceID string, beforeVersion string) (*models.Release, error)
-	EnqueueAgentRun(ctx context.Context, projectID, trigger string) error
+	EnqueueAgentRun(ctx context.Context, projectID, trigger, version string) error
 }
 
 // NotifyWorker is a River worker that processes NotifyJobArgs.
@@ -130,7 +130,7 @@ func (w *NotifyWorker) checkAgentRules(ctx context.Context, release *models.Rele
 
 	if CheckAgentRules(&rules, release.Version, previousVersion) {
 		trigger := fmt.Sprintf("auto:version:%s", release.Version)
-		if err := w.store.EnqueueAgentRun(ctx, source.ProjectID, trigger); err != nil {
+		if err := w.store.EnqueueAgentRun(ctx, source.ProjectID, trigger, release.Version); err != nil {
 			slog.Error("enqueue agent run", "project_id", source.ProjectID, "err", err)
 		} else {
 			slog.Info("agent run triggered by version rules",

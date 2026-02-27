@@ -701,7 +701,7 @@ func (s *PgStore) GetPreviousRelease(ctx context.Context, sourceID string, befor
 
 // EnqueueAgentRun creates an agent_run row and enqueues a River AgentJobArgs.
 // This follows the transactional outbox pattern for zero-loss guarantee.
-func (s *PgStore) EnqueueAgentRun(ctx context.Context, projectID, trigger string) error {
+func (s *PgStore) EnqueueAgentRun(ctx context.Context, projectID, trigger, version string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -710,9 +710,9 @@ func (s *PgStore) EnqueueAgentRun(ctx context.Context, projectID, trigger string
 
 	var runID string
 	err = tx.QueryRow(ctx,
-		`INSERT INTO agent_runs (project_id, trigger, status)
-		 VALUES ($1, $2, 'pending')
-		 RETURNING id`, projectID, trigger,
+		`INSERT INTO agent_runs (project_id, trigger, version, status)
+		 VALUES ($1, $2, $3, 'pending')
+		 RETURNING id`, projectID, trigger, version,
 	).Scan(&runID)
 	if err != nil {
 		return fmt.Errorf("insert agent run: %w", err)
@@ -722,6 +722,7 @@ func (s *PgStore) EnqueueAgentRun(ctx context.Context, projectID, trigger string
 		_, err = s.river.InsertTx(ctx, tx, queue.AgentJobArgs{
 			AgentRunID: runID,
 			ProjectID:  projectID,
+			Version:    version,
 		}, nil)
 		if err != nil {
 			return fmt.Errorf("enqueue agent job: %w", err)
