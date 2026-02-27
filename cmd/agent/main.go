@@ -60,7 +60,7 @@ func main() {
 		OpenAIBaseURL: os.Getenv("OPENAI_BASE_URL"),
 	}
 
-	agentInstance, err := agentpkg.BuildAgent(ctx, store, project, llmConfig)
+	agentInstance, err := agentpkg.BuildAgent(ctx, store, project, llmConfig, "")
 	if err != nil {
 		log.Fatalf("build agent: %v", err)
 	}

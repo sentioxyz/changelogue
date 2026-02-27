@@ -16,6 +16,8 @@ import (
 	"google.golang.org/adk/runner"
 	"google.golang.org/adk/session"
 	"google.golang.org/adk/tool"
+	"google.golang.org/adk/tool/agenttool"
+	"google.golang.org/adk/tool/geminitool"
 
 	"github.com/sentioxyz/changelogue/internal/models"
 	"github.com/sentioxyz/changelogue/internal/routing"
@@ -37,56 +39,95 @@ type OrchestratorStore interface {
 	HasReleaseForVersion(ctx context.Context, sourceID, version string) (bool, error)
 }
 
-const DefaultInstruction = `You are a release intelligence agent for a software project.
-Your job is to analyze recent upstream releases from the project's tracked sources
-and produce a structured semantic release report.
+const DefaultInstruction = `You are a release intelligence agent analyzing version {{VERSION}} of a software project.
+
+Focus ONLY on version {{VERSION}}. Cross-check this version across all available sources.
 
 Use the available tools to:
-1. Fetch the list of recent releases for this project.
-2. Inspect individual release details (changelogs, commit data, raw payloads).
-3. Review the project's context sources (runbooks, documentation) for background.
+1. Fetch releases and find the one matching {{VERSION}} from each source.
+2. Inspect release details (changelogs, commit data, raw payloads) for {{VERSION}} only.
+3. Check binary/image availability directly from the source data.
+4. Review the project's context sources (runbooks, documentation) for relevant background.
+5. Use web search ONLY when you need additional context not available from sources
+   (e.g., community sentiment, security advisories, network adoption stats, known issues).
 
 CRITICAL: Your final response MUST be a single JSON object and nothing else.
 Do not include any explanation, commentary, or markdown formatting — just the raw JSON.
 
 The JSON object must have exactly these fields:
 {
-  "summary": "A 2-3 sentence high-level summary of what changed across the releases.",
-  "availability": "Are these releases available and stable? (e.g., 'GA', 'RC', 'Beta')",
-  "adoption": "What is the recommended adoption timeline? (e.g., 'Immediate', 'Next sprint', 'Monitor')",
-  "urgency": "How urgent is upgrading? (e.g., 'Critical', 'High', 'Medium', 'Low')",
-  "recommendation": "A concrete 1-2 sentence recommendation for the team."
+  "subject": "Ready to Deploy: <Project> <Version> (<Risk Summary>)",
+  "risk_level": "CRITICAL|HIGH|MEDIUM|LOW",
+  "risk_reason": "Why this risk level (e.g., 'Hard Fork detected in Discord #announcements')",
+  "status_checks": ["Docker Image Verified", "Binaries Available"],
+  "changelog_summary": "One-line summary of key changes (e.g., 'Fixes sync bug in block 14,000,000')",
+  "availability": "GA|RC|Beta",
+  "adoption": "Percentage or recommendation (e.g., '12% of network updated (Wait recommended if not urgent)')",
+  "urgency": "Critical|High|Medium|Low",
+  "recommendation": "Actionable 1-2 sentence recommendation for the SRE team",
+  "download_commands": ["docker pull ethereum/client-go:v1.10.15"],
+  "download_links": ["https://github.com/ethereum/go-ethereum/releases/tag/v1.10.15"]
 }`
 
 // BuildAgent creates the ADK-Go LLM agent for a given project. This is used
 // by both the production orchestrator and the dev entrypoint to ensure the
 // same agent configuration is used everywhere.
-func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Project, llmConfig LLMConfig) (agent.Agent, error) {
-	// Build instruction from project's agent_prompt or use default.
+func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Project, llmConfig LLMConfig, version string) (agent.Agent, error) {
 	instruction := DefaultInstruction
 	if project.AgentPrompt != "" {
 		instruction = project.AgentPrompt + "\n\n" + instruction
 	}
+	// Substitute version placeholder
+	instruction = strings.ReplaceAll(instruction, "{{VERSION}}", version)
 
-	// Create LLM model.
 	llmModel, err := NewLLMModel(ctx, llmConfig)
 	if err != nil {
 		return nil, fmt.Errorf("create LLM model: %w", err)
 	}
 
-	// Create project-scoped tools.
-	tools, err := NewTools(store, project.ID)
+	// Create project-scoped function tools.
+	functionTools, err := NewTools(store, project.ID)
 	if err != nil {
 		return nil, fmt.Errorf("create agent tools: %w", err)
 	}
 
-	// Create agent.
+	// Data sub-agent: handles DB queries for releases and context sources.
+	dataAgent, err := llmagent.New(llmagent.Config{
+		Name:        "data_agent",
+		Description: "Query project releases and context sources from the database. Use this to fetch release lists, release details, and context sources like runbooks and documentation.",
+		Model:       llmModel,
+		Tools:       functionTools,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create data sub-agent: %w", err)
+	}
+
+	// Build the root agent tools list.
+	rootTools := []tool.Tool{
+		agenttool.New(dataAgent, nil),
+	}
+
+	// Search sub-agent: Google Search grounding (Gemini only).
+	if llmConfig.Provider == "gemini" || llmConfig.Provider == "" {
+		searchAgent, err := llmagent.New(llmagent.Config{
+			Name:        "search_agent",
+			Description: "Search the web for additional context about a release. Use this ONLY when you need information not available from the project's sources, such as community sentiment, security advisories, network adoption statistics, or known issues.",
+			Model:       llmModel,
+			Tools:       []tool.Tool{geminitool.GoogleSearch{}},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("create search sub-agent: %w", err)
+		}
+		rootTools = append(rootTools, agenttool.New(searchAgent, nil))
+	}
+
+	// Root agent orchestrates data lookup and optional web search.
 	return llmagent.New(llmagent.Config{
 		Name:        "release_analyst",
 		Description: "Analyzes upstream releases and produces semantic release reports.",
 		Model:       llmModel,
 		Instruction: instruction,
-		Tools:       tools,
+		Tools:       rootTools,
 	})
 }
 
@@ -181,7 +222,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	// Build the agent using the shared constructor.
 	slog.Info("agent: building agent", "run_id", run.ID,
 		"provider", o.llmConfig.Provider, "model", o.llmConfig.Model)
-	agentInstance, err := BuildAgent(ctx, o.store, project, o.llmConfig)
+	agentInstance, err := BuildAgent(ctx, o.store, project, o.llmConfig, "")
 	if err != nil {
 		return nil, fmt.Errorf("build agent: %w", err)
 	}
@@ -394,11 +435,4 @@ func parseReport(text string) (*models.SemanticReport, error) {
 	}
 
 	return &report, nil
-}
-
-// toolsToSlice is a helper to convert the tool.Tool interface slice for use
-// with llmagent.Config. This is kept for API compatibility in case the
-// function signature changes.
-func toolsToSlice(tools []tool.Tool) []tool.Tool {
-	return tools
 }

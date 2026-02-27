@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 
@@ -317,4 +318,29 @@ func TestSendProjectNotifications_MultipleSubscriptions(t *testing.T) {
 	// Should attempt to send to all three channels. The HTTP sends will fail
 	// (no server), but errors are logged, not returned.
 	orch.sendProjectNotifications(context.Background(), run, result)
+}
+
+func TestVersionPlaceholderSubstitution(t *testing.T) {
+	instruction := DefaultInstruction
+	if !strings.Contains(instruction, "{{VERSION}}") {
+		t.Fatal("DefaultInstruction must contain {{VERSION}} placeholder")
+	}
+
+	replaced := strings.ReplaceAll(instruction, "{{VERSION}}", "v1.10.15")
+	if strings.Contains(replaced, "{{VERSION}}") {
+		t.Fatal("replacement failed: still contains {{VERSION}}")
+	}
+	if !strings.Contains(replaced, "v1.10.15") {
+		t.Fatal("replacement failed: does not contain v1.10.15")
+	}
+}
+
+func TestBuildAgentSignature(t *testing.T) {
+	// Verify the function compiles with the new version parameter.
+	_ = func() {
+		var store AgentDataStore
+		var project models.Project
+		var cfg LLMConfig
+		_, _ = BuildAgent(context.Background(), store, &project, cfg, "v1.0.0")
+	}
 }
