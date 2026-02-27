@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "9f27e0bd8302",
+  "session_id": "b167c8e2-5eb2-4047-9ae5-915082f8961d",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-27T10:26:38.412216Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/plans/2026-02-27-version-focused-agent-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "8f43018557a8",
+  "token_usage": {
+    "input_tokens": 455861,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 3651,
+    "api_call_count": 12
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-27T10:26:38.198371Z",
+    "agent_lines": 211,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 211,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/b167c8e2-5eb2-4047-9ae5-915082f8961d.jsonl"
+}
