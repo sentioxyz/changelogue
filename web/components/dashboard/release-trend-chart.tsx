@@ -55,7 +55,7 @@ export function ReleaseTrendChart() {
   return (
     <div
       className="flex flex-col rounded-lg bg-white px-5 py-4"
-      style={{ border: "1px solid #e8e8e5", height: "280px" }}
+      style={{ border: "1px solid #e8e8e5", height: "336px" }}
     >
       <div className="flex items-center justify-between">
         <p

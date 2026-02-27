@@ -146,7 +146,7 @@ export function UnifiedFeed() {
   return (
     <div
       className="flex flex-col rounded-lg bg-white"
-      style={{ border: "1px solid #e8e8e5", height: "280px" }}
+      style={{ border: "1px solid #e8e8e5", height: "336px" }}
     >
       {/* Header */}
       <div
@@ -163,31 +163,6 @@ export function UnifiedFeed() {
         >
           Recent Activity
         </h3>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/releases"
-            className="text-sm hover:underline"
-            style={{
-              fontFamily: "var(--font-dm-sans)",
-              fontSize: "12px",
-              color: "#6b7280",
-            }}
-          >
-            Releases
-          </Link>
-          <span style={{ color: "#e8e8e5" }}>|</span>
-          <Link
-            href="/semantic-releases"
-            className="text-sm hover:underline"
-            style={{
-              fontFamily: "var(--font-dm-sans)",
-              fontSize: "12px",
-              color: "#6b7280",
-            }}
-          >
-            Intelligence
-          </Link>
-        </div>
       </div>
 
       {/* Feed items — scrollable */}
