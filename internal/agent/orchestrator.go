@@ -474,8 +474,8 @@ func parseReport(text string) (*models.SemanticReport, error) {
 		return nil, fmt.Errorf("parse report JSON: %w", err)
 	}
 
-	if report.Summary == "" {
-		return nil, fmt.Errorf("report is missing required 'summary' field")
+	if report.Subject == "" && report.Summary == "" {
+		return nil, fmt.Errorf("report is missing required 'subject' or 'summary' field")
 	}
 
 	return &report, nil

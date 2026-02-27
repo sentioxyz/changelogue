@@ -387,6 +387,66 @@ func TestCheckAllSourcesReady(t *testing.T) {
 	}
 }
 
+func TestParseReport_NewFormat(t *testing.T) {
+	input := `{
+		"subject": "Ready to Deploy: Geth v1.10.15",
+		"risk_level": "CRITICAL",
+		"risk_reason": "Hard Fork detected",
+		"status_checks": ["Docker Image Verified"],
+		"changelog_summary": "Fixes sync bug",
+		"availability": "GA",
+		"adoption": "12% updated",
+		"urgency": "Critical",
+		"recommendation": "Wait for 25% adoption.",
+		"download_commands": ["docker pull ethereum/client-go:v1.10.15"],
+		"download_links": ["https://example.com/release"]
+	}`
+
+	report, err := parseReport(input)
+	if err != nil {
+		t.Fatalf("parseReport: %v", err)
+	}
+	if report.Subject != "Ready to Deploy: Geth v1.10.15" {
+		t.Errorf("subject: got %q", report.Subject)
+	}
+	if report.RiskLevel != "CRITICAL" {
+		t.Errorf("risk_level: got %q", report.RiskLevel)
+	}
+	if len(report.StatusChecks) != 1 {
+		t.Errorf("status_checks: got %d", len(report.StatusChecks))
+	}
+}
+
+func TestParseReport_OldFormat(t *testing.T) {
+	input := `{
+		"summary": "Major changes across releases",
+		"availability": "GA",
+		"adoption": "Immediate",
+		"urgency": "High",
+		"recommendation": "Upgrade now"
+	}`
+
+	report, err := parseReport(input)
+	if err != nil {
+		t.Fatalf("parseReport: %v", err)
+	}
+	if report.Summary != "Major changes across releases" {
+		t.Errorf("summary: got %q", report.Summary)
+	}
+}
+
+func TestParseReport_NoSubjectOrSummary(t *testing.T) {
+	input := `{
+		"availability": "GA",
+		"urgency": "Low"
+	}`
+
+	_, err := parseReport(input)
+	if err == nil {
+		t.Fatal("expected error for missing subject and summary")
+	}
+}
+
 func TestBuildAgentSignature(t *testing.T) {
 	// Verify the function compiles with the new version parameter.
 	_ = func() {
