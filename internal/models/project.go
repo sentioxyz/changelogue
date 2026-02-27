@@ -6,10 +6,11 @@ import (
 )
 
 type AgentRules struct {
-	OnMajorRelease  bool   `json:"on_major_release,omitempty"`
-	OnMinorRelease  bool   `json:"on_minor_release,omitempty"`
-	OnSecurityPatch bool   `json:"on_security_patch,omitempty"`
-	VersionPattern  string `json:"version_pattern,omitempty"`
+	OnMajorRelease    bool   `json:"on_major_release,omitempty"`
+	OnMinorRelease    bool   `json:"on_minor_release,omitempty"`
+	OnSecurityPatch   bool   `json:"on_security_patch,omitempty"`
+	VersionPattern    string `json:"version_pattern,omitempty"`
+	WaitForAllSources bool   `json:"wait_for_all_sources,omitempty"`
 }
 
 type Project struct {
