@@ -9,6 +9,7 @@ import {
   sources as sourcesApi,
   contextSources as ctxApi,
   agent as agentApi,
+  releases as releasesApi,
 } from "@/lib/api/client";
 import type { AgentRules, Source } from "@/lib/api/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -26,7 +27,7 @@ import { Pencil, Trash2, Play, Plus, ArrowLeft } from "lucide-react";
 const tabs = [
   { key: "sources", label: "Sources" },
   { key: "context", label: "Context Sources" },
-  { key: "agent", label: "Agent" },
+  { key: "agent", label: "Semantic Release Settings" },
 ] as const;
 
 type TabKey = (typeof tabs)[number]["key"];
@@ -53,7 +54,11 @@ function truncate(str: string, max: number): string {
 export function ProjectDetail({ id }: { id: string }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("sources");
-  const [triggering, setTriggering] = useState(false);
+
+  /* Test run state */
+  const [testSourceId, setTestSourceId] = useState<string>("");
+  const [testVersion, setTestVersion] = useState<string>("");
+  const [testRunning, setTestRunning] = useState(false);
 
   /* Agent config local state */
   const [promptDraft, setPromptDraft] = useState<string | null>(null);
@@ -89,6 +94,10 @@ export function ProjectDetail({ id }: { id: string }) {
   const { data: runsData, mutate: mutateRuns } = useSWR(
     activeTab === "agent" ? `project-${id}-runs` : null,
     () => agentApi.listRuns(id),
+  );
+  const { data: testReleasesData } = useSWR(
+    testSourceId ? `source-${testSourceId}-releases` : null,
+    () => releasesApi.listBySource(testSourceId, 1),
   );
 
   const saveName = useCallback(async () => {
@@ -133,16 +142,6 @@ export function ProjectDetail({ id }: { id: string }) {
   }, [editingDesc, saveDesc]);
 
   /* Handlers */
-  const handleTriggerRun = async () => {
-    setTriggering(true);
-    try {
-      await agentApi.triggerRun(id);
-      mutateRuns();
-    } finally {
-      setTriggering(false);
-    }
-  };
-
   const handleToggleSource = async (source: { id: string; provider: string; repository: string; poll_interval_seconds: number; enabled: boolean; config?: Record<string, unknown> }) => {
     await sourcesApi.update(source.id, {
       provider: source.provider,
@@ -170,6 +169,17 @@ export function ProjectDetail({ id }: { id: string }) {
       setRulesDraft(null);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestRun = async () => {
+    if (!testVersion) return;
+    setTestRunning(true);
+    try {
+      await agentApi.triggerRun(id, testVersion);
+      mutateRuns();
+    } finally {
+      setTestRunning(false);
     }
   };
 
@@ -306,18 +316,6 @@ export function ProjectDetail({ id }: { id: string }) {
             >
               <Trash2 className="h-3.5 w-3.5" />
               Delete
-            </button>
-            <button
-              onClick={handleTriggerRun}
-              disabled={triggering}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-white transition-colors disabled:opacity-60"
-              style={{
-                fontFamily: "var(--font-dm-sans), sans-serif",
-                backgroundColor: "#e8601a",
-              }}
-            >
-              <Play className="h-3.5 w-3.5" />
-              {triggering ? "Running..." : "Run Agent"}
             </button>
           </div>
         </div>
@@ -534,40 +532,18 @@ export function ProjectDetail({ id }: { id: string }) {
           </div>
         )}
 
-        {/* --- Agent tab --- */}
+        {/* --- Semantic Release Settings tab --- */}
         {activeTab === "agent" && (
-          <div className="space-y-8">
-            {/* Prompt section */}
-            <div>
-              <SectionLabel className="mb-3">Agent Prompt</SectionLabel>
-              <textarea
-                value={currentPrompt}
-                onChange={(e) => setPromptDraft(e.target.value)}
-                rows={5}
-                placeholder="Custom instructions for the agent when analyzing releases..."
-                className="w-full resize-y rounded-md border px-3 py-2 text-[13px] placeholder:text-[#9ca3af] focus:outline-none focus:ring-1"
-                style={{
-                  fontFamily: "var(--font-dm-sans), sans-serif",
-                  backgroundColor: "#fafaf9",
-                  borderColor: "#e8e8e5",
-                  color: "#111113",
-                }}
-              />
-              <div className="mt-2 flex justify-end">
-                <button
-                  onClick={handleSaveAgentConfig}
-                  disabled={saving || (promptDraft === null && rulesDraft === null)}
-                  className="rounded-md px-3 py-1.5 text-[13px] font-medium text-white transition-colors disabled:opacity-40"
-                  style={{ backgroundColor: "#e8601a" }}
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </div>
-
-            {/* Rules section */}
-            <div>
-              <SectionLabel className="mb-3">Trigger Rules</SectionLabel>
+          <div className="space-y-6">
+            {/* Card 1: Trigger Rules */}
+            <div
+              className="rounded-lg border p-5"
+              style={{ borderColor: "#e8e8e5", backgroundColor: "#ffffff" }}
+            >
+              <SectionLabel className="mb-1">Trigger Rules</SectionLabel>
+              <p className="mb-4 text-[12px]" style={{ color: "#9ca3af" }}>
+                Automatically run the agent when new releases match these conditions.
+              </p>
               <div className="space-y-3">
                 <label className="flex items-center gap-2.5 text-[13px]" style={{ color: "#374151" }}>
                   <input
@@ -579,7 +555,10 @@ export function ProjectDetail({ id }: { id: string }) {
                     className="h-4 w-4 rounded border accent-[#e8601a]"
                     style={{ borderColor: "#e8e8e5" }}
                   />
-                  On Major Release
+                  Major release
+                  <span className="text-[11px]" style={{ color: "#9ca3af" }}>
+                    (e.g. 1.x &rarr; 2.x)
+                  </span>
                 </label>
                 <label className="flex items-center gap-2.5 text-[13px]" style={{ color: "#374151" }}>
                   <input
@@ -591,7 +570,10 @@ export function ProjectDetail({ id }: { id: string }) {
                     className="h-4 w-4 rounded border accent-[#e8601a]"
                     style={{ borderColor: "#e8e8e5" }}
                   />
-                  On Minor Release
+                  Minor release
+                  <span className="text-[11px]" style={{ color: "#9ca3af" }}>
+                    (e.g. 1.1 &rarr; 1.2)
+                  </span>
                 </label>
                 <label className="flex items-center gap-2.5 text-[13px]" style={{ color: "#374151" }}>
                   <input
@@ -603,11 +585,14 @@ export function ProjectDetail({ id }: { id: string }) {
                     className="h-4 w-4 rounded border accent-[#e8601a]"
                     style={{ borderColor: "#e8e8e5" }}
                   />
-                  On Security Patch
+                  Security patch
+                  <span className="text-[11px]" style={{ color: "#9ca3af" }}>
+                    (contains security/CVE keywords)
+                  </span>
                 </label>
-                <div className="mt-4">
+                <div className="pt-2">
                   <label className="mb-1.5 block text-[13px]" style={{ color: "#374151" }}>
-                    Version Pattern
+                    Version pattern
                   </label>
                   <input
                     type="text"
@@ -624,14 +609,124 @@ export function ProjectDetail({ id }: { id: string }) {
                       color: "#111113",
                     }}
                   />
+                  <p className="mt-1 text-[11px]" style={{ color: "#9ca3af" }}>
+                    Optional regex to filter which versions trigger agent runs.
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Run History section */}
+            {/* Card 2: Agent Prompt */}
+            <div
+              className="rounded-lg border p-5"
+              style={{ borderColor: "#e8e8e5", backgroundColor: "#ffffff" }}
+            >
+              <SectionLabel className="mb-1">Agent Prompt</SectionLabel>
+              <p className="mb-3 text-[12px]" style={{ color: "#9ca3af" }}>
+                Custom instructions for the agent when analyzing releases.
+              </p>
+              <textarea
+                value={currentPrompt}
+                onChange={(e) => setPromptDraft(e.target.value)}
+                rows={5}
+                placeholder="Using default agent prompt."
+                className="w-full resize-y rounded-md border px-3 py-2 text-[13px] placeholder:text-[#9ca3af] focus:outline-none focus:ring-1"
+                style={{
+                  fontFamily: "var(--font-dm-sans), sans-serif",
+                  backgroundColor: "#fafaf9",
+                  borderColor: "#e8e8e5",
+                  color: "#111113",
+                }}
+              />
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={handleSaveAgentConfig}
+                  disabled={saving || (promptDraft === null && rulesDraft === null)}
+                  className="rounded-md px-4 py-1.5 text-[13px] font-medium text-white transition-colors disabled:opacity-40"
+                  style={{ backgroundColor: "#e8601a" }}
+                >
+                  {saving ? "Saving..." : "Save Settings"}
+                </button>
+              </div>
+            </div>
+
+            {/* Card 3: Test Run */}
+            <div
+              className="rounded-lg border p-5"
+              style={{ borderColor: "#e8e8e5", backgroundColor: "#ffffff" }}
+            >
+              <SectionLabel className="mb-1">Test Run</SectionLabel>
+              <p className="mb-4 text-[12px]" style={{ color: "#9ca3af" }}>
+                Trigger a one-off agent run to test your configuration against a specific release.
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="min-w-[200px] flex-1">
+                  <label className="mb-1.5 block text-[13px]" style={{ color: "#374151" }}>
+                    Source
+                  </label>
+                  <select
+                    value={testSourceId}
+                    onChange={(e) => {
+                      setTestSourceId(e.target.value);
+                      setTestVersion("");
+                    }}
+                    className="w-full rounded-md border px-3 py-1.5 text-[13px] focus:outline-none focus:ring-1"
+                    style={{
+                      fontFamily: "var(--font-dm-sans), sans-serif",
+                      backgroundColor: "#fafaf9",
+                      borderColor: "#e8e8e5",
+                      color: testSourceId ? "#111113" : "#9ca3af",
+                    }}
+                  >
+                    <option value="">Select a source...</option>
+                    {sourcesData?.data?.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.provider}: {s.repository}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="min-w-[200px] flex-1">
+                  <label className="mb-1.5 block text-[13px]" style={{ color: "#374151" }}>
+                    Version
+                  </label>
+                  <select
+                    value={testVersion}
+                    onChange={(e) => setTestVersion(e.target.value)}
+                    disabled={!testSourceId}
+                    className="w-full rounded-md border px-3 py-1.5 text-[13px] focus:outline-none focus:ring-1 disabled:opacity-50"
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      backgroundColor: "#fafaf9",
+                      borderColor: "#e8e8e5",
+                      color: testVersion ? "#111113" : "#9ca3af",
+                    }}
+                  >
+                    <option value="">
+                      {testSourceId ? "Select a version..." : "Choose a source first"}
+                    </option>
+                    {testReleasesData?.data?.map((r) => (
+                      <option key={r.id} value={r.version}>
+                        {r.version}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleTestRun}
+                  disabled={testRunning || !testVersion}
+                  className="inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-[13px] font-medium text-white transition-colors disabled:opacity-40"
+                  style={{ backgroundColor: "#e8601a" }}
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  {testRunning ? "Running..." : "Run Test"}
+                </button>
+              </div>
+            </div>
+
+            {/* Card 4: Run History */}
             <div>
               <SectionLabel className="mb-3">Run History</SectionLabel>
-
               {runsData?.data && runsData.data.length > 0 ? (
                 <div className="overflow-hidden rounded-md border" style={{ borderColor: "#e8e8e5" }}>
                   <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
