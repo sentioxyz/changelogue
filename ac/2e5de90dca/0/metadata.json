@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "ac2e5de90dca",
+  "session_id": "0c3c112a-eefd-4fb4-a112-601b26322b4e",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-27T13:59:05.006346Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/health.go",
+    "internal/api/health_test.go",
+    "internal/api/pgstore.go",
+    "web/app/page.tsx",
+    "web/components/dashboard/release-trend-chart.tsx",
+    "web/components/dashboard/stats-cards.tsx",
+    "web/components/dashboard/unified-feed.tsx",
+    "web/lib/api/types.ts"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "da1a83115ad6",
+  "token_usage": {
+    "input_tokens": 10311450,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 29000,
+    "api_call_count": 118
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-27T13:59:04.502043Z",
+    "agent_lines": 523,
+    "human_added": 377,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 900,
+    "agent_percentage": 58.111111111111114
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/0c3c112a-eefd-4fb4-a112-601b26322b4e.jsonl"
+}
