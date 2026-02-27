@@ -118,6 +118,8 @@ CREATE TABLE IF NOT EXISTS agent_runs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS version VARCHAR(100);
+
 -- API authentication keys
 CREATE TABLE IF NOT EXISTS api_keys (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

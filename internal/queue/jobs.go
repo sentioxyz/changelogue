@@ -18,6 +18,7 @@ var _ river.JobArgs = NotifyJobArgs{}
 type AgentJobArgs struct {
 	AgentRunID string `json:"agent_run_id"`
 	ProjectID  string `json:"project_id"`
+	Version    string `json:"version"`
 }
 
 func (AgentJobArgs) Kind() string { return "agent_run" }

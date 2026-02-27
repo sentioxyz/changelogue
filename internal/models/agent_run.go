@@ -7,6 +7,7 @@ type AgentRun struct {
 	ProjectID         string     `json:"project_id"`
 	SemanticReleaseID *string    `json:"semantic_release_id,omitempty"`
 	Trigger           string     `json:"trigger"`
+	Version           string     `json:"version,omitempty"`
 	Status            string     `json:"status"`
 	PromptUsed        string     `json:"prompt_used,omitempty"`
 	Error             string     `json:"error,omitempty"`
