@@ -128,8 +128,11 @@ export const semanticReleases = {
 // --- Agent ---
 
 export const agent = {
-  triggerRun: (projectId: string) =>
-    request<ApiResponse<AgentRun>>(`/projects/${projectId}/agent/run`, { method: "POST", body: "{}" }),
+  triggerRun: (projectId: string, version?: string) =>
+    request<ApiResponse<AgentRun>>(`/projects/${projectId}/agent/run`, {
+      method: "POST",
+      body: JSON.stringify({ trigger: "test", version: version || undefined }),
+    }),
   listRuns: (projectId: string, page = 1) =>
     request<ApiResponse<AgentRun[]>>(`/projects/${projectId}/agent/runs?page=${page}`),
   getRun: (id: string) =>
