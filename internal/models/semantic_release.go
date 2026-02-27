@@ -6,7 +6,17 @@ import (
 )
 
 type SemanticReport struct {
-	Summary        string `json:"summary"`
+	// SRE-focused fields
+	Subject          string   `json:"subject"`
+	RiskLevel        string   `json:"risk_level"`
+	RiskReason       string   `json:"risk_reason"`
+	StatusChecks     []string `json:"status_checks"`
+	ChangelogSummary string   `json:"changelog_summary"`
+	DownloadCommands []string `json:"download_commands,omitempty"`
+	DownloadLinks    []string `json:"download_links,omitempty"`
+
+	// Existing fields
+	Summary        string `json:"summary,omitempty"`
 	Availability   string `json:"availability"`
 	Adoption       string `json:"adoption"`
 	Urgency        string `json:"urgency"`
