@@ -113,6 +113,8 @@ func main() {
 		HealthChecker:         pgStore,
 		Broadcaster:           broadcaster,
 		NoAuth:                noAuth,
+		IngestionService:      svc,
+		HTTPClient:            http.DefaultClient,
 	})
 
 	srv := &http.Server{Addr: addr, Handler: api.CORS(mux)}

@@ -16,6 +16,7 @@ import type {
   AgentRun,
   HealthStatus,
   Stats,
+  TrendData,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -73,9 +74,11 @@ export const sources = {
     }),
   delete: (id: string) =>
     request<ApiResponse<null>>(`/sources/${id}`, { method: "DELETE" }),
+  poll: (id: string) =>
+    request<ApiResponse<{ new_releases: number }>>(`/sources/${id}/poll`, {
+      method: "POST",
+    }),
 };
-
-// --- Releases ---
 
 export const releases = {
   list: (page = 1, perPage = 25) =>
@@ -176,4 +179,6 @@ export const channels = {
 export const system = {
   health: () => request<HealthStatus>("/health"),
   stats: () => request<ApiResponse<Stats>>("/stats"),
+  trend: (granularity: "daily" | "weekly" | "monthly" = "daily", days = 7) =>
+    request<ApiResponse<TrendData>>(`/stats/trend?granularity=${granularity}&days=${days}`),
 };

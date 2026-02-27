@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Project, ProjectInput, SourceInput } from "@/lib/api/types";
+import { validateRepository } from "@/lib/format";
 import { Plus, X } from "lucide-react";
 
 export interface ProjectFormResult {
@@ -39,7 +40,7 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
   const [showSource, setShowSource] = useState(false);
   const [provider, setProvider] = useState("github");
   const [repository, setRepository] = useState("");
-  const [pollInterval, setPollInterval] = useState("300");
+  const [pollInterval, setPollInterval] = useState("86400");
 
   const handleCancel = () => {
     if (onCancel) {
@@ -61,10 +62,16 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
         },
       };
       if (showSource && repository.trim()) {
+        const repoError = validateRepository(provider, repository.trim());
+        if (repoError) {
+          setError(repoError);
+          setSaving(false);
+          return;
+        }
         result.source = {
           provider,
           repository: repository.trim(),
-          poll_interval_seconds: Number(pollInterval) || 300,
+          poll_interval_seconds: Number(pollInterval) || 86400,
           enabled: true,
         };
       }

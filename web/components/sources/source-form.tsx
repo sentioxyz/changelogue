@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Source, SourceInput } from "@/lib/api/types";
+import { validateRepository } from "@/lib/format";
 
 interface SourceFormProps {
   initial?: Source;
@@ -21,13 +22,14 @@ interface SourceFormProps {
   onCancel?: () => void;
 }
 
+
 export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, onCancel }: SourceFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [provider, setProvider] = useState(initial?.provider ?? "dockerhub");
   const [repository, setRepository] = useState(initial?.repository ?? "");
-  const [pollInterval, setPollInterval] = useState(String(initial?.poll_interval_seconds ?? 300));
+  const [pollInterval, setPollInterval] = useState(String(initial?.poll_interval_seconds ?? 86400));
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
   const [configJson, setConfigJson] = useState(
     JSON.stringify(initial?.config ?? {}, null, 2)
@@ -36,6 +38,12 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    const repoError = validateRepository(provider, repository);
+    if (repoError) {
+      setError(repoError);
+      return;
+    }
 
     let parsedConfig: Record<string, unknown> | undefined;
     if (configJson.trim() && configJson.trim() !== "{}") {
@@ -51,7 +59,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
     try {
       await onSubmit({
         provider,
-        repository,
+        repository: repository.trim(),
         poll_interval_seconds: Number(pollInterval),
         enabled,
         config: parsedConfig,

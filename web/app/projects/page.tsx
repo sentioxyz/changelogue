@@ -10,7 +10,7 @@ import {
   semanticReleases as srApi,
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
-import { timeAgo } from "@/lib/format";
+import { timeAgo, validateRepository, formatInterval } from "@/lib/format";
 import { Plus, X, ArrowRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/projects/project-form";
@@ -27,7 +27,7 @@ function InlineSourceForm({
 }) {
   const [provider, setProvider] = useState("github");
   const [repository, setRepository] = useState("");
-  const [pollInterval, setPollInterval] = useState("300");
+  const [pollInterval, setPollInterval] = useState("86400");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,12 +37,19 @@ function InlineSourceForm({
     setSaving(true);
     setError("");
     try {
-      await sourcesApi.create(projectId, {
+      const repoError = validateRepository(provider, repository.trim());
+      if (repoError) {
+        setError(repoError);
+        setSaving(false);
+        return;
+      }
+      const res = await sourcesApi.create(projectId, {
         provider,
         repository: repository.trim(),
-        poll_interval_seconds: Number(pollInterval) || 300,
+        poll_interval_seconds: Number(pollInterval) || 86400,
         enabled: true,
       });
+      if (res.data?.id) sourcesApi.poll(res.data.id).catch(() => {});
       mutate(`project-${projectId}-card-sources`);
       onDone();
     } catch (err: unknown) {
@@ -166,11 +173,7 @@ function SourcesSection({ projectId }: { projectId: string }) {
                   />
                   {source.enabled ? "Active" : "Disabled"}
                   <span className="ml-1" style={{ color: "#c4c4c0" }}>
-                    {source.poll_interval_seconds < 60
-                      ? `${source.poll_interval_seconds}s`
-                      : source.poll_interval_seconds < 3600
-                        ? `${Math.round(source.poll_interval_seconds / 60)}m`
-                        : `${(source.poll_interval_seconds / 3600).toFixed(1)}h`}
+                    {formatInterval(source.poll_interval_seconds)}
                   </span>
                 </span>
               </div>
@@ -478,7 +481,8 @@ export default function ProjectsPage() {
             onSubmit={async (result) => {
               const created = await projectsApi.create(result.project);
               if (result.source && created.data?.id) {
-                await sourcesApi.create(created.data.id, result.source);
+                const res = await sourcesApi.create(created.data.id, result.source);
+                if (res.data?.id) sourcesApi.poll(res.data.id).catch(() => {});
               }
             }}
             onSuccess={() => { setCreateOpen(false); mutate("projects"); }}

@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"strings"
 
+	"github.com/sentioxyz/changelogue/internal/ingestion"
 	"github.com/sentioxyz/changelogue/internal/models"
 )
 
@@ -19,12 +21,14 @@ type SourcesStore interface {
 
 // SourcesHandler implements HTTP handlers for the /sources resource.
 type SourcesHandler struct {
-	store SourcesStore
+	store            SourcesStore
+	ingestionService *ingestion.Service
+	httpClient       *http.Client
 }
 
 // NewSourcesHandler returns a new SourcesHandler.
-func NewSourcesHandler(store SourcesStore) *SourcesHandler {
-	return &SourcesHandler{store: store}
+func NewSourcesHandler(store SourcesStore, ingestionService *ingestion.Service, httpClient *http.Client) *SourcesHandler {
+	return &SourcesHandler{store: store, ingestionService: ingestionService, httpClient: httpClient}
 }
 
 // List handles GET /projects/{projectId}/sources — returns a paginated list of sources for a project.
@@ -133,4 +137,45 @@ func (h *SourcesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// FetchReleases handles POST /sources/{id}/releases — polls upstream for new
+// releases and ingests them immediately.
+func (h *SourcesHandler) FetchReleases(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid source ID")
+		return
+	}
+	src, err := h.store.GetSource(r.Context(), id)
+	if err != nil {
+		RespondError(w, r, http.StatusNotFound, "not_found", "Source not found")
+		return
+	}
+
+	ingestionSrc := ingestion.BuildSource(h.httpClient, src.ID, src.Provider, src.Repository)
+	if ingestionSrc == nil {
+		RespondError(w, r, http.StatusUnprocessableEntity, "unsupported_provider", "Unsupported provider: "+src.Provider)
+		return
+	}
+
+	results, err := ingestionSrc.FetchNewReleases(r.Context())
+	if err != nil {
+		slog.Error("fetch releases failed", "source", src.ID, "err", err)
+		RespondError(w, r, http.StatusBadGateway, "upstream_error", "Failed to fetch releases from upstream")
+		return
+	}
+
+	newCount := 0
+	if len(results) > 0 && h.ingestionService != nil {
+		for _, result := range results {
+			if procErr := h.ingestionService.ProcessResults(r.Context(), src.ID, src.Provider, []ingestion.IngestionResult{result}); procErr != nil {
+				slog.Error("process release failed", "source", src.ID, "version", result.RawVersion, "err", procErr)
+				continue
+			}
+			newCount++
+		}
+	}
+
+	RespondJSON(w, r, http.StatusOK, map[string]int{"new_releases": newCount})
 }

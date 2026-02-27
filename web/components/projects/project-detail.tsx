@@ -18,6 +18,7 @@ import { NewContextSourceForm } from "@/components/context-sources/new-context-s
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { SectionLabel } from "@/components/ui/section-label";
+import { formatInterval } from "@/lib/format";
 import { Pencil, Trash2, Play, Plus, ArrowLeft } from "lucide-react";
 
 /* ---------- Tabs ---------- */
@@ -45,12 +46,6 @@ function formatDuration(startedAt?: string, completedAt?: string): string {
 
 function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max) + "\u2026" : str;
-}
-
-function formatInterval(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-  return `${(seconds / 3600).toFixed(1)}h`;
 }
 
 /* ---------- Main component ---------- */
@@ -707,7 +702,7 @@ export function ProjectDetail({ id }: { id: string }) {
           <SourceForm
             title="Add Source"
             projectId={id}
-            onSubmit={async (input) => { await sourcesApi.create(id, input); }}
+            onSubmit={async (input) => { const res = await sourcesApi.create(id, input); if (res.data?.id) sourcesApi.poll(res.data.id).catch(() => {}); }}
             onSuccess={() => { setSourceCreateOpen(false); mutateSources(); }}
             onCancel={() => setSourceCreateOpen(false)}
           />

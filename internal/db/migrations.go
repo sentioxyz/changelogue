@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS sources (
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     provider VARCHAR(50) NOT NULL,
     repository VARCHAR(255) NOT NULL,
-    poll_interval_seconds INT DEFAULT 900,
+    poll_interval_seconds INT DEFAULT 86400,
     enabled BOOLEAN DEFAULT true,
     config JSONB,
     last_polled_at TIMESTAMPTZ,

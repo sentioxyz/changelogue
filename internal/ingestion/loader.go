@@ -65,11 +65,16 @@ func (l *SourceLoader) LookupSourceID(ctx context.Context, provider, repository 
 }
 
 func (l *SourceLoader) buildSource(id string, sourceType, repository string) IIngestionSource {
+	return BuildSource(l.client, id, sourceType, repository)
+}
+
+// BuildSource constructs the appropriate IIngestionSource based on provider type.
+func BuildSource(client *http.Client, id string, sourceType, repository string) IIngestionSource {
 	switch sourceType {
 	case "dockerhub":
-		return NewDockerHubSource(l.client, repository, id)
+		return NewDockerHubSource(client, repository, id)
 	case "github":
-		return NewGitHubAtomSource(l.client, repository, id)
+		return NewGitHubAtomSource(client, repository, id)
 	default:
 		return nil
 	}

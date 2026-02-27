@@ -5,6 +5,7 @@ import useSWR, { mutate } from "swr";
 import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
 import { projects as projectsApi, sources as sourcesApi } from "@/lib/api/client";
+import { formatInterval } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -86,7 +87,7 @@ export default function SourcesPage() {
                         {source.projectName ?? source.project_id}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-sm">{source.poll_interval_seconds}s</TableCell>
+                    <TableCell className="text-sm">{formatInterval(source.poll_interval_seconds)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{source.last_polled_at ? new Date(source.last_polled_at).toLocaleString() : "Never"}</TableCell>
                     <TableCell>
                       {source.last_error ? (

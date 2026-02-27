@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sentioxyz/changelogue/internal/ingestion"
 )
 
 // Dependencies holds all external dependencies required for registering API routes.
@@ -21,6 +22,8 @@ type Dependencies struct {
 	HealthChecker         HealthChecker
 	Broadcaster           *Broadcaster
 	NoAuth                bool
+	IngestionService      *ingestion.Service
+	HTTPClient            *http.Client
 }
 
 // RegisterRoutes registers all API v1 routes on the given ServeMux.
@@ -43,12 +46,13 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("DELETE /api/v1/projects/{id}", chain(http.HandlerFunc(projects.Delete)))
 
 	// Sources (nested under projects)
-	sources := NewSourcesHandler(deps.SourcesStore)
+	sources := NewSourcesHandler(deps.SourcesStore, deps.IngestionService, deps.HTTPClient)
 	mux.Handle("GET /api/v1/projects/{projectId}/sources", chain(http.HandlerFunc(sources.List)))
 	mux.Handle("POST /api/v1/projects/{projectId}/sources", chain(http.HandlerFunc(sources.Create)))
 	mux.Handle("GET /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Get)))
 	mux.Handle("PUT /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Update)))
 	mux.Handle("DELETE /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Delete)))
+	mux.Handle("POST /api/v1/sources/{id}/poll", chain(http.HandlerFunc(sources.FetchReleases)))
 
 	// Context Sources (nested under projects)
 	contextSources := NewContextSourcesHandler(deps.ContextSourcesStore)
@@ -106,4 +110,5 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	health := NewHealthHandler(deps.HealthChecker)
 	mux.Handle("GET /api/v1/health", publicChain(http.HandlerFunc(health.Check)))
 	mux.Handle("GET /api/v1/stats", chain(http.HandlerFunc(health.Stats)))
+	mux.Handle("GET /api/v1/stats/trend", chain(http.HandlerFunc(health.Trend)))
 }

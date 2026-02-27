@@ -85,7 +85,7 @@ func (m *mockSourcesStore) DeleteSource(_ context.Context, id string) error {
 }
 
 func setupSourcesMux(store SourcesStore) *http.ServeMux {
-	h := NewSourcesHandler(store)
+	h := NewSourcesHandler(store, nil, nil)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /projects/{projectId}/sources", h.List)
 	mux.HandleFunc("POST /projects/{projectId}/sources", h.Create)
