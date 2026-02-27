@@ -3,7 +3,7 @@
   "checkpoint_id": "9f27e0bd8302",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 0,
+  "checkpoints_count": 1,
   "files_touched": [
     "docs/plans/2026-02-27-version-focused-agent-design.md"
   ],
@@ -14,13 +14,20 @@
       "context": "/9f/27e0bd8302/0/context.md",
       "content_hash": "/9f/27e0bd8302/0/content_hash.txt",
       "prompt": "/9f/27e0bd8302/0/prompt.txt"
+    },
+    {
+      "metadata": "/9f/27e0bd8302/1/metadata.json",
+      "transcript": "/9f/27e0bd8302/1/full.jsonl",
+      "context": "/9f/27e0bd8302/1/context.md",
+      "content_hash": "/9f/27e0bd8302/1/content_hash.txt",
+      "prompt": "/9f/27e0bd8302/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2168404,
+    "input_tokens": 10220028,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 5278,
-    "api_call_count": 40
+    "output_tokens": 22076,
+    "api_call_count": 131
   }
 }
