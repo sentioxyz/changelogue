@@ -3,7 +3,7 @@
   "checkpoint_id": "66ce847cccfe",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": [
     "internal/api/health.go",
     "internal/api/pgstore.go",
@@ -30,13 +30,20 @@
       "context": "/66/ce847cccfe/2/context.md",
       "content_hash": "/66/ce847cccfe/2/content_hash.txt",
       "prompt": "/66/ce847cccfe/2/prompt.txt"
+    },
+    {
+      "metadata": "/66/ce847cccfe/3/metadata.json",
+      "transcript": "/66/ce847cccfe/3/full.jsonl",
+      "context": "/66/ce847cccfe/3/context.md",
+      "content_hash": "/66/ce847cccfe/3/content_hash.txt",
+      "prompt": "/66/ce847cccfe/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 11222773,
+    "input_tokens": 13270777,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 31786,
-    "api_call_count": 138
+    "output_tokens": 53092,
+    "api_call_count": 172
   }
 }
