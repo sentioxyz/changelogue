@@ -586,14 +586,14 @@ func (s *PgStore) DeleteSemanticRelease(ctx context.Context, id string) error {
 
 // --- AgentStore ---
 
-func (s *PgStore) TriggerAgentRun(ctx context.Context, projectID, trigger string) (*models.AgentRun, error) {
+func (s *PgStore) TriggerAgentRun(ctx context.Context, projectID, trigger, version string) (*models.AgentRun, error) {
 	var run models.AgentRun
 	err := s.pool.QueryRow(ctx,
-		`INSERT INTO agent_runs (project_id, trigger, status)
-		 VALUES ($1, $2, 'pending')
-		 RETURNING id, project_id, trigger, status, created_at`,
-		projectID, trigger,
-	).Scan(&run.ID, &run.ProjectID, &run.Trigger, &run.Status, &run.CreatedAt)
+		`INSERT INTO agent_runs (project_id, trigger, version, status)
+		 VALUES ($1, $2, $3, 'pending')
+		 RETURNING id, project_id, trigger, COALESCE(version,''), status, created_at`,
+		projectID, trigger, nilIfEmpty(version),
+	).Scan(&run.ID, &run.ProjectID, &run.Trigger, &run.Version, &run.Status, &run.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("insert agent run: %w", err)
 	}
@@ -603,6 +603,7 @@ func (s *PgStore) TriggerAgentRun(ctx context.Context, projectID, trigger string
 		_, err = s.river.Insert(ctx, queue.AgentJobArgs{
 			AgentRunID: run.ID,
 			ProjectID:  projectID,
+			Version:    version,
 		}, nil)
 		if err != nil {
 			return nil, fmt.Errorf("enqueue agent job: %w", err)
@@ -848,6 +849,13 @@ func (s *PgStore) HasReleaseForVersion(ctx context.Context, sourceID, version st
 		return false, fmt.Errorf("check release for version: %w", err)
 	}
 	return exists, nil
+}
+
+func nilIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 func (s *PgStore) GetStats(ctx context.Context) (*DashboardStats, error) {

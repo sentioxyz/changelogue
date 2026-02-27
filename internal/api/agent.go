@@ -10,7 +10,7 @@ import (
 
 // AgentStore defines the persistence operations for agent runs.
 type AgentStore interface {
-	TriggerAgentRun(ctx context.Context, projectID, trigger string) (*models.AgentRun, error)
+	TriggerAgentRun(ctx context.Context, projectID, trigger, version string) (*models.AgentRun, error)
 	ListAgentRuns(ctx context.Context, projectID string, page, perPage int) ([]models.AgentRun, int, error)
 	GetAgentRun(ctx context.Context, id string) (*models.AgentRun, error)
 }
@@ -28,6 +28,7 @@ func NewAgentHandler(store AgentStore) *AgentHandler {
 // triggerRequest is the request body for POST /projects/{projectId}/agent/run.
 type triggerRequest struct {
 	Trigger string `json:"trigger"`
+	Version string `json:"version"`
 }
 
 // TriggerRun handles POST /projects/{projectId}/agent/run — triggers a new agent run for a project.
@@ -46,7 +47,8 @@ func (h *AgentHandler) TriggerRun(w http.ResponseWriter, r *http.Request) {
 	if trigger == "" {
 		trigger = "manual"
 	}
-	run, err := h.store.TriggerAgentRun(r.Context(), projectID, trigger)
+	version := strings.TrimSpace(req.Version)
+	run, err := h.store.TriggerAgentRun(r.Context(), projectID, trigger, version)
 	if err != nil {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to trigger agent run")
 		return

@@ -22,7 +22,7 @@ type mockAgentStore struct {
 	getErr     error
 }
 
-func (m *mockAgentStore) TriggerAgentRun(_ context.Context, projectID, trigger string) (*models.AgentRun, error) {
+func (m *mockAgentStore) TriggerAgentRun(_ context.Context, projectID, trigger, version string) (*models.AgentRun, error) {
 	if m.triggerErr != nil {
 		return nil, m.triggerErr
 	}
