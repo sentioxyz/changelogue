@@ -9,6 +9,7 @@
 /vendor/
 changelogue
 /server
+/agent
 
 # Next.js
 web/.next/
