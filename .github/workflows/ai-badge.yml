@@ -23,7 +23,7 @@ jobs:
           if [ "$TOTAL_COMMITS" -eq 0 ]; then
             PERCENT=0
           else
-            PERCENT=$(echo "scale=1; ($AI_COMMITS / $TOTAL_COMMITS) * 100" | bc)
+            PERCENT=$(echo "scale=1; ($AI_COMMITS * 100) / $TOTAL_COMMITS" | bc)
           fi
 
           echo "percent=${PERCENT}%" >> $GITHUB_OUTPUT
