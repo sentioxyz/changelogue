@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import {
   subscriptions as subsApi,
   channels as channelsApi,
+  projects as projectsApi,
+  sources as sourcesApi,
 } from "@/lib/api/client";
+import type { Source, Subscription } from "@/lib/api/types";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SubscriptionForm } from "@/components/subscriptions/subscription-form";
-import type { Subscription } from "@/lib/api/types";
 
 const SUB_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   source: { bg: "#1a1a1a", text: "#ffffff" },
@@ -41,6 +43,35 @@ export default function SubscriptionsPage() {
   const { data: channelsData } = useSWR("channels-for-sub-list", () =>
     channelsApi.list()
   );
+  const { data: projectsData } = useSWR("projects-for-sub-list", () =>
+    projectsApi.list(1, 100)
+  );
+
+  // Collect unique source IDs from subscriptions and fetch each one
+  const sourceIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (data?.data ?? [])
+            .filter((s) => s.type === "source" && s.source_id)
+            .map((s) => s.source_id!)
+        )
+      ),
+    [data]
+  );
+  const { data: sourcesMap } = useSWR(
+    sourceIds.length > 0 ? `sources-for-sub-list-${sourceIds.join(",")}` : null,
+    async () => {
+      const results = await Promise.all(
+        sourceIds.map((id) => sourcesApi.get(id).catch(() => null))
+      );
+      const map: Record<string, Source> = {};
+      for (const r of results) {
+        if (r?.data) map[r.data.id] = r.data;
+      }
+      return map;
+    }
+  );
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscription | null>(null);
@@ -48,6 +79,14 @@ export default function SubscriptionsPage() {
 
   const getChannelName = (id: string) =>
     channelsData?.data.find((c) => c.id === id)?.name ?? id;
+
+  const getProjectName = (id: string) =>
+    projectsData?.data.find((p) => p.id === id)?.name ?? id;
+
+  const getSourceLabel = (id: string) => {
+    const source = sourcesMap?.[id];
+    return source ? `${source.provider}: ${source.repository}` : id;
+  };
 
   const subscriptions = data?.data ?? [];
 
@@ -157,7 +196,9 @@ export default function SubscriptionsPage() {
                       color: "#111113",
                     }}
                   >
-                    {sub.type === "source" ? sub.source_id : sub.project_id}
+                    {sub.type === "source"
+                      ? getSourceLabel(sub.source_id!)
+                      : getProjectName(sub.project_id!)}
                   </td>
 
                   {/* Channel */}
