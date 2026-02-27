@@ -2,6 +2,7 @@
   <img src="docs/banner.svg" alt="Changelogue — what changed, and why it matters." width="800" />
 </p>
 
+![Build](https://github.com/sentioxyz/releaseguard/actions/workflows/ci.yml/badge.svg)
 ![AI Co-Authored](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Poytr1/94cc8f0ddf90bb1d04dafbb76102786d/raw/ai-commits.json)
 
 ## What it does
