@@ -162,7 +162,7 @@ export function ReleaseTrendChart() {
                 />
                 <Bar
                   dataKey="semantic_releases"
-                  name="AI Reports"
+                  name="Semantic Releases"
                   fill="#f4a261"
                   radius={[2, 2, 0, 0]}
                   maxBarSize={20}
