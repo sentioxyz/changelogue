@@ -335,6 +335,58 @@ func TestVersionPlaceholderSubstitution(t *testing.T) {
 	}
 }
 
+func TestCheckAllSourcesReady(t *testing.T) {
+	tests := []struct {
+		name     string
+		sources  []models.Source
+		hasMap   map[string]bool
+		version  string
+		expected bool
+	}{
+		{
+			name:     "no sources",
+			sources:  nil,
+			version:  "v1.0.0",
+			expected: true,
+		},
+		{
+			name: "all sources have version",
+			sources: []models.Source{
+				{ID: "s1"}, {ID: "s2"},
+			},
+			hasMap:   map[string]bool{"s1": true, "s2": true},
+			version:  "v1.0.0",
+			expected: true,
+		},
+		{
+			name: "one source missing",
+			sources: []models.Source{
+				{ID: "s1"}, {ID: "s2"},
+			},
+			hasMap:   map[string]bool{"s1": true, "s2": false},
+			version:  "v1.0.0",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &mockOrchestratorStore{
+				sources:       tt.sources,
+				hasReleaseMap: tt.hasMap,
+			}
+			o := &Orchestrator{store: store}
+			got, err := o.checkAllSourcesReady(context.Background(), "proj-1", tt.version)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.expected {
+				t.Errorf("got %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestBuildAgentSignature(t *testing.T) {
 	// Verify the function compiles with the new version parameter.
 	_ = func() {

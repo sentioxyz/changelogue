@@ -2,10 +2,13 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/riverqueue/river"
+	"github.com/sentioxyz/changelogue/internal/models"
 	"github.com/sentioxyz/changelogue/internal/queue"
 )
 
@@ -28,7 +31,9 @@ func NewAgentWorker(orchestrator *Orchestrator, store OrchestratorStore) *AgentW
 }
 
 // Work processes a single AgentJobArgs job. It loads the agent run from the
-// database and runs the LLM agent through the orchestrator.
+// database and runs the LLM agent through the orchestrator. If the project
+// has WaitForAllSources enabled and not all sources have the target version,
+// the job is snoozed for 5 minutes via river.JobSnooze.
 func (w *AgentWorker) Work(ctx context.Context, job *river.Job[queue.AgentJobArgs]) error {
 	slog.Info("agent worker picked up job",
 		"job_id", job.ID,
@@ -44,6 +49,53 @@ func (w *AgentWorker) Work(ctx context.Context, job *river.Job[queue.AgentJobArg
 			"err", err,
 		)
 		return fmt.Errorf("get agent run: %w", err)
+	}
+
+	// Check multi-source waiting: if the run has a version and the project
+	// has WaitForAllSources enabled, verify all sources have reported a
+	// release for the target version before running the agent.
+	if run.Version != "" {
+		project, err := w.store.GetProject(ctx, run.ProjectID)
+		if err != nil {
+			slog.Error("agent worker failed to load project",
+				"job_id", job.ID,
+				"project_id", run.ProjectID,
+				"err", err,
+			)
+			return fmt.Errorf("get project: %w", err)
+		}
+
+		var rules models.AgentRules
+		if len(project.AgentRules) > 0 {
+			if err := json.Unmarshal(project.AgentRules, &rules); err != nil {
+				slog.Warn("agent worker: failed to unmarshal agent rules, proceeding without wait",
+					"project_id", run.ProjectID, "err", err)
+			}
+		}
+
+		if rules.WaitForAllSources {
+			ready, err := w.orchestrator.checkAllSourcesReady(ctx, run.ProjectID, run.Version)
+			if err != nil {
+				slog.Error("agent worker: error checking source readiness",
+					"job_id", job.ID,
+					"project_id", run.ProjectID,
+					"version", run.Version,
+					"err", err,
+				)
+				return fmt.Errorf("check all sources ready: %w", err)
+			}
+			if !ready {
+				slog.Info("agent worker: not all sources ready, snoozing",
+					"job_id", job.ID,
+					"project_id", run.ProjectID,
+					"version", run.Version,
+				)
+				if err := w.store.UpdateAgentRunStatus(ctx, run.ID, "waiting"); err != nil {
+					slog.Error("failed to set waiting status", "err", err)
+				}
+				return river.JobSnooze(5 * time.Minute)
+			}
+		}
 	}
 
 	slog.Info("agent worker starting run",

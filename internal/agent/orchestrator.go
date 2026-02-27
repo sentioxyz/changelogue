@@ -131,6 +131,34 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 	})
 }
 
+// checkAllSourcesReady returns true if every source in the project has a
+// release matching the target version.
+func (o *Orchestrator) checkAllSourcesReady(ctx context.Context, projectID, version string) (bool, error) {
+	sources, _, err := o.store.ListSourcesByProject(ctx, projectID, 1, 100)
+	if err != nil {
+		return false, fmt.Errorf("list sources: %w", err)
+	}
+	if len(sources) == 0 {
+		return true, nil
+	}
+
+	for _, src := range sources {
+		has, err := o.store.HasReleaseForVersion(ctx, src.ID, version)
+		if err != nil {
+			return false, fmt.Errorf("check source %s: %w", src.ID, err)
+		}
+		if !has {
+			slog.Info("agent: source not ready for version",
+				"project_id", projectID,
+				"source_id", src.ID,
+				"version", version,
+			)
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // Orchestrator manages the lifecycle of an agent run: loading project config,
 // creating an ADK-Go agent with project-specific tools and instructions,
 // running the agent, and persisting the result as a semantic release.
