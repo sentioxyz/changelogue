@@ -1,0 +1,94 @@
+Implement the following plan:
+
+# Replace "Needs Attention" Card with Release Trend Chart
+
+## Context
+
+The "Needs Attention" stat card counts semantic releases with critical/high urgency, but has no mechanism to clear/acknowledge items — the number only grows over time. We're replacing it with a release trend bar chart that shows the velocity of releases and AI reports over time, with switchable daily/weekly/monthly granularity.
+
+## Approach
+
+- New backend endpoint `GET /api/v1/stats/trend?granularity={daily|weekly|monthly}` returns time-bucketed counts using PostgreSQL `generate_series` + `date_trunc`
+- Install `recharts` for the bar chart (most popular React charting lib, good Tailwind/inline-style compat)
+- Remove the 3rd stat card, keep 2 stat cards stacked vertically beside the chart
+- Layout: `[2 stat cards | trend chart]` side-by-side on desktop, stacked on mobile
+
+## Files to change
+
+| File | Action |
+|------|--------|
+| `internal/api/health.go` | Add `TrendBucket`, `TrendResponse` types; extend `HealthChecker` interface; add `Trend` handler |
+| `internal/api/pgstore.go` | Add `GetTrend` with SQL time-bucketing query |
+| `internal/api/server.go:108` | Register `GET /api/v1/stats/trend` route |
+| `internal/api/health_test.go` | Add `GetTrend` to mock; add trend handler tests |
+| `web/package.json` | Add `recharts` |
+| `web/lib/api/types.ts` | Add `TrendBucket`, `TrendData` types |
+| `web/lib/api/client.ts` | Add `system.trend()` method |
+| `web/components/dashboard/release-trend-chart.tsx` | **New** — chart component with granularity switcher |
+| `web/components/dashboard/stats-cards.tsx` | Remove "Needs Attention" card, change grid to single-column |
+| `web/app/page.tsx` | Restructure layout: stats + chart side-by-side |
+
+## Backend endpoint
+
+**URL:** `GET /api/v1/stats/trend?granularity={daily|weekly|monthly}`
+
+**Response:**
+```json
+{
+  "data": {
+    "granularity": "daily",
+    "buckets": [
+      { "period": "2026-01-29", "releases": 3, "semantic_releases": 1 },
+      { "period": "2026-01-30", "releases": 0, "semantic_releases": 0 }
+    ]
+  }
+}
+```
+
+**Ranges:** daily=30 days, weekly=12 weeks, monthly=12 months
+
+**SQL approach:** `generate_series` for zero-filled buckets, LEFT JOIN against `releases` (using `COALESCE(released_at, created_at)`) and `semantic_releases` (using `created_at`). Granularity validated to 3 string literals before query — no injection risk.
+
+## Frontend layout
+
+```
+Desktop (lg+):
+┌─────────────┬──────────────────────────────────┐
+│ Projects: 2 │  Release Trend  [D] [W] [M]      │
+│             │  ██ ██    ██                      │
+│ This Week:5 │  ██ ██ ██ ██ ██ ██ ...           │
+│             │  ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀             │
+└─────────────┴──────────────────────────────────┘
+
+Mobile:
+┌──────────────────┐
+│ Projects: 2      │
+│ This Week: 5     │
+├──────────────────┤
+│ Release Trend    │
+│ ██ ██ ██ ...     │
+└──────────────────┘
+```
+
+Chart colors: `#e8601a` (releases), `#f4a261` (AI reports). Grouped bars, not stacked.
+
+## Verification
+
+1. `go test ./internal/api/...` — all pass including new trend tests
+2. `cd web && npx next build` — no TypeScript errors
+3. Manual: visit dashboard, verify chart loads with daily view, switch granularity, check responsive layout
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+
+---
+
+Change the layout to Project tracked and releases this week at the top. Release trend to bottom left (default 7 days) recent activity to bottom right
+
+---
+
+No it still shows the last 30 days
+
+---
+
+This is not flexible to let the backend code to control the interval, this should be a paramter from the api and ux can have the option to change it
