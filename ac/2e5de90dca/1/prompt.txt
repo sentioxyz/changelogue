@@ -1,0 +1,1024 @@
+The current agent run read all the releases from the project instead of focus the latest one, we should let the agent focus on the specific version, let's have a placeholder in its prompt, and pass a version, then agent should cross check different sources and contexts only related to that release version and gives a report. The report should contain the following information: Subject: :rocket: Ready to Deploy: Geth v1.10.15 (Critical Update) Body:
+
+Status: :white_check_mark: Docker Image Verified | :white_check_mark: Binaries Available
+Risk Level: :red_circle: CRITICAL (Keyword "Hard Fork" detected in Discord #announcements).
+Adoption: :bar_chart: 12% of network updated (Wait recommended if not urgent).
+Changelog Summary: "Fixes sync bug in block 14,000,000."urgency high, can you also give a websearch tool (builtin from adk-go), it also should contain the direct link to download the binary or the command to downalod the image if they are avalable, the idea is let the sre can easily know the key points
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/brainstorming
+
+# Brainstorming Ideas Into Designs
+
+## Overview
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+
+<HARD-GATE>
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+</HARD-GATE>
+
+## Anti-Pattern: "This Is Too Simple To Need A Design"
+
+Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Explore project context** — check files, docs, recent commits
+2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+3. **Propose 2-3 approaches** — with trade-offs and your recommendation
+4. **Present design** — in sections scaled to their complexity, get user approval after each section
+5. **Write design doc** — save to `docs/plans/YYYY-MM-DD-<topic>-design.md` and commit
+6. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+
+## Process Flow
+
+```dot
+digraph brainstorming {
+    "Explore project context" [shape=box];
+    "Ask clarifying questions" [shape=box];
+    "Propose 2-3 approaches" [shape=box];
+    "Present design sections" [shape=box];
+    "User approves design?" [shape=diamond];
+    "Write design doc" [shape=box];
+    "Invoke writing-plans skill" [shape=doublecircle];
+
+    "Explore project context" -> "Ask clarifying questions";
+    "Ask clarifying questions" -> "Propose 2-3 approaches";
+    "Propose 2-3 approaches" -> "Present design sections";
+    "Present design sections" -> "User approves design?";
+    "User approves design?" -> "Present design sections" [label="no, revise"];
+    "User approves design?" -> "Write design doc" [label="yes"];
+    "Write design doc" -> "Invoke writing-plans skill";
+}
+```
+
+**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+
+## The Process
+
+**Understanding the idea:**
+- Check out the current project state first (files, docs, recent commits)
+- Ask questions one at a time to refine the idea
+- Prefer multiple choice questions when possible, but open-ended is fine too
+- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Focus on understanding: purpose, constraints, success criteria
+
+**Exploring approaches:**
+- Propose 2-3 different approaches with trade-offs
+- Present options conversationally with your recommendation and reasoning
+- Lead with your recommended option and explain why
+
+**Presenting the design:**
+- Once you believe you understand what you're building, present the design
+- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- Ask after each section whether it looks right so far
+- Cover: architecture, components, data flow, error handling, testing
+- Be ready to go back and clarify if something doesn't make sense
+
+## After the Design
+
+**Documentation:**
+- Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Use elements-of-style:writing-clearly-and-concisely skill if available
+- Commit the design document to git
+
+**Implementation:**
+- Invoke the writing-plans skill to create a detailed implementation plan
+- Do NOT invoke any other skill. writing-plans is the next step.
+
+## Key Principles
+
+- **One question at a time** - Don't overwhelm with multiple questions
+- **Multiple choice preferred** - Easier to answer than open-ended when possible
+- **YAGNI ruthlessly** - Remove unnecessary features from all designs
+- **Explore alternatives** - Always propose 2-3 approaches before settling
+- **Incremental validation** - Present design, get approval before moving on
+- **Be flexible** - Go back and clarify when something doesn't make sense
+
+---
+
+Binary/image availablity can be checked from its sources, web search is only needed when we need additional contexts
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/writing-plans
+
+# Writing Plans
+
+## Overview
+
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+
+Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+
+**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+
+**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+
+**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+
+## Bite-Sized Task Granularity
+
+**Each step is one action (2-5 minutes):**
+- "Write the failing test" - step
+- "Run it to make sure it fails" - step
+- "Implement the minimal code to make the test pass" - step
+- "Run the tests and make sure they pass" - step
+- "Commit" - step
+
+## Plan Document Header
+
+**Every plan MUST start with this header:**
+
+```markdown
+# [Feature Name] Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** [One sentence describing what this builds]
+
+**Architecture:** [2-3 sentences about approach]
+
+**Tech Stack:** [Key technologies/libraries]
+
+---
+```
+
+## Task Structure
+
+````markdown
+### Task N: [Component Name]
+
+**Files:**
+- Create: `exact/path/to/file.py`
+- Modify: `exact/path/to/existing.py:123-145`
+- Test: `tests/exact/path/to/test.py`
+
+**Step 1: Write the failing test**
+
+```python
+def test_specific_behavior():
+    result = function(input)
+    assert result == expected
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: FAIL with "function not defined"
+
+**Step 3: Write minimal implementation**
+
+```python
+def function(input):
+    return expected
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: PASS
+
+**Step 5: Commit**
+
+```bash
+git add tests/path/test.py src/path/file.py
+git commit -m "feat: add specific feature"
+```
+````
+
+## Remember
+- Exact file paths always
+- Complete code in plan (not "add validation")
+- Exact commands with expected output
+- Reference relevant skills with @ syntax
+- DRY, YAGNI, TDD, frequent commits
+
+## Execution Handoff
+
+After saving the plan, offer execution choice:
+
+**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+
+**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+
+**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
+
+**Which approach?"**
+
+**If Subagent-Driven chosen:**
+- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+- Stay in this session
+- Fresh subagent per task + code review
+
+**If Parallel Session chosen:**
+- Guide them to open new session in worktree
+- **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+
+---
+
+1
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation plan?" [shape=diamond];
+    "Tasks mostly independent?" [shape=diamond];
+    "Stay in this session?" [shape=diamond];
+    "subagent-driven-development" [shape=box];
+    "executing-plans" [shape=box];
+    "Manual execution or brainstorm first" [shape=box];
+
+    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
+    "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
+    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
+    "Stay in this session?" -> "subagent-driven-development" [label="yes"];
+    "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
+}
+```
+
+**vs. Executing Plans (parallel session):**
+- Same session (no context switch)
+- Fresh subagent per task (no context pollution)
+- Two-stage review after each task: spec compliance first, then code quality
+- Faster iteration (no human-in-loop between tasks)
+
+## The Process
+
+```dot
+digraph process {
+    rankdir=TB;
+
+    subgraph cluster_per_task {
+        label="Per Task";
+        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Implementer subagent asks questions?" [shape=diamond];
+        "Answer questions, provide context" [shape=box];
+        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
+        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
+        "Implementer subagent fixes spec gaps" [shape=box];
+        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
+        "Code quality reviewer subagent approves?" [shape=diamond];
+        "Implementer subagent fixes quality issues" [shape=box];
+        "Mark task complete in TodoWrite" [shape=box];
+    }
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "More tasks remain?" [shape=diamond];
+    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
+    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
+    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+}
+```
+
+## Prompt Templates
+
+- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+
+## Example Workflow
+
+```
+You: I'm using Subagent-Driven Development to execute this plan.
+
+[Read plan file once: docs/plans/feature-plan.md]
+[Extract all 5 tasks with full text and context]
+[Create TodoWrite with all tasks]
+
+Task 1: Hook installation script
+
+[Get Task 1 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: "Before I begin - should the hook be installed at user or system level?"
+
+You: "User level (~/.config/superpowers/hooks/)"
+
+Implementer: "Got it. Implementing now..."
+[Later] Implementer:
+  - Implemented install-hook command
+  - Added tests, 5/5 passing
+  - Self-review: Found I missed --force flag, added it
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+
+[Get git SHAs, dispatch code quality reviewer]
+Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
+
+[Mark Task 1 complete]
+
+Task 2: Recovery modes
+
+[Get Task 2 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: [No questions, proceeds]
+Implementer:
+  - Added verify/repair modes
+  - 8/8 tests passing
+  - Self-review: All good
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ❌ Issues:
+  - Missing: Progress reporting (spec says "report every 100 items")
+  - Extra: Added --json flag (not requested)
+
+[Implementer fixes issues]
+Implementer: Removed --json flag, added progress reporting
+
+[Spec reviewer reviews again]
+Spec reviewer: ✅ Spec compliant now
+
+[Dispatch code quality reviewer]
+Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
+
+[Implementer fixes]
+Implementer: Extracted PROGRESS_INTERVAL constant
+
+[Code reviewer reviews again]
+Code reviewer: ✅ Approved
+
+[Mark Task 2 complete]
+
+...
+
+[After all tasks]
+[Dispatch final code-reviewer]
+Final reviewer: All requirements met, ready to merge
+
+Done!
+```
+
+## Advantages
+
+**vs. Manual execution:**
+- Subagents follow TDD naturally
+- Fresh context per task (no confusion)
+- Parallel-safe (subagents don't interfere)
+- Subagent can ask questions (before AND during work)
+
+**vs. Executing Plans:**
+- Same session (no handoff)
+- Continuous progress (no waiting)
+- Review checkpoints automatic
+
+**Efficiency gains:**
+- No file reading overhead (controller provides full text)
+- Controller curates exactly what context is needed
+- Subagent gets complete information upfront
+- Questions surfaced before work begins (not after)
+
+**Quality gates:**
+- Self-review catches issues before handoff
+- Two-stage review: spec compliance, then code quality
+- Review loops ensure fixes actually work
+- Spec compliance prevents over/under-building
+- Code quality ensures implementation is well-built
+
+**Cost:**
+- More subagent invocations (implementer + 2 reviewers per task)
+- Controller does more prep work (extracting all tasks upfront)
+- Review loops add iterations
+- But catches issues early (cheaper than debugging later)
+
+## Red Flags
+
+**Never:**
+- Start implementation on main/master branch without explicit user consent
+- Skip reviews (spec compliance OR code quality)
+- Proceed with unfixed issues
+- Dispatch multiple implementation subagents in parallel (conflicts)
+- Make subagent read plan file (provide full text instead)
+- Skip scene-setting context (subagent needs to understand where task fits)
+- Ignore subagent questions (answer before letting them proceed)
+- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
+- Skip review loops (reviewer found issues = implementer fixes = review again)
+- Let implementer self-review replace actual review (both are needed)
+- **Start code quality review before spec compliance is ✅** (wrong order)
+- Move to next task while either review has open issues
+
+**If subagent asks questions:**
+- Answer clearly and completely
+- Provide additional context if needed
+- Don't rush them into implementation
+
+**If reviewer finds issues:**
+- Implementer (same subagent) fixes them
+- Reviewer reviews again
+- Repeat until approved
+- Don't skip the re-review
+
+**If subagent fails task:**
+- Dispatch fix subagent with specific instructions
+- Don't try to fix manually (context pollution)
+
+## Integration
+
+**Required workflow skills:**
+- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+
+**Subagents should use:**
+- **superpowers:test-driven-development** - Subagents follow TDD for each task
+
+**Alternative workflow:**
+- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the entire conversation:
+
+1. **Initial User Request**: The user wants to modify their ReleaseBeacon agent to:
+   - Focus on a specific version (not read all releases)
+   - Add a `{{VERSION}}` placeholder in the prompt
+   - Add web search tool (Google Search from ADK-Go)
+   - Generate SRE-focused reports with specific fields (Subject, Status, Risk Level, Adoption, Changelog Summary, etc.)
+   - Include download links/commands for binaries/images
+   - Urgency: HIGH
+
+2. **Follow-up User Message**: While exploration was happening, user added:
+   - Wait for all releases from all sources before generating report
+   - If agent can't have all releases, put back the job with "waiting" status
+   - Regularly pull until all source releases are available
+   - This should be configurable per-project via AgentPrompt/AgentRules
+
+3. **Brainstorming Phase**: 
+   - Explored the entire agent implementation thoroughly
+   - Identified current architecture: single agent with 3 tools, DefaultInstruction, ADK-Go v0.5.0
+   - Researched Google Search integration via `geminitool.GoogleSearch{}`
+   - Found that mixing grounding tools + function tools requires sub-agent pattern
+
+4. **User Feedback on Prompt**:
+   - User said "Binary/image availability can be checked from its sources, web search is only needed when we need additional contexts"
+   - This led to revising the prompt to scope web search to only additional context
+
+5. **Design Approval**:
+   - User chose "Configurable per-project" for multi-source waiting
+   - User chose "Approach A: Sub-agent (Recommended)"
+   - User approved the full design (with prompt tweak)
+
+6. **Implementation**: 12 tasks executed via subagent-driven development
+   - Tasks 1-3: Model changes (SemanticReport, AgentJobArgs/AgentRun Version, WaitForAllSources)
+   - Task 4: EnqueueAgentRun version parameter
+   - Task 5: HasReleaseForVersion store method
+   - Tasks 6-7: Combined - DefaultInstruction with {{VERSION}} + sub-agent architecture
+   - Task 8: Wire version from AgentRun through orchestrator
+   - Task 9: Multi-source waiting with river.JobSnooze
+   - Task 10: parseReport backward compatibility
+   - Task 11: Already done by Task 8
+   - Task 12: Full compilation check - all passed
+
+7. **Code Review**: Identified 2 important issues and 3 suggestions
+8. **Fixes Applied**: Max retry cap (12 attempts) and source list limit (100→1000)
+
+Key technical details:
+- ADK-Go v0.5.0, `agenttool.New` signature is `(agent.Agent, *Config)` not `(name, agent)`
+- `geminitool.GoogleSearch{}` is a zero-value struct
+- River job queue with `river.JobSnooze` for deferred retry
+- Xcode license issue requiring `DEVELOPER_DIR=` prefix on git commands
+
+Let me trace all the files modified and their changes:
+
+1. `internal/models/semantic_release.go` - Added SRE fields to SemanticReport
+2. `internal/models/semantic_release_test.go` - Created new test file
+3. `internal/queue/jobs.go` - Added Version to AgentJobArgs
+4. `internal/models/agent_run.go` - Added Version field
+5. `internal/db/migrations.go` - ALTER TABLE for version column
+6. `internal/models/project.go` - Added WaitForAllSources to AgentRules
+7. `internal/routing/worker.go` - Updated EnqueueAgentRun signature, pass release.Version
+8. `internal/api/pgstore.go` - Updated EnqueueAgentRun, added HasReleaseForVersion, updated GetAgentRun/ListAgentRuns queries
+9. `internal/routing/worker_test.go` - Updated mock
+10. `internal/agent/orchestrator.go` - Major changes: DefaultInstruction, BuildAgent sub-agents, version wiring, checkAllSourcesReady, parseReport
+11. `internal/agent/orchestrator_test.go` - Added tests for version placeholder, checkAllSourcesReady, parseReport formats, BuildAgent signature
+12. `internal/agent/worker.go` - Multi-source waiting with snooze + max retry cap
+13. `internal/cmd/agent/main.go` - Updated BuildAgent call
+14. `docs/plans/2026-02-27-version-focused-agent-design.md` - Design doc
+15. `docs/plans/2026-02-27-version-focused-agent.md` - Implementation plan
+
+After the subagent-driven development completed all 12 tasks, a final code review was dispatched. The review found 2 important issues that were then fixed directly:
+- I-1: No max retry cap → Added `maxWaitAttempts = 12` with fallthrough to partial data
+- I-2: Source list limit of 100 → Changed to 1000
+
+The current state: All implementation is complete, all tests pass, review fixes committed.
+
+Summary:
+1. Primary Request and Intent:
+   The user requested modifications to the ReleaseBeacon agent (Go project at `/Users/pc/web3/ReleaseBeacon`) to:
+   - **Version-focused analysis**: Instead of reading all releases, the agent should focus on a specific version. A `{{VERSION}}` placeholder should be added to the agent prompt, and the version should be passed through the job args.
+   - **Web search capability**: Add Google Search (built-in from ADK-Go) so the agent can check community sentiment, security advisories, network adoption — but NOT for binary/image availability (that comes from sources directly).
+   - **SRE-focused report format**: The report should contain structured fields like Subject (`🚀 Ready to Deploy: Geth v1.10.15`), Status checks, Risk Level with reason, Adoption stats, Changelog Summary, Urgency, download commands/links.
+   - **Multi-source waiting**: Configurable per-project — if enabled, the agent should wait until ALL sources in a project have a release matching the target version before generating the report. If not all sources are ready, set a "waiting" status and re-enqueue the job to check later.
+   - **Urgency**: HIGH
+
+2. Key Technical Concepts:
+   - **ADK-Go v0.5.0** (`google.golang.org/adk`) — Google Agent Development Kit for Go
+   - **Sub-agent architecture** — Required pattern for mixing Gemini grounding tools (GoogleSearch) with function tools. Uses `agenttool.New(agent, nil)` and `geminitool.GoogleSearch{}`
+   - **River job queue** — `river.JobSnooze(duration)` for deferred retry of waiting jobs
+   - **Transactional outbox pattern** — `EnqueueAgentRun` inserts agent_run + River job in same transaction
+   - **`geminitool.GoogleSearch{}`** — Zero-value struct, Gemini-native server-side search, no extra API key needed
+   - **`agenttool.New` actual signature**: `(agent agent.Agent, cfg *Config)` — NOT `(name string, agent)` as initially assumed in the plan. The name comes from the agent's own Config.
+   - **Template substitution** — `strings.ReplaceAll(instruction, "{{VERSION}}", version)` for version placeholder
+   - **Backward compatibility** — `parseReport` accepts either `subject` (new) or `summary` (old) as required field
+
+3. Files and Code Sections:
+
+   - **`internal/models/semantic_release.go`** — Core model expanded with SRE fields
+     - Added: Subject, RiskLevel, RiskReason, StatusChecks, ChangelogSummary, DownloadCommands, DownloadLinks
+     - Summary field changed to `omitempty` for backward compat
+     ```go
+     type SemanticReport struct {
+         Subject          string   `json:"subject"`
+         RiskLevel        string   `json:"risk_level"`
+         RiskReason       string   `json:"risk_reason"`
+         StatusChecks     []string `json:"status_checks"`
+         ChangelogSummary string   `json:"changelog_summary"`
+         DownloadCommands []string `json:"download_commands,omitempty"`
+         DownloadLinks    []string `json:"download_links,omitempty"`
+         Summary          string   `json:"summary,omitempty"`
+         Availability     string   `json:"availability"`
+         Adoption         string   `json:"adoption"`
+         Urgency          string   `json:"urgency"`
+         Recommendation   string   `json:"recommendation"`
+     }
+     ```
+
+   - **`internal/models/semantic_release_test.go`** — NEW file, tests JSON round-trip of all SRE fields
+
+   - **`internal/models/agent_run.go`** — Added Version field
+     ```go
+     type AgentRun struct {
+         // ... existing fields ...
+         Version string `json:"version,omitempty"`
+         // ... rest ...
+     }
+     ```
+
+   - **`internal/models/project.go`** — Added WaitForAllSources to AgentRules
+     ```go
+     type AgentRules struct {
+         OnMajorRelease    bool   `json:"on_major_release,omitempty"`
+         OnMinorRelease    bool   `json:"on_minor_release,omitempty"`
+         OnSecurityPatch   bool   `json:"on_security_patch,omitempty"`
+         VersionPattern    string `json:"version_pattern,omitempty"`
+         WaitForAllSources bool   `json:"wait_for_all_sources,omitempty"`
+     }
+     ```
+
+   - **`internal/queue/jobs.go`** — Added Version to AgentJobArgs
+     ```go
+     type AgentJobArgs struct {
+         AgentRunID string `json:"agent_run_id"`
+         ProjectID  string `json:"project_id"`
+         Version    string `json:"version"`
+     }
+     ```
+
+   - **`internal/db/migrations.go`** — Added ALTER TABLE migration
+     ```sql
+     ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS version VARCHAR(100);
+     ```
+
+   - **`internal/agent/orchestrator.go`** — MAJOR changes (the core file):
+     - **DefaultInstruction**: Replaced with version-scoped prompt containing `{{VERSION}}` placeholder, new SRE JSON schema in output format, web search scoped to "additional context only"
+     - **BuildAgent**: New signature `BuildAgent(ctx, store, project, llmConfig, version string)`, creates data_agent sub-agent (function tools) + search_agent sub-agent (GoogleSearch, Gemini only), root release_analyst agent delegates to both via `agenttool.New`
+     - **executeAgent**: Extracts version from `run.Version` with fallback to trigger parsing, passes to BuildAgent, version-specific user message, uses target version for SemanticRelease
+     - **checkAllSourcesReady**: New method checking all project sources have a release for the target version
+     - **parseReport**: Updated validation to accept `subject` OR `summary`
+     - Imports added: `agenttool`, `geminitool`
+     - Removed: `toolsToSlice` helper
+
+   - **`internal/agent/worker.go`** — Multi-source waiting logic
+     - Work method checks `WaitForAllSources` rule, calls `checkAllSourcesReady`
+     - If not ready: max 12 attempts (maxWaitAttempts), then proceeds with partial data
+     - If under limit: sets status to "waiting", returns `river.JobSnooze(5 * time.Minute)`
+     - Added imports: `encoding/json`, `time`, `models`
+
+   - **`internal/agent/orchestrator_test.go`** — Added tests:
+     - `TestVersionPlaceholderSubstitution` — Verifies `{{VERSION}}` in DefaultInstruction
+     - `TestCheckAllSourcesReady` — 3 subtests (no sources, all ready, one missing)
+     - `TestParseReport_NewFormat` — SRE format with subject
+     - `TestParseReport_OldFormat` — Old format with summary
+     - `TestParseReport_NoSubjectOrSummary` — Rejection case
+     - `TestBuildAgentSignature` — Compile check for new version param
+     - Mock store updated with `sources`, `hasReleaseMap` fields and new interface methods
+
+   - **`internal/routing/worker.go`** — Updated `EnqueueAgentRun` in NotifyStore interface and `checkAgentRules` caller to pass `release.Version`
+
+   - **`internal/routing/worker_test.go`** — Updated mock's `EnqueueAgentRun` to accept version parameter
+
+   - **`internal/api/pgstore.go`** — Multiple changes:
+     - `EnqueueAgentRun` now accepts `version` parameter, inserts into DB, passes to AgentJobArgs
+     - `HasReleaseForVersion` — New method with `EXISTS` query
+     - `GetAgentRun` — Added `COALESCE(version,'')` to SELECT and `&run.Version` to Scan
+     - `ListAgentRuns` — Same version column addition
+
+   - **`cmd/agent/main.go`** — Updated BuildAgent call to pass `""` for version
+
+   - **`docs/plans/2026-02-27-version-focused-agent-design.md`** — Design document (committed)
+   - **`docs/plans/2026-02-27-version-focused-agent.md`** — Implementation plan (committed)
+
+4. Errors and Fixes:
+   - **Xcode license issue**: All `git` commands failed with "You have not agreed to the Xcode license agreements." Fixed by prefixing all git commands with `DEVELOPER_DIR=`.
+   - **`agenttool.New` API mismatch**: The plan assumed `agenttool.New("name", agent)` but the actual ADK v0.5.0 API is `agenttool.New(agent, *Config)`. The subagent implementing Task 6+7 discovered this and corrected it.
+   - **Missing max retry cap**: Code review identified that multi-source waiting had no upper bound on retries. Fixed by adding `const maxWaitAttempts = 12` — after 12 snooze attempts (~1 hour), the agent proceeds with partial data rather than snoozing forever.
+   - **Source list pagination limit**: Code review identified `ListSourcesByProject(ctx, projectID, 1, 100)` could silently miss sources if a project had >100. Fixed by changing limit to 1000.
+   - **User feedback on web search scope**: User said "Binary/image availability can be checked from its sources, web search is only needed when we need additional contexts." This changed the prompt to scope web search explicitly: "Use web search ONLY when you need additional context not available from sources (e.g., community sentiment, security advisories, network adoption stats, known issues)."
+
+5. Problem Solving:
+   - Solved the problem of mixing Gemini grounding tools with function tools using the documented sub-agent pattern
+   - Solved backward compatibility for parseReport by accepting either `subject` or `summary`
+   - Solved version extraction with fallback from `run.Version` to trigger string parsing (`auto:version:v1.10.15`)
+   - Solved graceful degradation for multi-source waiting (max attempts then proceed with partial data)
+   - Solved OpenAI compatibility by conditionally adding search_agent only for Gemini provider
+
+6. All User Messages:
+   - "The current agent run read all the releases from the project instead of focus the latest one, we should let the agent focus on the specific version, let's have a placeholder in its prompt, and pass a version, then agent should cross check different sources and contexts only related to that release version and gives a report. The report should contain the following information: Subject: 🚀 Ready to Deploy: Geth v1.10.15 (Critical Update) Body: Status: ✅ Docker Image Verified | ✅ Binaries Available / Risk Level: 🔴 CRITICAL (Keyword 'Hard Fork' detected in Discord #announcements). / Adoption: 📊 12% of network updated (Wait recommended if not urgent). / Changelog Summary: 'Fixes sync bug in block 14,000,000.' urgency high, can you also give a websearch tool (builtin from adk-go), it also should contain the direct link to download the binary or the command to download the image if they are available, the idea is let the sre can easily know the key points"
+   - "Also in the custom prompt in the project, we can write the prompt like wait for all the releases from all the sources to start the report generation, then if the agent cannot have all the related releases from all the sources, it can put back the job set a waiting status and then regularly pull the job until all the sources releases are available"
+   - User selected "Configurable per-project" for multi-source waiting behavior
+   - User selected "A: Sub-agent (Recommended)" for web search approach
+   - User selected "Needs tweaks" for prompt design, then clarified "Prompt wording"
+   - "Binary/image availability can be checked from its sources, web search is only needed when we need additional contexts"
+   - User selected "Looks good" for revised prompt
+   - User selected "Approve design" for complete design
+   - User selected "1" (Subagent-Driven, this session) for execution approach
+
+7. Pending Tasks:
+   - All 12 implementation tasks are COMPLETED
+   - Code review is COMPLETED with fixes applied
+   - The finishing-a-development-branch skill was mentioned in the subagent-driven-development workflow as the next step after all tasks complete, but user has not explicitly requested it
+
+8. Current Work:
+   All implementation work is complete. The final action was committing two review fixes:
+   - Max retry cap (`const maxWaitAttempts = 12`) in `internal/agent/worker.go`
+   - Source list limit increased from 100 to 1000 in `internal/agent/orchestrator.go`
+   
+   Final commit: `3515404 fix(agent): add max retry cap for multi-source waiting and increase source limit`
+   
+   All tests pass (`go test ./...`), `go vet` clean, `go build ./cmd/server` succeeds.
+
+   Git log of all implementation commits (oldest to newest):
+   - `d59ffc6` feat(models): expand SemanticReport with SRE-focused fields
+   - `a8dfbd8` feat(models): add version field to AgentJobArgs and AgentRun
+   - `8b641af` feat(models): add WaitForAllSources to AgentRules
+   - `971163a` feat(routing): pass version through EnqueueAgentRun
+   - `7be504c` feat(store): add HasReleaseForVersion and ListSourcesByProject to OrchestratorStore
+   - `f9bd595` feat(agent): version-scoped prompt with sub-agent architecture and Google Search
+   - `9c8c01e` feat(agent): use version from AgentRun for version-scoped analysis
+   - `df22be2` feat(agent): multi-source waiting with river.JobSnooze
+   - `4cad1eb` feat(agent): parseReport accepts new SRE format and old format
+   - `3515404` fix(agent): add max retry cap for multi-source waiting and increase source limit
+
+9. Optional Next Step:
+   The subagent-driven-development skill workflow indicates the next step after all tasks complete and code review passes is to use `superpowers:finishing-a-development-branch` to decide how to integrate the work (merge, PR, or cleanup). However, the user has not explicitly requested this — they chose "1" (subagent-driven in this session) and all tasks are now done with review fixes applied. The implementation is complete on the `main` branch. No explicit next step is pending unless the user requests further action.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+026/02/27 21:41:18 ERROR agent: run event error run_id=32e04155-46d0-41f9-97cc-b1b4a81a2be7 event_count=0 err="openai: API returned status 400: {\n  \"error\": {\n    \"message\": \"Invalid schema for function 'data_agent': 'STRING' is not valid under any of the given schemas.\",\n    \"type\": \"invalid_request_error\",\n    \"param\": \"tools[0].function.parameters\",\n    \"code\": \"invalid_function_parameters\"\n  }\n}"
+2026/02/27 21:41:18 ERROR agent run failed run_id=32e04155-46d0-41f9-97cc-b1b4a81a2be7 err="agent run event error: openai: API returned status 400: {\n  \"error\": {\n    \"message\": \"Invalid schema for function 'data_agent': 'STRING' is not valid under any of the given schemas.\",\n    \"type\": \"invalid_request_error\",\n    \"param\": \"tools[0].function.parameters\",\n    \"code\": \"invalid_function_parameters\"\n  }\n}"
+2026/02/27 21:41:18 ERROR agent worker run failed job_id=79 agent_run_id=32e04155-46d0-41f9-97cc-b1b4a81a2be7 project_id=ac7ef8e0-7c1b-43e3-b083-863f90a811c7 err="agent run event error: openai: API returned status 400: {\n  \"error\": {\n    \"message\": \"Invalid schema for function 'data_agent': 'STRING' is not valid under any of the given schemas.\",\n    \"type\": \"invalid_request_error\",\n    \"param\": \"tools[0].function.parameters\",\n    \"code\": \"invalid_function_parameters\"\n  }\n}"
+time=2026-02-27T21:41:18.262+08:00 level=WARN msg="jobexecutor.JobExecutor: Job errored; retrying" error="agent run event error: openai: API returned status 400: {\n  \"error\": {\n    \"message\": \"Invalid schema for function 'data_agent': 'STRING' is not valid under any of the given schemas.\",\n    \"type\": \"invalid_request_error\",\n    \"param\": \"tools[0].function.parameters\",\n    \"code\": \"invalid_function_parameters\"\n  }\n}" job_id=79 job_kind=agent_run
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/systematic-debugging
+
+# Systematic Debugging
+
+## Overview
+
+Random fixes waste time and create new bugs. Quick patches mask underlying issues.
+
+**Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
+
+**Violating the letter of this process is violating the spirit of debugging.**
+
+## The Iron Law
+
+```
+NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
+```
+
+If you haven't completed Phase 1, you cannot propose fixes.
+
+## When to Use
+
+Use for ANY technical issue:
+- Test failures
+- Bugs in production
+- Unexpected behavior
+- Performance problems
+- Build failures
+- Integration issues
+
+**Use this ESPECIALLY when:**
+- Under time pressure (emergencies make guessing tempting)
+- "Just one quick fix" seems obvious
+- You've already tried multiple fixes
+- Previous fix didn't work
+- You don't fully understand the issue
+
+**Don't skip when:**
+- Issue seems simple (simple bugs have root causes too)
+- You're in a hurry (rushing guarantees rework)
+- Manager wants it fixed NOW (systematic is faster than thrashing)
+
+## The Four Phases
+
+You MUST complete each phase before proceeding to the next.
+
+### Phase 1: Root Cause Investigation
+
+**BEFORE attempting ANY fix:**
+
+1. **Read Error Messages Carefully**
+   - Don't skip past errors or warnings
+   - They often contain the exact solution
+   - Read stack traces completely
+   - Note line numbers, file paths, error codes
+
+2. **Reproduce Consistently**
+   - Can you trigger it reliably?
+   - What are the exact steps?
+   - Does it happen every time?
+   - If not reproducible → gather more data, don't guess
+
+3. **Check Recent Changes**
+   - What changed that could cause this?
+   - Git diff, recent commits
+   - New dependencies, config changes
+   - Environmental differences
+
+4. **Gather Evidence in Multi-Component Systems**
+
+   **WHEN system has multiple components (CI → build → signing, API → service → database):**
+
+   **BEFORE proposing fixes, add diagnostic instrumentation:**
+   ```
+   For EACH component boundary:
+     - Log what data enters component
+     - Log what data exits component
+     - Verify environment/config propagation
+     - Check state at each layer
+
+   Run once to gather evidence showing WHERE it breaks
+   THEN analyze evidence to identify failing component
+   THEN investigate that specific component
+   ```
+
+   **Example (multi-layer system):**
+   ```bash
+   # Layer 1: Workflow
+   echo "=== Secrets available in workflow: ==="
+   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
+
+   # Layer 2: Build script
+   echo "=== Env vars in build script: ==="
+   env | grep IDENTITY || echo "IDENTITY not in environment"
+
+   # Layer 3: Signing script
+   echo "=== Keychain state: ==="
+   security list-keychains
+   security find-identity -v
+
+   # Layer 4: Actual signing
+   codesign --sign "$IDENTITY" --verbose=4 "$APP"
+   ```
+
+   **This reveals:** Which layer fails (secrets → workflow ✓, workflow → build ✗)
+
+5. **Trace Data Flow**
+
+   **WHEN error is deep in call stack:**
+
+   See `root-cause-tracing.md` in this directory for the complete backward tracing technique.
+
+   **Quick version:**
+   - Where does bad value originate?
+   - What called this with bad value?
+   - Keep tracing up until you find the source
+   - Fix at source, not at symptom
+
+### Phase 2: Pattern Analysis
+
+**Find the pattern before fixing:**
+
+1. **Find Working Examples**
+   - Locate similar working code in same codebase
+   - What works that's similar to what's broken?
+
+2. **Compare Against References**
+   - If implementing pattern, read reference implementation COMPLETELY
+   - Don't skim - read every line
+   - Understand the pattern fully before applying
+
+3. **Identify Differences**
+   - What's different between working and broken?
+   - List every difference, however small
+   - Don't assume "that can't matter"
+
+4. **Understand Dependencies**
+   - What other components does this need?
+   - What settings, config, environment?
+   - What assumptions does it make?
+
+### Phase 3: Hypothesis and Testing
+
+**Scientific method:**
+
+1. **Form Single Hypothesis**
+   - State clearly: "I think X is the root cause because Y"
+   - Write it down
+   - Be specific, not vague
+
+2. **Test Minimally**
+   - Make the SMALLEST possible change to test hypothesis
+   - One variable at a time
+   - Don't fix multiple things at once
+
+3. **Verify Before Continuing**
+   - Did it work? Yes → Phase 4
+   - Didn't work? Form NEW hypothesis
+   - DON'T add more fixes on top
+
+4. **When You Don't Know**
+   - Say "I don't understand X"
+   - Don't pretend to know
+   - Ask for help
+   - Research more
+
+### Phase 4: Implementation
+
+**Fix the root cause, not the symptom:**
+
+1. **Create Failing Test Case**
+   - Simplest possible reproduction
+   - Automated test if possible
+   - One-off test script if no framework
+   - MUST have before fixing
+   - Use the `superpowers:test-driven-development` skill for writing proper failing tests
+
+2. **Implement Single Fix**
+   - Address the root cause identified
+   - ONE change at a time
+   - No "while I'm here" improvements
+   - No bundled refactoring
+
+3. **Verify Fix**
+   - Test passes now?
+   - No other tests broken?
+   - Issue actually resolved?
+
+4. **If Fix Doesn't Work**
+   - STOP
+   - Count: How many fixes have you tried?
+   - If < 3: Return to Phase 1, re-analyze with new information
+   - **If ≥ 3: STOP and question the architecture (step 5 below)**
+   - DON'T attempt Fix #4 without architectural discussion
+
+5. **If 3+ Fixes Failed: Question Architecture**
+
+   **Pattern indicating architectural problem:**
+   - Each fix reveals new shared state/coupling/problem in different place
+   - Fixes require "massive refactoring" to implement
+   - Each fix creates new symptoms elsewhere
+
+   **STOP and question fundamentals:**
+   - Is this pattern fundamentally sound?
+   - Are we "sticking with it through sheer inertia"?
+   - Should we refactor architecture vs. continue fixing symptoms?
+
+   **Discuss with your human partner before attempting more fixes**
+
+   This is NOT a failed hypothesis - this is a wrong architecture.
+
+## Red Flags - STOP and Follow Process
+
+If you catch yourself thinking:
+- "Quick fix for now, investigate later"
+- "Just try changing X and see if it works"
+- "Add multiple changes, run tests"
+- "Skip the test, I'll manually verify"
+- "It's probably X, let me fix that"
+- "I don't fully understand but this might work"
+- "Pattern says X but I'll adapt it differently"
+- "Here are the main problems: [lists fixes without investigation]"
+- Proposing solutions before tracing data flow
+- **"One more fix attempt" (when already tried 2+)**
+- **Each fix reveals new problem in different place**
+
+**ALL of these mean: STOP. Return to Phase 1.**
+
+**If 3+ fixes failed:** Question the architecture (see Phase 4.5)
+
+## your human partner's Signals You're Doing It Wrong
+
+**Watch for these redirections:**
+- "Is that not happening?" - You assumed without verifying
+- "Will it show us...?" - You should have added evidence gathering
+- "Stop guessing" - You're proposing fixes without understanding
+- "Ultrathink this" - Question fundamentals, not just symptoms
+- "We're stuck?" (frustrated) - Your approach isn't working
+
+**When you see these:** STOP. Return to Phase 1.
+
+## Common Rationalizations
+
+| Excuse | Reality |
+|--------|---------|
+| "Issue is simple, don't need process" | Simple issues have root causes too. Process is fast for simple bugs. |
+| "Emergency, no time for process" | Systematic debugging is FASTER than guess-and-check thrashing. |
+| "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
+| "I'll write test after confirming fix works" | Untested fixes don't stick. Test first proves it. |
+| "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
+| "Reference too long, I'll adapt the pattern" | Partial understanding guarantees bugs. Read it completely. |
+| "I see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. |
+| "One more fix attempt" (after 2+ failures) | 3+ failures = architectural problem. Question pattern, don't fix again. |
+
+## Quick Reference
+
+| Phase | Key Activities | Success Criteria |
+|-------|---------------|------------------|
+| **1. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
+| **2. Pattern** | Find working examples, compare | Identify differences |
+| **3. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
+| **4. Implementation** | Create test, fix, verify | Bug resolved, tests pass |
+
+## When Process Reveals "No Root Cause"
+
+If systematic investigation reveals issue is truly environmental, timing-dependent, or external:
+
+1. You've completed the process
+2. Document what you investigated
+3. Implement appropriate handling (retry, timeout, error message)
+4. Add monitoring/logging for future investigation
+
+**But:** 95% of "no root cause" cases are incomplete investigation.
+
+## Supporting Techniques
+
+These techniques are part of systematic debugging and available in this directory:
+
+- **`root-cause-tracing.md`** - Trace bugs backward through call stack to find original trigger
+- **`defense-in-depth.md`** - Add validation at multiple layers after finding root cause
+- **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
+
+**Related skills:**
+- **superpowers:test-driven-development** - For creating failing test case (Phase 4, Step 1)
+- **superpowers:verification-before-completion** - Verify fix worked before claiming success
+
+## Real-World Impact
+
+From debugging sessions:
+- Systematic approach: 15-30 minutes to fix
+- Random fixes approach: 2-3 hours of thrashing
+- First-time fix rate: 95% vs 40%
+- New bugs introduced: Near zero vs common

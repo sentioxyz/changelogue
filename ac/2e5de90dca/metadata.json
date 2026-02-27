@@ -3,7 +3,7 @@
   "checkpoint_id": "ac2e5de90dca",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "internal/api/health.go",
     "internal/api/health_test.go",
@@ -21,13 +21,20 @@
       "context": "/ac/2e5de90dca/0/context.md",
       "content_hash": "/ac/2e5de90dca/0/content_hash.txt",
       "prompt": "/ac/2e5de90dca/0/prompt.txt"
+    },
+    {
+      "metadata": "/ac/2e5de90dca/1/metadata.json",
+      "transcript": "/ac/2e5de90dca/1/full.jsonl",
+      "context": "/ac/2e5de90dca/1/context.md",
+      "content_hash": "/ac/2e5de90dca/1/content_hash.txt",
+      "prompt": "/ac/2e5de90dca/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 10311450,
+    "input_tokens": 24250514,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 29000,
-    "api_call_count": 118
+    "output_tokens": 65438,
+    "api_call_count": 251
   }
 }
