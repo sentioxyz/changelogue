@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "17700d805e12",
+  "session_id": "7bc3397e-06e6-48a9-9662-6fc4d01835f3",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-27T15:04:50.330731Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/channels.go",
+    "internal/api/channels_test.go",
+    "internal/api/server.go",
+    "internal/routing/slack.go",
+    "internal/routing/slack_test.go",
+    "internal/routing/worker.go",
+    "web/app/channels/page.tsx",
+    "web/components/ui/toast.tsx",
+    "web/lib/api/client.ts"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "075a5b542826",
+  "token_usage": {
+    "input_tokens": 8843852,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 20696,
+    "api_call_count": 121
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-27T15:04:49.942707Z",
+    "agent_lines": 564,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 564,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/7bc3397e-06e6-48a9-9662-6fc4d01835f3.jsonl"
+}
