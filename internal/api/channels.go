@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/sentioxyz/changelogue/internal/models"
+	"github.com/sentioxyz/changelogue/internal/routing"
 )
 
 // ChannelsStore defines the persistence operations for notification channels.
@@ -19,12 +20,13 @@ type ChannelsStore interface {
 
 // ChannelsHandler implements HTTP handlers for the /channels resource.
 type ChannelsHandler struct {
-	store ChannelsStore
+	store   ChannelsStore
+	senders map[string]routing.Sender
 }
 
 // NewChannelsHandler returns a new ChannelsHandler.
-func NewChannelsHandler(store ChannelsStore) *ChannelsHandler {
-	return &ChannelsHandler{store: store}
+func NewChannelsHandler(store ChannelsStore, senders map[string]routing.Sender) *ChannelsHandler {
+	return &ChannelsHandler{store: store, senders: senders}
 }
 
 // List handles GET /channels — returns a paginated list of notification channels.
@@ -130,4 +132,33 @@ func (h *ChannelsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Test handles POST /channels/{id}/test — sends a test notification to verify the channel works.
+func (h *ChannelsHandler) Test(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid channel ID")
+		return
+	}
+	ch, err := h.store.GetChannel(r.Context(), id)
+	if err != nil {
+		RespondError(w, r, http.StatusNotFound, "not_found", "Channel not found")
+		return
+	}
+	sender, ok := h.senders[ch.Type]
+	if !ok {
+		RespondError(w, r, http.StatusUnprocessableEntity, "unsupported_type", "Unsupported channel type: "+ch.Type)
+		return
+	}
+	msg := routing.Notification{
+		Title:   "Test notification from Changelogue",
+		Body:    "This is a test notification to verify your channel configuration is working correctly.",
+		Version: "v0.0.0-test",
+	}
+	if err := sender.Send(r.Context(), ch, msg); err != nil {
+		RespondError(w, r, http.StatusBadGateway, "send_failed", "Failed to send test notification: "+err.Error())
+		return
+	}
+	RespondJSON(w, r, http.StatusOK, map[string]string{"status": "ok"})
 }

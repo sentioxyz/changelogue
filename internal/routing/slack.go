@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/sentioxyz/changelogue/internal/models"
 )
@@ -25,13 +26,150 @@ type slackPayload struct {
 }
 
 type slackBlock struct {
-	Type string     `json:"type"`
-	Text *slackText `json:"text,omitempty"`
+	Type     string      `json:"type"`
+	Text     *slackText  `json:"text,omitempty"`
+	Fields   []slackText `json:"fields,omitempty"`
+	Elements []slackText `json:"elements,omitempty"`
 }
 
 type slackText struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
+}
+
+// riskEmoji returns an emoji indicator for the given risk level.
+func riskEmoji(level string) string {
+	switch strings.ToUpper(strings.TrimSpace(level)) {
+	case "LOW":
+		return "🟢"
+	case "MEDIUM":
+		return "🟡"
+	case "HIGH":
+		return "🔴"
+	case "CRITICAL":
+		return "⚫"
+	default:
+		return "⚪"
+	}
+}
+
+// buildSemanticBlocks builds rich Slack Block Kit blocks from a SemanticReport.
+func buildSemanticBlocks(title string, report *models.SemanticReport) []slackBlock {
+	blocks := []slackBlock{
+		{Type: "header", Text: &slackText{Type: "plain_text", Text: title}},
+	}
+
+	// Subject as the lead section
+	if report.Subject != "" {
+		blocks = append(blocks, slackBlock{
+			Type: "section",
+			Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*%s*", report.Subject)},
+		})
+	}
+
+	// Risk + Urgency + Availability as compact fields
+	blocks = append(blocks, slackBlock{
+		Type: "section",
+		Fields: []slackText{
+			{Type: "mrkdwn", Text: fmt.Sprintf("*Risk Level:*\n%s %s", riskEmoji(report.RiskLevel), report.RiskLevel)},
+			{Type: "mrkdwn", Text: fmt.Sprintf("*Urgency:*\n%s", report.Urgency)},
+			{Type: "mrkdwn", Text: fmt.Sprintf("*Availability:*\n%s", report.Availability)},
+		},
+	})
+
+	// Risk reason
+	if report.RiskReason != "" {
+		blocks = append(blocks,
+			slackBlock{Type: "divider"},
+			slackBlock{
+				Type: "section",
+				Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*Risk Assessment*\n%s", report.RiskReason)},
+			},
+		)
+	}
+
+	// Status checks
+	if len(report.StatusChecks) > 0 {
+		var items []string
+		for _, check := range report.StatusChecks {
+			items = append(items, fmt.Sprintf("• %s", check))
+		}
+		blocks = append(blocks,
+			slackBlock{Type: "divider"},
+			slackBlock{
+				Type: "section",
+				Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*Status Checks*\n%s", strings.Join(items, "\n"))},
+			},
+		)
+	}
+
+	// Changelog summary
+	summary := report.ChangelogSummary
+	if summary == "" {
+		summary = report.Summary
+	}
+	if summary != "" {
+		blocks = append(blocks,
+			slackBlock{Type: "divider"},
+			slackBlock{
+				Type: "section",
+				Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*Changelog*\n%s", summary)},
+			},
+		)
+	}
+
+	// Recommendation + Adoption
+	if report.Recommendation != "" {
+		blocks = append(blocks,
+			slackBlock{Type: "divider"},
+			slackBlock{
+				Type: "section",
+				Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*Recommendation*\n%s", report.Recommendation)},
+			},
+		)
+	}
+	if report.Adoption != "" {
+		blocks = append(blocks, slackBlock{
+			Type: "section",
+			Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*Adoption*\n%s", report.Adoption)},
+		})
+	}
+
+	// Download commands as code block
+	if len(report.DownloadCommands) > 0 {
+		blocks = append(blocks,
+			slackBlock{Type: "divider"},
+			slackBlock{
+				Type: "section",
+				Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*Download Commands*\n```%s```", strings.Join(report.DownloadCommands, "\n"))},
+			},
+		)
+	}
+
+	// Download links
+	if len(report.DownloadLinks) > 0 {
+		var links []string
+		for _, link := range report.DownloadLinks {
+			links = append(links, fmt.Sprintf("• <%s>", link))
+		}
+		blocks = append(blocks, slackBlock{
+			Type: "section",
+			Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*Download Links*\n%s", strings.Join(links, "\n"))},
+		})
+	}
+
+	// Footer context
+	blocks = append(blocks,
+		slackBlock{Type: "divider"},
+		slackBlock{
+			Type: "context",
+			Elements: []slackText{
+				{Type: "mrkdwn", Text: "📡 _Sent by Changelogue_"},
+			},
+		},
+	)
+
+	return blocks
 }
 
 func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, msg Notification) error {
@@ -40,18 +178,20 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 		return fmt.Errorf("parse slack config: %w", err)
 	}
 
-	payload := slackPayload{
-		Blocks: []slackBlock{
-			{
-				Type: "header",
-				Text: &slackText{Type: "plain_text", Text: msg.Title},
-			},
-			{
-				Type: "section",
-				Text: &slackText{Type: "mrkdwn", Text: msg.Body},
-			},
-		},
+	// Try to parse body as a SemanticReport for rich formatting.
+	var blocks []slackBlock
+	var report models.SemanticReport
+	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
+		blocks = buildSemanticBlocks(msg.Title, &report)
+	} else {
+		// Fallback: simple header + body for non-report messages.
+		blocks = []slackBlock{
+			{Type: "header", Text: &slackText{Type: "plain_text", Text: msg.Title}},
+			{Type: "section", Text: &slackText{Type: "mrkdwn", Text: msg.Body}},
+		}
 	}
+
+	payload := slackPayload{Blocks: blocks}
 
 	body, err := json.Marshal(payload)
 	if err != nil {

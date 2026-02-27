@@ -35,15 +35,20 @@ type NotifyWorker struct {
 	senders map[string]Sender
 }
 
+// NewSenders returns the default sender map for webhook, Slack, and Discord.
+func NewSenders() map[string]Sender {
+	return map[string]Sender{
+		"webhook": &WebhookSender{Client: &http.Client{Timeout: 10 * time.Second}},
+		"slack":   &SlackSender{Client: &http.Client{Timeout: 10 * time.Second}},
+		"discord": &DiscordSender{Client: &http.Client{Timeout: 10 * time.Second}},
+	}
+}
+
 // NewNotifyWorker creates a NotifyWorker with default senders for webhook, Slack, and Discord.
 func NewNotifyWorker(store NotifyStore) *NotifyWorker {
 	return &NotifyWorker{
-		store: store,
-		senders: map[string]Sender{
-			"webhook": &WebhookSender{Client: &http.Client{Timeout: 10 * time.Second}},
-			"slack":   &SlackSender{Client: &http.Client{Timeout: 10 * time.Second}},
-			"discord": &DiscordSender{Client: &http.Client{Timeout: 10 * time.Second}},
-		},
+		store:   store,
+		senders: NewSenders(),
 	}
 }
 

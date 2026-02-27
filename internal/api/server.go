@@ -5,6 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sentioxyz/changelogue/internal/ingestion"
+	"github.com/sentioxyz/changelogue/internal/routing"
 )
 
 // Dependencies holds all external dependencies required for registering API routes.
@@ -84,13 +85,14 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("PUT /api/v1/subscriptions/{id}", chain(http.HandlerFunc(subscriptions.Update)))
 	mux.Handle("DELETE /api/v1/subscriptions/{id}", chain(http.HandlerFunc(subscriptions.Delete)))
 
-	// Channels (CRUD)
-	channels := NewChannelsHandler(deps.ChannelsStore)
+	// Channels (CRUD + test)
+	channels := NewChannelsHandler(deps.ChannelsStore, routing.NewSenders())
 	mux.Handle("GET /api/v1/channels", chain(http.HandlerFunc(channels.List)))
 	mux.Handle("POST /api/v1/channels", chain(http.HandlerFunc(channels.Create)))
 	mux.Handle("GET /api/v1/channels/{id}", chain(http.HandlerFunc(channels.Get)))
 	mux.Handle("PUT /api/v1/channels/{id}", chain(http.HandlerFunc(channels.Update)))
 	mux.Handle("DELETE /api/v1/channels/{id}", chain(http.HandlerFunc(channels.Delete)))
+	mux.Handle("POST /api/v1/channels/{id}/test", chain(http.HandlerFunc(channels.Test)))
 
 	// Agent
 	agent := NewAgentHandler(deps.AgentStore)

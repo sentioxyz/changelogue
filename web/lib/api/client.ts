@@ -175,6 +175,10 @@ export const channels = {
     }),
   delete: (id: string) =>
     request<ApiResponse<null>>(`/channels/${id}`, { method: "DELETE" }),
+  test: (id: string) =>
+    request<ApiResponse<{ status: string }>>(`/channels/${id}/test`, {
+      method: "POST",
+    }),
 };
 
 // --- System ---

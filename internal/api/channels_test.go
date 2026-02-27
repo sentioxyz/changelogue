@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sentioxyz/changelogue/internal/models"
+	"github.com/sentioxyz/changelogue/internal/routing"
 )
 
 // mockChannelsStore implements ChannelsStore for testing.
@@ -82,14 +83,30 @@ func (m *mockChannelsStore) DeleteChannel(_ context.Context, id string) error {
 	return fmt.Errorf("not found")
 }
 
+// mockSender implements routing.Sender for testing.
+type mockSender struct {
+	err  error
+	sent *routing.Notification
+}
+
+func (m *mockSender) Send(_ context.Context, _ *models.NotificationChannel, msg routing.Notification) error {
+	m.sent = &msg
+	return m.err
+}
+
 func setupChannelsMux(store ChannelsStore) *http.ServeMux {
-	h := NewChannelsHandler(store)
+	return setupChannelsMuxWithSenders(store, nil)
+}
+
+func setupChannelsMuxWithSenders(store ChannelsStore, senders map[string]routing.Sender) *http.ServeMux {
+	h := NewChannelsHandler(store, senders)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /channels", h.List)
 	mux.HandleFunc("POST /channels", h.Create)
 	mux.HandleFunc("GET /channels/{id}", h.Get)
 	mux.HandleFunc("PUT /channels/{id}", h.Update)
 	mux.HandleFunc("DELETE /channels/{id}", h.Delete)
+	mux.HandleFunc("POST /channels/{id}/test", h.Test)
 	return mux
 }
 
@@ -289,5 +306,80 @@ func TestChannelsHandlerDeleteNotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", w.Code)
+	}
+}
+
+func TestChannelsHandlerTestSuccess(t *testing.T) {
+	sender := &mockSender{}
+	store := &mockChannelsStore{
+		channels: []models.NotificationChannel{
+			{ID: "ch-1", Type: "webhook", Name: "test-hook", Config: json.RawMessage(`{"url":"https://example.com/hook"}`)},
+		},
+	}
+	mux := setupChannelsMuxWithSenders(store, map[string]routing.Sender{"webhook": sender})
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/channels/ch-1/test", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d; body: %s", w.Code, w.Body.String())
+	}
+	if sender.sent == nil {
+		t.Fatal("expected sender.Send to be called")
+	}
+	if sender.sent.Title != "Test notification from Changelogue" {
+		t.Fatalf("unexpected title: %s", sender.sent.Title)
+	}
+}
+
+func TestChannelsHandlerTestNotFound(t *testing.T) {
+	store := &mockChannelsStore{}
+	mux := setupChannelsMuxWithSenders(store, map[string]routing.Sender{"webhook": &mockSender{}})
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/channels/nonexistent/test", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", w.Code)
+	}
+}
+
+func TestChannelsHandlerTestUnsupportedType(t *testing.T) {
+	store := &mockChannelsStore{
+		channels: []models.NotificationChannel{
+			{ID: "ch-1", Type: "telegram", Name: "tg-chan", Config: json.RawMessage(`{}`)},
+		},
+	}
+	mux := setupChannelsMuxWithSenders(store, map[string]routing.Sender{"webhook": &mockSender{}})
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/channels/ch-1/test", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", w.Code)
+	}
+}
+
+func TestChannelsHandlerTestSendError(t *testing.T) {
+	sender := &mockSender{err: fmt.Errorf("connection refused")}
+	store := &mockChannelsStore{
+		channels: []models.NotificationChannel{
+			{ID: "ch-1", Type: "webhook", Name: "broken-hook", Config: json.RawMessage(`{"url":"https://example.com/hook"}`)},
+		},
+	}
+	mux := setupChannelsMuxWithSenders(store, map[string]routing.Sender{"webhook": sender})
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/channels/ch-1/test", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadGateway {
+		t.Fatalf("expected status 502, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "connection refused") {
+		t.Fatalf("expected error message in body, got: %s", w.Body.String())
 	}
 }

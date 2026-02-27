@@ -3,13 +3,14 @@
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { channels as channelsApi } from "@/lib/api/client";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Zap, Loader2 } from "lucide-react";
 import { FaSlack, FaDiscord } from "react-icons/fa";
 import { TbWebhook } from "react-icons/tb";
 import type { IconType } from "react-icons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ChannelForm } from "@/components/channels/channel-form";
+import { useToast, ToastContainer } from "@/components/ui/toast";
 import type { NotificationChannel } from "@/lib/api/types";
 
 const TYPE_STYLES: Record<string, { bg: string; text: string; icon: IconType }> = {
@@ -46,8 +47,25 @@ export default function ChannelsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingChannel, setEditingChannel] = useState<NotificationChannel | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const { toasts, show: showToast, dismiss: dismissToast } = useToast();
 
   const channels = data?.data ?? [];
+
+  const handleTest = async (ch: NotificationChannel) => {
+    setTestingId(ch.id);
+    try {
+      await channelsApi.test(ch.id);
+      showToast(`Test notification sent to "${ch.name}"`, "success");
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : "Failed to send test notification",
+        "error"
+      );
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -188,6 +206,18 @@ export default function ChannelsPage() {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => handleTest(ch)}
+                        disabled={testingId === ch.id}
+                        className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:opacity-50"
+                        title="Send test notification"
+                      >
+                        {testingId === ch.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Zap className="h-4 w-4" />
+                        )}
+                      </button>
+                      <button
                         onClick={() => setEditingChannel(ch)}
                         className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
                       >
@@ -246,6 +276,9 @@ export default function ChannelsPage() {
         description="This will permanently delete this notification channel. This cannot be undone."
         onConfirm={async () => { if (deletingId) { await channelsApi.delete(deletingId); mutate("channels"); } }}
       />
+
+      {/* Toast notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
