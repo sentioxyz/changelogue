@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "dc5df2379a64",
+  "session_id": "158ac0bf-d320-4255-98c3-797165c7ff21",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-27T13:57:40.707295Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/plans/2026-02-27-source-ux-improvements-design.md",
+    "internal/db/migrations.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "5097c737fad6",
+  "transcript_identifier_at_start": "ac86a5c3-ae31-4450-a7d9-92d42f48afd7",
+  "checkpoint_transcript_start": 905,
+  "transcript_lines_at_start": 905,
+  "token_usage": {
+    "input_tokens": 427400,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 1139,
+    "api_call_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-27T13:57:39.31299Z",
+    "agent_lines": 54,
+    "human_added": 130,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 184,
+    "agent_percentage": 29.347826086956523
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/158ac0bf-d320-4255-98c3-797165c7ff21.jsonl"
+}
