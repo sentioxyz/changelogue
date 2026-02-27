@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "17700d805e12",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/channels.go",
+    "internal/api/channels_test.go",
+    "internal/api/server.go",
+    "internal/routing/slack.go",
+    "internal/routing/slack_test.go",
+    "internal/routing/worker.go",
+    "web/app/channels/page.tsx",
+    "web/components/ui/toast.tsx",
+    "web/lib/api/client.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/17/700d805e12/0/metadata.json",
+      "transcript": "/17/700d805e12/0/full.jsonl",
+      "context": "/17/700d805e12/0/context.md",
+      "content_hash": "/17/700d805e12/0/content_hash.txt",
+      "prompt": "/17/700d805e12/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 14504852,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 37202,
+    "api_call_count": 140
+  }
+}
