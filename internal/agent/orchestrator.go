@@ -91,6 +91,22 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 		return nil, fmt.Errorf("create agent tools: %w", err)
 	}
 
+	// For Gemini: use sub-agent pattern (required because Gemini can't mix
+	// grounding tools like GoogleSearch with function tools on the same agent).
+	// For OpenAI: flat architecture — give function tools directly to root agent
+	// (OpenAI doesn't support the agenttool schema).
+	if llmConfig.Provider == "openai" {
+		return llmagent.New(llmagent.Config{
+			Name:        "release_analyst",
+			Description: "Analyzes upstream releases and produces semantic release reports.",
+			Model:       llmModel,
+			Instruction: instruction,
+			Tools:       functionTools,
+		})
+	}
+
+	// Gemini path: sub-agent architecture.
+
 	// Data sub-agent: handles DB queries for releases and context sources.
 	dataAgent, err := llmagent.New(llmagent.Config{
 		Name:        "data_agent",
@@ -102,32 +118,27 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 		return nil, fmt.Errorf("create data sub-agent: %w", err)
 	}
 
-	// Build the root agent tools list.
-	rootTools := []tool.Tool{
-		agenttool.New(dataAgent, nil),
+	// Search sub-agent: Google Search grounding.
+	searchAgent, err := llmagent.New(llmagent.Config{
+		Name:        "search_agent",
+		Description: "Search the web for additional context about a release. Use this ONLY when you need information not available from the project's sources, such as community sentiment, security advisories, network adoption statistics, or known issues.",
+		Model:       llmModel,
+		Tools:       []tool.Tool{geminitool.GoogleSearch{}},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create search sub-agent: %w", err)
 	}
 
-	// Search sub-agent: Google Search grounding (Gemini only).
-	if llmConfig.Provider == "gemini" || llmConfig.Provider == "" {
-		searchAgent, err := llmagent.New(llmagent.Config{
-			Name:        "search_agent",
-			Description: "Search the web for additional context about a release. Use this ONLY when you need information not available from the project's sources, such as community sentiment, security advisories, network adoption statistics, or known issues.",
-			Model:       llmModel,
-			Tools:       []tool.Tool{geminitool.GoogleSearch{}},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("create search sub-agent: %w", err)
-		}
-		rootTools = append(rootTools, agenttool.New(searchAgent, nil))
-	}
-
-	// Root agent orchestrates data lookup and optional web search.
+	// Root agent orchestrates data lookup and web search via sub-agents.
 	return llmagent.New(llmagent.Config{
 		Name:        "release_analyst",
 		Description: "Analyzes upstream releases and produces semantic release reports.",
 		Model:       llmModel,
 		Instruction: instruction,
-		Tools:       rootTools,
+		Tools: []tool.Tool{
+			agenttool.New(dataAgent, nil),
+			agenttool.New(searchAgent, nil),
+		},
 	})
 }
 
