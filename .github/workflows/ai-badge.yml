@@ -1,0 +1,46 @@
+name: Update AI Co-Author Badge
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate AI Commits Percentage
+        id: calc
+        run: |
+          TOTAL_COMMITS=$(git rev-list --count HEAD)
+
+          AI_COMMITS=$(git log -E -i --grep="(co-authored-by|generated-by).*(copilot|claude|codex|anthropic|openai|@github\.com.*\[bot\])" --format="%H" | wc -l)
+
+          if [ "$TOTAL_COMMITS" -eq 0 ]; then
+            PERCENT=0
+          else
+            PERCENT=$(echo "scale=1; ($AI_COMMITS / $TOTAL_COMMITS) * 100" | bc)
+          fi
+
+          echo "percent=${PERCENT}%" >> $GITHUB_OUTPUT
+
+          if (( $(echo "$PERCENT > 50" | bc -l) )); then
+            COLOR="purple"
+          else
+            COLOR="blue"
+          fi
+          echo "color=${COLOR}" >> $GITHUB_OUTPUT
+
+      - name: Update Gist with Badge Data
+        uses: Schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 94cc8f0ddf90bb1d04dafbb76102786d
+          filename: ai-commits.json
+          label: AI Co-Authored
+          message: ${{ steps.calc.outputs.percent }}
+          color: ${{ steps.calc.outputs.color }}

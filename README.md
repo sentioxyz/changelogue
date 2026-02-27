@@ -2,6 +2,8 @@
   <img src="docs/banner.svg" alt="Changelogue — what changed, and why it matters." width="800" />
 </p>
 
+![AI Co-Authored](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Poytr1/94cc8f0ddf90bb1d04dafbb76102786d/raw/ai-commits.json)
+
 ## What it does
 
 - **Discovers releases** by polling Docker Hub and GitHub on configurable intervals
