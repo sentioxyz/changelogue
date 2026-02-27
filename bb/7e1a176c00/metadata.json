@@ -3,7 +3,7 @@
   "checkpoint_id": "bb7e1a176c00",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "web/components/dashboard/release-trend-chart.tsx"
   ],
@@ -14,13 +14,20 @@
       "context": "/bb/7e1a176c00/0/context.md",
       "content_hash": "/bb/7e1a176c00/0/content_hash.txt",
       "prompt": "/bb/7e1a176c00/0/prompt.txt"
+    },
+    {
+      "metadata": "/bb/7e1a176c00/1/metadata.json",
+      "transcript": "/bb/7e1a176c00/1/full.jsonl",
+      "context": "/bb/7e1a176c00/1/context.md",
+      "content_hash": "/bb/7e1a176c00/1/content_hash.txt",
+      "prompt": "/bb/7e1a176c00/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 647702,
+    "input_tokens": 15152554,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 412,
-    "api_call_count": 5
+    "output_tokens": 37614,
+    "api_call_count": 145
   }
 }
