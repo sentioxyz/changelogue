@@ -33,6 +33,8 @@ type OrchestratorStore interface {
 	UpdateAgentRunResult(ctx context.Context, id string, semanticReleaseID string) error
 	ListProjectSubscriptions(ctx context.Context, projectID string) ([]models.Subscription, error)
 	GetChannel(ctx context.Context, id string) (*models.NotificationChannel, error)
+	ListSourcesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Source, int, error)
+	HasReleaseForVersion(ctx context.Context, sourceID, version string) (bool, error)
 }
 
 const DefaultInstruction = `You are a release intelligence agent for a software project.

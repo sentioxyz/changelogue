@@ -24,6 +24,8 @@ type mockOrchestratorStore struct {
 	statusUpdates         []statusUpdate
 	agentRunResult        *agentRunResult
 	createSemanticReleaseErr error
+	sources               []models.Source
+	hasReleaseMap         map[string]bool
 
 	mu  sync.Mutex
 	err error
@@ -98,6 +100,17 @@ func (m *mockOrchestratorStore) GetChannel(_ context.Context, id string) (*model
 		return nil, errors.New("channel not found")
 	}
 	return ch, nil
+}
+
+func (m *mockOrchestratorStore) ListSourcesByProject(_ context.Context, projectID string, page, perPage int) ([]models.Source, int, error) {
+	return m.sources, len(m.sources), nil
+}
+
+func (m *mockOrchestratorStore) HasReleaseForVersion(_ context.Context, sourceID, version string) (bool, error) {
+	if m.hasReleaseMap != nil {
+		return m.hasReleaseMap[sourceID], nil
+	}
+	return true, nil
 }
 
 // --- mock sender for testing ---

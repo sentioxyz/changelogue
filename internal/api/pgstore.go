@@ -836,6 +836,19 @@ func (s *PgStore) PingDB(ctx context.Context) error {
 	return s.pool.Ping(ctx)
 }
 
+// HasReleaseForVersion checks if a source has a release matching the given version.
+func (s *PgStore) HasReleaseForVersion(ctx context.Context, sourceID, version string) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM releases WHERE source_id = $1 AND version = $2)`,
+		sourceID, version,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check release for version: %w", err)
+	}
+	return exists, nil
+}
+
 func (s *PgStore) GetStats(ctx context.Context) (*DashboardStats, error) {
 	var stats DashboardStats
 	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM releases`).Scan(&stats.TotalReleases); err != nil {
@@ -850,7 +863,7 @@ func (s *PgStore) GetStats(ctx context.Context) (*DashboardStats, error) {
 	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agent_runs WHERE status = 'pending'`).Scan(&stats.PendingAgentRuns); err != nil {
 		return nil, fmt.Errorf("count pending agent runs: %w", err)
 	}
-	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM releases WHERE created_at >= NOW() - INTERVAL '7 days'`).Scan(&stats.ReleasesThisWeek); err != nil {
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM releases WHERE COALESCE(released_at, created_at) >= NOW() - INTERVAL '7 days'`).Scan(&stats.ReleasesThisWeek); err != nil {
 		return nil, fmt.Errorf("count releases this week: %w", err)
 	}
 	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM semantic_releases WHERE status = 'completed' AND report->>'urgency' IN ('critical', 'high', 'CRITICAL', 'HIGH')`).Scan(&stats.AttentionNeeded); err != nil {
