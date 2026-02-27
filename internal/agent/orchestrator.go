@@ -219,10 +219,20 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	}
 	slog.Info("agent: project loaded", "run_id", run.ID, "project", project.Name)
 
+	// Extract target version from the agent run.
+	version := run.Version
+	if version == "" {
+		// Fallback: parse from trigger "auto:version:v1.10.15"
+		if strings.HasPrefix(run.Trigger, "auto:version:") {
+			version = strings.TrimPrefix(run.Trigger, "auto:version:")
+		}
+	}
+
 	// Build the agent using the shared constructor.
 	slog.Info("agent: building agent", "run_id", run.ID,
-		"provider", o.llmConfig.Provider, "model", o.llmConfig.Model)
-	agentInstance, err := BuildAgent(ctx, o.store, project, o.llmConfig, "")
+		"provider", o.llmConfig.Provider, "model", o.llmConfig.Model,
+		"version", version)
+	agentInstance, err := BuildAgent(ctx, o.store, project, o.llmConfig, version)
 	if err != nil {
 		return nil, fmt.Errorf("build agent: %w", err)
 	}
@@ -249,11 +259,14 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	}
 
 	// Run the agent with a prompt requesting analysis.
-	slog.Info("agent: starting LLM run", "run_id", run.ID, "project", project.Name)
-	userMsg := genai.NewContentFromText(
-		"Analyze the recent releases for this project and produce a semantic release report.",
-		"user",
-	)
+	slog.Info("agent: starting LLM run", "run_id", run.ID, "project", project.Name, "version", version)
+	var userPrompt string
+	if version != "" {
+		userPrompt = fmt.Sprintf("Analyze version %s for this project. Cross-check all sources and produce a semantic release report.", version)
+	} else {
+		userPrompt = "Analyze the recent releases for this project and produce a semantic release report."
+	}
+	userMsg := genai.NewContentFromText(userPrompt, "user")
 
 	var finalText string
 	eventCount := 0
@@ -316,16 +329,19 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 		releaseIDs = append(releaseIDs, r.ID)
 	}
 
-	// Determine a version label from the most recent release.
-	version := "unknown"
-	if len(releases) > 0 {
-		version = releases[0].Version
+	// Use the target version for the semantic release.
+	srVersion := version
+	if srVersion == "" {
+		srVersion = "unknown"
+		if len(releases) > 0 {
+			srVersion = releases[0].Version
+		}
 	}
 
 	now := time.Now()
 	sr := &models.SemanticRelease{
 		ProjectID:   run.ProjectID,
-		Version:     version,
+		Version:     srVersion,
 		Report:      reportJSON,
 		Status:      "completed",
 		CompletedAt: &now,
@@ -343,7 +359,7 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 
 	return &agentResult{
 		semanticReleaseID: sr.ID,
-		version:           version,
+		version:           srVersion,
 		reportText:        finalText,
 		projectName:       project.Name,
 	}, nil

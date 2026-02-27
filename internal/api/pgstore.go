@@ -619,7 +619,7 @@ func (s *PgStore) ListAgentRuns(ctx context.Context, projectID string, page, per
 	}
 	offset := (page - 1) * perPage
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, project_id, semantic_release_id, trigger, status,
+		`SELECT id, project_id, semantic_release_id, trigger, COALESCE(version,''), status,
 		        COALESCE(prompt_used,''), COALESCE(error,''),
 		        started_at, completed_at, created_at
 		 FROM agent_runs WHERE project_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
@@ -630,7 +630,7 @@ func (s *PgStore) ListAgentRuns(ctx context.Context, projectID string, page, per
 	var runs []models.AgentRun
 	for rows.Next() {
 		var run models.AgentRun
-		if err := rows.Scan(&run.ID, &run.ProjectID, &run.SemanticReleaseID, &run.Trigger, &run.Status,
+		if err := rows.Scan(&run.ID, &run.ProjectID, &run.SemanticReleaseID, &run.Trigger, &run.Version, &run.Status,
 			&run.PromptUsed, &run.Error, &run.StartedAt, &run.CompletedAt, &run.CreatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan agent run: %w", err)
 		}
@@ -642,11 +642,11 @@ func (s *PgStore) ListAgentRuns(ctx context.Context, projectID string, page, per
 func (s *PgStore) GetAgentRun(ctx context.Context, id string) (*models.AgentRun, error) {
 	var run models.AgentRun
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, project_id, semantic_release_id, trigger, status,
+		`SELECT id, project_id, semantic_release_id, trigger, COALESCE(version,''), status,
 		        COALESCE(prompt_used,''), COALESCE(error,''),
 		        started_at, completed_at, created_at
 		 FROM agent_runs WHERE id = $1`, id,
-	).Scan(&run.ID, &run.ProjectID, &run.SemanticReleaseID, &run.Trigger, &run.Status,
+	).Scan(&run.ID, &run.ProjectID, &run.SemanticReleaseID, &run.Trigger, &run.Version, &run.Status,
 		&run.PromptUsed, &run.Error, &run.StartedAt, &run.CompletedAt, &run.CreatedAt)
 	if err != nil {
 		return nil, err
