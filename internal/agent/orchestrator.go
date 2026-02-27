@@ -134,7 +134,8 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 // checkAllSourcesReady returns true if every source in the project has a
 // release matching the target version.
 func (o *Orchestrator) checkAllSourcesReady(ctx context.Context, projectID, version string) (bool, error) {
-	sources, _, err := o.store.ListSourcesByProject(ctx, projectID, 1, 100)
+	// Use a high limit to fetch all sources; projects rarely exceed a handful.
+	sources, _, err := o.store.ListSourcesByProject(ctx, projectID, 1, 1000)
 	if err != nil {
 		return false, fmt.Errorf("list sources: %w", err)
 	}

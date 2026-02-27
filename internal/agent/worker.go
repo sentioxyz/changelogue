@@ -85,15 +85,28 @@ func (w *AgentWorker) Work(ctx context.Context, job *river.Job[queue.AgentJobArg
 				return fmt.Errorf("check all sources ready: %w", err)
 			}
 			if !ready {
-				slog.Info("agent worker: not all sources ready, snoozing",
-					"job_id", job.ID,
-					"project_id", run.ProjectID,
-					"version", run.Version,
-				)
-				if err := w.store.UpdateAgentRunStatus(ctx, run.ID, "waiting"); err != nil {
-					slog.Error("failed to set waiting status", "err", err)
+				// After maxWaitAttempts (12 × 5min = ~1 hour), proceed
+				// with partial data rather than waiting forever.
+				const maxWaitAttempts = 12
+				if job.Attempt >= maxWaitAttempts {
+					slog.Warn("agent worker: max wait attempts reached, proceeding with partial data",
+						"job_id", job.ID,
+						"project_id", run.ProjectID,
+						"version", run.Version,
+						"attempts", job.Attempt,
+					)
+				} else {
+					slog.Info("agent worker: not all sources ready, snoozing",
+						"job_id", job.ID,
+						"project_id", run.ProjectID,
+						"version", run.Version,
+						"attempt", job.Attempt,
+					)
+					if err := w.store.UpdateAgentRunStatus(ctx, run.ID, "waiting"); err != nil {
+						slog.Error("failed to set waiting status", "err", err)
+					}
+					return river.JobSnooze(5 * time.Minute)
 				}
-				return river.JobSnooze(5 * time.Minute)
 			}
 		}
 	}
