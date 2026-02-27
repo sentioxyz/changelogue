@@ -169,6 +169,8 @@ export interface Stats {
   active_sources: number;
   total_releases: number;
   pending_agent_runs: number;
+  releases_this_week: number;
+  attention_needed: number;
 }
 
 // --- SSE Event Types ---

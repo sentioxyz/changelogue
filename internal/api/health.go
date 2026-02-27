@@ -11,6 +11,8 @@ type DashboardStats struct {
 	ActiveSources    int `json:"active_sources"`
 	TotalProjects    int `json:"total_projects"`
 	PendingAgentRuns int `json:"pending_agent_runs"`
+	ReleasesThisWeek int `json:"releases_this_week"`
+	AttentionNeeded  int `json:"attention_needed"`
 }
 
 // HealthChecker defines operations for health checks and dashboard statistics.

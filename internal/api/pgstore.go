@@ -849,5 +849,11 @@ func (s *PgStore) GetStats(ctx context.Context) (*DashboardStats, error) {
 	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agent_runs WHERE status = 'pending'`).Scan(&stats.PendingAgentRuns); err != nil {
 		return nil, fmt.Errorf("count pending agent runs: %w", err)
 	}
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM releases WHERE created_at >= NOW() - INTERVAL '7 days'`).Scan(&stats.ReleasesThisWeek); err != nil {
+		return nil, fmt.Errorf("count releases this week: %w", err)
+	}
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM semantic_releases WHERE status = 'completed' AND report->>'urgency' IN ('critical', 'high', 'CRITICAL', 'HIGH')`).Scan(&stats.AttentionNeeded); err != nil {
+		return nil, fmt.Errorf("count attention needed: %w", err)
+	}
 	return &stats, nil
 }
