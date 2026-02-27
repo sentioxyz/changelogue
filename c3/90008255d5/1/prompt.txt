@@ -1,0 +1,5 @@
+The subscriptions page target is displaying guid directly which is not user-friendely
+
+---
+
+commit and push
