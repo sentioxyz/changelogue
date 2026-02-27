@@ -139,12 +139,12 @@ export function UnifiedFeed() {
 
   return (
     <div
-      className="rounded-lg bg-white"
-      style={{ border: "1px solid #e8e8e5" }}
+      className="flex flex-col rounded-lg bg-white"
+      style={{ border: "1px solid #e8e8e5", height: "280px" }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-5 py-4"
+        className="flex items-center justify-between px-5 py-4 shrink-0"
         style={{ borderBottom: "1px solid #e8e8e5" }}
       >
         <h3
@@ -157,21 +157,35 @@ export function UnifiedFeed() {
         >
           Recent Activity
         </h3>
-        <Link
-          href="/releases"
-          className="text-sm hover:underline"
-          style={{
-            fontFamily: "var(--font-dm-sans)",
-            fontSize: "13px",
-            color: "#e8601a",
-          }}
-        >
-          View all &rarr;
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/releases"
+            className="text-sm hover:underline"
+            style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "12px",
+              color: "#6b7280",
+            }}
+          >
+            Releases
+          </Link>
+          <span style={{ color: "#e8e8e5" }}>|</span>
+          <Link
+            href="/semantic-releases"
+            className="text-sm hover:underline"
+            style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "12px",
+              color: "#6b7280",
+            }}
+          >
+            Intelligence
+          </Link>
+        </div>
       </div>
 
-      {/* Feed items */}
-      <div>
+      {/* Feed items — scrollable */}
+      <div className="flex-1 overflow-y-auto">
         {feedItems.map((item, idx) => (
           <FeedEntry
             key={item.kind === "release" ? `r-${item.data.id}` : `sr-${item.data.id}`}
@@ -193,7 +207,7 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
     return (
       <Link
         href={`/projects/${sr.project_id}/semantic-releases/${sr.id}`}
-        className="flex items-start gap-3 px-5 py-3.5 transition-colors hover:bg-[#fafaf9]"
+        className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-[#fafaf9]"
         style={{
           borderBottom: isLast ? undefined : "1px solid #e8e8e5",
           borderLeft: "3px solid #e8601a",
@@ -201,60 +215,47 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
         }}
       >
         {/* AI icon */}
-        <Sparkles className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#e8601a" }} />
+        <Sparkles className="h-3.5 w-3.5 shrink-0" style={{ color: "#e8601a" }} />
 
         {/* Content */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1 flex items-center gap-2">
+          <span
+            className="font-semibold truncate"
+            style={{
+              fontFamily: "var(--font-fraunces)",
+              fontSize: "13px",
+              color: "#111113",
+            }}
+          >
+            {item.projectName ?? "Unknown Project"}
+          </span>
+          {isUrgent && (
             <span
-              className="font-semibold truncate"
+              className="inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold leading-none"
               style={{
-                fontFamily: "var(--font-fraunces)",
-                fontSize: "14px",
-                color: "#111113",
+                backgroundColor: urgency === "CRITICAL" ? "#fff1f2" : "#fff8f0",
+                color: urgency === "CRITICAL" ? "#dc2626" : "#d97706",
               }}
             >
-              {item.projectName ?? "Unknown Project"}
+              {urgency}
             </span>
-            <VersionChip version={sr.version} />
-            {isUrgent && (
-              <span
-                className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold leading-none"
-                style={{
-                  backgroundColor: urgency === "CRITICAL" ? "#fff1f2" : "#fff8f0",
-                  color: urgency === "CRITICAL" ? "#dc2626" : "#d97706",
-                }}
-              >
-                {urgency}
-              </span>
-            )}
-          </div>
-          {sr.report?.summary && (
-            <p
-              className="mt-1 line-clamp-1"
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontStyle: "italic",
-                fontSize: "13px",
-                color: "#6b7280",
-              }}
-            >
-              {sr.report.summary}
-            </p>
           )}
         </div>
 
-        {/* Timestamp */}
-        <span
-          className="mt-0.5 shrink-0 whitespace-nowrap"
-          style={{
-            fontFamily: "var(--font-dm-sans)",
-            fontSize: "12px",
-            color: "#9ca3af",
-          }}
-        >
-          {timeAgo(getTimeStr({ kind: "semantic", data: sr }))}
-        </span>
+        {/* Version + timestamp */}
+        <div className="flex items-center gap-3 shrink-0">
+          <VersionChip version={sr.version} />
+          <span
+            className="whitespace-nowrap"
+            style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "12px",
+              color: "#9ca3af",
+            }}
+          >
+            {timeAgo(getTimeStr({ kind: "semantic", data: sr }))}
+          </span>
+        </div>
       </Link>
     );
   }

@@ -3,6 +3,7 @@
 
 import useSWR from "swr";
 import { StatsCards } from "@/components/dashboard/stats-cards";
+import { ReleaseTrendChart } from "@/components/dashboard/release-trend-chart";
 import { UnifiedFeed } from "@/components/dashboard/unified-feed";
 import { DashboardEmptyState } from "@/components/dashboard/empty-state";
 import { projects as projectsApi } from "@/lib/api/client";
@@ -30,7 +31,10 @@ export default function DashboardPage() {
       {hasProjects ? (
         <>
           <StatsCards />
-          <UnifiedFeed />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ReleaseTrendChart />
+            <UnifiedFeed />
+          </div>
         </>
       ) : isLoading ? (
         <div

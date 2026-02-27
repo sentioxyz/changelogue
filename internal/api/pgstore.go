@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -870,4 +871,67 @@ func (s *PgStore) GetStats(ctx context.Context) (*DashboardStats, error) {
 		return nil, fmt.Errorf("count attention needed: %w", err)
 	}
 	return &stats, nil
+}
+
+func (s *PgStore) GetTrend(ctx context.Context, granularity string, start, end time.Time) ([]TrendBucket, error) {
+	// Validate granularity to one of three literal values (no injection risk).
+	var trunc string
+	switch granularity {
+	case "daily":
+		trunc = "day"
+	case "weekly":
+		trunc = "week"
+	case "monthly":
+		trunc = "month"
+	default:
+		return nil, fmt.Errorf("invalid granularity: %s", granularity)
+	}
+
+	query := fmt.Sprintf(`
+		WITH buckets AS (
+			SELECT date_trunc('%s', gs)::date AS period
+			FROM generate_series($1::timestamptz, $2::timestamptz, '1 %s'::interval) gs
+		)
+		SELECT
+			b.period,
+			COALESCE(r.cnt, 0) AS releases,
+			COALESCE(sr.cnt, 0) AS semantic_releases
+		FROM buckets b
+		LEFT JOIN (
+			SELECT date_trunc('%s', COALESCE(released_at, created_at))::date AS period,
+			       COUNT(*) AS cnt
+			FROM releases
+			WHERE COALESCE(released_at, created_at) >= $1 AND COALESCE(released_at, created_at) < $2
+			GROUP BY 1
+		) r ON r.period = b.period
+		LEFT JOIN (
+			SELECT date_trunc('%s', created_at)::date AS period,
+			       COUNT(*) AS cnt
+			FROM semantic_releases
+			WHERE created_at >= $1 AND created_at < $2
+			GROUP BY 1
+		) sr ON sr.period = b.period
+		ORDER BY b.period
+	`, trunc, trunc, trunc, trunc)
+
+	rows, err := s.pool.Query(ctx, query, start, end)
+	if err != nil {
+		return nil, fmt.Errorf("get trend: %w", err)
+	}
+	defer rows.Close()
+
+	var buckets []TrendBucket
+	for rows.Next() {
+		var b TrendBucket
+		var period time.Time
+		if err := rows.Scan(&period, &b.Releases, &b.SemanticReleases); err != nil {
+			return nil, fmt.Errorf("scan trend bucket: %w", err)
+		}
+		b.Period = period.Format("2006-01-02")
+		buckets = append(buckets, b)
+	}
+	if buckets == nil {
+		buckets = []TrendBucket{}
+	}
+	return buckets, nil
 }

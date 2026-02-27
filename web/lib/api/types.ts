@@ -173,6 +173,17 @@ export interface Stats {
   attention_needed: number;
 }
 
+export interface TrendBucket {
+  period: string;
+  releases: number;
+  semantic_releases: number;
+}
+
+export interface TrendData {
+  granularity: string;
+  buckets: TrendBucket[];
+}
+
 // --- SSE Event Types ---
 
 export type SSEEventType = "release" | "semantic_release";

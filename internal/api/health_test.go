@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 // mockHealthChecker implements HealthChecker for testing.
@@ -14,6 +15,8 @@ type mockHealthChecker struct {
 	pingErr  error
 	stats    *DashboardStats
 	statsErr error
+	trend    []TrendBucket
+	trendErr error
 }
 
 func (m *mockHealthChecker) PingDB(_ context.Context) error {
@@ -27,11 +30,19 @@ func (m *mockHealthChecker) GetStats(_ context.Context) (*DashboardStats, error)
 	return m.stats, nil
 }
 
+func (m *mockHealthChecker) GetTrend(_ context.Context, _ string, _, _ time.Time) ([]TrendBucket, error) {
+	if m.trendErr != nil {
+		return nil, m.trendErr
+	}
+	return m.trend, nil
+}
+
 func setupHealthMux(checker HealthChecker) *http.ServeMux {
 	h := NewHealthHandler(checker)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.Check)
 	mux.HandleFunc("GET /stats", h.Stats)
+	mux.HandleFunc("GET /stats/trend", h.Trend)
 	return mux
 }
 
@@ -182,5 +193,134 @@ func TestProvidersHandlerList(t *testing.T) {
 	}
 	if got.Data[1]["type"] != "webhook" {
 		t.Fatalf("expected github type=webhook, got %s", got.Data[1]["type"])
+	}
+}
+
+func TestTrendHandlerDaily(t *testing.T) {
+	checker := &mockHealthChecker{
+		trend: []TrendBucket{
+			{Period: "2026-01-29", Releases: 3, SemanticReleases: 1},
+			{Period: "2026-01-30", Releases: 0, SemanticReleases: 0},
+		},
+	}
+	mux := setupHealthMux(checker)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/stats/trend?granularity=daily", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var got struct {
+		Data TrendResponse `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.Data.Granularity != "daily" {
+		t.Fatalf("expected granularity=daily, got %s", got.Data.Granularity)
+	}
+	if len(got.Data.Buckets) != 2 {
+		t.Fatalf("expected 2 buckets, got %d", len(got.Data.Buckets))
+	}
+	if got.Data.Buckets[0].Releases != 3 {
+		t.Fatalf("expected first bucket releases=3, got %d", got.Data.Buckets[0].Releases)
+	}
+}
+
+func TestTrendHandlerDefaultGranularity(t *testing.T) {
+	checker := &mockHealthChecker{
+		trend: []TrendBucket{},
+	}
+	mux := setupHealthMux(checker)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/stats/trend", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var got struct {
+		Data TrendResponse `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.Data.Granularity != "daily" {
+		t.Fatalf("expected default granularity=daily, got %s", got.Data.Granularity)
+	}
+}
+
+func TestTrendHandlerInvalidGranularity(t *testing.T) {
+	checker := &mockHealthChecker{}
+	mux := setupHealthMux(checker)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/stats/trend?granularity=hourly", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestTrendHandlerError(t *testing.T) {
+	checker := &mockHealthChecker{
+		trendErr: fmt.Errorf("database error"),
+	}
+	mux := setupHealthMux(checker)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/stats/trend?granularity=weekly", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
+func TestTrendHandlerCustomDays(t *testing.T) {
+	checker := &mockHealthChecker{
+		trend: []TrendBucket{
+			{Period: "2026-02-01", Releases: 1, SemanticReleases: 0},
+		},
+	}
+	mux := setupHealthMux(checker)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/stats/trend?granularity=daily&days=30", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestTrendHandlerInvalidDays(t *testing.T) {
+	checker := &mockHealthChecker{}
+	mux := setupHealthMux(checker)
+
+	tests := []struct {
+		name string
+		url  string
+	}{
+		{"zero", "/stats/trend?days=0"},
+		{"negative", "/stats/trend?days=-5"},
+		{"too_large", "/stats/trend?days=999"},
+		{"non_numeric", "/stats/trend?days=abc"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			mux.ServeHTTP(w, r)
+			if w.Code != http.StatusBadRequest {
+				t.Fatalf("expected status 400, got %d", w.Code)
+			}
+		})
 	}
 }
