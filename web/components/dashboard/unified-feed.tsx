@@ -33,6 +33,12 @@ function getTimeStr(item: FeedItemType): string {
   return item.data.created_at;
 }
 
+function ProviderIcon({ provider }: { provider: string }) {
+  const icon = getProviderIcon(provider);
+  if (!icon) return <div className="h-3.5 w-3.5 shrink-0" />;
+  return icon({ size: 14, className: "shrink-0", style: { color: "#9ca3af" } });
+}
+
 export function UnifiedFeed() {
   const { data: projectsData } = useSWR("projects-for-dashboard", () =>
     projectsApi.list()
@@ -262,7 +268,6 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
 
   // Raw release
   const release = item.data;
-  const Icon = item.provider ? getProviderIcon(item.provider) : undefined;
 
   return (
     <Link
@@ -273,8 +278,8 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
       }}
     >
       {/* Provider icon */}
-      {Icon ? (
-        <Icon size={14} className="shrink-0" style={{ color: "#9ca3af" }} />
+      {item.provider ? (
+        <ProviderIcon provider={item.provider} />
       ) : (
         <div className="h-3.5 w-3.5 shrink-0" />
       )}
