@@ -153,16 +153,16 @@ export function UnifiedFeed() {
         className="flex items-center justify-between px-5 py-4 shrink-0"
         style={{ borderBottom: "1px solid #e8e8e5" }}
       >
-        <h3
-          className="font-medium"
+        <p
+          className="text-xs uppercase tracking-[0.08em]"
           style={{
             fontFamily: "var(--font-dm-sans)",
-            fontSize: "13px",
-            color: "#111113",
+            fontSize: "12px",
+            color: "#6b7280",
           }}
         >
           Recent Activity
-        </h3>
+        </p>
       </div>
 
       {/* Feed items — scrollable */}
@@ -188,24 +188,22 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
     return (
       <Link
         href={`/projects/${sr.project_id}/semantic-releases/${sr.id}`}
-        className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-[#fafaf9]"
+        className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[#fafaf9]"
         style={{
           borderBottom: isLast ? undefined : "1px solid #e8e8e5",
-          borderLeft: "3px solid #e8601a",
-          backgroundColor: "#fffcfa",
         }}
       >
         {/* AI icon */}
-        <Sparkles className="h-3.5 w-3.5 shrink-0" style={{ color: "#e8601a" }} />
+        <Sparkles className="h-3.5 w-3.5 shrink-0" style={{ color: "#9ca3af" }} />
 
         {/* Content */}
         <div className="min-w-0 flex-1 flex items-center gap-2">
           <span
-            className="font-semibold truncate"
+            className="truncate"
             style={{
-              fontFamily: "var(--font-fraunces)",
+              fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#111113",
+              color: "#6b7280",
             }}
           >
             {item.projectName ?? "Unknown Project"}
