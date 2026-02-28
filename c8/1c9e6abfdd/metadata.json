@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "c81c9e6abfdd",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "internal/agent/orchestrator.go",
+    "web/components/semantic-releases/semantic-release-detail.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/c8/1c9e6abfdd/0/metadata.json",
+      "transcript": "/c8/1c9e6abfdd/0/full.jsonl",
+      "context": "/c8/1c9e6abfdd/0/context.md",
+      "content_hash": "/c8/1c9e6abfdd/0/content_hash.txt",
+      "prompt": "/c8/1c9e6abfdd/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 14504852,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 37202,
+    "api_call_count": 140
+  }
+}
