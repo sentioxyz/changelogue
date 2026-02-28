@@ -8,6 +8,7 @@ import (
 	"io"
 	"iter"
 	"net/http"
+	"strings"
 
 	"google.golang.org/adk/model"
 	"google.golang.org/genai"
@@ -301,7 +302,7 @@ func convertTools(req *model.LLMRequest) []chatTool {
 func schemaToMap(s *genai.Schema) map[string]any {
 	m := map[string]any{}
 	if s.Type != "" {
-		m["type"] = string(s.Type)
+		m["type"] = strings.ToLower(string(s.Type))
 	}
 	if s.Description != "" {
 		m["description"] = s.Description
