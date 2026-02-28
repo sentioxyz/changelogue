@@ -123,6 +123,8 @@ export const semanticReleases = {
     request<ApiResponse<SemanticRelease>>(`/semantic-releases/${id}`),
   delete: (id: string) =>
     request<ApiResponse<null>>(`/semantic-releases/${id}`, { method: "DELETE" }),
+  getSources: (id: string) =>
+    request<ApiResponse<Release[]>>(`/semantic-releases/${id}/sources`),
 };
 
 // --- Agent ---
