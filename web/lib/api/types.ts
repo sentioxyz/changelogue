@@ -104,11 +104,18 @@ export interface SemanticRelease {
 }
 
 export interface SemanticReport {
-  summary: string;
-  availability: string;
-  adoption: string;
-  urgency: string;
-  recommendation: string;
+  subject?: string;
+  risk_level?: string;
+  risk_reason?: string;
+  status_checks?: string[];
+  changelog_summary?: string;
+  download_commands?: string[];
+  download_links?: string[];
+  summary?: string;
+  availability?: string;
+  adoption?: string;
+  urgency?: string;
+  recommendation?: string;
 }
 
 export interface AgentRun {
