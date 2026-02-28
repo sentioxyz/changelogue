@@ -1,0 +1,65 @@
+Implement the following plan:
+
+# Fix: NotifyWorker's auto-triggered agent runs stuck as "pending"
+
+## Context
+
+When the ingestion layer detects a new release that matches a project's agent rules (e.g., `on_major_release`), the `NotifyWorker` calls `EnqueueAgentRun()` to create an agent run and enqueue a River job. However, the `agent_runs` row is created with status `pending` but **no River job is ever enqueued**, leaving the run orphaned forever.
+
+**Root cause:** In `cmd/server/main.go`, the `NotifyWorker` is created with a `PgStore` that has `river = nil` (line 56/60). Later, a **new** `PgStore` is created with the River client (line 95), but the `NotifyWorker` still holds the old reference. When `EnqueueAgentRun()` runs, the `if s.river != nil` guard (pgstore.go:723) skips the River job insertion, but the `agent_runs` INSERT still commits.
+
+**Evidence:**
+- Agent run `249434b6` (trigger: `auto:version:v4.0.0-alpha.0`) is stuck as `pending` with no corresponding River job
+- The semantic release `v4.0.0-alpha.0` was produced by a separate manual run (`32e04155`)
+
+## Fix
+
+Add a `SetRiverClient` method to `PgStore` and use it instead of recreating the store. This ensures all existing references (including `NotifyWorker.store`) see the River client.
+
+### Files to modify
+
+**1. `internal/api/pgstore.go`** — Add setter method
+
+```go
+// SetRiverClient updates the River client on an existing PgStore.
+// This is used during bootstrap to inject the client after worker registration.
+func (s *PgStore) SetRiverClient(rc *river.Client[pgx.Tx]) {
+    s.river = rc
+}
+```
+
+**2. `cmd/server/main.go`** — Use setter instead of recreating store
+
+Replace line 93-95:
+```go
+// Now that the river client exists, re-create pgStore with it so that
+// TriggerAgentRun can enqueue agent jobs.
+pgStore = api.NewPgStore(pool, riverClient)
+```
+
+With:
+```go
+// Now that the river client exists, set it on the existing pgStore so that
+// all holders (including NotifyWorker) can enqueue agent jobs.
+pgStore.SetRiverClient(riverClient)
+```
+
+### Cleanup: fix the orphaned pending run
+
+After deploying the fix, the existing orphaned run `249434b6` should be cleaned up. Options:
+1. Manually update its status to `completed` and link it to the existing semantic release `8858be18` (since the same version was already analyzed)
+2. Or delete it
+
+## Verification
+
+1. `go vet ./...` — passes
+2. `go build ./cmd/server` — builds successfully
+3. Functional: Trigger a release ingestion, confirm the `auto:version:` agent run transitions from `pending` → `running` → `completed`
+4. Check River job table confirms job is enqueued for auto-triggered runs
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/2ecdeca8-445b-4827-8b6c-614a351c006a.jsonl
+
+---
+
+commit and push
