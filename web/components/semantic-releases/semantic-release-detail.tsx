@@ -21,6 +21,7 @@ import {
   Copy,
   ShieldAlert,
   BookOpen,
+  Download,
 } from "lucide-react";
 
 function getRiskColors(riskLevel?: string) {
@@ -43,6 +44,41 @@ function safeHostname(url: string): string {
   } catch {
     return url;
   }
+}
+
+function getDownloadLabel(url: string): { label: string; isDirect: boolean } {
+  const lower = url.toLowerCase();
+  const filename = lower.split("/").pop() ?? "";
+
+  // Detect platform from common patterns in the URL or filename
+  const platforms: [RegExp, string][] = [
+    [/linux.*amd64|amd64.*linux/, "Linux x64"],
+    [/linux.*arm64|arm64.*linux|linux.*aarch64/, "Linux ARM64"],
+    [/linux.*386|linux.*i386/, "Linux x86"],
+    [/darwin.*arm64|arm64.*darwin|macos.*arm64|osx.*arm64/, "macOS ARM64"],
+    [/darwin.*amd64|amd64.*darwin|macos.*amd64|osx.*amd64/, "macOS x64"],
+    [/darwin|macos|osx/, "macOS"],
+    [/windows.*amd64|amd64.*windows|win64/, "Windows x64"],
+    [/windows.*386|win32/, "Windows x86"],
+    [/windows/, "Windows"],
+  ];
+
+  // Check if this is a direct binary (archive or executable)
+  const isArchive = /\.(tar\.gz|tar\.xz|zip|deb|rpm|dmg|msi|exe|pkg|appimage)(\?|$)/i.test(url);
+
+  if (isArchive) {
+    for (const [pattern, label] of platforms) {
+      if (pattern.test(filename) || pattern.test(url)) {
+        return { label, isDirect: true };
+      }
+    }
+    // Direct download but platform unknown — use filename
+    const cleanName = (url.split("/").pop() ?? "").split("?")[0];
+    return { label: cleanName || safeHostname(url), isDirect: true };
+  }
+
+  // Not a direct binary — generic link
+  return { label: safeHostname(url), isDirect: false };
 }
 
 export function SemanticReleaseDetail({
@@ -289,27 +325,46 @@ export function SemanticReleaseDetail({
                 </div>
               )}
 
-              {/* Download links as pills */}
+              {/* Download links — platform binaries + generic links */}
               {downloadLinks.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {downloadLinks.map((link) => (
-                    <a
-                      key={link}
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium transition-colors hover:opacity-80"
-                      style={{
-                        backgroundColor: "#f3f3f1",
-                        color: "#374151",
-                        border: "1px solid #e8e8e5",
-                        fontFamily: "var(--font-dm-sans)",
-                      }}
-                    >
-                      <ExternalLink size={12} />
-                      {safeHostname(link)}
-                    </a>
-                  ))}
+                  {downloadLinks.map((link) => {
+                    const { label, isDirect } = getDownloadLabel(link);
+                    return isDirect ? (
+                      <a
+                        key={link}
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors hover:opacity-80"
+                        style={{
+                          backgroundColor: "#111113",
+                          color: "#ffffff",
+                          fontFamily: "var(--font-dm-sans)",
+                        }}
+                      >
+                        <Download size={13} />
+                        {label}
+                      </a>
+                    ) : (
+                      <a
+                        key={link}
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium transition-colors hover:opacity-80"
+                        style={{
+                          backgroundColor: "#f3f3f1",
+                          color: "#374151",
+                          border: "1px solid #e8e8e5",
+                          fontFamily: "var(--font-dm-sans)",
+                        }}
+                      >
+                        <ExternalLink size={12} />
+                        {label}
+                      </a>
+                    );
+                  })}
                 </div>
               )}
 

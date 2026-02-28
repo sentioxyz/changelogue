@@ -56,6 +56,8 @@ Use the available tools to:
 CRITICAL: Your final response MUST be a single JSON object and nothing else.
 Do not include any explanation, commentary, or markdown formatting — just the raw JSON.
 
+For download_links: prefer direct binary/artifact URLs for specific platforms (e.g., linux-amd64, darwin-arm64, windows-amd64 .tar.gz/.zip files) over generic release pages. Include the general release page URL as well, but prioritize direct download links when available.
+
 The JSON object must have exactly these fields:
 {
   "subject": "Ready to Deploy: <Project> <Version> (<Risk Summary>)",
@@ -68,7 +70,7 @@ The JSON object must have exactly these fields:
   "urgency": "Critical|High|Medium|Low",
   "recommendation": "Actionable 1-2 sentence recommendation for the SRE team",
   "download_commands": ["docker pull ethereum/client-go:v1.10.15"],
-  "download_links": ["https://github.com/ethereum/go-ethereum/releases/tag/v1.10.15"]
+  "download_links": ["https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.10.15-8be800ff.tar.gz", "https://gethstore.blob.core.windows.net/builds/geth-darwin-arm64-1.10.15-8be800ff.tar.gz", "https://github.com/ethereum/go-ethereum/releases/tag/v1.10.15"]
 }`
 
 // BuildAgent creates the ADK-Go LLM agent for a given project. This is used
