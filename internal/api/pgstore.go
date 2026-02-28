@@ -26,6 +26,12 @@ func NewPgStore(pool *pgxpool.Pool, riverClient *river.Client[pgx.Tx]) *PgStore 
 	return &PgStore{pool: pool, river: riverClient}
 }
 
+// SetRiverClient updates the River client on an existing PgStore.
+// This is used during bootstrap to inject the client after worker registration.
+func (s *PgStore) SetRiverClient(rc *river.Client[pgx.Tx]) {
+	s.river = rc
+}
+
 // --- ProjectsStore ---
 
 func (s *PgStore) ListProjects(ctx context.Context, page, perPage int) ([]models.Project, int, error) {

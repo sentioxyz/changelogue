@@ -90,9 +90,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Now that the river client exists, re-create pgStore with it so that
-	// TriggerAgentRun can enqueue agent jobs.
-	pgStore = api.NewPgStore(pool, riverClient)
+	// Now that the river client exists, set it on the existing pgStore so that
+	// all holders (including NotifyWorker) can enqueue agent jobs.
+	pgStore.SetRiverClient(riverClient)
 
 	if err := riverClient.Start(ctx); err != nil {
 		slog.Error("river start failed", "err", err)
