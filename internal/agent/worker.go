@@ -30,6 +30,13 @@ func NewAgentWorker(orchestrator *Orchestrator, store OrchestratorStore) *AgentW
 	}
 }
 
+// Timeout overrides River's default 60-second job timeout. Agent runs involve
+// multiple LLM round-trips (root agent + sub-agents), each of which can take
+// 10-30 seconds, so we allow 5 minutes total.
+func (w *AgentWorker) Timeout(_ *river.Job[queue.AgentJobArgs]) time.Duration {
+	return 5 * time.Minute
+}
+
 // Work processes a single AgentJobArgs job. It loads the agent run from the
 // database and runs the LLM agent through the orchestrator. If the project
 // has WaitForAllSources enabled and not all sources have the target version,
