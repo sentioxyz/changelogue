@@ -1,0 +1,26 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure App Service
+        run: ./scripts/azure-deploy.sh deploy
+        env:
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'westus' }}
+          AZURE_RG: ${{ vars.AZURE_RG || 'changelogue-res' }}
+          AZURE_ACR: ${{ vars.AZURE_ACR || 'changelogueacr' }}
+          AZURE_APP_NAME: ${{ vars.AZURE_APP_NAME || 'changelogue-app' }}

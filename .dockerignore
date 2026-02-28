@@ -1,0 +1,9 @@
+.git
+.next
+web/node_modules
+web/.next
+web/out
+*.md
+docs/
+.env*
+changelogue
