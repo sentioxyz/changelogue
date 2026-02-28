@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   releases as releasesApi,
   sources as sourcesApi,
@@ -49,7 +50,8 @@ function getProviderLabel(provider: string): string {
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function ReleaseDetail({ id }: { id: string }) {
+export function ReleaseDetail() {
+  const { id } = useParams<{ id: string }>();
   /* Fetch release */
   const { data: releaseData, isLoading } = useSWR(`release-${id}`, () =>
     releasesApi.get(id)

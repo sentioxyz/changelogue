@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { agent as agentApi, projects as projectsApi } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,8 @@ const statusColors: Record<string, string> = {
   failed: "bg-red-100 text-red-800",
 };
 
-export function AgentPageContent({ projectId }: { projectId: string }) {
+export function AgentPageContent() {
+  const { id: projectId } = useParams<{ id: string }>();
   const { data: projectData } = useSWR(`project-${projectId}`, () => projectsApi.get(projectId));
   const { data: runsData, isLoading, mutate } = useSWR(`project-${projectId}-runs`, () => agentApi.listRuns(projectId));
   const [triggering, setTriggering] = useState(false);

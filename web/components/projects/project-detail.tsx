@@ -3,7 +3,7 @@
 import useSWR from "swr";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   projects as projectsApi,
   sources as sourcesApi,
@@ -51,7 +51,8 @@ function truncate(str: string, max: number): string {
 
 /* ---------- Main component ---------- */
 
-export function ProjectDetail({ id }: { id: string }) {
+export function ProjectDetail() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("sources");
 

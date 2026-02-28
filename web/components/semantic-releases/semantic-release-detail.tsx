@@ -8,7 +8,7 @@ import {
   sources as sourcesApi,
   contextSources,
 } from "@/lib/api/client";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { StatusDot } from "@/components/ui/status-dot";
 import { VersionChip } from "@/components/ui/version-chip";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -81,13 +81,8 @@ function getDownloadLabel(url: string): { label: string; isDirect: boolean } {
   return { label: safeHostname(url), isDirect: false };
 }
 
-export function SemanticReleaseDetail({
-  projectId,
-  srId,
-}: {
-  projectId: string;
-  srId: string;
-}) {
+export function SemanticReleaseDetail() {
+  const { id: projectId, srId } = useParams<{ id: string; srId: string }>();
   const router = useRouter();
   const { data, isLoading } = useSWR(`sr-${srId}`, () => srApi.get(srId));
   const { data: projectData } = useSWR(`project-${projectId}`, () =>
