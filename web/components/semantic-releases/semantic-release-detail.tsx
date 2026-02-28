@@ -596,19 +596,7 @@ export function SemanticReleaseDetail({
             </section>
           )}
 
-          {/* 14. Recommendation pull-quote */}
-          {report.recommendation && (
-            <blockquote
-              className="rounded-md px-5 py-4 text-[18px] italic leading-[1.6] text-[#16181c]"
-              style={{
-                fontFamily: "var(--font-fraunces)",
-                borderLeft: "3px solid #e8601a",
-                backgroundColor: "#fafaf9",
-              }}
-            >
-              {report.recommendation}
-            </blockquote>
-          )}
+
         </div>
       )}
     </div>

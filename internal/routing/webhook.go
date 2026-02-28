@@ -19,13 +19,33 @@ type WebhookSender struct {
 	Client *http.Client
 }
 
+// webhookSemanticPayload is the structured webhook payload for semantic reports.
+type webhookSemanticPayload struct {
+	Title   string                `json:"title"`
+	Version string                `json:"version"`
+	Report  *models.SemanticReport `json:"report"`
+}
+
 func (s *WebhookSender) Send(ctx context.Context, ch *models.NotificationChannel, msg Notification) error {
 	var cfg webhookConfig
 	if err := json.Unmarshal(ch.Config, &cfg); err != nil {
 		return fmt.Errorf("parse webhook config: %w", err)
 	}
 
-	body, err := json.Marshal(msg)
+	// Try to parse body as SemanticReport for structured output.
+	var payload any
+	var report models.SemanticReport
+	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
+		payload = webhookSemanticPayload{
+			Title:   msg.Title,
+			Version: msg.Version,
+			Report:  &report,
+		}
+	} else {
+		payload = msg
+	}
+
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("marshal notification: %w", err)
 	}

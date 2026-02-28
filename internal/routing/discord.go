@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/sentioxyz/changelogue/internal/models"
 )
@@ -40,29 +41,113 @@ type discordEmbedField struct {
 	Inline bool   `json:"inline"`
 }
 
+// discordRiskColor returns a Discord embed color based on risk level.
+func discordRiskColor(level string) int {
+	switch strings.ToUpper(strings.TrimSpace(level)) {
+	case "CRITICAL":
+		return 0x111113 // near-black
+	case "HIGH":
+		return 0xDC2626 // red
+	case "MEDIUM":
+		return 0xD97706 // amber
+	case "LOW":
+		return 0x16A34A // green
+	default:
+		return 0x5865F2 // Discord blurple
+	}
+}
+
+// buildSemanticEmbed builds a rich Discord embed from a SemanticReport.
+func buildSemanticEmbed(title string, version string, report *models.SemanticReport) discordEmbed {
+	var descParts []string
+
+	if report.Subject != "" {
+		descParts = append(descParts, fmt.Sprintf("**%s**", report.Subject))
+	}
+
+	if report.RiskReason != "" {
+		descParts = append(descParts, fmt.Sprintf(">>> %s", report.RiskReason))
+	}
+
+	if len(report.StatusChecks) > 0 {
+		var checks []string
+		for _, check := range report.StatusChecks {
+			checks = append(checks, fmt.Sprintf("✅ %s", check))
+		}
+		descParts = append(descParts, strings.Join(checks, "\n"))
+	}
+
+	summary := report.ChangelogSummary
+	if summary == "" {
+		summary = report.Summary
+	}
+	if summary != "" {
+		descParts = append(descParts, fmt.Sprintf("**Changelog**\n%s", summary))
+	}
+
+	if len(report.DownloadCommands) > 0 {
+		descParts = append(descParts, fmt.Sprintf("**Download Commands**\n```\n%s\n```", strings.Join(report.DownloadCommands, "\n")))
+	}
+
+	if len(report.DownloadLinks) > 0 {
+		var links []string
+		for _, link := range report.DownloadLinks {
+			links = append(links, fmt.Sprintf("• %s", link))
+		}
+		descParts = append(descParts, fmt.Sprintf("**Download Links**\n%s", strings.Join(links, "\n")))
+	}
+
+	description := strings.Join(descParts, "\n\n")
+	if len(description) > discordEmbedDescriptionLimit {
+		description = description[:discordEmbedDescriptionLimit-3] + "..."
+	}
+
+	fields := []discordEmbedField{
+		{Name: "Risk Level", Value: fmt.Sprintf("%s %s", riskEmoji(report.RiskLevel), report.RiskLevel), Inline: true},
+		{Name: "Urgency", Value: report.Urgency, Inline: true},
+	}
+	if report.Availability != "" {
+		fields = append(fields, discordEmbedField{Name: "Availability", Value: report.Availability, Inline: true})
+	}
+	if report.Adoption != "" {
+		fields = append(fields, discordEmbedField{Name: "Adoption", Value: report.Adoption, Inline: false})
+	}
+
+	return discordEmbed{
+		Title:       title,
+		Description: description,
+		Color:       discordRiskColor(report.RiskLevel),
+		Fields:      fields,
+	}
+}
+
 func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel, msg Notification) error {
 	var cfg discordConfig
 	if err := json.Unmarshal(ch.Config, &cfg); err != nil {
 		return fmt.Errorf("parse discord config: %w", err)
 	}
 
-	description := msg.Body
-	if len(description) > discordEmbedDescriptionLimit {
-		description = description[:discordEmbedDescriptionLimit-3] + "..."
+	var embed discordEmbed
+	var report models.SemanticReport
+	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
+		embed = buildSemanticEmbed(msg.Title, msg.Version, &report)
+	} else {
+		// Fallback: simple embed for non-report messages.
+		description := msg.Body
+		if len(description) > discordEmbedDescriptionLimit {
+			description = description[:discordEmbedDescriptionLimit-3] + "..."
+		}
+		embed = discordEmbed{
+			Title:       msg.Title,
+			Description: description,
+			Color:       0x5865F2,
+			Fields: []discordEmbedField{
+				{Name: "Version", Value: msg.Version, Inline: true},
+			},
+		}
 	}
 
-	payload := discordPayload{
-		Embeds: []discordEmbed{
-			{
-				Title:       msg.Title,
-				Description: description,
-				Color:       0x5865F2, // Discord blurple
-				Fields: []discordEmbedField{
-					{Name: "Version", Value: msg.Version, Inline: true},
-				},
-			},
-		},
-	}
+	payload := discordPayload{Embeds: []discordEmbed{embed}}
 
 	body, err := json.Marshal(payload)
 	if err != nil {

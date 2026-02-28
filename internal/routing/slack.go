@@ -118,16 +118,7 @@ func buildSemanticBlocks(title string, report *models.SemanticReport) []slackBlo
 		)
 	}
 
-	// Recommendation + Adoption
-	if report.Recommendation != "" {
-		blocks = append(blocks,
-			slackBlock{Type: "divider"},
-			slackBlock{
-				Type: "section",
-				Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*Recommendation*\n%s", report.Recommendation)},
-			},
-		)
-	}
+	// Adoption
 	if report.Adoption != "" {
 		blocks = append(blocks, slackBlock{
 			Type: "section",
