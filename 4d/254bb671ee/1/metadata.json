@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "4d254bb671ee",
+  "session_id": "0fc923e2-62d4-411f-ad96-8d74e87a4216",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-28T16:19:51.932713Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".dockerignore",
+    "Dockerfile",
+    "internal/api/frontend.go",
+    "scripts/azure-deploy.sh"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "77fa3df1a06f",
+  "transcript_identifier_at_start": "1a3fe0dc-aa03-4f81-8e87-f07e42798f07",
+  "token_usage": {
+    "input_tokens": 11468116,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 22671,
+    "api_call_count": 126
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-28T16:19:50.961491Z",
+    "agent_lines": 397,
+    "human_added": 26,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 423,
+    "agent_percentage": 93.85342789598108
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/0fc923e2-62d4-411f-ad96-8d74e87a4216.jsonl"
+}
