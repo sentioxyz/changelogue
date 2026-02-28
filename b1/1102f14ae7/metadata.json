@@ -3,7 +3,7 @@
   "checkpoint_id": "b11102f14ae7",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "internal/agent/openai/openai.go",
     "internal/agent/openai/openai_test.go"
@@ -29,13 +29,20 @@
       "context": "/b1/1102f14ae7/2/context.md",
       "content_hash": "/b1/1102f14ae7/2/content_hash.txt",
       "prompt": "/b1/1102f14ae7/2/prompt.txt"
+    },
+    {
+      "metadata": "/b1/1102f14ae7/3/metadata.json",
+      "transcript": "/b1/1102f14ae7/3/full.jsonl",
+      "context": "/b1/1102f14ae7/3/context.md",
+      "content_hash": "/b1/1102f14ae7/3/content_hash.txt",
+      "prompt": "/b1/1102f14ae7/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 21111212,
+    "input_tokens": 21998836,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 51953,
-    "api_call_count": 219
+    "output_tokens": 52986,
+    "api_call_count": 228
   }
 }
