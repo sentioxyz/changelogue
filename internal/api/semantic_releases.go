@@ -74,6 +74,24 @@ func (h *SemanticReleasesHandler) Get(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, r, http.StatusOK, sr)
 }
 
+// ListSources handles GET /semantic-releases/{id}/sources — returns source releases linked to this semantic release.
+func (h *SemanticReleasesHandler) ListSources(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		RespondError(w, r, http.StatusBadRequest, "bad_request", "Semantic release ID is required")
+		return
+	}
+	releases, err := h.store.GetSemanticReleaseSources(r.Context(), id)
+	if err != nil {
+		RespondError(w, r, http.StatusNotFound, "not_found", "Semantic release not found")
+		return
+	}
+	if releases == nil {
+		releases = []models.Release{}
+	}
+	RespondJSON(w, r, http.StatusOK, releases)
+}
+
 // Delete handles DELETE /semantic-releases/{id} — deletes a single semantic release.
 func (h *SemanticReleasesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")

@@ -74,6 +74,7 @@ func setupSemanticReleasesMux(store SemanticReleasesStore) *http.ServeMux {
 	mux.HandleFunc("GET /semantic-releases", h.ListAll)
 	mux.HandleFunc("GET /projects/{projectId}/semantic-releases", h.List)
 	mux.HandleFunc("GET /semantic-releases/{id}", h.Get)
+	mux.HandleFunc("GET /semantic-releases/{id}/sources", h.ListSources)
 	mux.HandleFunc("DELETE /semantic-releases/{id}", h.Delete)
 	return mux
 }
@@ -283,5 +284,62 @@ func TestSemanticReleasesHandlerListAll(t *testing.T) {
 	// Verify releases span different projects
 	if got.Data[0].ProjectID == got.Data[1].ProjectID {
 		t.Fatalf("expected releases from different projects")
+	}
+}
+
+func TestSemanticReleasesHandlerListSources(t *testing.T) {
+	now := time.Now()
+	store := &mockSemanticReleasesStore{
+		releases: []models.SemanticRelease{
+			{ID: "sr-1", ProjectID: "p1", Version: "1.0.0", Status: "completed", CreatedAt: now},
+		},
+		sources: []models.Release{
+			{ID: "r-1", SourceID: "s-1", Version: "v1.16.7", CreatedAt: now},
+			{ID: "r-2", SourceID: "s-2", Version: "v1.16.7", CreatedAt: now},
+		},
+	}
+	mux := setupSemanticReleasesMux(store)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/semantic-releases/sr-1/sources", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var got struct {
+		Data []models.Release `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.Data) != 2 {
+		t.Fatalf("expected 2 source releases, got %d", len(got.Data))
+	}
+}
+
+func TestSemanticReleasesHandlerListSourcesEmpty(t *testing.T) {
+	store := &mockSemanticReleasesStore{
+		releases: []models.SemanticRelease{
+			{ID: "sr-1", ProjectID: "p1", Version: "1.0.0", Status: "completed", CreatedAt: time.Now()},
+		},
+	}
+	mux := setupSemanticReleasesMux(store)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/semantic-releases/sr-1/sources", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var raw map[string]json.RawMessage
+	if err := json.NewDecoder(w.Body).Decode(&raw); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if string(raw["data"]) != "[]" {
+		t.Fatalf("expected data to be empty array [], got %s", string(raw["data"]))
 	}
 }
