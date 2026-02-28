@@ -13,6 +13,7 @@ import (
 
 	"google.golang.org/adk/agent"
 	"google.golang.org/adk/agent/llmagent"
+	"google.golang.org/adk/model"
 	"google.golang.org/adk/plugin"
 	"google.golang.org/adk/plugin/loggingplugin"
 	"google.golang.org/adk/runner"
@@ -21,6 +22,7 @@ import (
 	"google.golang.org/adk/tool/agenttool"
 	"google.golang.org/adk/tool/geminitool"
 
+	oaimodel "github.com/sentioxyz/changelogue/internal/agent/openai"
 	"github.com/sentioxyz/changelogue/internal/models"
 	"github.com/sentioxyz/changelogue/internal/routing"
 )
@@ -81,7 +83,6 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 	if project.AgentPrompt != "" {
 		instruction = project.AgentPrompt + "\n\n" + instruction
 	}
-	// Substitute version placeholder
 	instruction = strings.ReplaceAll(instruction, "{{VERSION}}", version)
 
 	llmModel, err := NewLLMModel(ctx, llmConfig)
@@ -95,22 +96,6 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 		return nil, fmt.Errorf("create agent tools: %w", err)
 	}
 
-	// For Gemini: use sub-agent pattern (required because Gemini can't mix
-	// grounding tools like GoogleSearch with function tools on the same agent).
-	// For OpenAI: flat architecture — give function tools directly to root agent
-	// (OpenAI doesn't support the agenttool schema).
-	if llmConfig.Provider == "openai" {
-		return llmagent.New(llmagent.Config{
-			Name:        "release_analyst",
-			Description: "Analyzes upstream releases and produces semantic release reports.",
-			Model:       llmModel,
-			Instruction: instruction,
-			Tools:       functionTools,
-		})
-	}
-
-	// Gemini path: sub-agent architecture.
-
 	// Data sub-agent: handles DB queries for releases and context sources.
 	dataAgent, err := llmagent.New(llmagent.Config{
 		Name:        "data_agent",
@@ -122,12 +107,36 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 		return nil, fmt.Errorf("create data sub-agent: %w", err)
 	}
 
-	// Search sub-agent: Google Search grounding.
+	// Search sub-agent: provider-specific web search.
+	var searchTool tool.Tool
+	var searchModel model.LLM
+	switch llmConfig.Provider {
+	case "openai":
+		searchTool = oaimodel.WebSearch{}
+		// OpenAI web search requires a search-capable model.
+		searchModelName := llmConfig.OpenAISearchModel
+		if searchModelName == "" {
+			searchModelName = "gpt-5-search-api"
+		}
+		searchModel, err = NewLLMModel(ctx, LLMConfig{
+			Provider:      "openai",
+			Model:         searchModelName,
+			OpenAIAPIKey:  llmConfig.OpenAIAPIKey,
+			OpenAIBaseURL: llmConfig.OpenAIBaseURL,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("create OpenAI search model: %w", err)
+		}
+	default: // gemini
+		searchTool = geminitool.GoogleSearch{}
+		searchModel = llmModel
+	}
+
 	searchAgent, err := llmagent.New(llmagent.Config{
 		Name:        "search_agent",
 		Description: "Search the web for additional context about a release. Use this ONLY when you need information not available from the project's sources, such as community sentiment, security advisories, network adoption statistics, or known issues.",
-		Model:       llmModel,
-		Tools:       []tool.Tool{geminitool.GoogleSearch{}},
+		Model:       searchModel,
+		Tools:       []tool.Tool{searchTool},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create search sub-agent: %w", err)
