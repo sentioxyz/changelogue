@@ -1,0 +1,13 @@
+Currently I cannot see the agent run's trace so I cannot debug it, please help me research how adk-go traces agent run
+
+---
+
+Sure, please start with loggingplugin
+
+---
+
+How can I start the server with debug logging? It seems there's no verbose logging in my system, is it because we don't have such code or start env not set?
+
+---
+
+commit and push
