@@ -3,7 +3,7 @@
   "checkpoint_id": "e5a5b558b674",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "scripts/azure-deploy.sh"
   ],
@@ -14,13 +14,20 @@
       "context": "/e5/a5b558b674/0/context.md",
       "content_hash": "/e5/a5b558b674/0/content_hash.txt",
       "prompt": "/e5/a5b558b674/0/prompt.txt"
+    },
+    {
+      "metadata": "/e5/a5b558b674/1/metadata.json",
+      "transcript": "/e5/a5b558b674/1/full.jsonl",
+      "context": "/e5/a5b558b674/1/context.md",
+      "content_hash": "/e5/a5b558b674/1/content_hash.txt",
+      "prompt": "/e5/a5b558b674/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 4971802,
+    "input_tokens": 16943242,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 17123,
-    "api_call_count": 69
+    "output_tokens": 40198,
+    "api_call_count": 199
   }
 }
