@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.svg" alt="Changelogue — what changed, and why it matters." width="800" />
+  <img src="docs/banner.svg" alt="Changelogue — Track what changed, understand why it matters" width="800" />
 </p>
 
 ![Build](https://github.com/sentioxyz/releaseguard/actions/workflows/ci.yml/badge.svg)
@@ -28,7 +28,7 @@ graph LR
 
 Release insert and job enqueue happen in a single SQL transaction — zero-loss guarantee.
 
-See [ARCH.md](ARCH.md) and [DESIGN.md](DESIGN.md) for the full design.
+See [ARCH.md](ARCH.md), [API.md](API.md), and [DESIGN.md](DESIGN.md) for the full design.
 
 ## Quick start
 
@@ -51,22 +51,31 @@ The API runs on `localhost:8080`, the dashboard on `localhost:3000`.
 |----------|---------|---------|
 | `DATABASE_URL` | `postgres://localhost:5432/changelogue?sslmode=disable` | PostgreSQL connection |
 | `LISTEN_ADDR` | `:8080` | HTTP server bind address |
-| `GOOGLE_API_KEY` | _(empty)_ | Gemini API key for agent worker (disabled if unset) |
+| `NO_AUTH` | _(unset)_ | Set to `true` to disable API key auth (development) |
+| `LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+| `LLM_PROVIDER` | `gemini` | LLM provider: `gemini` or `openai` |
+| `LLM_MODEL` | `gemini-2.5-flash` / `gpt-5.2` | Model name (default depends on provider) |
+| `GOOGLE_API_KEY` | _(empty)_ | Gemini API key (required when `LLM_PROVIDER=gemini`) |
+| `OPENAI_API_KEY` | _(empty)_ | OpenAI API key (required when `LLM_PROVIDER=openai`) |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible API base URL |
 
 ## Project structure
 
 ```
-cmd/server/          Entry point — wires all layers together
+cmd/
+  server/              Entry point — wires all layers together
+  agent/               Agent CLI — run agent analysis for a project
 internal/
-  agent/             ADK-Go agent orchestrator, tools, and worker
-  api/               REST API, SSE, middleware, auth
-  db/                Connection pool and migrations
-  ingestion/         Polling sources (Docker Hub, GitHub Atom)
-  models/            Shared domain types
-  queue/             River job definitions and client
-  routing/           Notification channels and delivery worker
-web/                 Next.js dashboard (React + Tailwind + shadcn)
-scripts/             Integration test harness
+  agent/               ADK-Go agent orchestrator, tools, and worker
+    openai/            OpenAI-compatible LLM provider
+  api/                 REST API, SSE, middleware, auth
+  db/                  Connection pool and migrations
+  ingestion/           Polling sources (Docker Hub, GitHub Atom)
+  models/              Shared domain types
+  queue/               River job definitions and client
+  routing/             Notification channels and delivery worker
+web/                   Next.js dashboard (React + Tailwind + shadcn)
+scripts/               Integration test harness
 ```
 
 ## Extending
@@ -95,7 +104,10 @@ type Sender interface {
 make build              # go build -o changelogue ./cmd/server
 make test               # go test ./...
 make vet                # go vet ./...
+make lint               # alias for vet
 make integration-test   # full integration test (spins up its own Postgres)
 make db-reset           # drop and recreate the local database
+make frontend-build     # build Next.js static export
+make agent-dev          # run agent CLI for a specific project
 make clean              # remove binary, stop containers, delete volumes
 ```

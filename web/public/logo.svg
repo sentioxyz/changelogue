@@ -1,29 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="90" fill="url(#gradient1)" />
+  <rect x="60" y="50" width="80" height="100" rx="8" fill="white" opacity="0.95" />
+  <line x1="75" y1="70" x2="105" y2="70" stroke="#e8601a" stroke-width="3" stroke-linecap="round" />
+  <line x1="75" y1="85" x2="120" y2="85" stroke="#ea7a2a" stroke-width="3" stroke-linecap="round" />
+  <line x1="75" y1="100" x2="95" y2="100" stroke="#ed8c3a" stroke-width="3" stroke-linecap="round" />
+  <line x1="75" y1="115" x2="115" y2="115" stroke="#f1a14a" stroke-width="3" stroke-linecap="round" />
+  <line x1="75" y1="130" x2="100" y2="130" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+  <g transform="translate(120, 55)">
+    <path d="M0,-8 L2,-2 L8,0 L2,2 L0,8 L-2,2 L-8,0 L-2,-2 Z" fill="#fbbf24" opacity="0.9" />
+  </g>
+  <g transform="translate(65, 135)">
+    <path d="M0,-5 L1.5,-1.5 L5,0 L1.5,1.5 L0,5 L-1.5,1.5 L-5,0 L-1.5,-1.5 Z" fill="#fbbf24" opacity="0.7" />
+  </g>
+  <g transform="translate(125, 80)">
+    <circle cx="0" cy="0" r="4" fill="#e8601a" />
+    <line x1="0" y1="4" x2="0" y2="20" stroke="#e8601a" stroke-width="2" />
+    <circle cx="0" cy="20" r="4" fill="#ed8c3a" />
+    <line x1="0" y1="24" x2="0" y2="40" stroke="#ed8c3a" stroke-width="2" />
+    <circle cx="0" cy="40" r="4" fill="#f59e0b" />
+  </g>
   <defs>
-    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#e8601a" />
+      <stop offset="50%" stop-color="#ed8c3a" />
       <stop offset="100%" stop-color="#f59e0b" />
     </linearGradient>
   </defs>
-
-  <!-- C-Delta: Letter C that morphs into a delta triangle -->
-  <!-- The C arc opens on the right, and the gap forms a triangular point -->
-  <path d="
-    M 22 6
-    C 18 3, 10 3, 7 8
-    C 4 13, 4 19, 7 24
-    C 10 29, 18 29, 22 26
-    L 16 16
-    Z
-  " fill="url(#brandGrad)" />
-
-  <!-- Inner cutout to create the C shape with delta negative space -->
-  <path d="
-    M 19 9
-    C 17 7.5, 13 7, 11 10
-    C 9 13, 9 19, 11 22
-    C 13 25, 17 24.5, 19 23
-    L 16 16
-    Z
-  " fill="#16181c" />
 </svg>

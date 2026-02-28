@@ -43,7 +43,7 @@
       <tspan fill="url(#brandGradient)">logue</tspan>
     </text>
     <text x="400" y="95" font-size="16" font-weight="400" fill="#a1a1aa" letter-spacing="0.5">
-      What changed, and why it matters.
+      Track what changed, understand why it matters.
     </text>
     <circle cx="550" cy="45" r="4" fill="#e8601a" filter="url(#glow)" />
   </g>
