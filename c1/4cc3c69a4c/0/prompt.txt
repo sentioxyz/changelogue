@@ -1,0 +1,1 @@
+Is there a simple way to deploy this app to some free platform like vercel?
