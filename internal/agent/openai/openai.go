@@ -68,15 +68,18 @@ func (m *openaiModel) Close() {}
 
 // --- OpenAI API types ---
 
+type webSearchOptions struct{}
+
 type chatRequest struct {
-	Model       string        `json:"model"`
-	Messages    []chatMessage `json:"messages"`
-	Tools       []chatTool    `json:"tools,omitempty"`
-	Temperature *float32      `json:"temperature,omitempty"`
-	TopP        *float32      `json:"top_p,omitempty"`
-	MaxTokens   int32         `json:"max_tokens,omitempty"`
-	Stop        []string      `json:"stop,omitempty"`
-	Stream      bool          `json:"stream"`
+	Model            string            `json:"model"`
+	Messages         []chatMessage     `json:"messages"`
+	Tools            []chatTool        `json:"tools,omitempty"`
+	Temperature      *float32          `json:"temperature,omitempty"`
+	TopP             *float32          `json:"top_p,omitempty"`
+	MaxTokens        int32             `json:"max_tokens,omitempty"`
+	Stop             []string          `json:"stop,omitempty"`
+	Stream           bool              `json:"stream"`
+	WebSearchOptions *webSearchOptions `json:"web_search_options,omitempty"`
 }
 
 type chatMessage struct {
@@ -153,6 +156,10 @@ func (m *openaiModel) doRequest(ctx context.Context, req *model.LLMRequest) (*mo
 		if len(req.Config.StopSequences) > 0 {
 			chatReq.Stop = req.Config.StopSequences
 		}
+	}
+
+	if hasWebSearch(req) {
+		chatReq.WebSearchOptions = &webSearchOptions{}
 	}
 
 	body, err := json.Marshal(chatReq)
@@ -272,6 +279,20 @@ func mergeAssistantToolCalls(msgs []chatMessage) []chatMessage {
 	return merged
 }
 
+// hasWebSearch checks whether the request contains a GoogleSearch tool marker,
+// indicating the caller wants web search capability.
+func hasWebSearch(req *model.LLMRequest) bool {
+	if req.Config == nil {
+		return false
+	}
+	for _, t := range req.Config.Tools {
+		if t != nil && t.GoogleSearch != nil {
+			return true
+		}
+	}
+	return false
+}
+
 // convertTools transforms ADK genai.Tool definitions into OpenAI tool format.
 func convertTools(req *model.LLMRequest) []chatTool {
 	if req.Config == nil || len(req.Config.Tools) == 0 {
@@ -280,6 +301,9 @@ func convertTools(req *model.LLMRequest) []chatTool {
 
 	var tools []chatTool
 	for _, t := range req.Config.Tools {
+		if t.GoogleSearch != nil {
+			continue
+		}
 		for _, fd := range t.FunctionDeclarations {
 			ct := chatTool{
 				Type: "function",
