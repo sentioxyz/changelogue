@@ -3,7 +3,7 @@
   "checkpoint_id": "9ebf58c1a669",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "docs/plans/2026-02-28-unified-agent-architecture-design.md"
   ],
@@ -21,13 +21,20 @@
       "context": "/9e/bf58c1a669/1/context.md",
       "content_hash": "/9e/bf58c1a669/1/content_hash.txt",
       "prompt": "/9e/bf58c1a669/1/prompt.txt"
+    },
+    {
+      "metadata": "/9e/bf58c1a669/2/metadata.json",
+      "transcript": "/9e/bf58c1a669/2/full.jsonl",
+      "context": "/9e/bf58c1a669/2/context.md",
+      "content_hash": "/9e/bf58c1a669/2/content_hash.txt",
+      "prompt": "/9e/bf58c1a669/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 17577216,
+    "input_tokens": 17879401,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 46141,
-    "api_call_count": 187
+    "output_tokens": 47168,
+    "api_call_count": 195
   }
 }
