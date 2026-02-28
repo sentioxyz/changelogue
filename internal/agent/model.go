@@ -20,8 +20,9 @@ type LLMConfig struct {
 	GoogleAPIKey string
 
 	// OpenAI
-	OpenAIAPIKey  string
-	OpenAIBaseURL string // defaults to https://api.openai.com/v1
+	OpenAIAPIKey      string
+	OpenAIBaseURL     string // defaults to https://api.openai.com/v1
+	OpenAISearchModel string // search-capable model for web search sub-agent
 }
 
 // NewLLMModel creates a model.LLM based on the configured provider.

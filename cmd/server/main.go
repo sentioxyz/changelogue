@@ -69,11 +69,12 @@ func main() {
 		llmModelDefault = "gpt-5.2"
 	}
 	llmConfig := agentpkg.LLMConfig{
-		Provider:      llmProvider,
-		Model:         envOr("LLM_MODEL", llmModelDefault),
-		GoogleAPIKey:  os.Getenv("GOOGLE_API_KEY"),
-		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
-		OpenAIBaseURL: os.Getenv("OPENAI_BASE_URL"),
+		Provider:          llmProvider,
+		Model:             envOr("LLM_MODEL", llmModelDefault),
+		GoogleAPIKey:      os.Getenv("GOOGLE_API_KEY"),
+		OpenAIAPIKey:      os.Getenv("OPENAI_API_KEY"),
+		OpenAIBaseURL:     os.Getenv("OPENAI_BASE_URL"),
+		OpenAISearchModel: envOr("OPENAI_SEARCH_MODEL", "gpt-5-search-api"),
 	}
 	agentOrchestrator, err := agentpkg.NewOrchestrator(pgStore, llmConfig)
 	if err != nil {
@@ -109,6 +110,12 @@ func main() {
 	broadcaster := api.NewBroadcaster()
 
 	mux := http.NewServeMux()
+
+	// Serve frontend static export if available
+	if info, err := os.Stat("web/out"); err == nil && info.IsDir() {
+		api.RegisterFrontend(mux, "web/out")
+		slog.Info("serving frontend from web/out")
+	}
 
 	// Register all API v1 routes
 	api.RegisterRoutes(mux, api.Dependencies{
