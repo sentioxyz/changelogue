@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "ec1b8e07f277",
+  "session_id": "0fc923e2-62d4-411f-ad96-8d74e87a4216",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-28T14:25:35.793704Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/plans/2026-02-28-unified-agent-architecture.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "71fcbe261f57",
+  "transcript_identifier_at_start": "1a3fe0dc-aa03-4f81-8e87-f07e42798f07",
+  "token_usage": {
+    "input_tokens": 4595213,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 10716,
+    "api_call_count": 60
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-28T14:25:35.372193Z",
+    "agent_lines": 0,
+    "human_added": 630,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 630,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/0fc923e2-62d4-411f-ad96-8d74e87a4216.jsonl"
+}
