@@ -368,13 +368,16 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	}
 
 	// Gather release IDs for the semantic_release_sources join table.
-	releases, _, err := o.store.ListReleasesByProject(ctx, run.ProjectID, 1, 50)
+	// Only link releases that match the target version.
+	releases, _, err := o.store.ListReleasesByProject(ctx, run.ProjectID, 1, 200)
 	if err != nil {
 		return nil, fmt.Errorf("list releases for semantic release: %w", err)
 	}
 	releaseIDs := make([]string, 0, len(releases))
 	for _, r := range releases {
-		releaseIDs = append(releaseIDs, r.ID)
+		if r.Version == version {
+			releaseIDs = append(releaseIDs, r.ID)
+		}
 	}
 
 	// Use the target version for the semantic release.
