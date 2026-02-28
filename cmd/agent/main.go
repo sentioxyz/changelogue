@@ -21,6 +21,18 @@ func main() {
 	projectID := flag.String("project-id", "", "Project ID to scope the agent to (required)")
 	flag.Parse()
 
+	// Configure log level from LOG_LEVEL env (debug, info, warn, error).
+	logLevel := new(slog.LevelVar) // defaults to Info
+	switch os.Getenv("LOG_LEVEL") {
+	case "debug":
+		logLevel.Set(slog.LevelDebug)
+	case "warn":
+		logLevel.Set(slog.LevelWarn)
+	case "error":
+		logLevel.Set(slog.LevelError)
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
+
 	if *projectID == "" {
 		fmt.Fprintln(os.Stderr, "error: --project-id is required")
 		fmt.Fprintf(os.Stderr, "usage: go run ./cmd/agent --project-id=<uuid> [web api webui]\n")

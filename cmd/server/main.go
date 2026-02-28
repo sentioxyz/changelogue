@@ -18,6 +18,18 @@ import (
 )
 
 func main() {
+	// Configure log level from LOG_LEVEL env (debug, info, warn, error).
+	logLevel := new(slog.LevelVar) // defaults to Info
+	switch os.Getenv("LOG_LEVEL") {
+	case "debug":
+		logLevel.Set(slog.LevelDebug)
+	case "warn":
+		logLevel.Set(slog.LevelWarn)
+	case "error":
+		logLevel.Set(slog.LevelError)
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 

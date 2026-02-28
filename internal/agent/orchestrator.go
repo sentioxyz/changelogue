@@ -13,6 +13,8 @@ import (
 
 	"google.golang.org/adk/agent"
 	"google.golang.org/adk/agent/llmagent"
+	"google.golang.org/adk/plugin"
+	"google.golang.org/adk/plugin/loggingplugin"
 	"google.golang.org/adk/runner"
 	"google.golang.org/adk/session"
 	"google.golang.org/adk/tool"
@@ -288,11 +290,15 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 	}
 	sess := createResp.Session
 
-	// Create the runner.
+	// Create the runner with logging plugin for agent trace visibility.
 	r, err := runner.New(runner.Config{
 		AppName:        "changelogue",
 		Agent:          agentInstance,
 		SessionService: sessionService,
+		PluginConfig: runner.PluginConfig{
+			Plugins:      []*plugin.Plugin{loggingplugin.MustNew("agent_trace")},
+			CloseTimeout: 5 * time.Second,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create runner: %w", err)
