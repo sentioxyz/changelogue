@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b6511112abd9",
+  "session_id": "0fc923e2-62d4-411f-ad96-8d74e87a4216",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-28T14:29:34.280482Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/agent/openai/openai.go",
+    "internal/agent/openai/openai_test.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "3b760c45d216",
+  "transcript_identifier_at_start": "1a3fe0dc-aa03-4f81-8e87-f07e42798f07",
+  "token_usage": {
+    "input_tokens": 5814708,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 11496,
+    "api_call_count": 68
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-28T14:29:33.825635Z",
+    "agent_lines": 0,
+    "human_added": 34,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 34,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/0fc923e2-62d4-411f-ad96-8d74e87a4216.jsonl"
+}
