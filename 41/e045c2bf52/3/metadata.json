@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "41e045c2bf52",
+  "session_id": "d544e3b5-d2d0-4ec4-ad6f-594e4c7c54d6",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-28T13:22:14.463269Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/server/main.go",
+    "internal/api/pgstore.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "50ad8740c048",
+  "transcript_identifier_at_start": "c78fd736-4b5b-4f17-ab24-28c625b574d3",
+  "token_usage": {
+    "input_tokens": 4868030,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 15202,
+    "api_call_count": 66
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-28T13:22:13.708718Z",
+    "agent_lines": 9,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 9,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/d544e3b5-d2d0-4ec4-ad6f-594e4c7c54d6.jsonl"
+}
