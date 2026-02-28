@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "e5a5b558b674",
+  "session_id": "03d4696f-84d7-40f9-b621-089bfdf37c86",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-28T16:31:23.902178Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "scripts/azure-deploy.sh"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "1154f8ffea80",
+  "transcript_identifier_at_start": "2716d4b9-c57c-4fe2-9f91-b14b81236a8b",
+  "token_usage": {
+    "input_tokens": 4971802,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 17123,
+    "api_call_count": 69
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-28T16:31:23.534504Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 0,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/03d4696f-84d7-40f9-b621-089bfdf37c86.jsonl"
+}
