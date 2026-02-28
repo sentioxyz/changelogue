@@ -58,6 +58,7 @@ The API runs on `localhost:8080`, the dashboard on `localhost:3000`.
 | `GOOGLE_API_KEY` | _(empty)_ | Gemini API key (required when `LLM_PROVIDER=gemini`) |
 | `OPENAI_API_KEY` | _(empty)_ | OpenAI API key (required when `LLM_PROVIDER=openai`) |
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible API base URL |
+| `OPENAI_SEARCH_MODEL` | `gpt-5-search-api` | Search-capable model for OpenAI web search sub-agent |
 
 ## Project structure
 
