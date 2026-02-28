@@ -1,0 +1,54 @@
+Implement the following plan:
+
+# Plan: Streamline CLAUDE.md per Best Practices
+
+## Context
+
+The blog post at humanlayer.dev/blog/writing-a-good-claude-md recommends:
+- Keep CLAUDE.md concise (< 300 lines, ideally < 100)
+- Only include instructions that apply to **every session**
+- Use progressive disclosure — point to separate docs for domain details
+- Don't duplicate content that exists in other docs
+- Focus on WHAT (tech stack), WHY (project purpose), HOW (commands)
+- Don't use it as a linter — rely on existing patterns
+
+Current CLAUDE.md is ~183 lines and duplicates content from ARCH.md, DESIGN.md, and API.md (database tables, key interfaces, data flow, env vars, architecture layers).
+
+## Approach
+
+Rewrite CLAUDE.md to ~80-90 lines. Keep universally useful content, replace domain details with pointers.
+
+### Keep (condense where possible)
+- Project Overview (lines 3-9) — essential context for every session
+- Tech Stack (lines 12-17) — brief, always relevant
+- Build & Test Commands (lines 19-37) — HOW, always needed
+- Local Development (lines 39-63) — HOW, always needed
+- Core Principles (lines 178-183) — behavioral guidance
+- Workflow Orchestration (lines 132-167) — behavioral guidance
+
+### Cut (already in referenced docs)
+- Environment Variables table (lines 66-75) — duplicated in README.md
+- Architecture section (lines 77-109) — duplicated in ARCH.md
+- Database section (lines 111-124) — duplicated in DESIGN.md
+- Key Design References section (lines 126-129) — replace with a single "Key Docs" pointer section
+- Key Interfaces with file paths (lines 90-97) — duplicated in ARCH.md/DESIGN.md
+
+### Restructure
+- Add a brief "Key Docs" section pointing to ARCH.md, DESIGN.md, API.md, docs/plans/lessons.md
+- Merge "Task Management" and "Workflow Orchestration" into a single concise "Workflow" section
+- Keep Core Principles at the top for prominence (LLMs bias toward peripheries)
+
+## Files Modified
+- `CLAUDE.md` — rewrite
+
+## Verification
+- Read the final file, confirm < 100 lines
+- Confirm all referenced docs (ARCH.md, DESIGN.md, API.md) exist
+- Ensure build/test commands are still present and accurate
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/b33d59bf-c050-49e6-b5ad-d20eb1fc3e1f.jsonl
+
+---
+
+commit and push
