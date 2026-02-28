@@ -3,7 +3,7 @@
   "checkpoint_id": "abb1c600ad71",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "docs/plans/lessons.md",
     "internal/routing/discord.go",
@@ -32,13 +32,20 @@
       "context": "/ab/b1c600ad71/2/context.md",
       "content_hash": "/ab/b1c600ad71/2/content_hash.txt",
       "prompt": "/ab/b1c600ad71/2/prompt.txt"
+    },
+    {
+      "metadata": "/ab/b1c600ad71/3/metadata.json",
+      "transcript": "/ab/b1c600ad71/3/full.jsonl",
+      "context": "/ab/b1c600ad71/3/context.md",
+      "content_hash": "/ab/b1c600ad71/3/content_hash.txt",
+      "prompt": "/ab/b1c600ad71/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 21769299,
+    "input_tokens": 33437732,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 53093,
-    "api_call_count": 228
+    "output_tokens": 87908,
+    "api_call_count": 363
   }
 }
