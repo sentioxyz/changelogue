@@ -103,8 +103,12 @@ export function SemanticReleaseDetail({
 
   const handleDelete = async () => {
     if (!confirm("Delete this semantic release?")) return;
-    await srApi.delete(srId);
-    router.push("/semantic-releases");
+    try {
+      await srApi.delete(srId);
+      router.push("/semantic-releases");
+    } catch {
+      alert("Failed to delete semantic release.");
+    }
   };
 
   const report = sr.report;
@@ -261,7 +265,7 @@ export function SemanticReleaseDetail({
           {hasAvailabilitySection && (
             <section>
               <SectionLabel className="mb-3">
-                Availability &amp; Downloads
+                Availability & Downloads
               </SectionLabel>
 
               {/* Status checks as green pills */}
@@ -411,14 +415,13 @@ export function SemanticReleaseDetail({
                         source?.provider === "github"
                           ? `https://github.com/${source.repository}/releases/tag/${rel.version}`
                           : source?.provider === "dockerhub"
-                            ? `https://hub.docker.com/r/${source.repository}/tags?name=${rel.version}`
+                            ? `https://hub.docker.com/r/${source.repository}/tags?name=${encodeURIComponent(rel.version)}`
                             : null;
 
                       return (
                         <tr
                           key={rel.id}
-                          style={{ borderBottom: "1px solid #e8e8e5" }}
-                          className="last:border-b-0"
+                          className="border-b border-[#e8e8e5] last:border-b-0"
                         >
                           <td className="px-4 py-3">
                             {source ? (
