@@ -47,7 +47,7 @@ DB_PASSWORD="${AZURE_DB_PASSWORD:-}"
 APP_PLAN="${AZURE_APP_PLAN:-changelogue-plan}"
 APP_NAME="${AZURE_APP_NAME:-changelogue-app}"
 APP_SKU="${AZURE_APP_SKU:-F1}"
-APP_LOCATION="${AZURE_APP_LOCATION:-$LOCATION}"
+APP_LOCATION="${AZURE_APP_LOCATION:-westus3}"
 IMAGE="${ACR}.azurecr.io/changelogue:latest"
 
 RED='\033[0;31m'
