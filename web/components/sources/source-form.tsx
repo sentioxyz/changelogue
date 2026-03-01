@@ -101,6 +101,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
             <SelectItem value="dockerhub">Docker Hub</SelectItem>
             <SelectItem value="github">GitHub</SelectItem>
             <SelectItem value="ecr-public">ECR Public</SelectItem>
+            <SelectItem value="gitlab">GitLab</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -145,7 +146,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         />
         <p className="text-xs text-muted-foreground">Hide/suppress versions matching this pattern</p>
       </div>
-      {provider === "github" && (
+      {(provider === "github" || provider === "gitlab") && (
         <div className="flex items-center gap-3">
           <Switch checked={excludePrereleases} onCheckedChange={setExcludePrereleases} />
           <Label>Exclude Pre-Releases</Label>
