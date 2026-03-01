@@ -90,6 +90,17 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 		return nil
 	}
 
+	// Check exclude_prereleases — skip if source excludes prereleases and this is one.
+	if source.ExcludePrereleases {
+		var rawData map[string]interface{}
+		if err := json.Unmarshal(release.RawData, &rawData); err == nil {
+			if prerelease, _ := rawData["prerelease"].(string); prerelease == "true" {
+				slog.Debug("release filtered by exclude_prereleases", "version", release.Version, "source_id", job.Args.SourceID)
+				return nil
+			}
+		}
+	}
+
 	subs, err := w.store.ListSourceSubscriptions(ctx, job.Args.SourceID)
 	if err != nil {
 		return fmt.Errorf("list subscriptions: %w", err)

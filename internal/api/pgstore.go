@@ -130,7 +130,7 @@ func (s *PgStore) ListSourcesByProject(ctx context.Context, projectID string, pa
 	offset := (page - 1) * perPage
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, project_id, provider, repository, poll_interval_seconds, enabled,
-		        COALESCE(config,'{}'), version_filter_include, version_filter_exclude,
+		        COALESCE(config,'{}'), version_filter_include, version_filter_exclude, exclude_prereleases,
 		        last_polled_at, last_error, created_at, updated_at
 		 FROM sources WHERE project_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
 	if err != nil {
@@ -142,7 +142,7 @@ func (s *PgStore) ListSourcesByProject(ctx context.Context, projectID string, pa
 		var src models.Source
 		if err := rows.Scan(&src.ID, &src.ProjectID, &src.Provider, &src.Repository,
 			&src.PollIntervalSeconds, &src.Enabled, &src.Config,
-			&src.VersionFilterInclude, &src.VersionFilterExclude,
+			&src.VersionFilterInclude, &src.VersionFilterExclude, &src.ExcludePrereleases,
 			&src.LastPolledAt, &src.LastError, &src.CreatedAt, &src.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan source: %w", err)
 		}
@@ -154,11 +154,11 @@ func (s *PgStore) ListSourcesByProject(ctx context.Context, projectID string, pa
 func (s *PgStore) CreateSource(ctx context.Context, src *models.Source) error {
 	return s.pool.QueryRow(ctx,
 		`INSERT INTO sources (project_id, provider, repository, poll_interval_seconds, enabled, config,
-		        version_filter_include, version_filter_exclude)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		        version_filter_include, version_filter_exclude, exclude_prereleases)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		 RETURNING id, enabled, created_at, updated_at`,
 		src.ProjectID, src.Provider, src.Repository, src.PollIntervalSeconds, src.Enabled, src.Config,
-		src.VersionFilterInclude, src.VersionFilterExclude,
+		src.VersionFilterInclude, src.VersionFilterExclude, src.ExcludePrereleases,
 	).Scan(&src.ID, &src.Enabled, &src.CreatedAt, &src.UpdatedAt)
 }
 
@@ -166,12 +166,12 @@ func (s *PgStore) GetSource(ctx context.Context, id string) (*models.Source, err
 	var src models.Source
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, project_id, provider, repository, poll_interval_seconds, enabled,
-		        COALESCE(config,'{}'), version_filter_include, version_filter_exclude,
+		        COALESCE(config,'{}'), version_filter_include, version_filter_exclude, exclude_prereleases,
 		        last_polled_at, last_error, created_at, updated_at
 		 FROM sources WHERE id = $1`, id,
 	).Scan(&src.ID, &src.ProjectID, &src.Provider, &src.Repository,
 		&src.PollIntervalSeconds, &src.Enabled, &src.Config,
-		&src.VersionFilterInclude, &src.VersionFilterExclude,
+		&src.VersionFilterInclude, &src.VersionFilterExclude, &src.ExcludePrereleases,
 		&src.LastPolledAt, &src.LastError, &src.CreatedAt, &src.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -182,10 +182,10 @@ func (s *PgStore) GetSource(ctx context.Context, id string) (*models.Source, err
 func (s *PgStore) UpdateSource(ctx context.Context, id string, src *models.Source) error {
 	return s.pool.QueryRow(ctx,
 		`UPDATE sources SET provider=$1, repository=$2, poll_interval_seconds=$3, enabled=$4,
-		        config=$5, version_filter_include=$6, version_filter_exclude=$7, updated_at=NOW()
-		 WHERE id=$8 RETURNING updated_at`,
+		        config=$5, version_filter_include=$6, version_filter_exclude=$7, exclude_prereleases=$8, updated_at=NOW()
+		 WHERE id=$9 RETURNING updated_at`,
 		src.Provider, src.Repository, src.PollIntervalSeconds, src.Enabled, src.Config,
-		src.VersionFilterInclude, src.VersionFilterExclude, id,
+		src.VersionFilterInclude, src.VersionFilterExclude, src.ExcludePrereleases, id,
 	).Scan(&src.UpdatedAt)
 }
 
@@ -208,7 +208,8 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int) ([]mod
 		`SELECT COUNT(*) FROM releases r
 		 LEFT JOIN sources s ON r.source_id = s.id
 		 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`).Scan(&total)
+		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count releases: %w", err)
 	}
@@ -221,6 +222,7 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int) ([]mod
 		 LEFT JOIN projects p ON s.project_id = p.id
 		 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
 		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
 		 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $1 OFFSET $2`, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list all releases: %w", err)
@@ -245,7 +247,8 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 		 JOIN sources s ON r.source_id = s.id
 		 WHERE r.source_id = $1
 		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`, sourceID).Scan(&total)
+		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`, sourceID).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count releases: %w", err)
 	}
@@ -259,6 +262,7 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 		 WHERE r.source_id = $1
 		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
 		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
 		 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by source: %w", err)
@@ -281,7 +285,8 @@ func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, p
 	err := s.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id WHERE s.project_id = $1
 		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`,
+		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
 		projectID).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count releases: %w", err)
@@ -296,6 +301,7 @@ func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, p
 		 WHERE s.project_id = $1
 		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
 		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
 		 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by project: %w", err)

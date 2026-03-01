@@ -15,6 +15,7 @@ type Source struct {
 	Config               json.RawMessage `json:"config,omitempty"`
 	VersionFilterInclude *string         `json:"version_filter_include,omitempty"`
 	VersionFilterExclude *string         `json:"version_filter_exclude,omitempty"`
+	ExcludePrereleases   bool            `json:"exclude_prereleases"`
 	LastPolledAt         *time.Time      `json:"last_polled_at,omitempty"`
 	LastError           *string         `json:"last_error,omitempty"`
 	CreatedAt           time.Time       `json:"created_at"`

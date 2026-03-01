@@ -196,5 +196,11 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	`); err != nil {
 		return fmt.Errorf("source version filter migration: %w", err)
 	}
+
+	if _, err := pool.Exec(ctx, `
+		ALTER TABLE sources ADD COLUMN IF NOT EXISTS exclude_prereleases BOOLEAN DEFAULT false;
+	`); err != nil {
+		return fmt.Errorf("source exclude_prereleases migration: %w", err)
+	}
 	return nil
 }

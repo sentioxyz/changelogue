@@ -55,6 +55,7 @@ export interface Source {
   config?: Record<string, unknown>;
   version_filter_include?: string;
   version_filter_exclude?: string;
+  exclude_prereleases?: boolean;
   last_polled_at?: string;
   last_error?: string;
   created_at: string;
@@ -69,6 +70,7 @@ export interface SourceInput {
   config?: Record<string, unknown>;
   version_filter_include?: string;
   version_filter_exclude?: string;
+  exclude_prereleases?: boolean;
 }
 
 export interface Release {

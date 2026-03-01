@@ -202,13 +202,16 @@ Response includes `id` (UUID), `created_at`, `updated_at` fields.
   "enabled": true,
   "config": {},
   "version_filter_include": "^v?\\d+\\.\\d+\\.\\d+$",
-  "version_filter_exclude": "-(alpha|beta|rc|nightly)"
+  "version_filter_exclude": "-(alpha|beta|rc|nightly)",
+  "exclude_prereleases": false
 }
 ```
 
 The `project_id` is set from the URL path parameter. Response includes `id` (UUID), `last_polled_at`, `last_error`, `created_at`, `updated_at` fields. The `config` is provider-specific optional configuration.
 
 The `version_filter_include` and `version_filter_exclude` are optional regex patterns applied when listing releases and sending notifications. When `version_filter_include` is set, only versions matching the pattern are shown. When `version_filter_exclude` is set, versions matching the pattern are hidden. Both use PostgreSQL regex syntax.
+
+The `exclude_prereleases` boolean (default `false`) filters out pre-release versions from listings and notifications. Currently applies to GitHub sources, where the GitHub REST API provides a `prerelease` flag on each release.
 
 ### Context Source (request body for POST/PUT)
 

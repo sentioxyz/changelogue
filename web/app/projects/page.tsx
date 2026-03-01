@@ -97,6 +97,22 @@ function InlineSourceForm({
           title="Poll interval (seconds)"
         />
       </div>
+      <input
+        type="text"
+        value={versionFilterInclude}
+        onChange={(e) => setVersionFilterInclude(e.target.value)}
+        placeholder="Include filter (regex, optional)"
+        className="w-full rounded-md border px-2 py-1 text-[12px]"
+        style={{ borderColor: "#e8e8e5", fontFamily: "'JetBrains Mono', monospace" }}
+      />
+      <input
+        type="text"
+        value={versionFilterExclude}
+        onChange={(e) => setVersionFilterExclude(e.target.value)}
+        placeholder="Exclude filter (regex, optional)"
+        className="w-full rounded-md border px-2 py-1 text-[12px]"
+        style={{ borderColor: "#e8e8e5", fontFamily: "'JetBrains Mono', monospace" }}
+      />
       {provider === "github" && (
         <label className="flex items-center gap-2 text-[12px] text-[#6b7280]">
           <input

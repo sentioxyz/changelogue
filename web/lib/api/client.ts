@@ -146,7 +146,8 @@ export const agent = {
 // --- Subscriptions ---
 
 export const subscriptions = {
-  list: () => request<ApiResponse<Subscription[]>>("/subscriptions"),
+  list: (page = 1, perPage = 100) =>
+    request<ApiResponse<Subscription[]>>(`/subscriptions?page=${page}&per_page=${perPage}`),
   get: (id: string) => request<ApiResponse<Subscription>>(`/subscriptions/${id}`),
   create: (input: SubscriptionInput) =>
     request<ApiResponse<Subscription>>("/subscriptions", {
@@ -175,7 +176,8 @@ export const subscriptions = {
 // --- Notification Channels ---
 
 export const channels = {
-  list: () => request<ApiResponse<NotificationChannel[]>>("/channels"),
+  list: (page = 1, perPage = 100) =>
+    request<ApiResponse<NotificationChannel[]>>(`/channels?page=${page}&per_page=${perPage}`),
   get: (id: string) => request<ApiResponse<NotificationChannel>>(`/channels/${id}`),
   create: (input: ChannelInput) =>
     request<ApiResponse<NotificationChannel>>("/channels", {
