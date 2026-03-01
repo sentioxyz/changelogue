@@ -164,6 +164,14 @@ export interface SubscriptionInput {
   version_filter?: string;
 }
 
+export interface BatchSubscriptionInput {
+  channel_id: string;
+  type: "source" | "project";
+  project_ids?: string[];
+  source_ids?: string[];
+  version_filter?: string;
+}
+
 // --- System Types ---
 
 export interface HealthStatus {

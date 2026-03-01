@@ -8,6 +8,7 @@ import type {
   SourceInput,
   Subscription,
   SubscriptionInput,
+  BatchSubscriptionInput,
   NotificationChannel,
   ChannelInput,
   ContextSource,
@@ -148,6 +149,11 @@ export const subscriptions = {
   get: (id: string) => request<ApiResponse<Subscription>>(`/subscriptions/${id}`),
   create: (input: SubscriptionInput) =>
     request<ApiResponse<Subscription>>("/subscriptions", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  batchCreate: (input: BatchSubscriptionInput) =>
+    request<ApiResponse<Subscription[]>>("/subscriptions/batch", {
       method: "POST",
       body: JSON.stringify(input),
     }),
