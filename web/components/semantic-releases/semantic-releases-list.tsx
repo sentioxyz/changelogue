@@ -60,7 +60,7 @@ function SemanticReleasesListInner() {
 
   /* Fetch projects for the filter dropdown */
   const { data: projectsData } = useSWR("projects-for-sr-filter", () =>
-    projectsApi.list()
+    projectsApi.list(1, 100)
   );
 
   /* Fetch semantic releases — scoped by project or all */
