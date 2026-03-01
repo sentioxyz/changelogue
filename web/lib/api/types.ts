@@ -53,6 +53,8 @@ export interface Source {
   poll_interval_seconds: number;
   enabled: boolean;
   config?: Record<string, unknown>;
+  version_filter_include?: string;
+  version_filter_exclude?: string;
   last_polled_at?: string;
   last_error?: string;
   created_at: string;
@@ -65,6 +67,8 @@ export interface SourceInput {
   poll_interval_seconds: number;
   enabled: boolean;
   config?: Record<string, unknown>;
+  version_filter_include?: string;
+  version_filter_exclude?: string;
 }
 
 export interface Release {

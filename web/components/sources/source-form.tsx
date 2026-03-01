@@ -34,6 +34,8 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
   const [configJson, setConfigJson] = useState(
     JSON.stringify(initial?.config ?? {}, null, 2)
   );
+  const [versionFilterInclude, setVersionFilterInclude] = useState(initial?.version_filter_include ?? "");
+  const [versionFilterExclude, setVersionFilterExclude] = useState(initial?.version_filter_exclude ?? "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +65,8 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         poll_interval_seconds: Number(pollInterval),
         enabled,
         config: parsedConfig,
+        version_filter_include: versionFilterInclude.trim() || undefined,
+        version_filter_exclude: versionFilterExclude.trim() || undefined,
       });
       if (onSuccess) {
         onSuccess();
@@ -115,6 +119,28 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
           className="font-mono text-sm"
           placeholder="{}"
         />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="version_filter_include">Version Filter — Include (regex, optional)</Label>
+        <Input
+          id="version_filter_include"
+          value={versionFilterInclude}
+          onChange={(e) => setVersionFilterInclude(e.target.value)}
+          placeholder='e.g. ^v\d+\.\d+\.\d+$'
+          className="font-mono text-sm"
+        />
+        <p className="text-xs text-muted-foreground">Only show/notify versions matching this pattern</p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="version_filter_exclude">Version Filter — Exclude (regex, optional)</Label>
+        <Input
+          id="version_filter_exclude"
+          value={versionFilterExclude}
+          onChange={(e) => setVersionFilterExclude(e.target.value)}
+          placeholder='e.g. -(alpha|beta|rc|nightly)'
+          className="font-mono text-sm"
+        />
+        <p className="text-xs text-muted-foreground">Hide/suppress versions matching this pattern</p>
       </div>
       <div className="flex items-center gap-3">
         <Switch checked={enabled} onCheckedChange={setEnabled} />
