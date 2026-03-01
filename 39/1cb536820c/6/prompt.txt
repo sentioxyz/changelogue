@@ -1,0 +1,89 @@
+Implement the following plan:
+
+# Multi-Select Delete UI for Subscriptions Page
+
+## Context
+
+The batch delete backend (`DELETE /api/v1/subscriptions/batch`) and frontend client (`subsApi.batchDelete`) are implemented, but the subscriptions page only supports one-at-a-time delete. Need checkbox multi-select with a bulk delete action bar.
+
+## File to Modify
+
+- `web/app/subscriptions/page.tsx` — the only file that needs changes
+
+## Implementation
+
+### 1. Add selection state
+
+```ts
+const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+```
+
+Helpers:
+- `toggleSelect(id)` — add/remove single ID
+- `toggleSelectAll()` — select all / deselect all
+- `isAllSelected` / `isSomeSelected` — derived booleans
+
+### 2. Add checkbox column to table
+
+- **Header row**: Add a checkbox cell before "Type". Uses `checked={isAllSelected}` or `"indeterminate"` when partially selected.
+- **Each data row**: Add a checkbox cell bound to `selectedIds.has(sub.id)`.
+
+Reuse existing `Checkbox` from `@/components/ui/checkbox` (Radix, supports `"indeterminate"` state).
+
+### 3. Add selection action bar
+
+When `selectedIds.size > 0`, render a bar between the page header and the table:
+
+```
+  N selected                           [Delete Selected]
+```
+
+- "Delete Selected" button with destructive styling opens a `ConfirmDialog` (already used for single delete)
+- On confirm: `subsApi.batchDelete({ ids: [...selectedIds] })` → mutate → clear selection
+
+### 4. Clear selection after mutations
+
+After create, edit, single delete, and batch delete — reset `selectedIds` to empty set.
+
+## Existing code to reuse
+
+- `Checkbox` — `web/components/ui/checkbox.tsx`
+- `ConfirmDialog` — `web/components/ui/confirm-dialog.tsx`
+- `subsApi.batchDelete` — `web/lib/api/client.ts`
+- `BatchDeleteSubscriptionInput` — `web/lib/api/types.ts`
+
+## Verification
+
+- `cd web && npx tsc --noEmit`
+- Visual: checkboxes in table, action bar appears on selection, batch delete works
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/5d3007be-d3bb-44bf-8d53-4dfd8ce34ba4.jsonl
+
+---
+
+the popup delete selected looks weird. it doesn't existing but after select any, it pops up.
+
+---
+
+put it under  the table card not above
+
+---
+
+commit and push
+
+---
+
+/home/runner/work/Changelogue/Changelogue/web/app/releases/page.tsx
+Warning:   14:24  warning  'Source' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/runner/work/Changelogue/Changelogue/web/app/subscriptions/page.tsx
+Warning:   11:37  warning  'BatchSubscriptionInput' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/runner/work/Changelogue/Changelogue/web/components/layout/sidebar.tsx
+Warning:   43:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/runner/work/Changelogue/Changelogue/web/components/semantic-releases/semantic-releases-list.tsx
+Warning:   40:10  warning  'truncate' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 5 problems (1 error, 4 warnings)
