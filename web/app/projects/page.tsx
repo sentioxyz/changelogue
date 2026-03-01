@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { timeAgo, validateRepository, formatInterval } from "@/lib/format";
-import { Plus, X, ArrowRight, LayoutGrid, List } from "lucide-react";
+import { Plus, X, ArrowRight, LayoutGrid, List, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/projects/project-form";
 import type { Project, Source } from "@/lib/api/types";
@@ -512,8 +512,18 @@ function ProjectCompactRow({ project }: { project: Project }) {
 export default function ProjectsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "compact">("cards");
-  const { data, isLoading } = useSWR("projects", () => projectsApi.list());
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useSWR("projects", () => projectsApi.list(1, 100));
   const items = data?.data ?? [];
+
+  const PAGE_SIZE = 12;
+  const filtered = search
+    ? items.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+    : items;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-4 fade-in">
@@ -537,6 +547,17 @@ export default function ProjectsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "#9ca3af" }} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search projects..."
+              className="rounded-md border py-1.5 pl-8 pr-3 text-[13px] w-48"
+              style={{ borderColor: "#e8e8e5", fontFamily: "var(--font-dm-sans)", color: "#374151" }}
+            />
+          </div>
           <div className="flex items-center rounded-md border" style={{ borderColor: "#e8e8e5" }}>
             <button
               onClick={() => setViewMode("cards")}
@@ -599,16 +620,51 @@ export default function ProjectsPage() {
             New Project
           </button>
         </div>
+      ) : filtered.length === 0 ? (
+        <p
+          className="px-4 py-8 text-center text-[14px] italic text-[#9ca3af]"
+          style={{ fontFamily: "var(--font-fraunces)" }}
+        >
+          No projects matching &ldquo;{search}&rdquo;
+        </p>
       ) : (
-        <div className={viewMode === "cards" ? "space-y-4" : "space-y-1.5"}>
-          {items.map((project) =>
-            viewMode === "cards" ? (
-              <ProjectCard key={project.id} project={project} />
-            ) : (
-              <ProjectCompactRow key={project.id} project={project} />
-            )
+        <>
+          <div className={viewMode === "cards" ? "space-y-4" : "space-y-1.5"}>
+            {paged.map((project) =>
+              viewMode === "cards" ? (
+                <ProjectCard key={project.id} project={project} />
+              ) : (
+                <ProjectCompactRow key={project.id} project={project} />
+              )
+            )}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="rounded-md border px-3 py-1 text-[13px] transition-colors disabled:opacity-40"
+                style={{ borderColor: "#e8e8e5", color: "#374151", fontFamily: "var(--font-dm-sans)" }}
+              >
+                Previous
+              </button>
+              <span
+                className="text-[13px]"
+                style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+              >
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="rounded-md border px-3 py-1 text-[13px] transition-colors disabled:opacity-40"
+                style={{ borderColor: "#e8e8e5", color: "#374151", fontFamily: "var(--font-dm-sans)" }}
+              >
+                Next
+              </button>
+            </div>
           )}
-        </div>
+        </>
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
