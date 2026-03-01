@@ -30,15 +30,21 @@ type discordPayload struct {
 
 type discordEmbed struct {
 	Title       string              `json:"title"`
+	URL         string              `json:"url,omitempty"`
 	Description string              `json:"description"`
 	Color       int                 `json:"color"`
 	Fields      []discordEmbedField `json:"fields,omitempty"`
+	Footer      *discordEmbedFooter `json:"footer,omitempty"`
 }
 
 type discordEmbedField struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
 	Inline bool   `json:"inline"`
+}
+
+type discordEmbedFooter struct {
+	Text string `json:"text"`
 }
 
 // discordRiskColor returns a Discord embed color based on risk level.
@@ -58,7 +64,7 @@ func discordRiskColor(level string) int {
 }
 
 // buildSemanticEmbed builds a rich Discord embed from a SemanticReport.
-func buildSemanticEmbed(title string, version string, report *models.SemanticReport) discordEmbed {
+func buildSemanticEmbed(title string, version string, report *models.SemanticReport, msg Notification) discordEmbed {
 	var descParts []string
 
 	if report.Subject != "" {
@@ -97,6 +103,18 @@ func buildSemanticEmbed(title string, version string, report *models.SemanticRep
 		descParts = append(descParts, fmt.Sprintf("**Download Links**\n%s", strings.Join(links, "\n")))
 	}
 
+	// Add links section
+	var linkParts []string
+	if msg.SourceURL != "" {
+		linkParts = append(linkParts, fmt.Sprintf("[View on %s](%s)", ProviderLabel(msg.Provider), msg.SourceURL))
+	}
+	if msg.ReleaseURL != "" {
+		linkParts = append(linkParts, fmt.Sprintf("[View in Changelogue](%s)", msg.ReleaseURL))
+	}
+	if len(linkParts) > 0 {
+		descParts = append(descParts, strings.Join(linkParts, "  •  "))
+	}
+
 	description := strings.Join(descParts, "\n\n")
 	if len(description) > discordEmbedDescriptionLimit {
 		description = description[:discordEmbedDescriptionLimit-3] + "..."
@@ -113,12 +131,22 @@ func buildSemanticEmbed(title string, version string, report *models.SemanticRep
 		fields = append(fields, discordEmbedField{Name: "Adoption", Value: report.Adoption, Inline: false})
 	}
 
-	return discordEmbed{
+	// Footer with source info
+	var footerText string
+	if msg.Provider != "" && msg.Repository != "" {
+		footerText = fmt.Sprintf("%s · %s", ProviderLabel(msg.Provider), msg.Repository)
+	}
+
+	embed := discordEmbed{
 		Title:       title,
 		Description: description,
 		Color:       discordRiskColor(report.RiskLevel),
 		Fields:      fields,
 	}
+	if footerText != "" {
+		embed.Footer = &discordEmbedFooter{Text: footerText}
+	}
+	return embed
 }
 
 func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel, msg Notification) error {
@@ -130,25 +158,35 @@ func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel
 	var embed discordEmbed
 	var report models.SemanticReport
 	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
-		embed = buildSemanticEmbed(msg.Title, msg.Version, &report)
+		embed = buildSemanticEmbed(msg.Title, msg.Version, &report, msg)
 	} else {
 		// Fallback: extract known fields from raw data for a readable message.
-		var description string
+		var descParts []string
 		if fields, ok := parseRawBody(msg.Body); ok {
-			var parts []string
 			if fields.Changelog != "" {
-				parts = append(parts, fields.Changelog)
+				descParts = append(descParts, fields.Changelog)
 			}
-			if fields.ReleaseURL != "" {
-				parts = append(parts, fmt.Sprintf("[View Release](%s)", fields.ReleaseURL))
-			}
-			description = strings.Join(parts, "\n\n")
 		} else {
-			description = msg.Body
+			descParts = append(descParts, msg.Body)
 		}
+
+		// Add links
+		var linkParts []string
+		if msg.SourceURL != "" {
+			linkParts = append(linkParts, fmt.Sprintf("[View on %s](%s)", ProviderLabel(msg.Provider), msg.SourceURL))
+		}
+		if msg.ReleaseURL != "" {
+			linkParts = append(linkParts, fmt.Sprintf("[View in Changelogue](%s)", msg.ReleaseURL))
+		}
+		if len(linkParts) > 0 {
+			descParts = append(descParts, strings.Join(linkParts, "  •  "))
+		}
+
+		description := strings.Join(descParts, "\n\n")
 		if len(description) > discordEmbedDescriptionLimit {
 			description = description[:discordEmbedDescriptionLimit-3] + "..."
 		}
+
 		embed = discordEmbed{
 			Title:       msg.Title,
 			Description: description,
@@ -156,6 +194,9 @@ func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel
 			Fields: []discordEmbedField{
 				{Name: "Version", Value: msg.Version, Inline: true},
 			},
+		}
+		if msg.Provider != "" && msg.Repository != "" {
+			embed.Footer = &discordEmbedFooter{Text: fmt.Sprintf("%s · %s", ProviderLabel(msg.Provider), msg.Repository)}
 		}
 	}
 

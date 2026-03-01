@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/riverqueue/river"
@@ -32,8 +33,9 @@ type NotifyStore interface {
 // auto-triggers an agent run if the version criteria are met.
 type NotifyWorker struct {
 	river.WorkerDefaults[queue.NotifyJobArgs]
-	store   NotifyStore
-	senders map[string]Sender
+	store     NotifyStore
+	senders   map[string]Sender
+	publicURL string // base URL for internal Changelogue links (e.g. "https://changelogue.example.com")
 }
 
 // NewSenders returns the default sender map for webhook, Slack, and Discord.
@@ -46,10 +48,11 @@ func NewSenders() map[string]Sender {
 }
 
 // NewNotifyWorker creates a NotifyWorker with default senders for webhook, Slack, and Discord.
-func NewNotifyWorker(store NotifyStore) *NotifyWorker {
+func NewNotifyWorker(store NotifyStore, publicURL string) *NotifyWorker {
 	return &NotifyWorker{
-		store:   store,
-		senders: NewSenders(),
+		store:     store,
+		senders:   NewSenders(),
+		publicURL: strings.TrimRight(publicURL, "/"),
 	}
 }
 
@@ -119,10 +122,23 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 			continue
 		}
 
+		// Build title with project name if available.
+		title := fmt.Sprintf("New release: %s", release.Version)
+		if release.ProjectName != "" {
+			title = fmt.Sprintf("%s — New release: %s", release.ProjectName, release.Version)
+		}
+
 		msg := Notification{
-			Title:   fmt.Sprintf("New release: %s", release.Version),
-			Body:    string(release.RawData),
-			Version: release.Version,
+			Title:       title,
+			Body:        string(release.RawData),
+			Version:     release.Version,
+			ProjectName: release.ProjectName,
+			Provider:    release.Provider,
+			Repository:  release.Repository,
+			SourceURL:   ProviderURL(release.Provider, release.Repository, release.Version),
+		}
+		if w.publicURL != "" {
+			msg.ReleaseURL = fmt.Sprintf("%s/releases/%s", w.publicURL, release.ID)
 		}
 
 		if err := sender.Send(ctx, ch, msg); err != nil {

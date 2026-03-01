@@ -54,7 +54,7 @@ func riskEmoji(level string) string {
 }
 
 // buildSemanticBlocks builds rich Slack Block Kit blocks from a SemanticReport.
-func buildSemanticBlocks(title string, report *models.SemanticReport) []slackBlock {
+func buildSemanticBlocks(title string, report *models.SemanticReport, msg Notification) []slackBlock {
 	blocks := []slackBlock{
 		{Type: "header", Text: &slackText{Type: "plain_text", Text: title}},
 	}
@@ -149,13 +149,27 @@ func buildSemanticBlocks(title string, report *models.SemanticReport) []slackBlo
 		})
 	}
 
-	// Footer context
+	// Footer context with source info and links
+	var footerParts []string
+	if msg.Provider != "" && msg.Repository != "" {
+		footerParts = append(footerParts, fmt.Sprintf("%s · %s", ProviderLabel(msg.Provider), msg.Repository))
+	}
+	if msg.SourceURL != "" {
+		footerParts = append(footerParts, fmt.Sprintf("<%s|View on %s>", msg.SourceURL, ProviderLabel(msg.Provider)))
+	}
+	if msg.ReleaseURL != "" {
+		footerParts = append(footerParts, fmt.Sprintf("<%s|View in Changelogue>", msg.ReleaseURL))
+	}
+	footerText := "📡 _Sent by Changelogue_"
+	if len(footerParts) > 0 {
+		footerText = strings.Join(footerParts, "  |  ") + "\n" + footerText
+	}
 	blocks = append(blocks,
 		slackBlock{Type: "divider"},
 		slackBlock{
 			Type: "context",
 			Elements: []slackText{
-				{Type: "mrkdwn", Text: "📡 _Sent by Changelogue_"},
+				{Type: "mrkdwn", Text: footerText},
 			},
 		},
 	)
@@ -173,7 +187,7 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 	var blocks []slackBlock
 	var report models.SemanticReport
 	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
-		blocks = buildSemanticBlocks(msg.Title, &report)
+		blocks = buildSemanticBlocks(msg.Title, &report, msg)
 	} else {
 		// Fallback: extract known fields from raw data for a readable message.
 		blocks = []slackBlock{
@@ -186,16 +200,30 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 					Text: &slackText{Type: "mrkdwn", Text: fields.Changelog},
 				})
 			}
-			if fields.ReleaseURL != "" {
-				blocks = append(blocks, slackBlock{
-					Type: "section",
-					Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("<%s|View Release>", fields.ReleaseURL)},
-				})
-			}
 		} else {
 			blocks = append(blocks, slackBlock{
 				Type: "section",
 				Text: &slackText{Type: "mrkdwn", Text: msg.Body},
+			})
+		}
+
+		// Add source info and links
+		var linkParts []string
+		if msg.Provider != "" && msg.Repository != "" {
+			linkParts = append(linkParts, fmt.Sprintf("%s · %s", ProviderLabel(msg.Provider), msg.Repository))
+		}
+		if msg.SourceURL != "" {
+			linkParts = append(linkParts, fmt.Sprintf("<%s|View on %s>", msg.SourceURL, ProviderLabel(msg.Provider)))
+		}
+		if msg.ReleaseURL != "" {
+			linkParts = append(linkParts, fmt.Sprintf("<%s|View in Changelogue>", msg.ReleaseURL))
+		}
+		if len(linkParts) > 0 {
+			blocks = append(blocks, slackBlock{
+				Type: "context",
+				Elements: []slackText{
+					{Type: "mrkdwn", Text: strings.Join(linkParts, "  |  ")},
+				},
 			})
 		}
 	}

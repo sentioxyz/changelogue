@@ -21,9 +21,14 @@ type WebhookSender struct {
 
 // webhookSemanticPayload is the structured webhook payload for semantic reports.
 type webhookSemanticPayload struct {
-	Title   string                `json:"title"`
-	Version string                `json:"version"`
-	Report  *models.SemanticReport `json:"report"`
+	Title       string                `json:"title"`
+	Version     string                `json:"version"`
+	ProjectName string                `json:"project_name,omitempty"`
+	Provider    string                `json:"provider,omitempty"`
+	Repository  string                `json:"repository,omitempty"`
+	ReleaseURL  string                `json:"release_url,omitempty"`
+	SourceURL   string                `json:"source_url,omitempty"`
+	Report      *models.SemanticReport `json:"report"`
 }
 
 func (s *WebhookSender) Send(ctx context.Context, ch *models.NotificationChannel, msg Notification) error {
@@ -37,9 +42,14 @@ func (s *WebhookSender) Send(ctx context.Context, ch *models.NotificationChannel
 	var report models.SemanticReport
 	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
 		payload = webhookSemanticPayload{
-			Title:   msg.Title,
-			Version: msg.Version,
-			Report:  &report,
+			Title:       msg.Title,
+			Version:     msg.Version,
+			ProjectName: msg.ProjectName,
+			Provider:    msg.Provider,
+			Repository:  msg.Repository,
+			ReleaseURL:  msg.ReleaseURL,
+			SourceURL:   msg.SourceURL,
+			Report:      &report,
 		}
 	} else {
 		payload = msg

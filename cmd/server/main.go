@@ -57,7 +57,7 @@ func main() {
 
 	// Register River workers
 	workers := river.NewWorkers()
-	notifyWorker := routing.NewNotifyWorker(pgStore)
+	notifyWorker := routing.NewNotifyWorker(pgStore, os.Getenv("PUBLIC_URL"))
 	river.AddWorker(workers, notifyWorker)
 
 	// Agent worker: requires an LLM API key. If unavailable, agent jobs

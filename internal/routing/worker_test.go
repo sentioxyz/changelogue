@@ -148,7 +148,8 @@ func TestNotifyWorker_Work(t *testing.T) {
 
 	store := &mockNotifyStore{
 		releases: map[string]*models.Release{
-			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.14.0", RawData: json.RawMessage(`{"tag":"v1.14.0"}`)},
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.14.0", RawData: json.RawMessage(`{"tag":"v1.14.0"}`),
+				ProjectID: "proj-1", ProjectName: "test", Provider: "github", Repository: "ethereum/go-ethereum"},
 		},
 		sources: map[string]*models.Source{
 			sourceID: {ID: sourceID, ProjectID: "proj-1", Provider: "github", Repository: "ethereum/go-ethereum"},
@@ -190,6 +191,65 @@ func TestNotifyWorker_Work(t *testing.T) {
 	}
 	if webhookSender.sent[0].Version != "v1.14.0" {
 		t.Errorf("expected version v1.14.0, got %s", webhookSender.sent[0].Version)
+	}
+	if webhookSender.sent[0].ProjectName != "test" {
+		t.Errorf("expected project name 'test', got %s", webhookSender.sent[0].ProjectName)
+	}
+	if webhookSender.sent[0].Provider != "github" {
+		t.Errorf("expected provider 'github', got %s", webhookSender.sent[0].Provider)
+	}
+	if webhookSender.sent[0].Repository != "ethereum/go-ethereum" {
+		t.Errorf("expected repository 'ethereum/go-ethereum', got %s", webhookSender.sent[0].Repository)
+	}
+	if webhookSender.sent[0].SourceURL != "https://github.com/ethereum/go-ethereum/releases/tag/v1.14.0" {
+		t.Errorf("expected source URL, got %s", webhookSender.sent[0].SourceURL)
+	}
+	expectedTitle := "test — New release: v1.14.0"
+	if webhookSender.sent[0].Title != expectedTitle {
+		t.Errorf("expected title %q, got %q", expectedTitle, webhookSender.sent[0].Title)
+	}
+}
+
+func TestNotifyWorker_PublicURL(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+	channelID := "ch-1"
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.0.0", RawData: json.RawMessage(`{}`),
+				ProjectID: "proj-1", ProjectName: "myproject", Provider: "github", Repository: "org/repo"},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: "proj-1", Provider: "github", Repository: "org/repo"},
+		},
+		subscriptions: map[string][]models.Subscription{
+			sourceID: {{ID: "sub-1", ChannelID: channelID, Type: "source_release", SourceID: &sourceID}},
+		},
+		channels: map[string]*models.NotificationChannel{
+			channelID: {ID: channelID, Name: "test", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},
+		},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "myproject", AgentRules: json.RawMessage(`{}`)},
+		},
+	}
+
+	webhookSender := &mockSender{}
+	worker := NewNotifyWorker(store, "https://changelogue.example.com/")
+	worker.senders = map[string]Sender{"webhook": webhookSender}
+
+	job := &river.Job[queue.NotifyJobArgs]{
+		Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID},
+	}
+
+	err := worker.Work(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedURL := "https://changelogue.example.com/releases/rel-1"
+	if webhookSender.sent[0].ReleaseURL != expectedURL {
+		t.Errorf("expected release URL %q, got %q", expectedURL, webhookSender.sent[0].ReleaseURL)
 	}
 }
 

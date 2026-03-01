@@ -243,11 +243,16 @@ func TestSlackSender_RawJSONFallback(t *testing.T) {
 		Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
 	}
 
-	// Raw release JSON (the bug scenario) — should extract changelog and link
+	// Raw release JSON with metadata on the Notification struct (as worker now provides)
 	msg := Notification{
-		Title:   "New release: zkos-0.29.4-rc1",
-		Body:    `{"changelog":"Fixed wrong genesis commit","prerelease":"false","release_url":"https://github.com/matter-labs/zksync-era/releases/tag/zkos-0.29.4-rc1"}`,
-		Version: "zkos-0.29.4-rc1",
+		Title:       "zkSync Era — New release: zkos-0.29.4-rc1",
+		Body:        `{"changelog":"Fixed wrong genesis commit","prerelease":"false","release_url":"https://github.com/matter-labs/zksync-era/releases/tag/zkos-0.29.4-rc1"}`,
+		Version:     "zkos-0.29.4-rc1",
+		ProjectName: "zkSync Era",
+		Provider:    "github",
+		Repository:  "matter-labs/zksync-era",
+		SourceURL:   "https://github.com/matter-labs/zksync-era/releases/tag/zkos-0.29.4-rc1",
+		ReleaseURL:  "https://changelogue.example.com/releases/rel-1",
 	}
 
 	err := sender.Send(context.Background(), ch, msg)
@@ -260,7 +265,7 @@ func TestSlackSender_RawJSONFallback(t *testing.T) {
 		t.Fatalf("received invalid JSON: %v", err)
 	}
 
-	// Should have header + changelog section + link section = 3 blocks
+	// Should have header + changelog section + context with links = 3 blocks
 	if len(payload.Blocks) != 3 {
 		t.Fatalf("expected 3 blocks, got %d", len(payload.Blocks))
 	}
@@ -274,9 +279,22 @@ func TestSlackSender_RawJSONFallback(t *testing.T) {
 		t.Fatal("raw JSON keys should not appear in formatted output")
 	}
 
-	// Link block should have a Slack-formatted link
-	linkBlock := payload.Blocks[2]
-	if linkBlock.Text == nil || !strings.Contains(linkBlock.Text.Text, "View Release") {
-		t.Fatal("expected View Release link in third block")
+	// Context block should have source info and links
+	contextBlock := payload.Blocks[2]
+	if contextBlock.Type != "context" {
+		t.Fatalf("expected context block, got %s", contextBlock.Type)
+	}
+	if len(contextBlock.Elements) == 0 {
+		t.Fatal("expected context elements")
+	}
+	contextText := contextBlock.Elements[0].Text
+	if !strings.Contains(contextText, "View on GitHub") {
+		t.Fatal("expected 'View on GitHub' link in context")
+	}
+	if !strings.Contains(contextText, "View in Changelogue") {
+		t.Fatal("expected 'View in Changelogue' link in context")
+	}
+	if !strings.Contains(contextText, "matter-labs/zksync-era") {
+		t.Fatal("expected repository name in context")
 	}
 }
