@@ -34,3 +34,14 @@
 **Fix:** Use the provider's native API that returns pushed timestamps directly. For ECR Public, the Gallery API (`api.us-east-1.gallery.ecr.aws/describeImageTags`) returns `imagePushedAt` for each tag in a single request — no per-tag manifest fetching needed. The Docker Registry v2 `/tags/list` endpoint only returns tag names without timestamps, so don't rely on it for dates.
 
 **Rule:** Always prefer the provider's metadata API over the raw registry v2 API when you need timestamps or other metadata. Check what the provider's web UI shows — if it displays a "Date pushed" field, there's an API behind it that returns that data efficiently.
+
+### New providers have 10 registration points, not 6
+
+**Pattern:** When adding a new provider, it's easy to miss some of the registration points. The obvious ones (source implementation, loader switch, providers API, standalone source form) get done, but the less obvious ones get skipped.
+
+**Missed files during GitLab addition:**
+- `web/components/projects/project-form.tsx` — separate inline source form in the project creation dialog (not the standalone source-form.tsx)
+- `web/components/ui/provider-badge.tsx` — brand color and icon for the provider badge
+- `web/components/releases/release-detail.tsx` — URL and label mappings for "View on Provider" link
+
+**Rule:** Use the `adding-a-provider` skill (`.claude/skills/adding-a-provider/SKILL.md`) which has the complete 10-point checklist.
