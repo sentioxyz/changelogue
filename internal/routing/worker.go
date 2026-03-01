@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/riverqueue/river"
@@ -52,6 +53,24 @@ func NewNotifyWorker(store NotifyStore) *NotifyWorker {
 	}
 }
 
+// VersionPassesFilter returns true if the version string passes the source's
+// include/exclude regex filters. When both are nil the version always passes.
+func VersionPassesFilter(version string, include, exclude *string) bool {
+	if include != nil && *include != "" {
+		matched, err := regexp.MatchString(*include, version)
+		if err != nil || !matched {
+			return false
+		}
+	}
+	if exclude != nil && *exclude != "" {
+		matched, err := regexp.MatchString(*exclude, version)
+		if err != nil || matched {
+			return false
+		}
+	}
+	return true
+}
+
 // Work processes a notify job: fetches the release, resolves subscriptions,
 // sends notifications to all matching channels, and checks agent rules to
 // auto-trigger agent runs when version criteria are met.
@@ -59,6 +78,16 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 	release, err := w.store.GetRelease(ctx, job.Args.ReleaseID)
 	if err != nil {
 		return fmt.Errorf("get release: %w", err)
+	}
+
+	// Check source version filters — skip entirely if filtered out.
+	source, err := w.store.GetSource(ctx, job.Args.SourceID)
+	if err != nil {
+		return fmt.Errorf("get source: %w", err)
+	}
+	if !VersionPassesFilter(release.Version, source.VersionFilterInclude, source.VersionFilterExclude) {
+		slog.Debug("release filtered by version filter", "version", release.Version, "source_id", job.Args.SourceID)
+		return nil
 	}
 
 	subs, err := w.store.ListSourceSubscriptions(ctx, job.Args.SourceID)
@@ -91,7 +120,7 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 	}
 
 	// Check agent rules and auto-trigger if criteria are met.
-	w.checkAgentRules(ctx, release, job.Args.SourceID)
+	w.checkAgentRules(ctx, release, source)
 
 	return nil
 }
@@ -100,13 +129,7 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 // and the previous release for this source. If any rule matches, an agent run
 // is enqueued. Errors are logged but do not fail the job — notification delivery
 // is the primary responsibility.
-func (w *NotifyWorker) checkAgentRules(ctx context.Context, release *models.Release, sourceID string) {
-	source, err := w.store.GetSource(ctx, sourceID)
-	if err != nil {
-		slog.Error("get source for agent rules", "source_id", sourceID, "err", err)
-		return
-	}
-
+func (w *NotifyWorker) checkAgentRules(ctx context.Context, release *models.Release, source *models.Source) {
 	project, err := w.store.GetProject(ctx, source.ProjectID)
 	if err != nil {
 		slog.Error("get project for agent rules", "project_id", source.ProjectID, "err", err)
@@ -124,9 +147,9 @@ func (w *NotifyWorker) checkAgentRules(ctx context.Context, release *models.Rele
 
 	// Determine the previous version for comparison.
 	var previousVersion string
-	prev, err := w.store.GetPreviousRelease(ctx, sourceID, release.Version)
+	prev, err := w.store.GetPreviousRelease(ctx, source.ID, release.Version)
 	if err != nil {
-		slog.Error("get previous release for agent rules", "source_id", sourceID, "err", err)
+		slog.Error("get previous release for agent rules", "source_id", source.ID, "err", err)
 		return
 	}
 	if prev != nil {

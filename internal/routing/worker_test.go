@@ -590,3 +590,118 @@ func TestNotifyWorker_AgentRulesTriggered_SecurityPatch(t *testing.T) {
 		t.Fatalf("expected 1 EnqueueAgentRun call for security patch, got %d", store.agentRunCallCount())
 	}
 }
+
+func TestNotifyWorker_VersionFilterExclude(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+	channelID := "ch-1"
+	exclude := "-(alpha|beta|rc)"
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.0.0-beta", RawData: json.RawMessage(`{}`)},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: "proj-1", VersionFilterExclude: &exclude},
+		},
+		subscriptions: map[string][]models.Subscription{
+			sourceID: {{ID: "sub-1", ChannelID: channelID, Type: "source_release", SourceID: &sourceID}},
+		},
+		channels: map[string]*models.NotificationChannel{
+			channelID: {ID: channelID, Name: "test", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},
+		},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "test", AgentRules: json.RawMessage(`{}`)},
+		},
+	}
+
+	webhookSender := &mockSender{}
+	worker := &NotifyWorker{store: store, senders: map[string]Sender{"webhook": webhookSender}}
+	job := &river.Job[queue.NotifyJobArgs]{Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID}}
+
+	err := worker.Work(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if webhookSender.sentCount() != 0 {
+		t.Fatalf("expected 0 notifications (excluded by filter), got %d", webhookSender.sentCount())
+	}
+	if store.agentRunCallCount() != 0 {
+		t.Fatalf("expected 0 agent runs (excluded by filter), got %d", store.agentRunCallCount())
+	}
+}
+
+func TestNotifyWorker_VersionFilterInclude(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+	channelID := "ch-1"
+	include := `^v\d+\.\d+\.\d+$`
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "nightly-20260301", RawData: json.RawMessage(`{}`)},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: "proj-1", VersionFilterInclude: &include},
+		},
+		subscriptions: map[string][]models.Subscription{
+			sourceID: {{ID: "sub-1", ChannelID: channelID, Type: "source_release", SourceID: &sourceID}},
+		},
+		channels: map[string]*models.NotificationChannel{
+			channelID: {ID: channelID, Name: "test", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},
+		},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "test", AgentRules: json.RawMessage(`{}`)},
+		},
+	}
+
+	webhookSender := &mockSender{}
+	worker := &NotifyWorker{store: store, senders: map[string]Sender{"webhook": webhookSender}}
+	job := &river.Job[queue.NotifyJobArgs]{Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID}}
+
+	err := worker.Work(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if webhookSender.sentCount() != 0 {
+		t.Fatalf("expected 0 notifications (not matching include), got %d", webhookSender.sentCount())
+	}
+}
+
+func TestNotifyWorker_VersionFilterPassesThrough(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+	channelID := "ch-1"
+	include := `^v\d+\.\d+\.\d+$`
+	exclude := "-beta"
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v2.0.0", RawData: json.RawMessage(`{}`)},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: "proj-1", VersionFilterInclude: &include, VersionFilterExclude: &exclude},
+		},
+		subscriptions: map[string][]models.Subscription{
+			sourceID: {{ID: "sub-1", ChannelID: channelID, Type: "source_release", SourceID: &sourceID}},
+		},
+		channels: map[string]*models.NotificationChannel{
+			channelID: {ID: channelID, Name: "test", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},
+		},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "test", AgentRules: json.RawMessage(`{}`)},
+		},
+	}
+
+	webhookSender := &mockSender{}
+	worker := &NotifyWorker{store: store, senders: map[string]Sender{"webhook": webhookSender}}
+	job := &river.Job[queue.NotifyJobArgs]{Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID}}
+
+	err := worker.Work(context.Background(), job)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if webhookSender.sentCount() != 1 {
+		t.Fatalf("expected 1 notification (passes all filters), got %d", webhookSender.sentCount())
+	}
+}
