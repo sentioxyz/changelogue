@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   projects as projectsApi,
   releases as releasesApi,
@@ -307,6 +308,8 @@ function RecentReleasesSection({ projectId }: { projectId: string }) {
 const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
   critical: { bg: "#dc2626", text: "#ffffff" },
   high: { bg: "#f97316", text: "#ffffff" },
+  medium: { bg: "#f59e0b", text: "#ffffff" },
+  low: { bg: "#6b7280", text: "#ffffff" },
 };
 
 function SemanticReleasesSection({ projectId }: { projectId: string }) {
@@ -448,6 +451,7 @@ function ProjectCard({ project }: { project: Project }) {
 /* ---------- Compact Row ---------- */
 
 function ProjectCompactRow({ project }: { project: Project }) {
+  const router = useRouter();
   const { data: relData } = useSWR(`project-${project.id}-card-releases`, () =>
     releasesApi.listByProject(project.id, 1, 5)
   );
@@ -475,9 +479,9 @@ function ProjectCompactRow({ project }: { project: Project }) {
     : undefined;
 
   return (
-    <Link
-      href={`/projects/${project.id}`}
-      className="flex items-center gap-4 rounded-md px-4 py-2.5 transition-colors hover:bg-[#f9f9f7]"
+    <div
+      onClick={() => router.push(`/projects/${project.id}`)}
+      className="flex items-center gap-4 rounded-md px-4 py-2.5 transition-colors hover:bg-[#f9f9f7] cursor-pointer"
       style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
     >
       {/* Project name */}
@@ -493,8 +497,10 @@ function ProjectCompactRow({ project }: { project: Project }) {
       <span className="flex items-center gap-1.5 shrink-0" style={{ minWidth: "140px" }}>
         {latest ? (
           <>
-            <span
-              className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none"
+            <Link
+              href={`/releases/${latest.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none hover:ring-1 hover:ring-gray-300 transition-shadow"
               style={{
                 backgroundColor: "#f3f3f1",
                 fontFamily: "'JetBrains Mono', monospace",
@@ -502,7 +508,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
               }}
             >
               {latest.version}
-            </span>
+            </Link>
             {latestIcon && latestIcon({ size: 12, className: "shrink-0", style: { color: "#9ca3af" } })}
           </>
         ) : (
@@ -516,8 +522,10 @@ function ProjectCompactRow({ project }: { project: Project }) {
       <span className="flex items-center gap-1.5 flex-1 min-w-0">
         {latestSr ? (
           <>
-            <span
-              className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none shrink-0"
+            <Link
+              href={`/projects/${project.id}/semantic-releases/${latestSr.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none shrink-0 hover:ring-1 hover:ring-blue-300 transition-shadow"
               style={{
                 backgroundColor: "#eff6ff",
                 fontFamily: "'JetBrains Mono', monospace",
@@ -525,7 +533,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
               }}
             >
               {latestSr.version}
-            </span>
+            </Link>
             {urgencyStyle && (
               <span
                 className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none shrink-0"
@@ -551,7 +559,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
 
       {/* Arrow */}
       <ArrowRight className="h-3.5 w-3.5 shrink-0" style={{ color: "#c4c4c0" }} />
-    </Link>
+    </div>
   );
 }
 

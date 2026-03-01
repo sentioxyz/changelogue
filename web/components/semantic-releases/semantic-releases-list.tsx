@@ -19,6 +19,8 @@ import type { Project, SemanticRelease } from "@/lib/api/types";
 const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
   critical: { bg: "#dc2626", text: "#ffffff" },
   high: { bg: "#f97316", text: "#ffffff" },
+  medium: { bg: "#f59e0b", text: "#ffffff" },
+  low: { bg: "#6b7280", text: "#ffffff" },
 };
 
 function UrgencyChip({ urgency }: { urgency: string }) {
