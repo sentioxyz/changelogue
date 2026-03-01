@@ -1,0 +1,13 @@
+claude
+
+---
+
+Yes, so in the subscriptions page, it seems it only show certain counts of subscritions not all of them, could you please check?
+
+---
+
+Also in most cases, most of the releases are published to the same channel, so how can we orgnize the view, so it will create a massive list per subscription
+
+---
+
+commit and push
