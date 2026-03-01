@@ -1,0 +1,1569 @@
+I have these projects on newreleases.io, please help migrate to our prod, some of them already been added to our product.
+{
+    "projects": [
+        {
+            "id": "2p0psc7vc857bep8ce7q0gz938",
+            "name": "MystenLabs/sui",
+            "provider": "github",
+            "url": "https://github.com/MystenLabs/sui",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "net-",
+                    "inverse": true
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "mainnet-v1.66.2",
+                    "date": "2026-02-25T20:29:28Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "wcmkv8g2c7e1ncc35rf4nhp4t4",
+            "name": "0xPolygon/bor",
+            "provider": "github",
+            "url": "https://github.com/0xPolygon/bor",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-beta",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v2.6.0",
+                    "date": "2026-02-19T10:23:49Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "cq9aaj4ebdy6qa5feeeqn1h6kg",
+            "name": "ClickHouse/ClickHouse",
+            "provider": "github",
+            "url": "https://github.com/ClickHouse/ClickHouse",
+            "email_notification": "d",
+            "slacks": [
+                "1maatt2r2cjdzdgagq0pjcd7dc"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v26.2.1.1139-stable",
+                    "date": "2026-02-27T19:03:28Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "qsrrj0whctcykdcnqef93gw5qr",
+            "name": "anza-xyz/agave",
+            "provider": "github",
+            "url": "https://github.com/anza-xyz/agave",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v3.1.8",
+                    "date": "2026-01-26T03:13:40Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "r8dp96qzcwe5xhf1e9c4r64btw",
+            "name": "iotaledger/iota",
+            "provider": "github",
+            "url": "https://github.com/iotaledger/iota",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "wallet",
+                    "inverse": false
+                },
+                {
+                    "value": "v",
+                    "inverse": true
+                },
+                {
+                    "value": "-beta",
+                    "inverse": false
+                },
+                {
+                    "value": "-alpha",
+                    "inverse": false
+                },
+                {
+                    "value": "sui",
+                    "inverse": false
+                }
+            ],
+            "releases": [
+                {
+                    "version": "v1.17.2",
+                    "date": "2026-02-25T07:01:53Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "ewx3y1k8cvtrcnvywks3fy4z0m",
+            "name": "berachain/beacon-kit",
+            "provider": "github",
+            "url": "https://github.com/berachain/beacon-kit",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "^v\\d+.\\d+.\\d+$",
+                    "inverse": true
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.3.6",
+                    "date": "2026-01-27T19:05:17Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "8fzs3rgqc1rjqdxc586s22qjbr",
+            "name": "sigp/lighthouse",
+            "provider": "github",
+            "url": "https://github.com/sigp/lighthouse",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-rc.",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v8.1.1",
+                    "date": "2026-02-27T08:12:53Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "trw68v7wc857bdc9cgy872v4n4",
+            "name": "OffchainLabs/nitro",
+            "provider": "github",
+            "url": "https://github.com/OffchainLabs/nitro",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "consensus-v51.1",
+                    "date": "2026-02-20T20:53:57Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "58zfagkkby16bqdz14k3vyxa28",
+            "name": "ava-labs/avalanchego",
+            "provider": "github",
+            "url": "https://github.com/ava-labs/avalanchego",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-rc.\\d+",
+                    "inverse": false
+                },
+                {
+                    "value": "-",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.14.1",
+                    "date": "2026-01-06T22:06:49Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "8vn3575pc7z0kx91b6c21hv6t4",
+            "name": "ethereum-optimism/optimism",
+            "provider": "github",
+            "url": "https://github.com/ethereum-optimism/optimism",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "op-node/",
+                    "inverse": true
+                },
+                {
+                    "value": "-rc.",
+                    "inverse": false
+                },
+                {
+                    "value": "-dev",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "op-node/v1.16.7",
+                    "date": "2026-02-26T19:43:13Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "9ysy6z87cg7vck82gg57rhhxf8",
+            "name": "ethereum-optimism/op-geth",
+            "provider": "github",
+            "url": "https://github.com/ethereum-optimism/op-geth",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-[rc|dev]",
+                    "inverse": false
+                },
+                {
+                    "value": "test",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.101609.0",
+                    "date": "2026-02-17T23:28:29Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "6f2ndvtwbs6k1gn5qvabrs9atg",
+            "name": "tezos/tezos",
+            "provider": "gitlab",
+            "url": "https://gitlab.com/tezos/tezos",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "evm-node",
+                    "inverse": true
+                }
+            ],
+            "releases": [
+                {
+                    "version": "octez-evm-node-v0.53",
+                    "date": "2026-01-28T14:29:26Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "tazws6c7cb92rdr50804c6qtgr",
+            "name": "aptos-labs/aptos-core",
+            "provider": "github",
+            "url": "https://github.com/aptos-labs/aptos-core",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "aptos-node-",
+                    "inverse": true
+                },
+                {
+                    "value": "-rc",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "aptos-node-v1.41.7-hotfix-mainnet",
+                    "date": "2026-02-25T23:05:31Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "797ztwancpk9q1sd11wchha8qw",
+            "name": "matterlabs/external-node",
+            "provider": "dockerhub",
+            "url": "https://hub.docker.com/r/matterlabs/external-node",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "^v.*",
+                    "inverse": true
+                },
+                {
+                    "value": "alpha",
+                    "inverse": false
+                }
+            ],
+            "releases": [
+                {
+                    "version": "v29.7.0",
+                    "date": "2025-12-17T15:50:28.16418Z"
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "7vxqsas6cqvk9v17x38epqvwdm",
+            "name": "matter-labs/zksync-era",
+            "provider": "github",
+            "url": "https://github.com/matter-labs/zksync-era",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "core",
+                    "inverse": true
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "core-v29.11.1",
+                    "date": "2026-02-25T15:46:07Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "dxh02wvrcpjvbt7kzr6jcd6wfc",
+            "name": "moonbeamfoundation/moonbeam-tracing",
+            "provider": "dockerhub",
+            "url": "https://hub.docker.com/r/moonbeamfoundation/moonbeam-tracing",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-latest",
+                    "inverse": true
+                }
+            ],
+            "releases": [
+                {
+                    "version": "v0.50.3-4201-latest",
+                    "date": "2026-02-25T13:23:29.16766Z",
+                    "is_updated": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "c0v30s8yc7q6ewgs3ere0kq964",
+            "name": "moonbeam-foundation/moonbeam",
+            "provider": "github",
+            "url": "https://github.com/moonbeam-foundation/moonbeam",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v0.50.3",
+                    "date": "2026-02-25T13:07:25Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "wavd29pscsk1r4att36cxem6ym",
+            "name": "taikoxyz/taiko-mono",
+            "provider": "github",
+            "url": "https://github.com/taikoxyz/taiko-mono",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "taiko-",
+                    "inverse": true
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "taiko-alethia-client-v1.11.3",
+                    "date": "2026-02-02T11:53:41Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "5gpbvtf4cxkcg8pkt0qbjt6d8g",
+            "name": "0xsoniclabs/sonic",
+            "provider": "github",
+            "url": "https://github.com/0xsoniclabs/sonic",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-rc.\\d+",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v2.1.5",
+                    "date": "2026-02-05T09:58:23Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "gf2rs8dbcj7nsg3yg6g191tgp0",
+            "name": "paradigmxyz/reth",
+            "provider": "github",
+            "url": "https://github.com/paradigmxyz/reth",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-rc.\\d+$",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.11.1",
+                    "date": "2026-02-23T19:50:12Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "9ges7b70c3e1mwzj5zqncqzb4w",
+            "name": "AstarNetwork/Astar",
+            "provider": "github",
+            "url": "https://github.com/AstarNetwork/Astar",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "runtime-2101",
+                    "date": "2026-02-20T15:28:28Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "w5p9h78fcshh4nw8xaq04a6t94",
+            "name": "FraxFinance/fraxtal-node",
+            "provider": "github",
+            "url": "https://github.com/FraxFinance/fraxtal-node",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "mainnet",
+                    "inverse": true
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "mainnet-20260219",
+                    "date": "2026-02-19T16:30:30Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "p201t80zcgcskfgr17yx9es170",
+            "name": "base/node",
+            "provider": "github",
+            "url": "https://github.com/base/node",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v0.14.7",
+                    "date": "2026-02-18T19:28:49Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "cwa7r8pncmcdzedagek95w3p3r",
+            "name": "0xPolygon/cdk-erigon",
+            "provider": "github",
+            "url": "https://github.com/0xPolygon/cdk-erigon",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-RC",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v2.64.2",
+                    "date": "2026-01-16T01:22:58Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "vxhen6jjcvwjc2sf18zf027jng",
+            "name": "taikoxyz/taiko-geth",
+            "provider": "github",
+            "url": "https://github.com/taikoxyz/taiko-geth",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.17.2",
+                    "date": "2025-11-27T16:30:55Z"
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "wzg238g2c7e1nfvvk9mn1tzfb4",
+            "name": "bnb-chain/bsc",
+            "provider": "github",
+            "url": "https://github.com/bnb-chain/bsc",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v1.6.7",
+                    "date": "2026-02-18T01:29:09Z",
+                    "is_prerelease": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "ezvvzspsd022zjpsqxk16yhqem",
+            "name": "erigontech/nitro-erigon",
+            "provider": "dockerhub",
+            "url": "https://hub.docker.com/r/erigontech/nitro-erigon",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "^v",
+                    "inverse": true
+                }
+            ],
+            "releases": [
+                {
+                    "version": "v0.0.5",
+                    "date": "2026-02-13T12:40:42.334411Z"
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "2th39p89bq9h1e8at1gjsme46r",
+            "name": "cilium/cilium",
+            "provider": "github",
+            "url": "https://github.com/cilium/cilium",
+            "email_notification": "d",
+            "slacks": [
+                "2tvd8t0t655rrshz0jy4rh60ng"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "^[^v]",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.19.1",
+                    "date": "2026-02-17T18:30:26Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "4nftb4qbbf8k47v0et1evt26w4",
+            "name": "ethereum/go-ethereum",
+            "provider": "github",
+            "url": "https://github.com/ethereum/go-ethereum",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v1.17.0",
+                    "date": "2026-02-17T16:15:02Z",
+                    "has_note": true,
+                    "has_cve": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "kht42yc3cb92ryhd4xyacva7hc",
+            "name": "crypto-org-chain/cronos",
+            "provider": "github",
+            "url": "https://github.com/crypto-org-chain/cronos",
+            "email_notification": "d",
+            "slacks": [],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v1.6.2-unsafe",
+                    "date": "2026-02-16T08:47:43Z",
+                    "is_prerelease": true,
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "ep18d997cstfv0956ydmrx1b3m",
+            "name": "blast-io/blast",
+            "provider": "github",
+            "url": "https://github.com/blast-io/blast",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "sepolia",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.8.0",
+                    "date": "2026-02-12T23:36:16Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "en4mq76vd1gch215d1qht0ty5w",
+            "name": "bnb-chain/reth-bsc",
+            "provider": "github",
+            "url": "https://github.com/bnb-chain/reth-bsc",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v0.0.8-alpha",
+                    "date": "2026-02-12T00:11:06Z",
+                    "is_prerelease": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "g12ew5fwd0fh6419t4yc7kxey0",
+            "name": "consensys/maru",
+            "provider": "dockerhub",
+            "url": "https://hub.docker.com/r/consensys/maru",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "test",
+                    "inverse": false
+                }
+            ],
+            "releases": [
+                {
+                    "version": "develop",
+                    "date": "2026-02-10T23:48:29.876508Z",
+                    "is_updated": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "gc5xt5fwd0fh6ps86ejz1edj0g",
+            "name": "Consensys/maru",
+            "provider": "github",
+            "url": "https://github.com/Consensys/maru",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v1.1.0",
+                    "date": "2026-02-04T15:34:03Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "xq81qqygd0d32kwjh5a8qjgjz0",
+            "name": "scroll-tech/reth",
+            "provider": "github",
+            "url": "https://github.com/scroll-tech/reth",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "scroll-v91.7",
+                    "date": "2026-02-04T12:14:00Z"
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "esgvekjsd0vh5mjhgjs1v811rg",
+            "name": "berachain/bera-reth",
+            "provider": "github",
+            "url": "https://github.com/berachain/bera-reth",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-rc.\\d+",
+                    "inverse": false
+                },
+                {
+                    "value": "-test",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.3.1",
+                    "date": "2025-12-03T19:19:40Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "6t8sr477be3mszjjdf99mrwr00",
+            "name": "kubernetes-sigs/kubespray",
+            "provider": "github",
+            "url": "https://github.com/kubernetes-sigs/kubespray",
+            "email_notification": "d",
+            "slacks": [
+                "2tvd8t0t655rrshz0jy4rh60ng"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v2.30.0",
+                    "date": "2026-01-29T18:30:19Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "hhety9khc4wh1ygn8e7kqs51g0",
+            "name": "kube-vip/kube-vip",
+            "provider": "github",
+            "url": "https://github.com/kube-vip/kube-vip",
+            "email_notification": "d",
+            "slacks": [
+                "2tvd8t0t655rrshz0jy4rh60ng"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.0.4",
+                    "date": "2026-01-29T16:34:42Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "10frevv2d07nwrbmfgqhma6t80",
+            "name": "zircuit1/l2-geth",
+            "provider": "dockerhub",
+            "url": "https://hub.docker.com/r/zircuit1/l2-geth",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v1.134.1-beta",
+                    "date": "2026-01-29T14:19:25.597729Z"
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "13h1b480cjf22x0czp9bnxaf9r",
+            "name": "scroll-tech/go-ethereum",
+            "provider": "github",
+            "url": "https://github.com/scroll-tech/go-ethereum",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-rc\\d+",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "scroll-v5.10.2-skip-signer-check",
+                    "date": "2026-01-28T01:40:45Z",
+                    "is_updated": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "a4dhetwjcw5me9ccq07qn7tn44",
+            "name": "MerlinLayer2/cdk-erigon",
+            "provider": "github",
+            "url": "https://github.com/MerlinLayer2/cdk-erigon",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v2.0.3",
+                    "date": "2026-01-20T13:39:54Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "q5q58h6hcnnp74kzq61jk2sdw4",
+            "name": "mantlenetworkio/networks",
+            "provider": "github",
+            "url": "https://github.com/mantlenetworkio/networks",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v1.4.2",
+                    "date": "2025-12-25T08:41:19Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "yb0q9zzqcpe87evvvczfb1metg",
+            "name": "mantlenetworkio/op-geth",
+            "provider": "github",
+            "url": "https://github.com/mantlenetworkio/op-geth",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [
+                {
+                    "value": "-rc",
+                    "inverse": false
+                }
+            ],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.4.2",
+                    "date": "2025-12-25T03:25:59Z",
+                    "is_updated": true,
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "w39q5gdcd1c16w7t800hrksp48",
+            "name": "btclayer2/bevm",
+            "provider": "dockerhub",
+            "url": "https://hub.docker.com/r/btclayer2/bevm",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v0.4.3",
+                    "date": "2025-12-22T10:31:24.000894Z"
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "qn2rh365d06g7814x71e287yc0",
+            "name": "chainstack/cronos-node",
+            "provider": "dockerhub",
+            "url": "https://hub.docker.com/r/chainstack/cronos-node",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "1.6.1-mainnet",
+                    "date": "2025-12-16T03:21:51.587601Z"
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "007xanr9bq9h088wcpsskq7v9g",
+            "name": "openebs/openebs",
+            "provider": "github",
+            "url": "https://github.com/openebs/openebs",
+            "email_notification": "d",
+            "slacks": [
+                "2tvd8t0t655rrshz0jy4rh60ng"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v4.4.0",
+                    "date": "2025-11-21T15:25:02Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "m6w6qfdcd1c177sghjsjjxjcag",
+            "name": "cronos-labs/cronos-zkevm",
+            "provider": "github",
+            "url": "https://github.com/cronos-labs/cronos-zkevm",
+            "email_notification": "d",
+            "slacks": [],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "cronos_core-v29.6.0",
+                    "date": "2025-11-19T10:52:23Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "ee8x22rvd67anxnekfzezfnteg",
+            "name": "i6b2w2n6/op-node",
+            "provider": "ecr-public",
+            "url": "https://gallery.ecr.aws/i6b2w2n6/op-node",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "1.16.1-celestia-e9ec322",
+                    "date": "2025-11-17T19:48:39.292Z"
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "13s0ngncd1c16c66acdnk6w09g",
+            "name": "i6b2w2n6/op-geth",
+            "provider": "ecr-public",
+            "url": "https://gallery.ecr.aws/i6b2w2n6/op-geth",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "releases": [
+                {
+                    "version": "v1.101603.4",
+                    "date": "2025-11-15T23:49:24.962Z"
+                }
+            ],
+            "next_release": null
+        },
+        {
+            "id": "2s4qmkyhcfzmnp16szz46y30nm",
+            "name": "coredao-org/core-chain",
+            "provider": "github",
+            "url": "https://github.com/coredao-org/core-chain",
+            "email_notification": "d",
+            "slacks": [
+                "ww0wgt0d0fcjnehpxsdhjx1r58"
+            ],
+            "telegram_chats": [],
+            "discords": [],
+            "hangouts_chat_webhooks": [],
+            "microsoft_teams_webhooks": [],
+            "mattermost_webhooks": [],
+            "rocketchat_webhooks": [],
+            "matrix_rooms": [],
+            "webhooks": [],
+            "exclusions": [],
+            "exclude_prereleases": true,
+            "releases": [
+                {
+                    "version": "v1.0.22",
+                    "date": "2025-11-08T14:28:26Z",
+                    "has_note": true
+                }
+            ],
+            "next_release": null
+        }
+    ],
+    "total_pages": 2,
+    "provider_ids": [
+        "dockerhub",
+        "ecr-public",
+        "github",
+        "gitlab"
+    ]
+}
+our product website: https://changelogue-app.azurewebsites.net/ You can use api to create missing projects
