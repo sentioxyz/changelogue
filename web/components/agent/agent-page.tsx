@@ -3,8 +3,8 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { agent as agentApi, projects as projectsApi } from "@/lib/api/client";
+import { getPathSegment } from "@/lib/path";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,8 @@ const statusColors: Record<string, string> = {
 };
 
 export function AgentPageContent() {
-  const { id: projectId } = useParams<{ id: string }>();
+  // Read ID from URL path — useParams() returns stale "0" in static export
+  const projectId = getPathSegment(1); // /projects/{id}/agent
   const { data: projectData } = useSWR(`project-${projectId}`, () => projectsApi.get(projectId));
   const { data: runsData, isLoading, mutate } = useSWR(`project-${projectId}-runs`, () => agentApi.listRuns(projectId));
   const [triggering, setTriggering] = useState(false);

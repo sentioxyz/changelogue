@@ -8,12 +8,13 @@ import {
   sources as sourcesApi,
   contextSources,
 } from "@/lib/api/client";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { StatusDot } from "@/components/ui/status-dot";
 import { VersionChip } from "@/components/ui/version-chip";
 import { SectionLabel } from "@/components/ui/section-label";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
+import { getPathSegment } from "@/lib/path";
 import {
   ArrowLeft,
   Check,
@@ -82,7 +83,9 @@ function getDownloadLabel(url: string): { label: string; isDirect: boolean } {
 }
 
 export function SemanticReleaseDetail() {
-  const { id: projectId, srId } = useParams<{ id: string; srId: string }>();
+  // Read IDs from URL path — useParams() returns stale "0" in static export
+  const projectId = getPathSegment(1); // /projects/{id}/semantic-releases/{srId}
+  const srId = getPathSegment(3);
   const router = useRouter();
   const { data, isLoading } = useSWR(`sr-${srId}`, () => srApi.get(srId));
   const { data: projectData } = useSWR(`project-${projectId}`, () =>

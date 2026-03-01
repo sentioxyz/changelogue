@@ -3,7 +3,7 @@
 import useSWR from "swr";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   projects as projectsApi,
   sources as sourcesApi,
@@ -20,6 +20,7 @@ import { ProviderBadge } from "@/components/ui/provider-badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { SectionLabel } from "@/components/ui/section-label";
 import { formatInterval } from "@/lib/format";
+import { getPathSegment } from "@/lib/path";
 import { Pencil, Trash2, Play, Plus, ArrowLeft } from "lucide-react";
 
 /* ---------- Tabs ---------- */
@@ -52,7 +53,8 @@ function truncate(str: string, max: number): string {
 /* ---------- Main component ---------- */
 
 export function ProjectDetail() {
-  const { id } = useParams<{ id: string }>();
+  // Read ID from URL path — useParams() returns stale "0" in static export
+  const id = getPathSegment(1); // /projects/{id}
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("sources");
 

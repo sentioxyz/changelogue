@@ -2,7 +2,6 @@
 
 import useSWR from "swr";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import {
   releases as releasesApi,
   sources as sourcesApi,
@@ -15,6 +14,7 @@ import type { SemanticRelease, Source, Project } from "@/lib/api/types";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
 import { timeAgo } from "@/lib/format";
+import { getPathSegment } from "@/lib/path";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -51,7 +51,8 @@ function getProviderLabel(provider: string): string {
 /* ------------------------------------------------------------------ */
 
 export function ReleaseDetail() {
-  const { id } = useParams<{ id: string }>();
+  // Read ID from URL path — useParams() returns stale "0" in static export
+  const id = getPathSegment(1); // /releases/{id}
   /* Fetch release */
   const { data: releaseData, isLoading } = useSWR(`release-${id}`, () =>
     releasesApi.get(id)
