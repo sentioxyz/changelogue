@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { timeAgo, validateRepository, formatInterval } from "@/lib/format";
-import { Plus, X, ArrowRight } from "lucide-react";
+import { Plus, X, ArrowRight, LayoutGrid, List } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/projects/project-form";
 import type { Project, Source } from "@/lib/api/types";
@@ -398,10 +398,120 @@ function ProjectCard({ project }: { project: Project }) {
   );
 }
 
+/* ---------- Compact Row ---------- */
+
+function ProjectCompactRow({ project }: { project: Project }) {
+  const { data: relData } = useSWR(`project-${project.id}-card-releases`, () =>
+    releasesApi.listByProject(project.id, 1, 5)
+  );
+  const { data: srcData } = useSWR(`project-${project.id}-card-sources`, () =>
+    sourcesApi.listByProject(project.id)
+  );
+  const { data: srData } = useSWR(`project-${project.id}-card-sr`, () =>
+    srApi.list(project.id, 1, 3)
+  );
+
+  const releases = relData?.data ?? [];
+  const sources = srcData?.data ?? [];
+  const srItems = srData?.data ?? [];
+  const latest = releases[0];
+  const latestSr = srItems[0];
+
+  const sourceMap = new Map<string, Source>();
+  for (const s of sources) sourceMap.set(s.id, s);
+
+  const latestSrc = latest ? sourceMap.get(latest.source_id) : undefined;
+  const LatestIcon = latestSrc ? getProviderIcon(latestSrc.provider) : undefined;
+
+  const urgencyStyle = latestSr?.report?.urgency
+    ? URGENCY_COLORS[latestSr.report.urgency.toLowerCase()]
+    : undefined;
+
+  return (
+    <Link
+      href={`/projects/${project.id}`}
+      className="flex items-center gap-4 rounded-md px-4 py-2.5 transition-colors hover:bg-[#f9f9f7]"
+      style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
+    >
+      {/* Project name */}
+      <span
+        className="text-[14px] font-bold shrink-0"
+        style={{ fontFamily: "var(--font-fraunces)", color: "#e8601a", minWidth: "160px" }}
+      >
+        {project.name}
+      </span>
+
+      {/* Latest release */}
+      <span className="flex items-center gap-1.5 shrink-0" style={{ minWidth: "140px" }}>
+        {latest ? (
+          <>
+            <span
+              className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none"
+              style={{
+                backgroundColor: "#f3f3f1",
+                fontFamily: "'JetBrains Mono', monospace",
+                color: "#374151",
+              }}
+            >
+              {latest.version}
+            </span>
+            {LatestIcon && <LatestIcon size={12} className="shrink-0" style={{ color: "#9ca3af" }} />}
+          </>
+        ) : (
+          <span className="text-[12px] italic" style={{ color: "#c4c4c0" }}>
+            No releases
+          </span>
+        )}
+      </span>
+
+      {/* Latest semantic release */}
+      <span className="flex items-center gap-1.5 flex-1 min-w-0">
+        {latestSr ? (
+          <>
+            <span
+              className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none shrink-0"
+              style={{
+                backgroundColor: "#eff6ff",
+                fontFamily: "'JetBrains Mono', monospace",
+                color: "#1d4ed8",
+              }}
+            >
+              {latestSr.version}
+            </span>
+            {urgencyStyle && (
+              <span
+                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none shrink-0"
+                style={{ backgroundColor: urgencyStyle.bg, color: urgencyStyle.text }}
+              >
+                {latestSr.report?.urgency}
+              </span>
+            )}
+            {latestSr.report?.summary && (
+              <span className="text-[11px] truncate" style={{ color: "#9ca3af" }}>
+                {latestSr.report.summary.length > 60
+                  ? latestSr.report.summary.slice(0, 60) + "\u2026"
+                  : latestSr.report.summary}
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="text-[12px] italic" style={{ color: "#c4c4c0" }}>
+            No analysis
+          </span>
+        )}
+      </span>
+
+      {/* Arrow */}
+      <ArrowRight className="h-3.5 w-3.5 shrink-0" style={{ color: "#c4c4c0" }} />
+    </Link>
+  );
+}
+
 /* ---------- Page ---------- */
 
 export default function ProjectsPage() {
   const [createOpen, setCreateOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "compact">("cards");
   const { data, isLoading } = useSWR("projects", () => projectsApi.list());
   const items = data?.data ?? [];
 
@@ -426,14 +536,40 @@ export default function ProjectsPage() {
             Tracked software projects and their recent releases.
           </p>
         </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-1.5 rounded px-3 py-1.5 text-[13px] text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New Project
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-md border" style={{ borderColor: "#e8e8e5" }}>
+            <button
+              onClick={() => setViewMode("cards")}
+              className="p-1.5 rounded-l-md transition-colors"
+              style={{
+                backgroundColor: viewMode === "cards" ? "#f3f3f1" : "transparent",
+                color: viewMode === "cards" ? "#111113" : "#9ca3af",
+              }}
+              title="Card view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("compact")}
+              className="p-1.5 rounded-r-md transition-colors"
+              style={{
+                backgroundColor: viewMode === "compact" ? "#f3f3f1" : "transparent",
+                color: viewMode === "compact" ? "#111113" : "#9ca3af",
+              }}
+              title="Compact view"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-1.5 rounded px-3 py-1.5 text-[13px] text-white transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Project
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -464,10 +600,14 @@ export default function ProjectsPage() {
           </button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {items.map((project) => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
+        <div className={viewMode === "cards" ? "space-y-4" : "space-y-1.5"}>
+          {items.map((project) =>
+            viewMode === "cards" ? (
+              <ProjectCard key={project.id} project={project} />
+            ) : (
+              <ProjectCompactRow key={project.id} project={project} />
+            )
+          )}
         </div>
       )}
 
