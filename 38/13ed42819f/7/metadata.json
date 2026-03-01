@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "3813ed42819f",
+  "session_id": "c2474cdc-43da-41f8-a0d5-69921af93b9a",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-01T10:57:37.795773Z",
+  "branch": "main",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "docs/plans/2026-03-01-ecr-public-provider-design.md",
+    "internal/ingestion/ecr_public.go",
+    "internal/ingestion/ecr_public_test.go",
+    "internal/ingestion/loader.go",
+    "web/app/projects/page.tsx",
+    "web/components/projects/project-form.tsx",
+    "web/components/sources/source-form.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "771b0bbb1963",
+  "token_usage": {
+    "input_tokens": 7804263,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 20776,
+    "api_call_count": 74
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-01T10:57:37.276629Z",
+    "agent_lines": 22,
+    "human_added": 0,
+    "human_modified": 148,
+    "human_removed": 130,
+    "total_committed": 170,
+    "agent_percentage": 12.941176470588237
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/c2474cdc-43da-41f8-a0d5-69921af93b9a.jsonl"
+}
