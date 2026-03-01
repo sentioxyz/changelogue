@@ -17,6 +17,7 @@ func (h *ProvidersHandler) List(w http.ResponseWriter, r *http.Request) {
 		{"id": "dockerhub", "name": "Docker Hub", "type": "polling"},
 		{"id": "github", "name": "GitHub", "type": "webhook"},
 		{"id": "ecr-public", "name": "AWS ECR Public", "type": "polling"},
+		{"id": "gitlab", "name": "GitLab", "type": "polling"},
 	}
 	RespondJSON(w, r, http.StatusOK, providers)
 }

@@ -77,6 +77,8 @@ func BuildSource(client *http.Client, id string, sourceType, repository string) 
 		return NewGitHubSource(client, repository, id)
 	case "ecr-public":
 		return NewECRPublicSource(client, repository, id)
+	case "gitlab":
+		return NewGitLabSource(client, repository, id)
 	default:
 		return nil
 	}
