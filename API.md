@@ -200,11 +200,15 @@ Response includes `id` (UUID), `created_at`, `updated_at` fields.
   "repository": "library/golang",
   "poll_interval_seconds": 300,
   "enabled": true,
-  "config": {}
+  "config": {},
+  "version_filter_include": "^v?\\d+\\.\\d+\\.\\d+$",
+  "version_filter_exclude": "-(alpha|beta|rc|nightly)"
 }
 ```
 
 The `project_id` is set from the URL path parameter. Response includes `id` (UUID), `last_polled_at`, `last_error`, `created_at`, `updated_at` fields. The `config` is provider-specific optional configuration.
+
+The `version_filter_include` and `version_filter_exclude` are optional regex patterns applied when listing releases and sending notifications. When `version_filter_include` is set, only versions matching the pattern are shown. When `version_filter_exclude` is set, versions matching the pattern are hidden. Both use PostgreSQL regex syntax.
 
 ### Context Source (request body for POST/PUT)
 
