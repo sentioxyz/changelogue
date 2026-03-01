@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SourceForm } from "@/components/sources/source-form";
 import { NewContextSourceForm } from "@/components/context-sources/new-context-source-form";
+import { ProjectLogo } from "@/components/ui/project-logo";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -234,7 +235,9 @@ export function ProjectDetail() {
         </Link>
         <div className="flex items-start justify-between">
           {/* Left: project info */}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 flex items-start gap-4">
+            <ProjectLogo name={project.name} sources={sourcesData?.data} size={48} />
+            <div className="min-w-0 flex-1">
             {editingName ? (
               <input
                 ref={nameRef}
@@ -304,6 +307,7 @@ export function ProjectDetail() {
               {" \u00B7 "}
               {ctxCount !== undefined ? `${ctxCount} context sources` : "-- context sources"}
             </p>
+            </div>
           </div>
 
           {/* Right: actions */}
