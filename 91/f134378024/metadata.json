@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "91f134378024",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "web/components/semantic-releases/semantic-releases-list.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/91/f134378024/0/metadata.json",
+      "transcript": "/91/f134378024/0/full.jsonl",
+      "context": "/91/f134378024/0/context.md",
+      "content_hash": "/91/f134378024/0/content_hash.txt",
+      "prompt": "/91/f134378024/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 13288323,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 27230,
+    "api_call_count": 144
+  }
+}
