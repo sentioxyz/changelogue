@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { projects as projectsApi, channels as channelsApi, sources as sourcesApi } from "@/lib/api/client";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Subscription, SubscriptionInput, BatchSubscriptionInput } from "@/lib/api/types";
+import type { Subscription, SubscriptionInput, BatchSubscriptionInput, Source } from "@/lib/api/types";
 
 interface SubscriptionFormProps {
   initial?: Subscription;
@@ -34,18 +34,47 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
   // Multi-select state (create mode)
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
-  // For source type: project filter
-  const [sourceProjectFilter, setSourceProjectFilter] = useState("");
   const [versionFilter, setVersionFilter] = useState(initial?.version_filter ?? "");
 
   const { data: projectsData } = useSWR("projects-for-sub", () => projectsApi.list(1, 100));
   const { data: channelsData } = useSWR("channels-for-sub", () => channelsApi.list());
+
+  // Edit mode: fetch sources for the selected project
   const { data: sourcesData } = useSWR(
-    type === "source" && (isEditing ? projectId : sourceProjectFilter)
-      ? `sources-for-sub-${isEditing ? projectId : sourceProjectFilter}`
+    type === "source" && isEditing && projectId
+      ? `sources-for-sub-${projectId}`
       : null,
-    () => sourcesApi.listByProject(isEditing ? projectId : sourceProjectFilter)
+    () => sourcesApi.listByProject(projectId)
   );
+
+  // Create mode (source type): fetch sources for ALL projects
+  const projectIds = projectsData?.data.map((p) => p.id) ?? [];
+  const { data: allSourcesData } = useSWR(
+    type === "source" && !isEditing && projectIds.length > 0
+      ? `all-sources-for-sub-${projectIds.join(",")}`
+      : null,
+    async () => {
+      const results = await Promise.all(
+        projectIds.map((pid) => sourcesApi.listByProject(pid).catch(() => ({ data: [] as Source[] })))
+      );
+      return results.flatMap((r) => r.data);
+    }
+  );
+
+  // Group all sources by project for display
+  const sourcesByProject = useMemo(() => {
+    if (!allSourcesData || !projectsData?.data) return [];
+    const projectMap = new Map(projectsData.data.map((p) => [p.id, p.name]));
+    const groups = new Map<string, { projectName: string; sources: Source[] }>();
+    for (const s of allSourcesData) {
+      const name = projectMap.get(s.project_id) ?? s.project_id;
+      if (!groups.has(s.project_id)) {
+        groups.set(s.project_id, { projectName: name, sources: [] });
+      }
+      groups.get(s.project_id)!.sources.push(s);
+    }
+    return Array.from(groups.values());
+  }, [allSourcesData, projectsData]);
 
   const toggleProjectId = (id: string) => {
     setSelectedProjectIds((prev) =>
@@ -60,7 +89,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
   };
 
   const allProjectIds = projectsData?.data.map((p) => p.id) ?? [];
-  const allSourceIds = sourcesData?.data.map((s) => s.id) ?? [];
+  const allSourceIds = allSourcesData?.map((s) => s.id) ?? [];
 
   const toggleAllProjects = () => {
     if (selectedProjectIds.length === allProjectIds.length) {
@@ -200,52 +229,44 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
         </>
       )}
       {type === "source" && !isEditing && (
-        <>
-          <div className="space-y-2">
-            <Label>Project (to list sources)</Label>
-            <Select value={sourceProjectFilter} onValueChange={(v) => { setSourceProjectFilter(v); setSelectedSourceIds([]); }}>
-              <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
-              <SelectContent>
-                {projectsData?.data.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Sources</Label>
+            {allSourceIds.length > 0 && (
+              <button
+                type="button"
+                onClick={toggleAllSources}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                {selectedSourceIds.length === allSourceIds.length ? "Deselect all" : "Select all"}
+              </button>
+            )}
           </div>
-          {sourceProjectFilter && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Sources</Label>
-                {allSourceIds.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={toggleAllSources}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    {selectedSourceIds.length === allSourceIds.length ? "Deselect all" : "Select all"}
-                  </button>
-                )}
+          <div className="max-h-64 overflow-y-auto rounded-md border border-input p-2 space-y-3">
+            {sourcesByProject.map((group) => (
+              <div key={group.projectName}>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 pb-1">{group.projectName}</p>
+                <div className="space-y-1">
+                  {group.sources.map((s) => (
+                    <label key={s.id} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-accent cursor-pointer">
+                      <Checkbox
+                        checked={selectedSourceIds.includes(s.id)}
+                        onCheckedChange={() => toggleSourceId(s.id)}
+                      />
+                      <span className="text-sm">{s.provider}: {s.repository}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-              <div className="max-h-48 overflow-y-auto rounded-md border border-input p-2 space-y-1">
-                {sourcesData?.data.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-accent cursor-pointer">
-                    <Checkbox
-                      checked={selectedSourceIds.includes(s.id)}
-                      onCheckedChange={() => toggleSourceId(s.id)}
-                    />
-                    <span className="text-sm">{s.provider}: {s.repository}</span>
-                  </label>
-                ))}
-                {(!sourcesData?.data || sourcesData.data.length === 0) && (
-                  <p className="text-sm text-muted-foreground px-2 py-1">No sources found</p>
-                )}
-              </div>
-              {selectedSourceIds.length > 0 && (
-                <p className="text-xs text-muted-foreground">{selectedSourceIds.length} selected</p>
-              )}
-            </div>
+            ))}
+            {sourcesByProject.length === 0 && (
+              <p className="text-sm text-muted-foreground px-2 py-1">No sources found</p>
+            )}
+          </div>
+          {selectedSourceIds.length > 0 && (
+            <p className="text-xs text-muted-foreground">{selectedSourceIds.length} selected</p>
           )}
-        </>
+        </div>
       )}
 
       <div className="space-y-2">
