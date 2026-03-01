@@ -98,6 +98,7 @@ Subscriptions link a notification channel to either a specific source or an enti
 | `GET`    | `/api/v1/subscriptions/{id}`  | Get single subscription  |
 | `PUT`    | `/api/v1/subscriptions/{id}`  | Update a subscription    |
 | `DELETE` | `/api/v1/subscriptions/{id}`  | Delete a subscription    |
+| `POST`   | `/api/v1/subscriptions/batch` | Batch-create subscriptions |
 
 ### Notification Channels
 
@@ -311,6 +312,40 @@ Or for project-level subscriptions:
 ```
 
 The `type` must be either `"source"` or `"project"`. When `type` is `"source"`, `source_id` is required. When `type` is `"project"`, `project_id` is required. Response includes `id` (UUID), `created_at` fields.
+
+### Batch Subscription (request body for POST /subscriptions/batch)
+
+Create multiple subscriptions at once for a single channel. All subscriptions are created atomically in one transaction.
+
+For project-level subscriptions:
+
+```json
+{
+  "channel_id": "aa0e8400-e29b-41d4-a716-446655440005",
+  "type": "project",
+  "project_ids": [
+    "880e8400-e29b-41d4-a716-446655440003",
+    "990e8400-e29b-41d4-a716-446655440004"
+  ],
+  "version_filter": ""
+}
+```
+
+For source-level subscriptions:
+
+```json
+{
+  "channel_id": "aa0e8400-e29b-41d4-a716-446655440005",
+  "type": "source",
+  "source_ids": [
+    "660e8400-e29b-41d4-a716-446655440001",
+    "770e8400-e29b-41d4-a716-446655440002"
+  ],
+  "version_filter": "^\\d+\\.\\d+\\.0$"
+}
+```
+
+Response: `201 Created` with `data` containing an array of created subscriptions (same fields as single subscription).
 
 ### Notification Channel (request body for POST/PUT)
 
