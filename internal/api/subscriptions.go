@@ -12,6 +12,7 @@ import (
 type SubscriptionsStore interface {
 	ListSubscriptions(ctx context.Context, page, perPage int) ([]models.Subscription, int, error)
 	CreateSubscription(ctx context.Context, sub *models.Subscription) error
+	CreateSubscriptionBatch(ctx context.Context, subs []models.Subscription) ([]models.Subscription, error)
 	GetSubscription(ctx context.Context, id string) (*models.Subscription, error)
 	UpdateSubscription(ctx context.Context, id string, sub *models.Subscription) error
 	DeleteSubscription(ctx context.Context, id string) error
@@ -140,4 +141,70 @@ func (h *SubscriptionsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// BatchSubscriptionInput is the request body for POST /subscriptions/batch.
+type BatchSubscriptionInput struct {
+	ChannelID     string   `json:"channel_id"`
+	Type          string   `json:"type"`
+	ProjectIDs    []string `json:"project_ids"`
+	SourceIDs     []string `json:"source_ids"`
+	VersionFilter string   `json:"version_filter,omitempty"`
+}
+
+// BatchCreate handles POST /subscriptions/batch — creates multiple subscriptions at once.
+func (h *SubscriptionsHandler) BatchCreate(w http.ResponseWriter, r *http.Request) {
+	var input BatchSubscriptionInput
+	if err := DecodeJSON(r, &input); err != nil {
+		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid JSON body")
+		return
+	}
+	input.Type = strings.TrimSpace(input.Type)
+	input.ChannelID = strings.TrimSpace(input.ChannelID)
+	if input.Type != "source" && input.Type != "project" {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "type must be 'source' or 'project'")
+		return
+	}
+	if input.ChannelID == "" {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "channel_id is required")
+		return
+	}
+
+	var subs []models.Subscription
+	if input.Type == "project" {
+		if len(input.ProjectIDs) == 0 {
+			RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_ids must not be empty when type is 'project'")
+			return
+		}
+		for _, pid := range input.ProjectIDs {
+			id := pid
+			subs = append(subs, models.Subscription{
+				ChannelID:     input.ChannelID,
+				Type:          input.Type,
+				ProjectID:     &id,
+				VersionFilter: input.VersionFilter,
+			})
+		}
+	} else {
+		if len(input.SourceIDs) == 0 {
+			RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "source_ids must not be empty when type is 'source'")
+			return
+		}
+		for _, sid := range input.SourceIDs {
+			id := sid
+			subs = append(subs, models.Subscription{
+				ChannelID:     input.ChannelID,
+				Type:          input.Type,
+				SourceID:      &id,
+				VersionFilter: input.VersionFilter,
+			})
+		}
+	}
+
+	created, err := h.store.CreateSubscriptionBatch(r.Context(), subs)
+	if err != nil {
+		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to create subscriptions")
+		return
+	}
+	RespondJSON(w, r, http.StatusCreated, created)
 }

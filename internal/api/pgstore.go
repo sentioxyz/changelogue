@@ -322,6 +322,34 @@ func (s *PgStore) CreateSubscription(ctx context.Context, sub *models.Subscripti
 	).Scan(&sub.ID, &sub.CreatedAt)
 }
 
+func (s *PgStore) CreateSubscriptionBatch(ctx context.Context, subs []models.Subscription) ([]models.Subscription, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var result []models.Subscription
+	for i := range subs {
+		sub := subs[i]
+		err := tx.QueryRow(ctx,
+			`INSERT INTO subscriptions (channel_id, type, source_id, project_id, version_filter)
+			 VALUES ($1, $2, $3, $4, $5)
+			 RETURNING id, created_at`,
+			sub.ChannelID, sub.Type, sub.SourceID, sub.ProjectID, sub.VersionFilter,
+		).Scan(&sub.ID, &sub.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("insert subscription %d: %w", i, err)
+		}
+		result = append(result, sub)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit tx: %w", err)
+	}
+	return result, nil
+}
+
 func (s *PgStore) GetSubscription(ctx context.Context, id string) (*models.Subscription, error) {
 	var sub models.Subscription
 	err := s.pool.QueryRow(ctx,

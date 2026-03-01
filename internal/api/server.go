@@ -82,6 +82,7 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	subscriptions := NewSubscriptionsHandler(deps.SubscriptionsStore)
 	mux.Handle("GET /api/v1/subscriptions", chain(http.HandlerFunc(subscriptions.List)))
 	mux.Handle("POST /api/v1/subscriptions", chain(http.HandlerFunc(subscriptions.Create)))
+	mux.Handle("POST /api/v1/subscriptions/batch", chain(http.HandlerFunc(subscriptions.BatchCreate)))
 	mux.Handle("GET /api/v1/subscriptions/{id}", chain(http.HandlerFunc(subscriptions.Get)))
 	mux.Handle("PUT /api/v1/subscriptions/{id}", chain(http.HandlerFunc(subscriptions.Update)))
 	mux.Handle("DELETE /api/v1/subscriptions/{id}", chain(http.HandlerFunc(subscriptions.Delete)))

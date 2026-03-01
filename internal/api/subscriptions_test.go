@@ -19,6 +19,8 @@ type mockSubscriptionsStore struct {
 	created       *models.Subscription
 	updated       *models.Subscription
 	deleted       string
+	batchCreated []models.Subscription
+	batchErr     error
 	listErr       error
 	createErr     error
 	getErr        error
@@ -68,6 +70,20 @@ func (m *mockSubscriptionsStore) UpdateSubscription(_ context.Context, id string
 	return fmt.Errorf("not found")
 }
 
+func (m *mockSubscriptionsStore) CreateSubscriptionBatch(_ context.Context, subs []models.Subscription) ([]models.Subscription, error) {
+	if m.batchErr != nil {
+		return nil, m.batchErr
+	}
+	var result []models.Subscription
+	for i, sub := range subs {
+		sub.ID = fmt.Sprintf("sub-batch-%d", i)
+		sub.CreatedAt = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+		result = append(result, sub)
+	}
+	m.batchCreated = result
+	return result, nil
+}
+
 func (m *mockSubscriptionsStore) DeleteSubscription(_ context.Context, id string) error {
 	if m.deleteErr != nil {
 		return m.deleteErr
@@ -86,6 +102,7 @@ func setupSubscriptionsMux(store SubscriptionsStore) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /subscriptions", h.List)
 	mux.HandleFunc("POST /subscriptions", h.Create)
+	mux.HandleFunc("POST /subscriptions/batch", h.BatchCreate)
 	mux.HandleFunc("GET /subscriptions/{id}", h.Get)
 	mux.HandleFunc("PUT /subscriptions/{id}", h.Update)
 	mux.HandleFunc("DELETE /subscriptions/{id}", h.Delete)
@@ -322,5 +339,86 @@ func TestSubscriptionsHandlerDeleteNotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", w.Code)
+	}
+}
+
+func TestSubscriptionsHandlerBatchCreateProjects(t *testing.T) {
+	store := &mockSubscriptionsStore{}
+	mux := setupSubscriptionsMux(store)
+
+	body := `{"channel_id":"ch1","type":"project","project_ids":["p1","p2","p3"]}`
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/subscriptions/batch", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d; body: %s", w.Code, w.Body.String())
+	}
+	var got struct {
+		Data []models.Subscription `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.Data) != 3 {
+		t.Fatalf("expected 3 subscriptions, got %d", len(got.Data))
+	}
+	if len(store.batchCreated) != 3 {
+		t.Fatalf("expected 3 in store, got %d", len(store.batchCreated))
+	}
+}
+
+func TestSubscriptionsHandlerBatchCreateSources(t *testing.T) {
+	store := &mockSubscriptionsStore{}
+	mux := setupSubscriptionsMux(store)
+
+	body := `{"channel_id":"ch1","type":"source","source_ids":["s1","s2"]}`
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/subscriptions/batch", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d; body: %s", w.Code, w.Body.String())
+	}
+	var got struct {
+		Data []models.Subscription `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.Data) != 2 {
+		t.Fatalf("expected 2 subscriptions, got %d", len(got.Data))
+	}
+}
+
+func TestSubscriptionsHandlerBatchCreateEmptyIDs(t *testing.T) {
+	store := &mockSubscriptionsStore{}
+	mux := setupSubscriptionsMux(store)
+
+	body := `{"channel_id":"ch1","type":"project","project_ids":[]}`
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/subscriptions/batch", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", w.Code)
+	}
+}
+
+func TestSubscriptionsHandlerBatchCreateMissingChannelID(t *testing.T) {
+	store := &mockSubscriptionsStore{}
+	mux := setupSubscriptionsMux(store)
+
+	body := `{"type":"project","project_ids":["p1"]}`
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/subscriptions/batch", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", w.Code)
 	}
 }
