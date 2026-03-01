@@ -1,0 +1,39 @@
+Implement the following plan:
+
+# Fix: Join project_name in semantic releases backend queries
+
+## Context
+The semantic releases page shows "—" for project names when a project falls outside the first 25 results fetched by the frontend's `projectsApi.list()` call. The proper fix is to JOIN `projects.name` in the backend SQL, following the existing `Release` model pattern, eliminating the need for a separate project name lookup.
+
+## Changes
+
+### 1. Add `ProjectName` to Go model
+**File:** `internal/models/semantic_release.go`
+- Add `ProjectName string \`json:"project_name,omitempty"\`` to `SemanticRelease` struct
+
+### 2. Update SQL queries + Scan calls in pgstore
+**File:** `internal/api/pgstore.go`
+- `ListAllSemanticReleases` (~line 583): Add `LEFT JOIN projects p ON sr.project_id = p.id`, select `COALESCE(p.name,'')`, add `&sr.ProjectName` to Scan
+- `ListSemanticReleases` (~line 610): Same changes
+- `GetSemanticRelease` (~line 637): Same changes
+
+### 3. Add `project_name` to TypeScript type
+**File:** `web/lib/api/types.ts`
+- Add `project_name?: string` to `SemanticRelease` interface
+
+### 4. Use `project_name` directly in frontend
+**File:** `web/components/semantic-releases/semantic-releases-list.tsx`
+- Replace `projectsById.get(sr.project_id)` name lookup with `sr.project_name`
+- Keep `projectsApi.list()` for the filter dropdown only
+
+## Verification
+- `go build ./cmd/server`
+- `go test ./...`
+- Visually confirm project names appear on the semantic releases page
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+
+---
+
+cool, commit and push
