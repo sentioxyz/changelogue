@@ -9,7 +9,7 @@ import {
   sources as sourcesApi,
 } from "@/lib/api/client";
 import type { Source, Subscription } from "@/lib/api/types";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -79,9 +79,13 @@ export default function SubscriptionsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [collapsedChannels, setCollapsedChannels] = useState<Set<string>>(new Set());
 
   const getChannelName = (id: string) =>
     channelsData?.data.find((c) => c.id === id)?.name ?? id;
+
+  const getChannelType = (id: string) =>
+    channelsData?.data.find((c) => c.id === id)?.type ?? "";
 
   const getProjectName = (id: string) =>
     projectsData?.data.find((p) => p.id === id)?.name ?? id;
@@ -92,6 +96,17 @@ export default function SubscriptionsPage() {
   };
 
   const subscriptions = data?.data ?? [];
+
+  // Group subscriptions by channel_id
+  const grouped = useMemo(() => {
+    const map = new Map<string, Subscription[]>();
+    for (const sub of subscriptions) {
+      const list = map.get(sub.channel_id) ?? [];
+      list.push(sub);
+      map.set(sub.channel_id, list);
+    }
+    return map;
+  }, [subscriptions]);
 
   const isAllSelected = subscriptions.length > 0 && selectedIds.size === subscriptions.length;
   const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
@@ -111,6 +126,30 @@ export default function SubscriptionsPage() {
     } else {
       setSelectedIds(new Set(subscriptions.map((s) => s.id)));
     }
+  };
+
+  const toggleChannel = (channelId: string) => {
+    setCollapsedChannels((prev) => {
+      const next = new Set(prev);
+      if (next.has(channelId)) next.delete(channelId);
+      else next.add(channelId);
+      return next;
+    });
+  };
+
+  const toggleSelectChannel = (channelId: string) => {
+    const channelSubs = grouped.get(channelId) ?? [];
+    const channelSubIds = channelSubs.map((s) => s.id);
+    const allSelected = channelSubIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        channelSubIds.forEach((id) => next.delete(id));
+      } else {
+        channelSubIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
   };
 
   const clearSelection = () => setSelectedIds(new Set());
@@ -145,189 +184,242 @@ export default function SubscriptionsPage() {
         </button>
       </div>
 
-      {/* Table card */}
-      <div
-        className="overflow-hidden rounded-lg bg-white"
-        style={{ border: "1px solid #e8e8e5" }}
-      >
-        {isLoading ? (
-          <div
-            className="py-16 text-center"
+      {isLoading ? (
+        <div
+          className="overflow-hidden rounded-lg bg-white py-16 text-center"
+          style={{ border: "1px solid #e8e8e5", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}
+        >
+          Loading...
+        </div>
+      ) : subscriptions.length === 0 ? (
+        <div
+          className="overflow-hidden rounded-lg bg-white py-16 text-center"
+          style={{ border: "1px solid #e8e8e5" }}
+        >
+          <p
             style={{
-              fontFamily: "var(--font-dm-sans)",
-              fontSize: "13px",
-              color: "#6b7280",
+              fontFamily: "var(--font-fraunces)",
+              fontStyle: "italic",
+              fontSize: "15px",
+              color: "#9ca3af",
             }}
           >
-            Loading...
-          </div>
-        ) : subscriptions.length === 0 ? (
-          <div className="py-16 text-center">
-            <p
+            No subscriptions configured yet
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Select all / batch bar */}
+          <div
+            className="flex items-center gap-3 rounded-lg bg-white px-5 py-2.5"
+            style={{ border: "1px solid #e8e8e5" }}
+          >
+            <Checkbox
+              checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+              onCheckedChange={toggleSelectAll}
+            />
+            <span
               style={{
-                fontFamily: "var(--font-fraunces)",
-                fontStyle: "italic",
-                fontSize: "15px",
-                color: "#9ca3af",
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "13px",
+                color: "#6b7280",
               }}
             >
-              No subscriptions configured yet
-            </p>
-          </div>
-        ) : (
-          <>
-            <table className="w-full">
-            <thead>
-              <tr style={{ backgroundColor: "#fafaf9" }}>
-                <th
-                  className="w-10 px-5 py-3"
-                  style={{ borderBottom: "1px solid #e8e8e5" }}
-                >
-                  <Checkbox
-                    checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                </th>
-                {["Type", "Target", "Channel", "Version Filter", "Actions"].map(
-                  (heading) => (
-                    <th
-                      key={heading}
-                      className="px-5 py-3 text-left"
-                      style={{
-                        fontFamily: "var(--font-dm-sans)",
-                        fontSize: "11px",
-                        fontWeight: 500,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        color: "#9ca3af",
-                        borderBottom: "1px solid #e8e8e5",
-                      }}
-                    >
-                      {heading}
-                    </th>
-                  )
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {subscriptions.map((sub) => (
-                <tr
-                  key={sub.id}
-                  className="transition-colors hover:bg-[#fafaf9]"
-                  style={{ borderBottom: "1px solid #e8e8e5" }}
-                >
-                  {/* Checkbox */}
-                  <td className="w-10 px-5 py-3.5">
-                    <Checkbox
-                      checked={selectedIds.has(sub.id)}
-                      onCheckedChange={() => toggleSelect(sub.id)}
-                    />
-                  </td>
-
-                  {/* Type */}
-                  <td className="px-5 py-3.5">
-                    <SubTypeBadge type={sub.type} />
-                  </td>
-
-                  {/* Target */}
-                  <td
-                    className="px-5 py-3.5"
-                    style={{
-                      fontFamily: "var(--font-dm-sans)",
-                      fontSize: "14px",
-                      fontWeight: 500,
-                      color: "#111113",
-                    }}
-                  >
-                    {sub.type === "source_release"
-                      ? getSourceLabel(sub.source_id!)
-                      : getProjectName(sub.project_id!)}
-                  </td>
-
-                  {/* Channel */}
-                  <td
-                    className="px-5 py-3.5"
-                    style={{
-                      fontFamily: "var(--font-dm-sans)",
-                      fontSize: "14px",
-                      color: "#111113",
-                    }}
-                  >
-                    {getChannelName(sub.channel_id)}
-                  </td>
-
-                  {/* Version Filter */}
-                  <td
-                    className="px-5 py-3.5"
-                    style={{
-                      fontFamily: sub.version_filter
-                        ? "'JetBrains Mono', monospace"
-                        : "var(--font-dm-sans)",
-                      fontSize: "13px",
-                      color: sub.version_filter ? "#111113" : "#9ca3af",
-                    }}
-                  >
-                    {sub.version_filter || "\u2014"}
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setEditingSub(sub)}
-                        className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setDeletingId(sub.id)}
-                        className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              {selectedIds.size > 0
+                ? `${selectedIds.size} of ${subscriptions.length} selected`
+                : `${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}`}
+            </span>
             {selectedIds.size > 0 && (
-              <div
-                className="flex items-center justify-between px-5 py-2.5"
+              <button
+                onClick={() => setBatchDeleteOpen(true)}
+                className="ml-auto inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors hover:opacity-90"
                 style={{
-                  backgroundColor: "#fef2f2",
-                  borderTop: "1px solid #fecaca",
+                  backgroundColor: "#dc2626",
+                  color: "#ffffff",
+                  fontFamily: "var(--font-dm-sans)",
+                  fontSize: "13px",
+                  fontWeight: 500,
                 }}
               >
-                <span
-                  style={{
-                    fontFamily: "var(--font-dm-sans)",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    color: "#111113",
-                  }}
-                >
-                  {selectedIds.size} selected
-                </span>
-                <button
-                  onClick={() => setBatchDeleteOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors hover:opacity-90"
-                  style={{
-                    backgroundColor: "#dc2626",
-                    color: "#ffffff",
-                    fontFamily: "var(--font-dm-sans)",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete Selected
-                </button>
-              </div>
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete Selected
+              </button>
             )}
-          </>
-        )}
-      </div>
+          </div>
+
+          {/* Grouped by channel */}
+          <div className="space-y-3">
+            {Array.from(grouped.entries()).map(([channelId, channelSubs]) => {
+              const isCollapsed = collapsedChannels.has(channelId);
+              const channelSubIds = channelSubs.map((s) => s.id);
+              const allChannelSelected = channelSubIds.every((id) => selectedIds.has(id));
+              const someChannelSelected = channelSubIds.some((id) => selectedIds.has(id)) && !allChannelSelected;
+              const channelType = getChannelType(channelId);
+
+              return (
+                <div
+                  key={channelId}
+                  className="overflow-hidden rounded-lg bg-white"
+                  style={{ border: "1px solid #e8e8e5" }}
+                >
+                  {/* Channel header */}
+                  <div
+                    className="flex items-center gap-3 px-5 py-3 cursor-pointer select-none"
+                    style={{ backgroundColor: "#fafaf9", borderBottom: isCollapsed ? "none" : "1px solid #e8e8e5" }}
+                    onClick={() => toggleChannel(channelId)}
+                  >
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={allChannelSelected ? true : someChannelSelected ? "indeterminate" : false}
+                        onCheckedChange={() => toggleSelectChannel(channelId)}
+                      />
+                    </div>
+                    <ChevronRight
+                      className="h-4 w-4 transition-transform"
+                      style={{
+                        color: "#9ca3af",
+                        transform: isCollapsed ? "rotate(0deg)" : "rotate(90deg)",
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontFamily: "var(--font-dm-sans)",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        color: "#111113",
+                      }}
+                    >
+                      {getChannelName(channelId)}
+                    </span>
+                    {channelType && (
+                      <span
+                        className="rounded-full px-2 py-0.5"
+                        style={{
+                          fontFamily: "var(--font-dm-sans)",
+                          fontSize: "11px",
+                          fontWeight: 500,
+                          color: "#6b7280",
+                          backgroundColor: "#f3f3f1",
+                        }}
+                      >
+                        {channelType}
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontFamily: "var(--font-dm-sans)",
+                        fontSize: "12px",
+                        color: "#9ca3af",
+                        marginLeft: "auto",
+                      }}
+                    >
+                      {channelSubs.length} subscription{channelSubs.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+
+                  {/* Subscription rows */}
+                  {!isCollapsed && (
+                    <table className="w-full">
+                      <thead>
+                        <tr>
+                          {["", "Type", "Target", "Version Filter", ""].map(
+                            (heading, i) => (
+                              <th
+                                key={i}
+                                className={`py-2 text-left ${i === 0 ? "w-10 px-5" : i === 4 ? "w-20 px-5" : "px-5"}`}
+                                style={{
+                                  fontFamily: "var(--font-dm-sans)",
+                                  fontSize: "11px",
+                                  fontWeight: 500,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.08em",
+                                  color: "#9ca3af",
+                                  borderBottom: "1px solid #e8e8e5",
+                                }}
+                              >
+                                {heading}
+                              </th>
+                            )
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {channelSubs.map((sub) => (
+                          <tr
+                            key={sub.id}
+                            className="transition-colors hover:bg-[#fafaf9]"
+                            style={{ borderBottom: "1px solid #e8e8e5" }}
+                          >
+                            {/* Checkbox */}
+                            <td className="w-10 px-5 py-3">
+                              <Checkbox
+                                checked={selectedIds.has(sub.id)}
+                                onCheckedChange={() => toggleSelect(sub.id)}
+                              />
+                            </td>
+
+                            {/* Type */}
+                            <td className="px-5 py-3">
+                              <SubTypeBadge type={sub.type} />
+                            </td>
+
+                            {/* Target */}
+                            <td
+                              className="px-5 py-3"
+                              style={{
+                                fontFamily: "var(--font-dm-sans)",
+                                fontSize: "14px",
+                                fontWeight: 500,
+                                color: "#111113",
+                              }}
+                            >
+                              {sub.type === "source_release"
+                                ? getSourceLabel(sub.source_id!)
+                                : getProjectName(sub.project_id!)}
+                            </td>
+
+                            {/* Version Filter */}
+                            <td
+                              className="px-5 py-3"
+                              style={{
+                                fontFamily: sub.version_filter
+                                  ? "'JetBrains Mono', monospace"
+                                  : "var(--font-dm-sans)",
+                                fontSize: "13px",
+                                color: sub.version_filter ? "#111113" : "#9ca3af",
+                              }}
+                            >
+                              {sub.version_filter || "\u2014"}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="w-20 px-5 py-3">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => setEditingSub(sub)}
+                                  className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setDeletingId(sub.id)}
+                                  className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
