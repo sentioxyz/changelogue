@@ -455,7 +455,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
   for (const s of sources) sourceMap.set(s.id, s);
 
   const latestSrc = latest ? sourceMap.get(latest.source_id) : undefined;
-  const LatestIcon = latestSrc ? getProviderIcon(latestSrc.provider) : undefined;
+  const latestIcon = latestSrc ? getProviderIcon(latestSrc.provider) : undefined;
 
   const urgencyStyle = latestSr?.report?.urgency
     ? URGENCY_COLORS[latestSr.report.urgency.toLowerCase()]
@@ -489,7 +489,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
             >
               {latest.version}
             </span>
-            {LatestIcon && <LatestIcon size={12} className="shrink-0" style={{ color: "#9ca3af" }} />}
+            {latestIcon && latestIcon({ size: 12, className: "shrink-0", style: { color: "#9ca3af" } })}
           </>
         ) : (
           <span className="text-[12px] italic" style={{ color: "#c4c4c0" }}>

@@ -203,7 +203,7 @@ fi
 # Create source subscription
 if [ -n "$CHANNEL_ID" ] && [ -n "$SOURCE_ID" ]; then
     api POST "/api/v1/subscriptions" \
-        -d "{\"type\":\"source\",\"channel_id\":\"$CHANNEL_ID\",\"source_id\":\"$SOURCE_ID\"}"
+        -d "{\"type\":\"source_release\",\"channel_id\":\"$CHANNEL_ID\",\"source_id\":\"$SOURCE_ID\"}"
     if [ "$HTTP_CODE" = "201" ]; then
         SUB_ID=$(extract_id)
         pass "Create source subscription (id: $SUB_ID)"
