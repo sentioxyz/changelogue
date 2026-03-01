@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import type { Source } from "@/lib/api/types";
 
 const PROVIDER_PRIORITY: Record<string, number> = {
@@ -10,7 +11,20 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   "ecr-public": 3,
 };
 
-function getAvatarUrl(sources: Source[]): string | null {
+interface AvatarCandidate {
+  url: string;
+  async?: false;
+}
+
+interface AsyncAvatarCandidate {
+  provider: "gitlab";
+  owner: string;
+  async: true;
+}
+
+type AvatarResult = AvatarCandidate | AsyncAvatarCandidate | null;
+
+function getAvatarCandidate(sources: Source[]): AvatarResult {
   const sorted = [...sources]
     .filter((s) => s.provider in PROVIDER_PRIORITY)
     .sort((a, b) => (PROVIDER_PRIORITY[a.provider] ?? 99) - (PROVIDER_PRIORITY[b.provider] ?? 99));
@@ -20,9 +34,30 @@ function getAvatarUrl(sources: Source[]): string | null {
     if (!owner) continue;
 
     if (source.provider === "github") {
-      return `https://github.com/${owner}.png?size=64`;
+      return { url: `https://github.com/${owner}.png?size=64` };
     }
-    // GitLab, Docker Hub, ECR don't have simple public avatar URLs
+    if (source.provider === "gitlab") {
+      return { provider: "gitlab", owner, async: true };
+    }
+  }
+  return null;
+}
+
+async function fetchGitLabAvatar(owner: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://gitlab.com/api/v4/groups/${encodeURIComponent(owner)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.avatar_url) return data.avatar_url;
+    }
+    // Try as user if group lookup fails
+    const userRes = await fetch(`https://gitlab.com/api/v4/users?username=${encodeURIComponent(owner)}`);
+    if (userRes.ok) {
+      const users = await userRes.json();
+      if (users[0]?.avatar_url) return users[0].avatar_url;
+    }
+  } catch {
+    // Network error — fall back to placeholder
   }
   return null;
 }
@@ -49,7 +84,15 @@ interface ProjectLogoProps {
 
 export function ProjectLogo({ name, sources = [], size = 40 }: ProjectLogoProps) {
   const [imgError, setImgError] = useState(false);
-  const avatarUrl = getAvatarUrl(sources);
+  const candidate = getAvatarCandidate(sources);
+
+  const gitlabOwner = candidate?.async ? candidate.owner : null;
+  const { data: gitlabAvatarUrl } = useSWR(
+    gitlabOwner ? `gitlab-avatar-${gitlabOwner}` : null,
+    () => fetchGitLabAvatar(gitlabOwner!),
+  );
+
+  const avatarUrl = candidate?.async ? gitlabAvatarUrl ?? null : candidate?.url ?? null;
   const showImg = avatarUrl && !imgError;
 
   const initial = (name[0] ?? "?").toUpperCase();
