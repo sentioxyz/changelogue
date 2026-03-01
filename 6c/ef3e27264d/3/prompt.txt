@@ -1,0 +1,130 @@
+Implement the following plan:
+
+# Rename Subscription Types: source→source_release, project→semantic_release
+
+## Context
+
+The current subscription type values `"source"` and `"project"` are confusing — they describe what entity you're subscribing to, not what you receive. Users expect to choose between "Source Releases" (raw release notifications) and "Semantic Releases" (AI-analyzed reports). Renaming to `source_release` / `semantic_release` makes the intent clear.
+
+## Scope
+
+Rename the subscription `type` column values across the full stack: DB schema + migration, Go handlers, Go store, Go tests, notification routing, agent orchestrator, frontend types/form/page, API docs.
+
+**Old → New:**
+- `"source"` → `"source_release"`
+- `"project"` → `"semantic_release"`
+
+## Files to Modify
+
+### Backend (Go)
+1. `internal/db/migrations.go` — Schema CHECK constraints + data migration UPDATE
+2. `internal/api/subscriptions.go` — Validation checks, error messages, batch logic
+3. `internal/api/pgstore.go` — SQL WHERE clauses in `ListSourceSubscriptions` and `ListProjectSubscriptions`
+4. `internal/api/subscriptions_test.go` — All test data and assertions
+5. `internal/api/server.go` — No changes needed (routes don't reference type values)
+6. `internal/routing/worker.go` — No changes needed (calls store methods, doesn't check type values directly)
+7. `internal/routing/worker_test.go` — Test data Type fields
+8. `internal/agent/orchestrator.go` — No changes needed (calls store methods)
+9. `internal/agent/orchestrator_test.go` — Mock test data Type fields
+
+### Frontend
+10. `web/lib/api/types.ts` — TypeScript union types
+11. `web/lib/api/client.ts` — No changes needed (doesn't reference type values)
+12. `web/components/subscriptions/subscription-form.tsx` — Form state, conditionals, select items, labels
+13. `web/app/subscriptions/page.tsx` — Badge color map keys, conditional display
+
+### Docs
+14. `API.md` — Type descriptions and example request bodies
+
+## Implementation Steps
+
+### Step 1: Update DB schema (`internal/db/migrations.go`)
+
+Change the schema string:
+- Line 92 comment: `source-level and project-level` → `source releases and semantic releases`
+- Line 96: `CHECK (type IN ('source', 'project'))` → `CHECK (type IN ('source_release', 'semantic_release'))`
+- Lines 102-103: `type = 'source'` → `type = 'source_release'`, `type = 'project'` → `type = 'semantic_release'`
+
+Add a post-schema migration block in `RunMigrations` (after schema exec) to migrate existing data:
+```sql
+UPDATE subscriptions SET type = 'source_release' WHERE type = 'source';
+UPDATE subscriptions SET type = 'semantic_release' WHERE type = 'project';
+ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_type_check;
+ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_type_check CHECK (type IN ('source_release', 'semantic_release'));
+```
+
+Note: Since schema uses `CREATE TABLE IF NOT EXISTS`, existing tables won't have their CHECK updated by the schema. The ALTER statements handle this. The UPDATE + ALTER approach is safe because:
+- Fresh DBs get the new CHECK from CREATE TABLE
+- Existing DBs get data migrated + constraint swapped by ALTER
+
+### Step 2: Update Go handler (`internal/api/subscriptions.go`)
+
+Replace all `"source"` → `"source_release"` and `"project"` → `"semantic_release"` in:
+- Validation checks (4 occurrences in Create, 4 in Update, 3 in BatchCreate)
+- Error messages mentioning the type values
+- Conditional logic (`input.Type == "project"` → `input.Type == "semantic_release"`)
+
+### Step 3: Update Go store queries (`internal/api/pgstore.go`)
+
+- Line ~700: `WHERE type = 'source'` → `WHERE type = 'source_release'`
+- Line ~848: `WHERE type = 'project'` → `WHERE type = 'semantic_release'`
+
+### Step 4: Update Go tests (`internal/api/subscriptions_test.go`)
+
+All test structs and JSON bodies: replace `Type: "source"` → `Type: "source_release"`, `"type":"source"` → `"type":"source_release"`, etc.
+
+### Step 5: Update routing and agent test data
+
+- `internal/routing/worker_test.go`: All `Type: "source"` → `Type: "source_release"`
+- `internal/agent/orchestrator_test.go`: No type string literals to change (uses store method)
+
+### Step 6: Update frontend types (`web/lib/api/types.ts`)
+
+Change all three union types: `"source" | "project"` → `"source_release" | "semantic_release"`
+
+### Step 7: Update subscription form (`web/components/subscriptions/subscription-form.tsx`)
+
+- State default: `"project"` → `"semantic_release"`
+- All conditionals: `type === "source"` → `type === "source_release"`, `type === "project"` → `type === "semantic_release"`
+- Select items: `value="project"` → `value="semantic_release"`, label "Project" → "Semantic Release"
+- Select items: `value="source"` → `value="source_release"`, label "Source" → "Source Release"
+
+### Step 8: Update subscriptions page (`web/app/subscriptions/page.tsx`)
+
+- Badge color map: `source:` → `source_release:`, `project:` → `semantic_release:`
+- Conditional: `s.type === "source"` → `s.type === "source_release"`, `sub.type === "source"` → `sub.type === "source_release"`
+
+### Step 9: Update API.md
+
+- Description of two types
+- Example request bodies
+
+### Step 10: Verify
+
+- `go test ./internal/api/...` — all tests pass
+- `go test ./internal/routing/...` — routing tests pass
+- `go build -o changelogue ./cmd/server` — compiles
+- `cd web && npx tsc --noEmit` — no TS errors
+- `cd web && npm run build` — frontend builds
+
+## Commit
+
+Single commit: `refactor: rename subscription types source→source_release, project→semantic_release`
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+
+---
+
+➜  ReleaseBeacon git:(main) ✗ LOG_LEVEL=debug make run
+go build -o changelogue ./cmd/server
+DATABASE_URL="postgres://postgres:postgres@localhost:5432/releaseguard?sslmode=disable" LISTEN_ADDR=":8080" NO_AUTH=true ./changelogue
+time=2026-03-01T14:19:57.579+08:00 level=ERROR msg="migrations failed" err="subscription type migration: ERROR: new row for relation \"subscriptions\" violates check constraint \"subscriptions_check\" (SQLSTATE 23514)"
+
+---
+
+all good, please support batch delete for subscriptions as well
+
+---
+
+[Request interrupted by user for tool use]
