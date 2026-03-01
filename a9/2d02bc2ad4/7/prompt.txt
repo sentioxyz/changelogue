@@ -1,0 +1,5 @@
+CI is failing https://github.com/sentioxyz/Changelogue/actions/runs/22542051222
+
+---
+
+yes
