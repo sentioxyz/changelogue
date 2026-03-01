@@ -32,7 +32,8 @@ node_modules/
 *~
 
 # Tools
-.claude/
+.claude/*
+!.claude/skills/
 .entire/
 .worktrees/
 .playwright-mcp/
