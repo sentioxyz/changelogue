@@ -37,10 +37,6 @@ function UrgencyChip({ urgency }: { urgency: string }) {
 
 /* ---------- Helpers ---------- */
 
-function truncate(str: string, max: number): string {
-  return str.length > max ? str.slice(0, max) + "\u2026" : str;
-}
-
 const PER_PAGE = 15;
 
 /* ---------- Main component ---------- */

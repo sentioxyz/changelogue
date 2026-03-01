@@ -16,6 +16,7 @@ type SubscriptionsStore interface {
 	GetSubscription(ctx context.Context, id string) (*models.Subscription, error)
 	UpdateSubscription(ctx context.Context, id string, sub *models.Subscription) error
 	DeleteSubscription(ctx context.Context, id string) error
+	DeleteSubscriptionBatch(ctx context.Context, ids []string) error
 }
 
 // SubscriptionsHandler implements HTTP handlers for the /subscriptions resource.
@@ -51,9 +52,9 @@ func (h *SubscriptionsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	sub.Type = strings.TrimSpace(sub.Type)
 	sub.ChannelID = strings.TrimSpace(sub.ChannelID)
-	// Validate type is source or project.
-	if sub.Type != "source" && sub.Type != "project" {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "type must be 'source' or 'project'")
+	// Validate type is source_release or semantic_release.
+	if sub.Type != "source_release" && sub.Type != "semantic_release" {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "type must be 'source_release' or 'semantic_release'")
 		return
 	}
 	if sub.ChannelID == "" {
@@ -61,12 +62,12 @@ func (h *SubscriptionsHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Validate that the corresponding ID is set for the type.
-	if sub.Type == "source" && (sub.SourceID == nil || *sub.SourceID == "") {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "source_id is required when type is 'source'")
+	if sub.Type == "source_release" && (sub.SourceID == nil || *sub.SourceID == "") {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "source_id is required when type is 'source_release'")
 		return
 	}
-	if sub.Type == "project" && (sub.ProjectID == nil || *sub.ProjectID == "") {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_id is required when type is 'project'")
+	if sub.Type == "semantic_release" && (sub.ProjectID == nil || *sub.ProjectID == "") {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_id is required when type is 'semantic_release'")
 		return
 	}
 	if err := h.store.CreateSubscription(r.Context(), &sub); err != nil {
@@ -105,20 +106,20 @@ func (h *SubscriptionsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	sub.Type = strings.TrimSpace(sub.Type)
 	sub.ChannelID = strings.TrimSpace(sub.ChannelID)
-	if sub.Type != "source" && sub.Type != "project" {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "type must be 'source' or 'project'")
+	if sub.Type != "source_release" && sub.Type != "semantic_release" {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "type must be 'source_release' or 'semantic_release'")
 		return
 	}
 	if sub.ChannelID == "" {
 		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "channel_id is required")
 		return
 	}
-	if sub.Type == "source" && (sub.SourceID == nil || *sub.SourceID == "") {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "source_id is required when type is 'source'")
+	if sub.Type == "source_release" && (sub.SourceID == nil || *sub.SourceID == "") {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "source_id is required when type is 'source_release'")
 		return
 	}
-	if sub.Type == "project" && (sub.ProjectID == nil || *sub.ProjectID == "") {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_id is required when type is 'project'")
+	if sub.Type == "semantic_release" && (sub.ProjectID == nil || *sub.ProjectID == "") {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_id is required when type is 'semantic_release'")
 		return
 	}
 	if err := h.store.UpdateSubscription(r.Context(), id, &sub); err != nil {
@@ -161,8 +162,8 @@ func (h *SubscriptionsHandler) BatchCreate(w http.ResponseWriter, r *http.Reques
 	}
 	input.Type = strings.TrimSpace(input.Type)
 	input.ChannelID = strings.TrimSpace(input.ChannelID)
-	if input.Type != "source" && input.Type != "project" {
-		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "type must be 'source' or 'project'")
+	if input.Type != "source_release" && input.Type != "semantic_release" {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "type must be 'source_release' or 'semantic_release'")
 		return
 	}
 	if input.ChannelID == "" {
@@ -171,9 +172,9 @@ func (h *SubscriptionsHandler) BatchCreate(w http.ResponseWriter, r *http.Reques
 	}
 
 	var subs []models.Subscription
-	if input.Type == "project" {
+	if input.Type == "semantic_release" {
 		if len(input.ProjectIDs) == 0 {
-			RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_ids must not be empty when type is 'project'")
+			RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "project_ids must not be empty when type is 'semantic_release'")
 			return
 		}
 		for _, pid := range input.ProjectIDs {
@@ -187,7 +188,7 @@ func (h *SubscriptionsHandler) BatchCreate(w http.ResponseWriter, r *http.Reques
 		}
 	} else {
 		if len(input.SourceIDs) == 0 {
-			RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "source_ids must not be empty when type is 'source'")
+			RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "source_ids must not be empty when type is 'source_release'")
 			return
 		}
 		for _, sid := range input.SourceIDs {
@@ -207,4 +208,27 @@ func (h *SubscriptionsHandler) BatchCreate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	RespondJSON(w, r, http.StatusCreated, created)
+}
+
+// BatchDeleteSubscriptionInput is the request body for DELETE /subscriptions/batch.
+type BatchDeleteSubscriptionInput struct {
+	IDs []string `json:"ids"`
+}
+
+// BatchDelete handles DELETE /subscriptions/batch — deletes multiple subscriptions at once.
+func (h *SubscriptionsHandler) BatchDelete(w http.ResponseWriter, r *http.Request) {
+	var input BatchDeleteSubscriptionInput
+	if err := DecodeJSON(r, &input); err != nil {
+		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid JSON body")
+		return
+	}
+	if len(input.IDs) == 0 {
+		RespondError(w, r, http.StatusUnprocessableEntity, "validation_error", "ids must not be empty")
+		return
+	}
+	if err := h.store.DeleteSubscriptionBatch(r.Context(), input.IDs); err != nil {
+		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to delete subscriptions")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

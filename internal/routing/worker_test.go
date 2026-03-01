@@ -155,7 +155,7 @@ func TestNotifyWorker_Work(t *testing.T) {
 		},
 		subscriptions: map[string][]models.Subscription{
 			sourceID: {
-				{ID: "sub-1", ChannelID: channelID, Type: "source", SourceID: &sourceID},
+				{ID: "sub-1", ChannelID: channelID, Type: "source_release", SourceID: &sourceID},
 			},
 		},
 		channels: map[string]*models.NotificationChannel{
@@ -206,8 +206,8 @@ func TestNotifyWorker_MultipleSubscriptions(t *testing.T) {
 		},
 		subscriptions: map[string][]models.Subscription{
 			sourceID: {
-				{ID: "sub-1", ChannelID: "ch-webhook", Type: "source", SourceID: &sourceID},
-				{ID: "sub-2", ChannelID: "ch-slack", Type: "source", SourceID: &sourceID},
+				{ID: "sub-1", ChannelID: "ch-webhook", Type: "source_release", SourceID: &sourceID},
+				{ID: "sub-2", ChannelID: "ch-slack", Type: "source_release", SourceID: &sourceID},
 			},
 		},
 		channels: map[string]*models.NotificationChannel{
@@ -312,7 +312,7 @@ func TestNotifyWorker_UnknownChannelType(t *testing.T) {
 			sourceID: {ID: sourceID, ProjectID: "proj-1"},
 		},
 		subscriptions: map[string][]models.Subscription{
-			sourceID: {{ID: "sub-1", ChannelID: "ch-1", Type: "source", SourceID: &sourceID}},
+			sourceID: {{ID: "sub-1", ChannelID: "ch-1", Type: "source_release", SourceID: &sourceID}},
 		},
 		channels: map[string]*models.NotificationChannel{
 			"ch-1": {ID: "ch-1", Name: "pagerduty", Type: "pagerduty", Config: json.RawMessage(`{}`)},
@@ -350,7 +350,7 @@ func TestNotifyWorker_SenderError(t *testing.T) {
 			sourceID: {ID: sourceID, ProjectID: "proj-1"},
 		},
 		subscriptions: map[string][]models.Subscription{
-			sourceID: {{ID: "sub-1", ChannelID: "ch-1", Type: "source", SourceID: &sourceID}},
+			sourceID: {{ID: "sub-1", ChannelID: "ch-1", Type: "source_release", SourceID: &sourceID}},
 		},
 		channels: map[string]*models.NotificationChannel{
 			"ch-1": {ID: "ch-1", Name: "test", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},

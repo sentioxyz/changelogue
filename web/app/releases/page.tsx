@@ -7,7 +7,6 @@ import Link from "next/link";
 import {
   releases as releasesApi,
   projects as projectsApi,
-  sources as sourcesApi,
 } from "@/lib/api/client";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
@@ -15,13 +14,6 @@ import type { Release, Project } from "@/lib/api/types";
 import { ExternalLink } from "lucide-react";
 
 import { timeAgo } from "@/lib/format";
-
-interface ReleaseRow extends Release {
-  _projectName?: string;
-  _projectId?: string;
-  _provider?: string;
-  _repository?: string;
-}
 
 const PER_PAGE = 15;
 
@@ -58,35 +50,11 @@ function ReleasesPageInner() {
   const [page, setPage] = useState(1);
   const [projectFilter, setProjectFilter] = useState<string>(initialProject);
 
-  /* Fetch projects for the filter dropdown + source enrichment */
-  const { data: projectsData } = useSWR("projects-for-filter", () =>
-    projectsApi.list()
-  );
-
-  /* Build a map: sourceId -> { provider, repository, projectName, projectId } */
-  const { data: sourceMap } = useSWR(
-    projectsData ? "source-map-for-releases" : null,
-    async () => {
-      if (!projectsData?.data?.length) return new Map<string, { provider: string; repository: string; projectName: string; projectId: string }>();
-      const map = new Map<string, { provider: string; repository: string; projectName: string; projectId: string }>();
-      await Promise.all(
-        projectsData.data.map(async (p: Project) => {
-          const res = await sourcesApi.listByProject(p.id).catch(() => null);
-          if (res?.data) {
-            for (const s of res.data) {
-              map.set(s.id, {
-                provider: s.provider,
-                repository: s.repository,
-                projectName: p.name,
-                projectId: p.id,
-              });
-            }
-          }
-        })
-      );
-      return map;
-    }
-  );
+  /* Fetch projects for the filter dropdown */
+  const { data: projectsData } = useSWR("projects-for-filter", async () => {
+    const firstPage = await projectsApi.list(1, 100);
+    return firstPage;
+  });
 
   /* Fetch releases — scoped by project or all */
   const { data: scopedData, isLoading: scopedLoading } = useSWR(
@@ -101,22 +69,11 @@ function ReleasesPageInner() {
 
   const isLoading = projectFilter !== "all" ? scopedLoading : allLoading;
 
-  /* Enrich releases with source metadata */
-  const rawReleases: Release[] =
+  /* Releases come pre-enriched with project/source metadata from the backend */
+  const releases: Release[] =
     projectFilter !== "all"
       ? scopedData?.data ?? []
       : allReleasesData?.data ?? [];
-
-  const releases: ReleaseRow[] = rawReleases.map((r) => {
-    const info = sourceMap?.get(r.source_id);
-    return {
-      ...r,
-      _projectName: info?.projectName,
-      _projectId: info?.projectId,
-      _provider: info?.provider,
-      _repository: info?.repository,
-    };
-  });
 
   /* Pagination math */
   const activeData = projectFilter !== "all" ? scopedData : allReleasesData;
@@ -230,9 +187,9 @@ function ReleasesPageInner() {
                 >
                   {/* Project */}
                   <td className="px-4 py-3">
-                    {release._projectId ? (
+                    {release.project_id ? (
                       <Link
-                        href={`/projects/${release._projectId}`}
+                        href={`/projects/${release.project_id}`}
                         className="hover:underline"
                         style={{
                           fontFamily: "var(--font-dm-sans)",
@@ -241,7 +198,7 @@ function ReleasesPageInner() {
                           fontWeight: 500,
                         }}
                       >
-                        {release._projectName ?? "\u2014"}
+                        {release.project_name ?? "\u2014"}
                       </Link>
                     ) : (
                       <span
@@ -258,8 +215,8 @@ function ReleasesPageInner() {
 
                   {/* Provider */}
                   <td className="px-4 py-3">
-                    {release._provider ? (
-                      <ProviderBadge provider={release._provider} />
+                    {release.provider ? (
+                      <ProviderBadge provider={release.provider} />
                     ) : (
                       <span
                         style={{
@@ -282,7 +239,7 @@ function ReleasesPageInner() {
                         color: "#374151",
                       }}
                     >
-                      {release._repository ?? release.source_id}
+                      {release.repository ?? release.source_id}
                     </span>
                   </td>
 
@@ -323,8 +280,8 @@ function ReleasesPageInner() {
 
                   {/* Provider link */}
                   <td className="px-4 py-3">
-                    {release._provider && release._repository && (() => {
-                      const url = getProviderUrl(release._provider, release._repository, release.version);
+                    {release.provider && release.repository && (() => {
+                      const url = getProviderUrl(release.provider, release.repository, release.version);
                       return url ? (
                         <a
                           href={url}

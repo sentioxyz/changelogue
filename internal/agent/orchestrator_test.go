@@ -147,7 +147,7 @@ func TestSendProjectNotifications_WithSubscriptions(t *testing.T) {
 	store := &mockOrchestratorStore{
 		project: &models.Project{ID: projectID, Name: "My Project"},
 		projectSubscriptions: []models.Subscription{
-			{ID: "sub-1", ChannelID: channelID, Type: "project", ProjectID: &projectID},
+			{ID: "sub-1", ChannelID: channelID, Type: "semantic_release", ProjectID: &projectID},
 		},
 		channels: map[string]*models.NotificationChannel{
 			channelID: {
@@ -236,7 +236,7 @@ func TestSendProjectNotifications_ChannelNotFound(t *testing.T) {
 	store := &mockOrchestratorStore{
 		project: &models.Project{ID: projectID, Name: "My Project"},
 		projectSubscriptions: []models.Subscription{
-			{ID: "sub-1", ChannelID: "nonexistent-channel", Type: "project", ProjectID: &projectID},
+			{ID: "sub-1", ChannelID: "nonexistent-channel", Type: "semantic_release", ProjectID: &projectID},
 		},
 		channels: map[string]*models.NotificationChannel{}, // empty — channel lookup will fail
 	}
@@ -262,7 +262,7 @@ func TestSendProjectNotifications_UnknownChannelType(t *testing.T) {
 	store := &mockOrchestratorStore{
 		project: &models.Project{ID: projectID, Name: "My Project"},
 		projectSubscriptions: []models.Subscription{
-			{ID: "sub-1", ChannelID: channelID, Type: "project", ProjectID: &projectID},
+			{ID: "sub-1", ChannelID: channelID, Type: "semantic_release", ProjectID: &projectID},
 		},
 		channels: map[string]*models.NotificationChannel{
 			channelID: {
@@ -294,9 +294,9 @@ func TestSendProjectNotifications_MultipleSubscriptions(t *testing.T) {
 	store := &mockOrchestratorStore{
 		project: &models.Project{ID: projectID, Name: "My Project"},
 		projectSubscriptions: []models.Subscription{
-			{ID: "sub-1", ChannelID: "ch-webhook", Type: "project", ProjectID: &projectID},
-			{ID: "sub-2", ChannelID: "ch-slack", Type: "project", ProjectID: &projectID},
-			{ID: "sub-3", ChannelID: "ch-discord", Type: "project", ProjectID: &projectID},
+			{ID: "sub-1", ChannelID: "ch-webhook", Type: "semantic_release", ProjectID: &projectID},
+			{ID: "sub-2", ChannelID: "ch-slack", Type: "semantic_release", ProjectID: &projectID},
+			{ID: "sub-3", ChannelID: "ch-discord", Type: "semantic_release", ProjectID: &projectID},
 		},
 		channels: map[string]*models.NotificationChannel{
 			"ch-webhook": {ID: "ch-webhook", Name: "webhook", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},

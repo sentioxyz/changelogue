@@ -9,6 +9,7 @@ import type {
   Subscription,
   SubscriptionInput,
   BatchSubscriptionInput,
+  BatchDeleteSubscriptionInput,
   NotificationChannel,
   ChannelInput,
   ContextSource,
@@ -164,6 +165,11 @@ export const subscriptions = {
     }),
   delete: (id: string) =>
     request<ApiResponse<null>>(`/subscriptions/${id}`, { method: "DELETE" }),
+  batchDelete: (input: BatchDeleteSubscriptionInput) =>
+    request<ApiResponse<null>>("/subscriptions/batch", {
+      method: "DELETE",
+      body: JSON.stringify(input),
+    }),
 };
 
 // --- Notification Channels ---

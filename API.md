@@ -8,7 +8,7 @@ RESTful HTTP API serving the Next.js dashboard, agent orchestration, and externa
 - Versioned prefix: `/api/v1`
 - All entity IDs are UUIDs (string type)
 - Sources and context sources are nested under projects
-- Two subscription types: `source` (per-source) and `project` (covers all sources)
+- Two subscription types: `source_release` (per-source) and `semantic_release` (covers all sources)
 - Agent runs are triggered via API and processed asynchronously
 
 ---
@@ -88,8 +88,8 @@ Agent runs execute the LLM agent to produce semantic releases.
 ### Subscriptions (full CRUD)
 
 Subscriptions link a notification channel to either a specific source or an entire project. Two types:
-- `source` — triggers on releases from a specific source (requires `source_id`)
-- `project` — triggers on semantic releases for the project (requires `project_id`)
+- `source_release` — triggers on releases from a specific source (requires `source_id`)
+- `semantic_release` — triggers on semantic releases for the project (requires `project_id`)
 
 | Method   | Path                          | Description              |
 |----------|-------------------------------|--------------------------|
@@ -99,6 +99,7 @@ Subscriptions link a notification channel to either a specific source or an enti
 | `PUT`    | `/api/v1/subscriptions/{id}`  | Update a subscription    |
 | `DELETE` | `/api/v1/subscriptions/{id}`  | Delete a subscription    |
 | `POST`   | `/api/v1/subscriptions/batch` | Batch-create subscriptions |
+| `DELETE` | `/api/v1/subscriptions/batch` | Batch-delete subscriptions |
 
 ### Notification Channels
 
@@ -294,7 +295,7 @@ If `trigger` is omitted, it defaults to `"manual"`.
 ```json
 {
   "channel_id": "aa0e8400-e29b-41d4-a716-446655440005",
-  "type": "source",
+  "type": "source_release",
   "source_id": "660e8400-e29b-41d4-a716-446655440001",
   "version_filter": "^\\d+\\.\\d+\\.0$"
 }
@@ -305,13 +306,13 @@ Or for project-level subscriptions:
 ```json
 {
   "channel_id": "aa0e8400-e29b-41d4-a716-446655440005",
-  "type": "project",
+  "type": "semantic_release",
   "project_id": "880e8400-e29b-41d4-a716-446655440003",
   "version_filter": ""
 }
 ```
 
-The `type` must be either `"source"` or `"project"`. When `type` is `"source"`, `source_id` is required. When `type` is `"project"`, `project_id` is required. Response includes `id` (UUID), `created_at` fields.
+The `type` must be either `"source_release"` or `"semantic_release"`. When `type` is `"source_release"`, `source_id` is required. When `type` is `"semantic_release"`, `project_id` is required. Response includes `id` (UUID), `created_at` fields.
 
 ### Batch Subscription (request body for POST /subscriptions/batch)
 
@@ -322,7 +323,7 @@ For project-level subscriptions:
 ```json
 {
   "channel_id": "aa0e8400-e29b-41d4-a716-446655440005",
-  "type": "project",
+  "type": "semantic_release",
   "project_ids": [
     "880e8400-e29b-41d4-a716-446655440003",
     "990e8400-e29b-41d4-a716-446655440004"
@@ -336,7 +337,7 @@ For source-level subscriptions:
 ```json
 {
   "channel_id": "aa0e8400-e29b-41d4-a716-446655440005",
-  "type": "source",
+  "type": "source_release",
   "source_ids": [
     "660e8400-e29b-41d4-a716-446655440001",
     "770e8400-e29b-41d4-a716-446655440002"
@@ -346,6 +347,21 @@ For source-level subscriptions:
 ```
 
 Response: `201 Created` with `data` containing an array of created subscriptions (same fields as single subscription).
+
+### Batch Delete Subscriptions (request body for DELETE /subscriptions/batch)
+
+Delete multiple subscriptions at once by their IDs.
+
+```json
+{
+  "ids": [
+    "550e8400-e29b-41d4-a716-446655440000",
+    "660e8400-e29b-41d4-a716-446655440001"
+  ]
+}
+```
+
+Response: `204 No Content`.
 
 ### Notification Channel (request body for POST/PUT)
 

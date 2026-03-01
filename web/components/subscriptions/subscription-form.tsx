@@ -26,7 +26,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
   const isEditing = !!initial;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [type, setType] = useState<"source" | "project">(initial?.type ?? "project");
+  const [type, setType] = useState<"source_release" | "semantic_release">(initial?.type ?? "semantic_release");
   const [channelId, setChannelId] = useState(initial?.channel_id ?? "");
   // Single-select state (edit mode)
   const [projectId, setProjectId] = useState(initial?.project_id ?? "");
@@ -41,7 +41,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
 
   // Edit mode: fetch sources for the selected project
   const { data: sourcesData } = useSWR(
-    type === "source" && isEditing && projectId
+    type === "source_release" && isEditing && projectId
       ? `sources-for-sub-${projectId}`
       : null,
     () => sourcesApi.listByProject(projectId)
@@ -50,7 +50,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
   // Create mode (source type): fetch sources for ALL projects
   const projectIds = projectsData?.data.map((p) => p.id) ?? [];
   const { data: allSourcesData } = useSWR(
-    type === "source" && !isEditing && projectIds.length > 0
+    type === "source_release" && !isEditing && projectIds.length > 0
       ? `all-sources-for-sub-${projectIds.join(",")}`
       : null,
     async () => {
@@ -116,16 +116,16 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
         await onSubmit({
           channel_id: channelId,
           type,
-          source_id: type === "source" ? sourceId : undefined,
-          project_id: type === "project" ? projectId : undefined,
+          source_id: type === "source_release" ? sourceId : undefined,
+          project_id: type === "semantic_release" ? projectId : undefined,
           version_filter: versionFilter || undefined,
         });
       } else if (onBatchSubmit) {
         await onBatchSubmit({
           channel_id: channelId,
           type,
-          project_ids: type === "project" ? selectedProjectIds : undefined,
-          source_ids: type === "source" ? selectedSourceIds : undefined,
+          project_ids: type === "semantic_release" ? selectedProjectIds : undefined,
+          source_ids: type === "source_release" ? selectedSourceIds : undefined,
           version_filter: versionFilter || undefined,
         });
       }
@@ -146,17 +146,17 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
       {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       <div className="space-y-2">
         <Label>Subscription Type</Label>
-        <Select value={type} onValueChange={(v) => { setType(v as "source" | "project"); setSelectedProjectIds([]); setSelectedSourceIds([]); }}>
+        <Select value={type} onValueChange={(v) => { setType(v as "source_release" | "semantic_release"); setSelectedProjectIds([]); setSelectedSourceIds([]); }}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="project">Project</SelectItem>
-            <SelectItem value="source">Source</SelectItem>
+            <SelectItem value="semantic_release">Semantic Release</SelectItem>
+            <SelectItem value="source_release">Source Release</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* PROJECT SELECTION */}
-      {type === "project" && isEditing && (
+      {type === "semantic_release" && isEditing && (
         <div className="space-y-2">
           <Label>Project</Label>
           <Select value={projectId} onValueChange={setProjectId} required>
@@ -169,7 +169,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
           </Select>
         </div>
       )}
-      {type === "project" && !isEditing && (
+      {type === "semantic_release" && !isEditing && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>Projects</Label>
@@ -202,7 +202,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
       )}
 
       {/* SOURCE SELECTION */}
-      {type === "source" && isEditing && (
+      {type === "source_release" && isEditing && (
         <>
           <div className="space-y-2">
             <Label>Project (to list sources)</Label>
@@ -228,7 +228,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
           </div>
         </>
       )}
-      {type === "source" && !isEditing && (
+      {type === "source_release" && !isEditing && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>Sources</Label>

@@ -89,18 +89,18 @@ CREATE TABLE IF NOT EXISTS notification_channels (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Subscriptions: two types (source-level and project-level)
+-- Subscriptions: two types (source releases and semantic releases)
 CREATE TABLE IF NOT EXISTS subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id UUID NOT NULL REFERENCES notification_channels(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('source', 'project')),
+    type VARCHAR(50) NOT NULL CHECK (type IN ('source_release', 'semantic_release')),
     source_id UUID REFERENCES sources(id) ON DELETE CASCADE,
     project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
     version_filter TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CHECK (
-        (type = 'source'  AND source_id  IS NOT NULL AND project_id IS NULL) OR
-        (type = 'project' AND project_id IS NOT NULL AND source_id  IS NULL)
+        (type = 'source_release'   AND source_id  IS NOT NULL AND project_id IS NULL) OR
+        (type = 'semantic_release' AND project_id IS NOT NULL AND source_id  IS NULL)
     )
 );
 
@@ -171,6 +171,23 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 
 	if _, err := pool.Exec(ctx, schema); err != nil {
 		return fmt.Errorf("app migrations: %w", err)
+	}
+
+	// Migrate existing subscription type values: source→source_release, project→semantic_release.
+	// Drop old CHECK constraints first (both the named type check and the unnamed
+	// composite check referencing old values), then UPDATE data, then re-add constraints.
+	if _, err := pool.Exec(ctx, `
+		ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_type_check;
+		ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_check;
+		UPDATE subscriptions SET type = 'source_release' WHERE type = 'source';
+		UPDATE subscriptions SET type = 'semantic_release' WHERE type = 'project';
+		ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_type_check CHECK (type IN ('source_release', 'semantic_release'));
+		ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_check CHECK (
+			(type = 'source_release'   AND source_id IS NOT NULL AND project_id IS NULL) OR
+			(type = 'semantic_release' AND project_id IS NOT NULL AND source_id IS NULL)
+		);
+	`); err != nil {
+		return fmt.Errorf("subscription type migration: %w", err)
 	}
 	return nil
 }

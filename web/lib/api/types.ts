@@ -74,6 +74,10 @@ export interface Release {
   raw_data?: Record<string, unknown>;
   released_at?: string;
   created_at: string;
+  project_id?: string;
+  project_name?: string;
+  provider?: string;
+  repository?: string;
 }
 
 export interface ContextSource {
@@ -149,7 +153,7 @@ export interface ChannelInput {
 export interface Subscription {
   id: string;
   channel_id: string;
-  type: "source" | "project";
+  type: "source_release" | "semantic_release";
   source_id?: string;
   project_id?: string;
   version_filter?: string;
@@ -158,7 +162,7 @@ export interface Subscription {
 
 export interface SubscriptionInput {
   channel_id: string;
-  type: "source" | "project";
+  type: "source_release" | "semantic_release";
   source_id?: string;
   project_id?: string;
   version_filter?: string;
@@ -166,10 +170,14 @@ export interface SubscriptionInput {
 
 export interface BatchSubscriptionInput {
   channel_id: string;
-  type: "source" | "project";
+  type: "source_release" | "semantic_release";
   project_ids?: string[];
   source_ids?: string[];
   version_filter?: string;
+}
+
+export interface BatchDeleteSubscriptionInput {
+  ids: string[];
 }
 
 // --- System Types ---
