@@ -3,7 +3,7 @@
   "checkpoint_id": "3813ed42819f",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 10,
+  "checkpoints_count": 17,
   "files_touched": [
     "docs/plans/2026-03-01-ecr-public-provider-design.md",
     "docs/plans/lessons.md",
@@ -77,13 +77,20 @@
       "context": "/38/13ed42819f/7/context.md",
       "content_hash": "/38/13ed42819f/7/content_hash.txt",
       "prompt": "/38/13ed42819f/7/prompt.txt"
+    },
+    {
+      "metadata": "/38/13ed42819f/8/metadata.json",
+      "transcript": "/38/13ed42819f/8/full.jsonl",
+      "context": "/38/13ed42819f/8/context.md",
+      "content_hash": "/38/13ed42819f/8/content_hash.txt",
+      "prompt": "/38/13ed42819f/8/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 59728346,
+    "input_tokens": 71995790,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 124404,
-    "api_call_count": 644
+    "output_tokens": 154530,
+    "api_call_count": 791
   }
 }
