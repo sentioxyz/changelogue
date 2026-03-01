@@ -8,7 +8,7 @@ import {
   projects as projectsApi,
   sources as sourcesApi,
 } from "@/lib/api/client";
-import type { Source, Subscription } from "@/lib/api/types";
+import type { Source, Subscription, BatchSubscriptionInput } from "@/lib/api/types";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -261,6 +261,9 @@ export default function SubscriptionsPage() {
             title="Create Subscription"
             onSubmit={async (input) => {
               await subsApi.create(input);
+            }}
+            onBatchSubmit={async (input) => {
+              await subsApi.batchCreate(input);
             }}
             onSuccess={() => {
               setCreateOpen(false);
