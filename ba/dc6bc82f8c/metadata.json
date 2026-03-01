@@ -3,7 +3,7 @@
   "checkpoint_id": "badc6bc82f8c",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "internal/api/pgstore.go"
   ],
@@ -28,13 +28,20 @@
       "context": "/ba/dc6bc82f8c/2/context.md",
       "content_hash": "/ba/dc6bc82f8c/2/content_hash.txt",
       "prompt": "/ba/dc6bc82f8c/2/prompt.txt"
+    },
+    {
+      "metadata": "/ba/dc6bc82f8c/3/metadata.json",
+      "transcript": "/ba/dc6bc82f8c/3/full.jsonl",
+      "context": "/ba/dc6bc82f8c/3/context.md",
+      "content_hash": "/ba/dc6bc82f8c/3/content_hash.txt",
+      "prompt": "/ba/dc6bc82f8c/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 33666650,
+    "input_tokens": 36643911,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 62047,
-    "api_call_count": 353
+    "output_tokens": 67703,
+    "api_call_count": 379
   }
 }
