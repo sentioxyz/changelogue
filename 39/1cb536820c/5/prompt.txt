@@ -1,0 +1,184 @@
+Implement the following plan:
+
+# Batch Delete Subscriptions
+
+## Context
+
+The app supports batch-creating subscriptions but not batch-deleting them. Adding a `DELETE /api/v1/subscriptions/batch` endpoint allows the frontend to delete multiple subscriptions atomically.
+
+## Files to Modify
+
+### Backend
+1. `internal/api/subscriptions.go` — Add `BatchDeleteInput` struct, `BatchDelete` handler, extend `SubscriptionsStore` interface
+2. `internal/api/pgstore.go` — Add `DeleteSubscriptionBatch` using `DELETE ... WHERE id = ANY($1)`
+3. `internal/api/server.go` — Register `DELETE /api/v1/subscriptions/batch` route
+4. `internal/api/subscriptions_test.go` — Add mock method + tests for batch delete
+
+### Frontend
+5. `web/lib/api/types.ts` — Add `BatchDeleteSubscriptionInput` type
+6. `web/lib/api/client.ts` — Add `batchDelete` method to subscriptions client
+
+### Docs
+7. `API.md` — Add batch delete endpoint + request example
+
+## Implementation
+
+### Step 1: Backend interface + handler (`subscriptions.go`)
+
+Add to `SubscriptionsStore`:
+```go
+DeleteSubscriptionBatch(ctx context.Context, ids []string) error
+```
+
+Add input struct:
+```go
+type BatchDeleteSubscriptionInput struct {
+    IDs []string `json:"ids"`
+}
+```
+
+Add `BatchDelete` handler: decode JSON, validate `ids` non-empty, call store, return `204 No Content`.
+
+### Step 2: Store implementation (`pgstore.go`)
+
+```go
+func (s *PgStore) DeleteSubscriptionBatch(ctx context.Context, ids []string) error {
+    tag, err := s.pool.Exec(ctx, `DELETE FROM subscriptions WHERE id = ANY($1)`, ids)
+    // check tag.RowsAffected() > 0
+}
+```
+
+Single query with `ANY($1)` — no transaction needed for a single DELETE statement.
+
+### Step 3: Route registration (`server.go`)
+
+Add `DELETE /api/v1/subscriptions/batch` — must be registered before `DELETE /api/v1/subscriptions/{id}` to avoid route conflict.
+
+### Step 4: Tests (`subscriptions_test.go`)
+
+- Add `batchDeleteErr` and `batchDeletedIDs` to mock store
+- Implement `DeleteSubscriptionBatch` on mock
+- Tests: success case, empty IDs (422), invalid JSON (400)
+
+### Step 5: Frontend types (`types.ts`)
+
+```ts
+export interface BatchDeleteSubscriptionInput {
+  ids: string[];
+}
+```
+
+### Step 6: Frontend client (`client.ts`)
+
+```ts
+batchDelete: (input: BatchDeleteSubscriptionInput) =>
+  request<ApiResponse<null>>("/subscriptions/batch", {
+    method: "DELETE",
+    body: JSON.stringify(input),
+  }),
+```
+
+### Step 7: API.md
+
+Add row to subscriptions table and request body example.
+
+## Verification
+
+- `go test ./internal/api/...`
+- `go build -o /dev/null ./cmd/server`
+- `cd web && npx tsc --noEmit`
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/3b8d2554-1fbe-4c8e-af9e-ee9b35030e42.jsonl
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/executing-plans
+
+# Executing Plans
+
+## Overview
+
+Load plan, review critically, execute tasks in batches, report for review between batches.
+
+**Core principle:** Batch execution with checkpoints for architect review.
+
+**Announce at start:** "I'm using the executing-plans skill to implement this plan."
+
+## The Process
+
+### Step 1: Load and Review Plan
+1. Read plan file
+2. Review critically - identify any questions or concerns about the plan
+3. If concerns: Raise them with your human partner before starting
+4. If no concerns: Create TodoWrite and proceed
+
+### Step 2: Execute Batch
+**Default: First 3 tasks**
+
+For each task:
+1. Mark as in_progress
+2. Follow each step exactly (plan has bite-sized steps)
+3. Run verifications as specified
+4. Mark as completed
+
+### Step 3: Report
+When batch complete:
+- Show what was implemented
+- Show verification output
+- Say: "Ready for feedback."
+
+### Step 4: Continue
+Based on feedback:
+- Apply changes if needed
+- Execute next batch
+- Repeat until complete
+
+### Step 5: Complete Development
+
+After all tasks complete and verified:
+- Announce: "I'm using the finishing-a-development-branch skill to complete this work."
+- **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
+- Follow that skill to verify tests, present options, execute choice
+
+## When to Stop and Ask for Help
+
+**STOP executing immediately when:**
+- Hit a blocker mid-batch (missing dependency, test fails, instruction unclear)
+- Plan has critical gaps preventing starting
+- You don't understand an instruction
+- Verification fails repeatedly
+
+**Ask for clarification rather than guessing.**
+
+## When to Revisit Earlier Steps
+
+**Return to Review (Step 1) when:**
+- Partner updates the plan based on your feedback
+- Fundamental approach needs rethinking
+
+**Don't force through blockers** - stop and ask.
+
+## Remember
+- Review plan critically first
+- Follow plan steps exactly
+- Don't skip verifications
+- Reference skills when plan says to
+- Between batches: just report and wait
+- Stop when blocked, don't guess
+- Never start implementation on main/master branch without explicit user consent
+
+## Integration
+
+**Required workflow skills:**
+- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+
+---
+
+I don't see the multi select from the frontend?
+
+---
+
+[Request interrupted by user for tool use]
