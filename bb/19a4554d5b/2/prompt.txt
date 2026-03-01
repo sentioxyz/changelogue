@@ -1,0 +1,483 @@
+The auto-triggerred releases in  semantic releases page doesn't show the project https://changelogue-app.azurewebsites.net/semantic-releases please invesitigate why
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/systematic-debugging
+
+# Systematic Debugging
+
+## Overview
+
+Random fixes waste time and create new bugs. Quick patches mask underlying issues.
+
+**Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
+
+**Violating the letter of this process is violating the spirit of debugging.**
+
+## The Iron Law
+
+```
+NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
+```
+
+If you haven't completed Phase 1, you cannot propose fixes.
+
+## When to Use
+
+Use for ANY technical issue:
+- Test failures
+- Bugs in production
+- Unexpected behavior
+- Performance problems
+- Build failures
+- Integration issues
+
+**Use this ESPECIALLY when:**
+- Under time pressure (emergencies make guessing tempting)
+- "Just one quick fix" seems obvious
+- You've already tried multiple fixes
+- Previous fix didn't work
+- You don't fully understand the issue
+
+**Don't skip when:**
+- Issue seems simple (simple bugs have root causes too)
+- You're in a hurry (rushing guarantees rework)
+- Manager wants it fixed NOW (systematic is faster than thrashing)
+
+## The Four Phases
+
+You MUST complete each phase before proceeding to the next.
+
+### Phase 1: Root Cause Investigation
+
+**BEFORE attempting ANY fix:**
+
+1. **Read Error Messages Carefully**
+   - Don't skip past errors or warnings
+   - They often contain the exact solution
+   - Read stack traces completely
+   - Note line numbers, file paths, error codes
+
+2. **Reproduce Consistently**
+   - Can you trigger it reliably?
+   - What are the exact steps?
+   - Does it happen every time?
+   - If not reproducible → gather more data, don't guess
+
+3. **Check Recent Changes**
+   - What changed that could cause this?
+   - Git diff, recent commits
+   - New dependencies, config changes
+   - Environmental differences
+
+4. **Gather Evidence in Multi-Component Systems**
+
+   **WHEN system has multiple components (CI → build → signing, API → service → database):**
+
+   **BEFORE proposing fixes, add diagnostic instrumentation:**
+   ```
+   For EACH component boundary:
+     - Log what data enters component
+     - Log what data exits component
+     - Verify environment/config propagation
+     - Check state at each layer
+
+   Run once to gather evidence showing WHERE it breaks
+   THEN analyze evidence to identify failing component
+   THEN investigate that specific component
+   ```
+
+   **Example (multi-layer system):**
+   ```bash
+   # Layer 1: Workflow
+   echo "=== Secrets available in workflow: ==="
+   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
+
+   # Layer 2: Build script
+   echo "=== Env vars in build script: ==="
+   env | grep IDENTITY || echo "IDENTITY not in environment"
+
+   # Layer 3: Signing script
+   echo "=== Keychain state: ==="
+   security list-keychains
+   security find-identity -v
+
+   # Layer 4: Actual signing
+   codesign --sign "$IDENTITY" --verbose=4 "$APP"
+   ```
+
+   **This reveals:** Which layer fails (secrets → workflow ✓, workflow → build ✗)
+
+5. **Trace Data Flow**
+
+   **WHEN error is deep in call stack:**
+
+   See `root-cause-tracing.md` in this directory for the complete backward tracing technique.
+
+   **Quick version:**
+   - Where does bad value originate?
+   - What called this with bad value?
+   - Keep tracing up until you find the source
+   - Fix at source, not at symptom
+
+### Phase 2: Pattern Analysis
+
+**Find the pattern before fixing:**
+
+1. **Find Working Examples**
+   - Locate similar working code in same codebase
+   - What works that's similar to what's broken?
+
+2. **Compare Against References**
+   - If implementing pattern, read reference implementation COMPLETELY
+   - Don't skim - read every line
+   - Understand the pattern fully before applying
+
+3. **Identify Differences**
+   - What's different between working and broken?
+   - List every difference, however small
+   - Don't assume "that can't matter"
+
+4. **Understand Dependencies**
+   - What other components does this need?
+   - What settings, config, environment?
+   - What assumptions does it make?
+
+### Phase 3: Hypothesis and Testing
+
+**Scientific method:**
+
+1. **Form Single Hypothesis**
+   - State clearly: "I think X is the root cause because Y"
+   - Write it down
+   - Be specific, not vague
+
+2. **Test Minimally**
+   - Make the SMALLEST possible change to test hypothesis
+   - One variable at a time
+   - Don't fix multiple things at once
+
+3. **Verify Before Continuing**
+   - Did it work? Yes → Phase 4
+   - Didn't work? Form NEW hypothesis
+   - DON'T add more fixes on top
+
+4. **When You Don't Know**
+   - Say "I don't understand X"
+   - Don't pretend to know
+   - Ask for help
+   - Research more
+
+### Phase 4: Implementation
+
+**Fix the root cause, not the symptom:**
+
+1. **Create Failing Test Case**
+   - Simplest possible reproduction
+   - Automated test if possible
+   - One-off test script if no framework
+   - MUST have before fixing
+   - Use the `superpowers:test-driven-development` skill for writing proper failing tests
+
+2. **Implement Single Fix**
+   - Address the root cause identified
+   - ONE change at a time
+   - No "while I'm here" improvements
+   - No bundled refactoring
+
+3. **Verify Fix**
+   - Test passes now?
+   - No other tests broken?
+   - Issue actually resolved?
+
+4. **If Fix Doesn't Work**
+   - STOP
+   - Count: How many fixes have you tried?
+   - If < 3: Return to Phase 1, re-analyze with new information
+   - **If ≥ 3: STOP and question the architecture (step 5 below)**
+   - DON'T attempt Fix #4 without architectural discussion
+
+5. **If 3+ Fixes Failed: Question Architecture**
+
+   **Pattern indicating architectural problem:**
+   - Each fix reveals new shared state/coupling/problem in different place
+   - Fixes require "massive refactoring" to implement
+   - Each fix creates new symptoms elsewhere
+
+   **STOP and question fundamentals:**
+   - Is this pattern fundamentally sound?
+   - Are we "sticking with it through sheer inertia"?
+   - Should we refactor architecture vs. continue fixing symptoms?
+
+   **Discuss with your human partner before attempting more fixes**
+
+   This is NOT a failed hypothesis - this is a wrong architecture.
+
+## Red Flags - STOP and Follow Process
+
+If you catch yourself thinking:
+- "Quick fix for now, investigate later"
+- "Just try changing X and see if it works"
+- "Add multiple changes, run tests"
+- "Skip the test, I'll manually verify"
+- "It's probably X, let me fix that"
+- "I don't fully understand but this might work"
+- "Pattern says X but I'll adapt it differently"
+- "Here are the main problems: [lists fixes without investigation]"
+- Proposing solutions before tracing data flow
+- **"One more fix attempt" (when already tried 2+)**
+- **Each fix reveals new problem in different place**
+
+**ALL of these mean: STOP. Return to Phase 1.**
+
+**If 3+ fixes failed:** Question the architecture (see Phase 4.5)
+
+## your human partner's Signals You're Doing It Wrong
+
+**Watch for these redirections:**
+- "Is that not happening?" - You assumed without verifying
+- "Will it show us...?" - You should have added evidence gathering
+- "Stop guessing" - You're proposing fixes without understanding
+- "Ultrathink this" - Question fundamentals, not just symptoms
+- "We're stuck?" (frustrated) - Your approach isn't working
+
+**When you see these:** STOP. Return to Phase 1.
+
+## Common Rationalizations
+
+| Excuse | Reality |
+|--------|---------|
+| "Issue is simple, don't need process" | Simple issues have root causes too. Process is fast for simple bugs. |
+| "Emergency, no time for process" | Systematic debugging is FASTER than guess-and-check thrashing. |
+| "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
+| "I'll write test after confirming fix works" | Untested fixes don't stick. Test first proves it. |
+| "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
+| "Reference too long, I'll adapt the pattern" | Partial understanding guarantees bugs. Read it completely. |
+| "I see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. |
+| "One more fix attempt" (after 2+ failures) | 3+ failures = architectural problem. Question pattern, don't fix again. |
+
+## Quick Reference
+
+| Phase | Key Activities | Success Criteria |
+|-------|---------------|------------------|
+| **1. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
+| **2. Pattern** | Find working examples, compare | Identify differences |
+| **3. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
+| **4. Implementation** | Create test, fix, verify | Bug resolved, tests pass |
+
+## When Process Reveals "No Root Cause"
+
+If systematic investigation reveals issue is truly environmental, timing-dependent, or external:
+
+1. You've completed the process
+2. Document what you investigated
+3. Implement appropriate handling (retry, timeout, error message)
+4. Add monitoring/logging for future investigation
+
+**But:** 95% of "no root cause" cases are incomplete investigation.
+
+## Supporting Techniques
+
+These techniques are part of systematic debugging and available in this directory:
+
+- **`root-cause-tracing.md`** - Trace bugs backward through call stack to find original trigger
+- **`defense-in-depth.md`** - Add validation at multiple layers after finding root cause
+- **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
+
+**Related skills:**
+- **superpowers:test-driven-development** - For creating failing test case (Phase 4, Step 1)
+- **superpowers:verification-before-completion** - Verify fix worked before claiming success
+
+## Real-World Impact
+
+From debugging sessions:
+- Systematic approach: 15-30 minutes to fix
+- Random fixes approach: 2-3 hours of thrashing
+- First-time fix rate: 95% vs 40%
+- New bugs introduced: Near zero vs common
+
+---
+
+why we need to call the project fetch api, why the name cannot be joined from the backend sql query?
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **User's initial request**: The user reported that "auto-triggered releases in semantic releases page doesn't show the project" on the live app at https://changelogue-app.azurewebsites.net/semantic-releases
+
+2. **Systematic debugging approach**: I used the systematic-debugging skill and launched two parallel exploration agents to understand the frontend and backend code.
+
+3. **Frontend exploration findings**:
+   - Semantic releases page at `/Users/pc/web3/ReleaseBeacon/web/app/semantic-releases/page.tsx`
+   - Main component at `/Users/pc/web3/ReleaseBeacon/web/components/semantic-releases/semantic-releases-list.tsx`
+   - It fetches projects via `projectsApi.list()` (defaults to perPage=25) and builds a `projectsById` Map
+   - It fetches semantic releases via `srApi.listAll()` or `srApi.list()`
+   - Project names are looked up from the Map - if not found, shows em-dash "—"
+
+4. **Backend exploration findings**:
+   - SQL queries in `pgstore.go` lines 583-635 for `ListAllSemanticReleases` and `ListSemanticReleases`
+   - NO JOIN with projects table - only selects from `semantic_releases`
+   - The `SemanticRelease` model has no `ProjectName` field
+   - Auto vs manual triggers differ by the `trigger` field in `agent_runs` table
+
+5. **Live app investigation**: I navigated to the live page and confirmed:
+   - The API calls return 200
+   - The page loads with data showing 13 semantic releases
+   - Rows with project_id `6bfab18d-b90e-4f8f-a86c-05fa8b8ed85f` show "—" for project name (ClickHouse)
+   - The projects API returns 38 total projects, but the frontend only fetches 25 (default perPage)
+   - ClickHouse is the 35th project, outside the first page of 25
+
+6. **Initial fix**: Changed `projectsApi.list()` to `projectsApi.list(1, 200)` in the frontend
+
+7. **User feedback**: User asked "why we need to call the project fetch api, why the name cannot be joined from the backend sql query?" - This is critical feedback indicating the user wants a better architectural approach.
+
+8. **Reverted initial fix**: I reverted the `list(1, 200)` change back to `list()`
+
+9. **Entered plan mode**: Started exploring the proper fix pattern
+
+10. **Exploration of JOIN patterns**: Found the existing pattern in the codebase where `Release` model includes `ProjectName` via SQL JOINs:
+    - Go model has `ProjectName string \`json:"project_name,omitempty"\``
+    - SQL uses `LEFT JOIN sources s ON ... LEFT JOIN projects p ON ...` and selects `COALESCE(p.name,'')`
+    - Frontend TypeScript type has `project_name?: string`
+
+11. **User's latest message**: "Yes, if we can reduce one API call, that would be perfect" - confirming the approach to JOIN project_name in the backend SQL.
+
+Current state: In plan mode, about to write the implementation plan for adding project_name to the SemanticRelease via SQL JOIN, following the existing Release model pattern.
+
+Summary:
+1. Primary Request and Intent:
+   The user reported that auto-triggered releases on the semantic releases page (https://changelogue-app.azurewebsites.net/semantic-releases) don't show the project name — they display "—" instead. After the initial investigation revealed the root cause (frontend only fetching 25 of 38 projects), the user explicitly requested that instead of increasing the frontend fetch limit, the project name should be JOINed in the backend SQL query to eliminate the need for a separate projects API call entirely. The user confirmed: "Yes, if we can reduce one API call, that would be perfect."
+
+2. Key Technical Concepts:
+   - Go backend with PostgreSQL (`pgstore.go`) using `pgx` pool
+   - SQL LEFT JOIN pattern to enrich models with related entity names
+   - `COALESCE()` usage for nullable JOIN columns
+   - Next.js frontend with SWR for data fetching
+   - Existing pattern in codebase: `Release` model already includes `ProjectName` via JOIN
+   - `SemanticRelease` model currently lacks `ProjectName` — needs the same enrichment
+
+3. Files and Code Sections:
+   - `/Users/pc/web3/ReleaseBeacon/internal/models/semantic_release.go`
+     - Currently has NO `ProjectName` field. Needs one added following the Release model pattern.
+     ```go
+     type SemanticRelease struct {
+         ID          string          `json:"id"`
+         ProjectID   string          `json:"project_id"`
+         Version     string          `json:"version"`
+         Report      json.RawMessage `json:"report,omitempty"`
+         Status      string          `json:"status"`
+         Error       string          `json:"error,omitempty"`
+         CreatedAt   time.Time       `json:"created_at"`
+         CompletedAt *time.Time      `json:"completed_at,omitempty"`
+     }
+     ```
+
+   - `/Users/pc/web3/ReleaseBeacon/internal/models/release.go`
+     - Shows the existing pattern for project name enrichment via JOIN:
+     ```go
+     type Release struct {
+         ID         string          `json:"id"`
+         SourceID   string          `json:"source_id"`
+         // ... other fields ...
+         ProjectID   string `json:"project_id,omitempty"`
+         ProjectName string `json:"project_name,omitempty"`
+         Provider    string `json:"provider,omitempty"`
+         Repository  string `json:"repository,omitempty"`
+     }
+     ```
+
+   - `/Users/pc/web3/ReleaseBeacon/internal/api/pgstore.go` (lines 583-649)
+     - Contains three semantic release queries that need JOINs added:
+     - `ListAllSemanticReleases` (line 583): No JOIN, needs `LEFT JOIN projects p ON sr.project_id = p.id` and select `COALESCE(p.name,'')`
+     - `ListSemanticReleases` (line 610): Same pattern needed
+     - `GetSemanticRelease` (line 637): Same pattern needed
+     - **Existing Release JOIN pattern to follow** (line 217):
+     ```sql
+     SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+            COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,'')
+     FROM releases r
+     LEFT JOIN sources s ON r.source_id = s.id
+     LEFT JOIN projects p ON s.project_id = p.id
+     ```
+
+   - `/Users/pc/web3/ReleaseBeacon/internal/api/semantic_releases.go`
+     - HTTP handlers for semantic releases — no changes needed here, model flows through automatically
+     - Interface `SemanticReleasesStore` defines the store methods
+
+   - `/Users/pc/web3/ReleaseBeacon/web/lib/api/types.ts`
+     - Frontend TypeScript type needs `project_name?: string` added:
+     ```typescript
+     export interface SemanticRelease {
+         id: string;
+         project_id: string;
+         version: string;
+         report?: SemanticReport;
+         status: string;
+         error?: string;
+         created_at: string;
+         completed_at?: string;
+         // NO project_name field currently
+     }
+     ```
+
+   - `/Users/pc/web3/ReleaseBeacon/web/components/semantic-releases/semantic-releases-list.tsx`
+     - Currently fetches ALL projects separately to build `projectsById` Map for name lookup
+     - Lines 62-66: fetches projects via `projectsApi.list()` (default perPage=25, causing the bug)
+     - Lines 192, 201-224: looks up `projectsById.get(sr.project_id)` — shows "—" if not found
+     - After fix: should use `sr.project_name` directly instead of the Map lookup
+     - The `projectsApi.list()` call is STILL needed for the filter dropdown (lines 128-134), but NOT for name display
+
+   - `/Users/pc/web3/ReleaseBeacon/web/lib/api/client.ts`
+     - API client methods — no changes needed
+
+   - `/Users/pc/web3/ReleaseBeacon/internal/db/migrations.go`
+     - Schema reference: `semantic_releases` has `project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE`
+
+4. Errors and fixes:
+   - **Initial wrong approach**: Changed `projectsApi.list()` to `projectsApi.list(1, 200)` in the frontend as a quick fix. This was the wrong level to fix the problem.
+   - **User feedback**: User challenged this approach: "why we need to call the project fetch api, why the name cannot be joined from the backend sql query?" — indicating the proper fix is a backend JOIN, not a frontend workaround.
+   - **Reverted**: The `list(1, 200)` change was reverted back to `list()`. The file is back to its original state.
+
+5. Problem Solving:
+   - Root cause confirmed: The semantic releases page shows "—" for project names when the project falls outside the first 25 results of the projects API. With 38 projects, ClickHouse (project_id `6bfab18d-b90e-4f8f-a86c-05fa8b8ed85f`, position 35) is affected.
+   - The proper solution is to JOIN `projects.name` in the backend SQL queries for semantic releases, following the exact same pattern already established for the `Release` model. This eliminates the need for the frontend to look up project names from a separate API call.
+   - Note: The `projectsApi.list()` call will still be needed for the project filter DROPDOWN, but NOT for displaying project names in the table rows.
+
+6. All user messages:
+   - "The auto-triggerred releases in semantic releases page doesn't show the project https://changelogue-app.azurewebsites.net/semantic-releases please invesitigate why"
+   - "why we need to call the project fetch api, why the name cannot be joined from the backend sql query?"
+   - "Yes, if we can reduce one API call, that would be perfect"
+
+7. Pending Tasks:
+   - Implement the backend JOIN fix:
+     1. Add `ProjectName` field to `SemanticRelease` Go model
+     2. Update all 3 SQL queries in `pgstore.go` to JOIN with projects table
+     3. Update all `.Scan()` calls to include `&sr.ProjectName`
+     4. Add `project_name?: string` to TypeScript `SemanticRelease` type
+     5. Update `semantic-releases-list.tsx` to use `sr.project_name` directly instead of `projectsById` Map lookup
+   - Note: Same `projectsApi.list()` with default perPage=25 issue exists in `web/app/page.tsx`, `web/components/dashboard/unified-feed.tsx`, and `web/app/sources/page.tsx` — user has NOT been asked about fixing these yet.
+
+8. Current Work:
+   I was in **plan mode** after exploring JOIN patterns in the codebase. I had just received the exploration agent's results confirming the exact pattern to follow (from the `Release` model), and the user confirmed "Yes, if we can reduce one API call, that would be perfect." I need to write the implementation plan to the plan file at `/Users/pc/.claude/plans/optimized-zooming-shore.md` and then exit plan mode to implement.
+
+9. Optional Next Step:
+   Write the implementation plan and exit plan mode to begin implementing the backend JOIN fix. The user's latest messages confirm the approach:
+   - User: "why we need to call the project fetch api, why the name cannot be joined from the backend sql query?"
+   - User: "Yes, if we can reduce one API call, that would be perfect"
+   
+   The plan should modify these files following the established `Release` model JOIN pattern:
+   1. `internal/models/semantic_release.go` — add `ProjectName` field
+   2. `internal/api/pgstore.go` — add LEFT JOIN to all 3 semantic release queries + update Scan calls
+   3. `web/lib/api/types.ts` — add `project_name` to TypeScript type
+   4. `web/components/semantic-releases/semantic-releases-list.tsx` — use `sr.project_name` directly, remove `projectsById` Map lookup for name display
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+[Request interrupted by user for tool use]

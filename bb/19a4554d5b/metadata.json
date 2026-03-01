@@ -3,7 +3,7 @@
   "checkpoint_id": "bb19a4554d5b",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "internal/api/pgstore.go",
     "internal/models/semantic_release.go",
@@ -24,13 +24,20 @@
       "context": "/bb/19a4554d5b/1/context.md",
       "content_hash": "/bb/19a4554d5b/1/content_hash.txt",
       "prompt": "/bb/19a4554d5b/1/prompt.txt"
+    },
+    {
+      "metadata": "/bb/19a4554d5b/2/metadata.json",
+      "transcript": "/bb/19a4554d5b/2/full.jsonl",
+      "context": "/bb/19a4554d5b/2/context.md",
+      "content_hash": "/bb/19a4554d5b/2/content_hash.txt",
+      "prompt": "/bb/19a4554d5b/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 14437957,
+    "input_tokens": 17574957,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 33073,
-    "api_call_count": 169
+    "output_tokens": 34445,
+    "api_call_count": 195
   }
 }
