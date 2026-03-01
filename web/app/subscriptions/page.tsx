@@ -8,7 +8,7 @@ import {
   projects as projectsApi,
   sources as sourcesApi,
 } from "@/lib/api/client";
-import type { Source, Subscription, BatchSubscriptionInput } from "@/lib/api/types";
+import type { Source, Subscription } from "@/lib/api/types";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

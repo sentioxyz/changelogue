@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/client";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
-import type { Release, Source, Project } from "@/lib/api/types";
+import type { Release, Project } from "@/lib/api/types";
 import { ExternalLink } from "lucide-react";
 
 import { timeAgo } from "@/lib/format";
