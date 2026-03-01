@@ -1,0 +1,139 @@
+Implement the following plan:
+
+# Switch GitHub Source from Atom Feed to REST API
+
+## Context
+
+The GitHub source currently uses the Atom feed (`/releases.atom`) which doesn't include the `prerelease` boolean. To support "Exclude Pre-Releases" for GitHub sources, we need to switch to the GitHub REST API (`/repos/{owner}/{repo}/releases`) which provides `prerelease`, `draft`, `body` (markdown changelog), and richer metadata.
+
+The `prerelease` field will be stored in the release's `raw_data` JSONB as `"prerelease": "true"/"false"`. Users can then use the existing `version_filter_exclude` with a separate mechanism — or we add a dedicated boolean toggle on the source. Since the user's description showed a dedicated "Exclude Pre-Releases" toggle, we'll add an `exclude_prereleases` boolean to the `Source` model.
+
+## Plan
+
+### 1. Replace `github_atom.go` with `github.go` (REST API)
+
+**Files:** Create `internal/ingestion/github.go`, delete `internal/ingestion/github_atom.go`
+
+- New `GitHubSource` struct (replaces `GitHubAtomSource`) hitting `https://api.github.com/repos/{owner}/{repo}/releases?per_page=30`
+- Parse JSON response array: extract `tag_name` (version), `body` (changelog), `html_url`, `published_at`, `prerelease`, `draft`
+- Skip `draft` releases entirely
+- Store `prerelease` as `"true"/"false"` in `Metadata` map, plus `release_url`
+- Same interface: `Name() string`, `SourceID() string`, `FetchNewReleases(ctx) ([]IngestionResult, error)`
+- Constructor: `NewGitHubSource(client, repository, sourceID)`
+- Support optional `GITHUB_TOKEN` env var for auth (set `Authorization: Bearer` header if present) — avoids rate limits
+
+### 2. Replace `github_atom_test.go` with `github_test.go`
+
+**Files:** Create `internal/ingestion/github_test.go`, delete `internal/ingestion/github_atom_test.go`
+
+- Mock HTTP server returning JSON array of GitHub releases (include both prerelease and non-prerelease entries, and a draft)
+- Test: correct count (draft excluded), versions extracted, prerelease metadata populated, changelog present
+- Test: empty releases array → 0 results
+- Test: HTTP error → error returned
+- Keep the live test pattern (skip in short mode)
+
+### 3. Update `loader.go` to use `NewGitHubSource`
+
+**File:** Modify `internal/ingestion/loader.go:77`
+
+Change `NewGitHubAtomSource` → `NewGitHubSource`
+
+### 4. Add `exclude_prereleases` boolean to Source model
+
+**File:** Modify `internal/models/source.go`
+
+Add `ExcludePrereleases bool` field (json: `exclude_prereleases`)
+
+### 5. Add DB migration for `exclude_prereleases`
+
+**File:** Modify `internal/db/migrations.go`
+
+Add `ALTER TABLE sources ADD COLUMN IF NOT EXISTS exclude_prereleases BOOLEAN DEFAULT false`
+
+### 6. Update pgstore Source CRUD
+
+**File:** Modify `internal/api/pgstore.go`
+
+Add `exclude_prereleases` to SELECT, INSERT, UPDATE, and Scan in all 4 source CRUD functions.
+
+### 7. Apply `exclude_prereleases` in release listing queries
+
+**File:** Modify `internal/api/pgstore.go` (release listing section)
+
+Add to the WHERE clause of all three list functions:
+```sql
+AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
+```
+
+### 8. Apply `exclude_prereleases` in notification worker
+
+**File:** Modify `internal/routing/worker.go`
+
+After the existing `VersionPassesFilter` check, add a prerelease check:
+- If `source.ExcludePrereleases` is true and `release.RawData` contains `"prerelease":"true"`, skip.
+
+### 9. Update frontend types
+
+**File:** Modify `web/lib/api/types.ts`
+
+Add `exclude_prereleases?: boolean` to `Source` and `SourceInput`
+
+### 10. Update source form with "Exclude Pre-Releases" toggle
+
+**File:** Modify `web/components/sources/source-form.tsx`
+
+Add a Switch toggle for `exclude_prereleases` in the version filters section. Only show it when provider is "github" (since Docker Hub / ECR don't have a pre-release concept).
+
+### 11. Update API docs
+
+**File:** Modify `API.md`
+
+Add `exclude_prereleases` to source schema.
+
+## Key Files
+
+- `internal/ingestion/github_atom.go` → replaced by `internal/ingestion/github.go`
+- `internal/ingestion/github_atom_test.go` → replaced by `internal/ingestion/github_test.go`
+- `internal/ingestion/loader.go:77` — constructor reference
+- `internal/models/source.go` — add field
+- `internal/db/migrations.go` — add column
+- `internal/api/pgstore.go` — CRUD + release queries
+- `internal/routing/worker.go` — notification filter
+- `web/lib/api/types.ts` — TS types
+- `web/components/sources/source-form.tsx` — form toggle
+- `API.md` — docs
+
+## Verification
+
+1. `go test ./internal/ingestion/... -v` — all GitHub tests pass
+2. `go test ./internal/routing/... -v` — worker tests pass (including prerelease filter)
+3. `go test ./... ` — full suite passes
+4. `go vet ./...` — clean
+5. `go build -o changelogue ./cmd/server` — builds
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+
+---
+
+where can I set the prerelease filter in ux
+
+---
+
+I hope we can have these filters settings while adding the sources not editing them later
+
+---
+
+There another place when we create project
+
+---
+
+Let's also include the version filter there
+
+---
+
+cool, then should we remove the version filter in the subscription or we keep it, what's your opinion?
+
+---
+
+cool, let's commit and push
