@@ -588,9 +588,11 @@ func (s *PgStore) ListAllSemanticReleases(ctx context.Context, page, perPage int
 	}
 	offset := (page - 1) * perPage
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, project_id, version, COALESCE(report,'{}'), status, COALESCE(error,''),
-		        created_at, completed_at
-		 FROM semantic_releases ORDER BY created_at DESC LIMIT $1 OFFSET $2`, perPage, offset)
+		`SELECT sr.id, sr.project_id, COALESCE(p.name,''), sr.version, COALESCE(sr.report,'{}'), sr.status, COALESCE(sr.error,''),
+		        sr.created_at, sr.completed_at
+		 FROM semantic_releases sr
+		 LEFT JOIN projects p ON sr.project_id = p.id
+		 ORDER BY sr.created_at DESC LIMIT $1 OFFSET $2`, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list all semantic releases: %w", err)
 	}
@@ -598,7 +600,7 @@ func (s *PgStore) ListAllSemanticReleases(ctx context.Context, page, perPage int
 	var releases []models.SemanticRelease
 	for rows.Next() {
 		var sr models.SemanticRelease
-		if err := rows.Scan(&sr.ID, &sr.ProjectID, &sr.Version, &sr.Report, &sr.Status, &sr.Error,
+		if err := rows.Scan(&sr.ID, &sr.ProjectID, &sr.ProjectName, &sr.Version, &sr.Report, &sr.Status, &sr.Error,
 			&sr.CreatedAt, &sr.CompletedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan semantic release: %w", err)
 		}
@@ -615,9 +617,11 @@ func (s *PgStore) ListSemanticReleases(ctx context.Context, projectID string, pa
 	}
 	offset := (page - 1) * perPage
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, project_id, version, COALESCE(report,'{}'), status, COALESCE(error,''),
-		        created_at, completed_at
-		 FROM semantic_releases WHERE project_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
+		`SELECT sr.id, sr.project_id, COALESCE(p.name,''), sr.version, COALESCE(sr.report,'{}'), sr.status, COALESCE(sr.error,''),
+		        sr.created_at, sr.completed_at
+		 FROM semantic_releases sr
+		 LEFT JOIN projects p ON sr.project_id = p.id
+		 WHERE sr.project_id = $1 ORDER BY sr.created_at DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list semantic releases: %w", err)
 	}
@@ -625,7 +629,7 @@ func (s *PgStore) ListSemanticReleases(ctx context.Context, projectID string, pa
 	var releases []models.SemanticRelease
 	for rows.Next() {
 		var sr models.SemanticRelease
-		if err := rows.Scan(&sr.ID, &sr.ProjectID, &sr.Version, &sr.Report, &sr.Status, &sr.Error,
+		if err := rows.Scan(&sr.ID, &sr.ProjectID, &sr.ProjectName, &sr.Version, &sr.Report, &sr.Status, &sr.Error,
 			&sr.CreatedAt, &sr.CompletedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan semantic release: %w", err)
 		}
@@ -637,10 +641,12 @@ func (s *PgStore) ListSemanticReleases(ctx context.Context, projectID string, pa
 func (s *PgStore) GetSemanticRelease(ctx context.Context, id string) (*models.SemanticRelease, error) {
 	var sr models.SemanticRelease
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, project_id, version, COALESCE(report,'{}'), status, COALESCE(error,''),
-		        created_at, completed_at
-		 FROM semantic_releases WHERE id = $1`, id,
-	).Scan(&sr.ID, &sr.ProjectID, &sr.Version, &sr.Report, &sr.Status, &sr.Error,
+		`SELECT sr.id, sr.project_id, COALESCE(p.name,''), sr.version, COALESCE(sr.report,'{}'), sr.status, COALESCE(sr.error,''),
+		        sr.created_at, sr.completed_at
+		 FROM semantic_releases sr
+		 LEFT JOIN projects p ON sr.project_id = p.id
+		 WHERE sr.id = $1`, id,
+	).Scan(&sr.ID, &sr.ProjectID, &sr.ProjectName, &sr.Version, &sr.Report, &sr.Status, &sr.Error,
 		&sr.CreatedAt, &sr.CompletedAt)
 	if err != nil {
 		return nil, err

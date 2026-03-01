@@ -62,8 +62,6 @@ function SemanticReleasesListInner() {
   const { data: projectsData } = useSWR("projects-for-sr-filter", () =>
     projectsApi.list()
   );
-  const projectsById = new Map<string, Project>();
-  for (const p of projectsData?.data ?? []) projectsById.set(p.id, p);
 
   /* Fetch semantic releases — scoped by project or all */
   const { data: scopedData, isLoading: scopedLoading, mutate: mutateScopedData } = useSWR(
@@ -189,7 +187,6 @@ function SemanticReleasesListInner() {
             </thead>
             <tbody>
               {releases.map((sr) => {
-                const project = projectsById.get(sr.project_id);
                 return (
                   <tr
                     key={sr.id}
@@ -198,9 +195,9 @@ function SemanticReleasesListInner() {
                   >
                     {/* Project */}
                     <td className="px-4 py-3">
-                      {project ? (
+                      {sr.project_name ? (
                         <Link
-                          href={`/projects/${project.id}`}
+                          href={`/projects/${sr.project_id}`}
                           className="hover:underline"
                           style={{
                             fontFamily: "var(--font-dm-sans)",
@@ -209,7 +206,7 @@ function SemanticReleasesListInner() {
                             fontWeight: 500,
                           }}
                         >
-                          {project.name}
+                          {sr.project_name}
                         </Link>
                       ) : (
                         <span

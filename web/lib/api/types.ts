@@ -105,6 +105,7 @@ export interface ContextSourceInput {
 export interface SemanticRelease {
   id: string;
   project_id: string;
+  project_name?: string;
   version: string;
   report?: SemanticReport;
   status: string;

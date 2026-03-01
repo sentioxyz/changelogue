@@ -26,6 +26,7 @@ type SemanticReport struct {
 type SemanticRelease struct {
 	ID          string          `json:"id"`
 	ProjectID   string          `json:"project_id"`
+	ProjectName string          `json:"project_name,omitempty"`
 	Version     string          `json:"version"`
 	Report      json.RawMessage `json:"report,omitempty"`
 	Status      string          `json:"status"`
