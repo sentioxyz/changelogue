@@ -3,7 +3,7 @@
   "checkpoint_id": "c292fc2aca25",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "web/components/ui/checkbox.tsx"
   ],
@@ -21,13 +21,20 @@
       "context": "/c2/92fc2aca25/1/context.md",
       "content_hash": "/c2/92fc2aca25/1/content_hash.txt",
       "prompt": "/c2/92fc2aca25/1/prompt.txt"
+    },
+    {
+      "metadata": "/c2/92fc2aca25/2/metadata.json",
+      "transcript": "/c2/92fc2aca25/2/full.jsonl",
+      "context": "/c2/92fc2aca25/2/context.md",
+      "content_hash": "/c2/92fc2aca25/2/content_hash.txt",
+      "prompt": "/c2/92fc2aca25/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 15946932,
+    "input_tokens": 27918372,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 33619,
-    "api_call_count": 182
+    "output_tokens": 56694,
+    "api_call_count": 312
   }
 }
