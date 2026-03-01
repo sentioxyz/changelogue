@@ -1,7 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import useSWR from "swr";
 import Link from "next/link";
+import { marked } from "marked";
 import {
   releases as releasesApi,
   sources as sourcesApi,
@@ -19,6 +21,17 @@ import { getPathSegment } from "@/lib/path";
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
+
+/** Returns true if the string already contains HTML tags. */
+function looksLikeHtml(s: string): boolean {
+  return /<[a-z][\s\S]*>/i.test(s);
+}
+
+/** Convert changelog to HTML — pass through if already HTML, otherwise render as markdown. */
+function changelogToHtml(raw: string): string {
+  if (looksLikeHtml(raw)) return raw;
+  return marked.parse(raw, { async: false }) as string;
+}
 
 function getProviderUrl(
   provider: string,
@@ -91,6 +104,13 @@ export function ReleaseDetail() {
   );
 
   const linkedSRs: SemanticRelease[] = srData ?? [];
+
+  /* Memoize changelog HTML conversion */
+  const changelogHtml = useMemo(() => {
+    const raw = release?.raw_data?.changelog;
+    if (!raw) return null;
+    return changelogToHtml(String(raw));
+  }, [release?.raw_data?.changelog]);
 
   /* Loading state */
   if (isLoading) {
@@ -373,7 +393,7 @@ export function ReleaseDetail() {
           </h2>
         </div>
         <div className="px-5 py-4">
-          {release.raw_data?.changelog ? (
+          {changelogHtml ? (
             <div
               className="release-notes-content"
               style={{
@@ -383,7 +403,7 @@ export function ReleaseDetail() {
                 color: "#374151",
               }}
               dangerouslySetInnerHTML={{
-                __html: String(release.raw_data.changelog),
+                __html: changelogHtml,
               }}
             />
           ) : (

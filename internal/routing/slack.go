@@ -175,10 +175,28 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
 		blocks = buildSemanticBlocks(msg.Title, &report)
 	} else {
-		// Fallback: simple header + body for non-report messages.
+		// Fallback: extract known fields from raw data for a readable message.
 		blocks = []slackBlock{
 			{Type: "header", Text: &slackText{Type: "plain_text", Text: msg.Title}},
-			{Type: "section", Text: &slackText{Type: "mrkdwn", Text: msg.Body}},
+		}
+		if fields, ok := parseRawBody(msg.Body); ok {
+			if fields.Changelog != "" {
+				blocks = append(blocks, slackBlock{
+					Type: "section",
+					Text: &slackText{Type: "mrkdwn", Text: fields.Changelog},
+				})
+			}
+			if fields.ReleaseURL != "" {
+				blocks = append(blocks, slackBlock{
+					Type: "section",
+					Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("<%s|View Release>", fields.ReleaseURL)},
+				})
+			}
+		} else {
+			blocks = append(blocks, slackBlock{
+				Type: "section",
+				Text: &slackText{Type: "mrkdwn", Text: msg.Body},
+			})
 		}
 	}
 

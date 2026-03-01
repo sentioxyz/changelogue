@@ -132,8 +132,20 @@ func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel
 	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
 		embed = buildSemanticEmbed(msg.Title, msg.Version, &report)
 	} else {
-		// Fallback: simple embed for non-report messages.
-		description := msg.Body
+		// Fallback: extract known fields from raw data for a readable message.
+		var description string
+		if fields, ok := parseRawBody(msg.Body); ok {
+			var parts []string
+			if fields.Changelog != "" {
+				parts = append(parts, fields.Changelog)
+			}
+			if fields.ReleaseURL != "" {
+				parts = append(parts, fmt.Sprintf("[View Release](%s)", fields.ReleaseURL))
+			}
+			description = strings.Join(parts, "\n\n")
+		} else {
+			description = msg.Body
+		}
 		if len(description) > discordEmbedDescriptionLimit {
 			description = description[:discordEmbedDescriptionLimit-3] + "..."
 		}

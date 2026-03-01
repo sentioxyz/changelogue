@@ -228,3 +228,55 @@ func TestSlackSender_NonReportFallback(t *testing.T) {
 		t.Fatalf("expected section block, got %s", payload.Blocks[1].Type)
 	}
 }
+
+func TestSlackSender_RawJSONFallback(t *testing.T) {
+	var received []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	sender := &SlackSender{Client: srv.Client()}
+	ch := &models.NotificationChannel{
+		Type:   "slack",
+		Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
+	}
+
+	// Raw release JSON (the bug scenario) — should extract changelog and link
+	msg := Notification{
+		Title:   "New release: zkos-0.29.4-rc1",
+		Body:    `{"changelog":"Fixed wrong genesis commit","prerelease":"false","release_url":"https://github.com/matter-labs/zksync-era/releases/tag/zkos-0.29.4-rc1"}`,
+		Version: "zkos-0.29.4-rc1",
+	}
+
+	err := sender.Send(context.Background(), ch, msg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var payload slackPayload
+	if err := json.Unmarshal(received, &payload); err != nil {
+		t.Fatalf("received invalid JSON: %v", err)
+	}
+
+	// Should have header + changelog section + link section = 3 blocks
+	if len(payload.Blocks) != 3 {
+		t.Fatalf("expected 3 blocks, got %d", len(payload.Blocks))
+	}
+
+	// Changelog text should appear without raw JSON
+	changelogBlock := payload.Blocks[1]
+	if changelogBlock.Text == nil || !strings.Contains(changelogBlock.Text.Text, "Fixed wrong genesis commit") {
+		t.Fatal("expected changelog text in second block")
+	}
+	if strings.Contains(changelogBlock.Text.Text, "release_url") {
+		t.Fatal("raw JSON keys should not appear in formatted output")
+	}
+
+	// Link block should have a Slack-formatted link
+	linkBlock := payload.Blocks[2]
+	if linkBlock.Text == nil || !strings.Contains(linkBlock.Text.Text, "View Release") {
+		t.Fatal("expected View Release link in third block")
+	}
+}
