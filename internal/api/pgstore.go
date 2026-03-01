@@ -204,7 +204,11 @@ func (s *PgStore) DeleteSource(ctx context.Context, id string) error {
 
 func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int) ([]models.Release, int, error) {
 	var total int
-	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM releases`).Scan(&total)
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM releases r
+		 LEFT JOIN sources s ON r.source_id = s.id
+		 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count releases: %w", err)
 	}
@@ -215,6 +219,8 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int) ([]mod
 		 FROM releases r
 		 LEFT JOIN sources s ON r.source_id = s.id
 		 LEFT JOIN projects p ON s.project_id = p.id
+		 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
 		 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $1 OFFSET $2`, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list all releases: %w", err)
@@ -234,7 +240,12 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int) ([]mod
 
 func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int) ([]models.Release, int, error) {
 	var total int
-	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM releases WHERE source_id = $1`, sourceID).Scan(&total)
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM releases r
+		 JOIN sources s ON r.source_id = s.id
+		 WHERE r.source_id = $1
+		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`, sourceID).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count releases: %w", err)
 	}
@@ -245,7 +256,10 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 		 FROM releases r
 		 LEFT JOIN sources s ON r.source_id = s.id
 		 LEFT JOIN projects p ON s.project_id = p.id
-		 WHERE r.source_id = $1 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
+		 WHERE r.source_id = $1
+		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+		 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by source: %w", err)
 	}
@@ -265,7 +279,9 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Release, int, error) {
 	var total int
 	err := s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id WHERE s.project_id = $1`,
+		`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id WHERE s.project_id = $1
+		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`,
 		projectID).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count releases: %w", err)
@@ -277,7 +293,10 @@ func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, p
 		 FROM releases r
 		 JOIN sources s ON r.source_id = s.id
 		 JOIN projects p ON s.project_id = p.id
-		 WHERE s.project_id = $1 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
+		 WHERE s.project_id = $1
+		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+		 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by project: %w", err)
 	}
