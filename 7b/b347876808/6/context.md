@@ -1,0 +1,90 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+Create a compact view in the projects page and users can choose switch between the default view and the compact view, in the compact view, only one line per project, this oneline contains the very latest release from all the sources and the latest semantic release
+
+### Prompt 2
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/brainstorming
+
+# Brainstorming Ideas Into Designs
+
+## Overview
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+
+<HARD-GATE>
+Do NOT invoke any implementat...
+
+### Prompt 3
+
+Option 1 but time is not necessary I think
+
+### Prompt 4
+
+Yes
+
+### Prompt 5
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/writing-plans
+
+# Writing Plans
+
+## Overview
+
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+
+Ass...
+
+### Prompt 6
+
+1
+
+### Prompt 7
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation...
+
+### Prompt 8
+
+Set the max display number limit of projects in the page, if exceeds that limit, it will have a second page, also add a search box
+
+### Prompt 9
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/brainstorming
+
+# Brainstorming Ideas Into Designs
+
+## Overview
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+
+<HARD-GATE>
+Do NOT invoke any implementat...
+
+### Prompt 10
+
+yes
+
+### Prompt 11
+
+cool, commit and push
+

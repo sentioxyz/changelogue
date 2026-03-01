@@ -3,7 +3,7 @@
   "checkpoint_id": "7bb347876808",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 6,
   "files_touched": [
     "docs/plans/2026-03-01-compact-view-design.md",
     "docs/plans/2026-03-01-compact-view-plan.md",
@@ -51,13 +51,20 @@
       "context": "/7b/b347876808/5/context.md",
       "content_hash": "/7b/b347876808/5/content_hash.txt",
       "prompt": "/7b/b347876808/5/prompt.txt"
+    },
+    {
+      "metadata": "/7b/b347876808/6/metadata.json",
+      "transcript": "/7b/b347876808/6/full.jsonl",
+      "context": "/7b/b347876808/6/context.md",
+      "content_hash": "/7b/b347876808/6/content_hash.txt",
+      "prompt": "/7b/b347876808/6/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 53934761,
+    "input_tokens": 54481800,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 112834,
-    "api_call_count": 552
+    "output_tokens": 113244,
+    "api_call_count": 557
   }
 }
