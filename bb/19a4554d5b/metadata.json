@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "bb19a4554d5b",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/pgstore.go",
+    "internal/models/semantic_release.go",
+    "web/components/semantic-releases/semantic-releases-list.tsx",
+    "web/lib/api/types.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/bb/19a4554d5b/0/metadata.json",
+      "transcript": "/bb/19a4554d5b/0/full.jsonl",
+      "context": "/bb/19a4554d5b/0/context.md",
+      "content_hash": "/bb/19a4554d5b/0/content_hash.txt",
+      "prompt": "/bb/19a4554d5b/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 13288323,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 27230,
+    "api_call_count": 144
+  }
+}
