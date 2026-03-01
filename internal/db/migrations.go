@@ -189,5 +189,12 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	`); err != nil {
 		return fmt.Errorf("subscription type migration: %w", err)
 	}
+
+	if _, err := pool.Exec(ctx, `
+		ALTER TABLE sources ADD COLUMN IF NOT EXISTS version_filter_include TEXT;
+		ALTER TABLE sources ADD COLUMN IF NOT EXISTS version_filter_exclude TEXT;
+	`); err != nil {
+		return fmt.Errorf("source version filter migration: %w", err)
+	}
 	return nil
 }
