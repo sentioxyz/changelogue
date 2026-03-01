@@ -3,7 +3,7 @@
   "checkpoint_id": "56e5dbf90ad9",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 5,
   "files_touched": [
     "docs/plans/2026-02-27-semantic-release-settings.md",
     "docs/plans/2026-02-28-semantic-release-detail-redesign.md"
@@ -43,13 +43,20 @@
       "context": "/56/e5dbf90ad9/4/context.md",
       "content_hash": "/56/e5dbf90ad9/4/content_hash.txt",
       "prompt": "/56/e5dbf90ad9/4/prompt.txt"
+    },
+    {
+      "metadata": "/56/e5dbf90ad9/5/metadata.json",
+      "transcript": "/56/e5dbf90ad9/5/full.jsonl",
+      "context": "/56/e5dbf90ad9/5/context.md",
+      "content_hash": "/56/e5dbf90ad9/5/content_hash.txt",
+      "prompt": "/56/e5dbf90ad9/5/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 31086571,
+    "input_tokens": 37186478,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 61952,
-    "api_call_count": 355
+    "output_tokens": 72383,
+    "api_call_count": 399
   }
 }
