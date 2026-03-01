@@ -41,6 +41,9 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
   const [provider, setProvider] = useState("github");
   const [repository, setRepository] = useState("");
   const [pollInterval, setPollInterval] = useState("86400");
+  const [versionFilterInclude, setVersionFilterInclude] = useState("");
+  const [versionFilterExclude, setVersionFilterExclude] = useState("");
+  const [excludePrereleases, setExcludePrereleases] = useState(false);
 
   const handleCancel = () => {
     if (onCancel) {
@@ -73,6 +76,9 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
           repository: repository.trim(),
           poll_interval_seconds: Number(pollInterval) || 86400,
           enabled: true,
+          version_filter_include: versionFilterInclude.trim() || undefined,
+          version_filter_exclude: versionFilterExclude.trim() || undefined,
+          exclude_prereleases: excludePrereleases || undefined,
         };
       }
       await onSubmit(result);
@@ -132,6 +138,7 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
                   <SelectContent>
                     <SelectItem value="github">GitHub</SelectItem>
                     <SelectItem value="dockerhub">Docker Hub</SelectItem>
+                    <SelectItem value="ecr-public">ECR Public</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -154,6 +161,39 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
                   onChange={(e) => setPollInterval(e.target.value)}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="version_filter_include">Version Filter — Include (regex, optional)</Label>
+                <Input
+                  id="version_filter_include"
+                  value={versionFilterInclude}
+                  onChange={(e) => setVersionFilterInclude(e.target.value)}
+                  placeholder='e.g. ^v\d+\.\d+\.\d+$'
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">Only show/notify versions matching this pattern</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="version_filter_exclude">Version Filter — Exclude (regex, optional)</Label>
+                <Input
+                  id="version_filter_exclude"
+                  value={versionFilterExclude}
+                  onChange={(e) => setVersionFilterExclude(e.target.value)}
+                  placeholder='e.g. -(alpha|beta|rc|nightly)'
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">Hide/suppress versions matching this pattern</p>
+              </div>
+              {provider === "github" && (
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={excludePrereleases}
+                    onChange={(e) => setExcludePrereleases(e.target.checked)}
+                    className="rounded"
+                  />
+                  Exclude pre-releases
+                </label>
+              )}
             </div>
           )}
         </div>

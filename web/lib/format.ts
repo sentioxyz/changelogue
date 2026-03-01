@@ -17,6 +17,9 @@ export function validateRepository(provider: string, repo: string): string | nul
   if (provider === "dockerhub" && /^(https?:\/\/)?hub\.docker\.com\//i.test(trimmed)) {
     return "Use owner/image format (e.g. library/nginx), not a full URL";
   }
+  if (provider === "ecr-public" && /^(https?:\/\/)?(gallery\.ecr\.aws|public\.ecr\.aws)\//i.test(trimmed)) {
+    return "Use alias/repo format (e.g. i6b2w2n6/op-node), not a full URL";
+  }
   if (/^https?:\/\//.test(trimmed)) {
     return "Use owner/repo format, not a full URL";
   }

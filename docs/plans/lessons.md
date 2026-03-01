@@ -24,3 +24,13 @@
 - Each channel should use its native formatting (Block Kit for Slack, Embeds for Discord, structured JSON for webhook)
 - When adding a new field to the SemanticReport model, update ALL senders and the web detail component
 - Test notifications across all configured channels, not just one
+
+## 2026-03-01
+
+### Container registry providers must fetch real timestamps, not use poll time
+
+**Pattern:** When adding a new container registry provider, don't use `time.Now()` as the release timestamp — it makes every release appear "just now" on every poll.
+
+**Fix:** Use the provider's native API that returns pushed timestamps directly. For ECR Public, the Gallery API (`api.us-east-1.gallery.ecr.aws/describeImageTags`) returns `imagePushedAt` for each tag in a single request — no per-tag manifest fetching needed. The Docker Registry v2 `/tags/list` endpoint only returns tag names without timestamps, so don't rely on it for dates.
+
+**Rule:** Always prefer the provider's metadata API over the raw registry v2 API when you need timestamps or other metadata. Check what the provider's web UI shows — if it displays a "Date pushed" field, there's an API behind it that returns that data efficiently.

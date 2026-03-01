@@ -36,6 +36,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
   );
   const [versionFilterInclude, setVersionFilterInclude] = useState(initial?.version_filter_include ?? "");
   const [versionFilterExclude, setVersionFilterExclude] = useState(initial?.version_filter_exclude ?? "");
+  const [excludePrereleases, setExcludePrereleases] = useState(initial?.exclude_prereleases ?? false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +68,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         config: parsedConfig,
         version_filter_include: versionFilterInclude.trim() || undefined,
         version_filter_exclude: versionFilterExclude.trim() || undefined,
+        exclude_prereleases: excludePrereleases || undefined,
       });
       if (onSuccess) {
         onSuccess();
@@ -98,6 +100,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
           <SelectContent>
             <SelectItem value="dockerhub">Docker Hub</SelectItem>
             <SelectItem value="github">GitHub</SelectItem>
+            <SelectItem value="ecr-public">ECR Public</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -142,6 +145,12 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         />
         <p className="text-xs text-muted-foreground">Hide/suppress versions matching this pattern</p>
       </div>
+      {provider === "github" && (
+        <div className="flex items-center gap-3">
+          <Switch checked={excludePrereleases} onCheckedChange={setExcludePrereleases} />
+          <Label>Exclude Pre-Releases</Label>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <Switch checked={enabled} onCheckedChange={setEnabled} />
         <Label>Enabled</Label>

@@ -28,6 +28,9 @@ function InlineSourceForm({
   const [provider, setProvider] = useState("github");
   const [repository, setRepository] = useState("");
   const [pollInterval, setPollInterval] = useState("86400");
+  const [versionFilterInclude, setVersionFilterInclude] = useState("");
+  const [versionFilterExclude, setVersionFilterExclude] = useState("");
+  const [excludePrereleases, setExcludePrereleases] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -48,6 +51,9 @@ function InlineSourceForm({
         repository: repository.trim(),
         poll_interval_seconds: Number(pollInterval) || 86400,
         enabled: true,
+        version_filter_include: versionFilterInclude.trim() || undefined,
+        version_filter_exclude: versionFilterExclude.trim() || undefined,
+        exclude_prereleases: excludePrereleases || undefined,
       });
       if (res.data?.id) sourcesApi.poll(res.data.id).catch(() => {});
       mutate(`project-${projectId}-card-sources`);
@@ -71,6 +77,7 @@ function InlineSourceForm({
         >
           <option value="github">GitHub</option>
           <option value="dockerhub">Docker Hub</option>
+          <option value="ecr-public">ECR Public</option>
         </select>
         <input
           type="text"
@@ -90,6 +97,17 @@ function InlineSourceForm({
           title="Poll interval (seconds)"
         />
       </div>
+      {provider === "github" && (
+        <label className="flex items-center gap-2 text-[12px] text-[#6b7280]">
+          <input
+            type="checkbox"
+            checked={excludePrereleases}
+            onChange={(e) => setExcludePrereleases(e.target.checked)}
+            className="rounded"
+          />
+          Exclude pre-releases
+        </label>
+      )}
       <div className="flex items-center justify-end gap-2">
         <button
           type="button"

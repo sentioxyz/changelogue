@@ -30,6 +30,8 @@ function getProviderUrl(
       return `https://github.com/${repository}/releases/tag/${version}`;
     case "dockerhub":
       return `https://hub.docker.com/r/${repository}/tags?name=${encodeURIComponent(version)}`;
+    case "ecr-public":
+      return `https://gallery.ecr.aws/${repository}`;
     default:
       return null;
   }
@@ -41,6 +43,8 @@ function getProviderLabel(provider: string): string {
       return "GitHub";
     case "dockerhub":
       return "Docker Hub";
+    case "ecr-public":
+      return "ECR Public";
     default:
       return provider;
   }

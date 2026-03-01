@@ -469,7 +469,9 @@ export function SemanticReleaseDetail() {
                           ? `https://github.com/${source.repository}/releases/tag/${rel.version}`
                           : source?.provider === "dockerhub"
                             ? `https://hub.docker.com/r/${source.repository}/tags?name=${encodeURIComponent(rel.version)}`
-                            : null;
+                            : source?.provider === "ecr-public"
+                              ? `https://gallery.ecr.aws/${source.repository}`
+                              : null;
 
                       return (
                         <tr

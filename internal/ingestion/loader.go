@@ -74,7 +74,9 @@ func BuildSource(client *http.Client, id string, sourceType, repository string) 
 	case "dockerhub":
 		return NewDockerHubSource(client, repository, id)
 	case "github":
-		return NewGitHubAtomSource(client, repository, id)
+		return NewGitHubSource(client, repository, id)
+	case "ecr-public":
+		return NewECRPublicSource(client, repository, id)
 	default:
 		return nil
 	}

@@ -1,10 +1,11 @@
 import { cn } from "@/lib/utils";
-import { FaGithub, FaDocker } from "react-icons/fa";
+import { FaGithub, FaDocker, FaAws } from "react-icons/fa";
 import type { IconType } from "react-icons";
 
 const PROVIDER_STYLES: Record<string, { bg: string; text: string; label: string; icon: IconType }> = {
   github: { bg: "#1a1a1a", text: "#ffffff", label: "GitHub", icon: FaGithub },
   dockerhub: { bg: "#2496ed", text: "#ffffff", label: "Docker Hub", icon: FaDocker },
+  "ecr-public": { bg: "#ff9900", text: "#ffffff", label: "ECR Public", icon: FaAws },
 };
 
 export function getProviderIcon(provider: string): IconType | undefined {
