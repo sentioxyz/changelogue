@@ -10,6 +10,7 @@ import {
   semanticReleases as srApi,
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
+import { ProjectLogo } from "@/components/ui/project-logo";
 import { timeAgo, validateRepository, formatInterval } from "@/lib/format";
 import { Plus, X, ArrowRight, LayoutGrid, List, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -392,6 +393,15 @@ function SemanticReleasesSection({ projectId }: { projectId: string }) {
   );
 }
 
+/* ---------- Project Card Logo ---------- */
+
+function ProjectCardLogo({ projectId, name }: { projectId: string; name: string }) {
+  const { data } = useSWR(`project-${projectId}-card-sources`, () =>
+    sourcesApi.listByProject(projectId)
+  );
+  return <ProjectLogo name={name} sources={data?.data} size={40} />;
+}
+
 /* ---------- Project Card ---------- */
 
 function ProjectCard({ project }: { project: Project }) {
@@ -402,23 +412,26 @@ function ProjectCard({ project }: { project: Project }) {
     >
       {/* Header */}
       <div className="px-4 py-3">
-        <div className="min-w-0">
-          <Link
-            href={`/projects/${project.id}`}
-            className="group inline-flex items-center gap-1.5 text-[16px] font-bold transition-colors"
-            style={{ fontFamily: "var(--font-fraunces)", color: "#e8601a" }}
-          >
-            {project.name}
-            <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
-          </Link>
-          {project.description && (
-            <p
-              className="mt-0.5 text-[13px] truncate"
-              style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+        <div className="min-w-0 flex items-center gap-3">
+          <ProjectCardLogo projectId={project.id} name={project.name} />
+          <div className="min-w-0">
+            <Link
+              href={`/projects/${project.id}`}
+              className="group inline-flex items-center gap-1.5 text-[16px] font-bold transition-colors"
+              style={{ fontFamily: "var(--font-fraunces)", color: "#e8601a" }}
             >
-              {project.description}
-            </p>
-          )}
+              {project.name}
+              <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+            </Link>
+            {project.description && (
+              <p
+                className="mt-0.5 text-[13px] truncate"
+                style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+              >
+                {project.description}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -469,9 +482,10 @@ function ProjectCompactRow({ project }: { project: Project }) {
     >
       {/* Project name */}
       <span
-        className="text-[14px] font-bold shrink-0"
+        className="flex items-center gap-2 text-[14px] font-bold shrink-0"
         style={{ fontFamily: "var(--font-fraunces)", color: "#e8601a", minWidth: "160px" }}
       >
+        <ProjectLogo name={project.name} sources={sources} size={24} />
         {project.name}
       </span>
 
