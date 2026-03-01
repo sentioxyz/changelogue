@@ -1,0 +1,25 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+The slack notification (probably) others shows raw json New release: zkos-0.29.4-rc1{"changelog": "Fixed wrong genesis commit\r\n\r\n**Full Changelog**: https://github.com/matter-labs/zksync-era/compare/zkos-0.29.4...zkos-0.29.4-rc1", "prerelease": "false", "release_url": "https://github.com/matter-labs/zksync-era/releases/tag/zkos-0.29.4-rc1"}
+
+### Prompt 2
+
+when we sitched from using github atom api to github api, the release notes in the release detailed page starts to show the raw markdown https://changelogue-app.azurewebsites.net/releases/d2655000-4103-4cde-ac45-ac79fe3e4a17
+We should fix the format, maybe we need back-compat for github atom release notes as well
+
+### Prompt 3
+
+commit and push
+
+### Prompt 4
+
+push it
+
+### Prompt 5
+
+commit uncommitted docs
+
