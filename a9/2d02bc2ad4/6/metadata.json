@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "a92d02bc2ad4",
+  "session_id": "54dc3843-a51f-40ab-a4eb-8fae5901a5c7",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-01T11:12:46.922005Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "scripts/integration-test.sh",
+    "web/app/projects/page.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "683a91986ccc",
+  "token_usage": {
+    "input_tokens": 995463,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 2856,
+    "api_call_count": 27
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-01T11:12:46.776783Z",
+    "agent_lines": 3,
+    "human_added": 46,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 49,
+    "agent_percentage": 6.122448979591836
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/54dc3843-a51f-40ab-a4eb-8fae5901a5c7.jsonl"
+}
