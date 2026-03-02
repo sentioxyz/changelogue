@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import useSWR, { mutate } from "swr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,298 +12,12 @@ import {
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { ProjectLogo } from "@/components/ui/project-logo";
-import { timeAgo, validateRepository, formatInterval } from "@/lib/format";
-import { Plus, X, ArrowRight, LayoutGrid, List, Search } from "lucide-react";
+import { timeAgo } from "@/lib/format";
+import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil } from "lucide-react";
+import { SourceForm } from "@/components/sources/source-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/projects/project-form";
 import type { Project, Source } from "@/lib/api/types";
-
-/* ---------- Inline Add Source Form ---------- */
-
-function InlineSourceForm({
-  projectId,
-  onDone,
-}: {
-  projectId: string;
-  onDone: () => void;
-}) {
-  const [provider, setProvider] = useState("github");
-  const [repository, setRepository] = useState("");
-  const [pollInterval, setPollInterval] = useState("86400");
-  const [versionFilterInclude, setVersionFilterInclude] = useState("");
-  const [versionFilterExclude, setVersionFilterExclude] = useState("");
-  const [excludePrereleases, setExcludePrereleases] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!repository.trim()) return;
-    setSaving(true);
-    setError("");
-    try {
-      const repoError = validateRepository(provider, repository.trim());
-      if (repoError) {
-        setError(repoError);
-        setSaving(false);
-        return;
-      }
-      const res = await sourcesApi.create(projectId, {
-        provider,
-        repository: repository.trim(),
-        poll_interval_seconds: Number(pollInterval) || 86400,
-        enabled: true,
-        version_filter_include: versionFilterInclude.trim() || undefined,
-        version_filter_exclude: versionFilterExclude.trim() || undefined,
-        exclude_prereleases: excludePrereleases || undefined,
-      });
-      if (res.data?.id) sourcesApi.poll(res.data.id).catch(() => {});
-      mutate(`project-${projectId}-card-sources`);
-      onDone();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add source");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleAdd} className="mt-2 rounded-md border p-3 space-y-2" style={{ borderColor: "#e8e8e5", backgroundColor: "#fafaf9" }}>
-      {error && <div className="text-[12px] text-red-600">{error}</div>}
-      <div className="flex items-center gap-2">
-        <select
-          value={provider}
-          onChange={(e) => setProvider(e.target.value)}
-          className="rounded-md border px-2 py-1 text-[12px]"
-          style={{ borderColor: "#e8e8e5", fontFamily: "var(--font-dm-sans)" }}
-        >
-          <option value="github">GitHub</option>
-          <option value="dockerhub">Docker Hub</option>
-          <option value="ecr-public">ECR Public</option>
-        </select>
-        <input
-          type="text"
-          value={repository}
-          onChange={(e) => setRepository(e.target.value)}
-          placeholder="e.g. ethereum/go-ethereum"
-          className="flex-1 rounded-md border px-2 py-1 text-[12px]"
-          style={{ borderColor: "#e8e8e5", fontFamily: "'JetBrains Mono', monospace" }}
-        />
-        <input
-          type="number"
-          min={60}
-          value={pollInterval}
-          onChange={(e) => setPollInterval(e.target.value)}
-          className="w-20 rounded-md border px-2 py-1 text-[12px]"
-          style={{ borderColor: "#e8e8e5" }}
-          title="Poll interval (seconds)"
-        />
-      </div>
-      <input
-        type="text"
-        value={versionFilterInclude}
-        onChange={(e) => setVersionFilterInclude(e.target.value)}
-        placeholder="Include filter (regex, optional)"
-        className="w-full rounded-md border px-2 py-1 text-[12px]"
-        style={{ borderColor: "#e8e8e5", fontFamily: "'JetBrains Mono', monospace" }}
-      />
-      <input
-        type="text"
-        value={versionFilterExclude}
-        onChange={(e) => setVersionFilterExclude(e.target.value)}
-        placeholder="Exclude filter (regex, optional)"
-        className="w-full rounded-md border px-2 py-1 text-[12px]"
-        style={{ borderColor: "#e8e8e5", fontFamily: "'JetBrains Mono', monospace" }}
-      />
-      {provider === "github" && (
-        <label className="flex items-center gap-2 text-[12px] text-[#6b7280]">
-          <input
-            type="checkbox"
-            checked={excludePrereleases}
-            onChange={(e) => setExcludePrereleases(e.target.checked)}
-            className="rounded"
-          />
-          Exclude pre-releases
-        </label>
-      )}
-      <div className="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={onDone}
-          className="text-[12px] text-[#9ca3af] hover:text-[#6b7280]"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={saving || !repository.trim()}
-          className="rounded-md px-3 py-1 text-[12px] font-medium text-white disabled:opacity-40"
-          style={{ backgroundColor: "#e8601a" }}
-        >
-          {saving ? "Adding..." : "Add"}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-/* ---------- Sources Section ---------- */
-
-function SourcesSection({ projectId }: { projectId: string }) {
-  const [adding, setAdding] = useState(false);
-  const { data } = useSWR(`project-${projectId}-card-sources`, () =>
-    sourcesApi.listByProject(projectId)
-  );
-  const sources = data?.data ?? [];
-
-  return (
-    <div className="px-4 py-3 md:border-r" style={{ borderColor: "#e8e8e5" }}>
-      <div className="flex items-center justify-between mb-1">
-        <span
-          className="text-[11px] font-medium uppercase tracking-[0.08em]"
-          style={{ color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}
-        >
-          Sources
-        </span>
-        {!adding && (
-          <button
-            onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-1 text-[11px] font-medium transition-colors hover:opacity-80"
-            style={{ color: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
-          >
-            <Plus className="h-3 w-3" />
-            Add Source
-          </button>
-        )}
-        {adding && (
-          <button
-            onClick={() => setAdding(false)}
-            className="text-[#9ca3af] hover:text-[#6b7280]"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-
-      {sources.length > 0 ? (
-        <div className="space-y-1">
-          {sources.map((source) => {
-            const Icon = getProviderIcon(source.provider);
-            return (
-              <div
-                key={source.id}
-                className="flex items-center gap-2 text-[12px]"
-                style={{ fontFamily: "var(--font-dm-sans)" }}
-              >
-                {Icon && <Icon size={13} className="shrink-0" style={{ color: "#6b7280" }} />}
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#374151" }}>
-                  {source.repository}
-                </span>
-                <span
-                  className="ml-auto flex items-center gap-1.5 text-[11px]"
-                  style={{ color: "#9ca3af" }}
-                >
-                  <span
-                    className="inline-block h-1.5 w-1.5 rounded-full"
-                    style={{ backgroundColor: source.enabled ? "#16a34a" : "#d1d5db" }}
-                  />
-                  {source.enabled ? "Active" : "Disabled"}
-                  <span className="ml-1" style={{ color: "#c4c4c0" }}>
-                    {formatInterval(source.poll_interval_seconds)}
-                  </span>
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="text-[12px] italic" style={{ color: "#c4c4c0" }}>
-          No sources configured
-        </p>
-      )}
-
-      {adding && (
-        <InlineSourceForm projectId={projectId} onDone={() => setAdding(false)} />
-      )}
-    </div>
-  );
-}
-
-/* ---------- Recent Releases Section ---------- */
-
-function RecentReleasesSection({ projectId }: { projectId: string }) {
-  const { data: relData } = useSWR(`project-${projectId}-card-releases`, () =>
-    releasesApi.listByProject(projectId, 1, 5)
-  );
-  const { data: srcData } = useSWR(`project-${projectId}-card-sources`, () =>
-    sourcesApi.listByProject(projectId)
-  );
-  const releases = relData?.data ?? [];
-  const sources = srcData?.data ?? [];
-
-  const sourceMap = new Map<string, Source>();
-  for (const s of sources) sourceMap.set(s.id, s);
-
-  return (
-    <div className="border-t md:border-t-0 md:border-r px-4 py-3" style={{ borderColor: "#e8e8e5" }}>
-      <span
-        className="text-[11px] font-medium uppercase tracking-[0.08em] mb-1 block"
-        style={{ color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}
-      >
-        Recent Releases
-      </span>
-
-      {releases.length > 0 ? (
-        <div className="space-y-1">
-          {releases.map((r) => {
-            const src = sourceMap.get(r.source_id);
-            const Icon = src ? getProviderIcon(src.provider) : undefined;
-            return (
-              <Link
-                key={r.id}
-                href={`/releases/${r.id}`}
-                className="flex items-center gap-2 text-[12px] transition-colors hover:bg-[#fafaf9] rounded px-1 -mx-1 py-0.5"
-              >
-                <span
-                  className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none"
-                  style={{
-                    backgroundColor: "#f3f3f1",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    color: "#374151",
-                  }}
-                >
-                  {r.version}
-                </span>
-                {Icon && <Icon size={11} className="shrink-0" style={{ color: "#9ca3af" }} />}
-                {src && (
-                  <span className="text-[11px] truncate" style={{ color: "#9ca3af" }}>
-                    {src.repository}
-                  </span>
-                )}
-                <span className="ml-auto text-[11px] shrink-0" style={{ color: "#c4c4c0" }}>
-                  {timeAgo(r.released_at || r.created_at)}
-                </span>
-              </Link>
-            );
-          })}
-          <Link
-            href={`/releases?project=${projectId}`}
-            className="block text-[11px] mt-1 hover:underline"
-            style={{ color: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
-          >
-            View all &rarr;
-          </Link>
-        </div>
-      ) : (
-        <p className="text-[12px] italic" style={{ color: "#c4c4c0" }}>
-          No releases yet
-        </p>
-      )}
-    </div>
-  );
-}
-
-/* ---------- Semantic Releases Section ---------- */
 
 const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
   critical: { bg: "#dc2626", text: "#ffffff" },
@@ -311,90 +25,6 @@ const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
   medium: { bg: "#f59e0b", text: "#ffffff" },
   low: { bg: "#6b7280", text: "#ffffff" },
 };
-
-function SemanticReleasesSection({ projectId }: { projectId: string }) {
-  const { data } = useSWR(`project-${projectId}-card-sr`, () =>
-    srApi.list(projectId, 1, 3)
-  );
-  const items = data?.data ?? [];
-
-  return (
-    <div className="border-t md:border-t-0 px-4 py-3" style={{ borderColor: "#e8e8e5" }}>
-      <span
-        className="text-[11px] font-medium uppercase tracking-[0.08em] mb-1 block"
-        style={{ color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}
-      >
-        Semantic Releases
-      </span>
-
-      {items.length > 0 ? (
-        <div className="space-y-1">
-          {items.map((sr) => {
-            const urgencyStyle = sr.report?.urgency
-              ? URGENCY_COLORS[sr.report.urgency.toLowerCase()]
-              : undefined;
-            return (
-              <Link
-                key={sr.id}
-                href={`/projects/${projectId}/semantic-releases/${sr.id}`}
-                className="flex items-center gap-2 text-[12px] transition-colors hover:bg-[#fafaf9] rounded px-1 -mx-1 py-0.5"
-              >
-                <span
-                  className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none"
-                  style={{
-                    backgroundColor: "#eff6ff",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    color: "#1d4ed8",
-                  }}
-                >
-                  {sr.version}
-                </span>
-                <span
-                  className="text-[11px]"
-                  style={{ color: "#9ca3af" }}
-                >
-                  {sr.status}
-                </span>
-                {urgencyStyle && (
-                  <span
-                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none"
-                    style={{ backgroundColor: urgencyStyle.bg, color: urgencyStyle.text }}
-                  >
-                    {sr.report!.urgency}
-                  </span>
-                )}
-                {sr.report?.summary && (
-                  <span
-                    className="text-[11px] truncate flex-1"
-                    style={{ color: "#c4c4c0" }}
-                  >
-                    {sr.report.summary.length > 60
-                      ? sr.report.summary.slice(0, 60) + "\u2026"
-                      : sr.report.summary}
-                  </span>
-                )}
-                <span className="ml-auto text-[11px] shrink-0" style={{ color: "#c4c4c0" }}>
-                  {timeAgo(sr.completed_at || sr.created_at)}
-                </span>
-              </Link>
-            );
-          })}
-          <Link
-            href={`/semantic-releases?project=${projectId}`}
-            className="block text-[11px] mt-1 hover:underline"
-            style={{ color: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
-          >
-            View all &rarr;
-          </Link>
-        </div>
-      ) : (
-        <p className="text-[12px] italic" style={{ color: "#c4c4c0" }}>
-          No semantic releases yet
-        </p>
-      )}
-    </div>
-  );
-}
 
 /* ---------- Project Card Logo ---------- */
 
@@ -405,17 +35,150 @@ function ProjectCardLogo({ projectId, name }: { projectId: string; name: string 
   return <ProjectLogo name={name} sources={data?.data} size={40} />;
 }
 
-/* ---------- Project Card ---------- */
+/* ---------- Overflow Flow ---------- */
 
-function ProjectCard({ project }: { project: Project }) {
+const LINE_HEIGHT = 28; // matches leading-7 (1.75rem = 28px)
+const MAX_LINES = 2;
+const MAX_HEIGHT = LINE_HEIGHT * MAX_LINES;
+
+function FlowSection({
+  label,
+  moreHref,
+  children,
+}: {
+  label: string;
+  moreHref: string;
+  children: React.ReactNode;
+}) {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLSpanElement>(null);
+  const [visibleCount, setVisibleCount] = useState<number | null>(null);
+
+  const items = React.Children.toArray(children);
+
+  const measure = useCallback(() => {
+    const el = measureRef.current;
+    if (!el) return;
+    const nodes = el.children;
+    const itemNodeCount = nodes.length - 2; // exclude label (first) and hidden "more…" span (last)
+    // Check if everything fits without overflow
+    if (el.scrollHeight <= MAX_HEIGHT + 4) {
+      setVisibleCount(items.length);
+      return;
+    }
+    // Measure actual "more…" link width
+    const moreWidth = moreRef.current ? moreRef.current.offsetWidth + 8 : 52;
+    const containerWidth = el.offsetWidth;
+    // First pass: find all items that fit within MAX_HEIGHT (2 lines)
+    let lastFitting = 0;
+    for (let i = 1; i <= itemNodeCount; i++) {
+      const node = nodes[i] as HTMLElement;
+      if (node.offsetTop + node.offsetHeight > MAX_HEIGHT) break;
+      lastFitting = i;
+    }
+    // Second pass: walk backward from lastFitting until "more…" fits after the item
+    let count = lastFitting;
+    while (count > 1) {
+      const node = nodes[count] as HTMLElement;
+      const nodeBottom = node.offsetTop + node.offsetHeight;
+      // If this item is on line 1, "more…" can always wrap to line 2 — we're fine
+      if (nodeBottom <= LINE_HEIGHT) break;
+      // Item is on line 2 — check if "more…" fits after it on the same line
+      const nodeRight = node.offsetLeft + node.offsetWidth;
+      if (nodeRight + moreWidth <= containerWidth) break;
+      count--;
+    }
+    setVisibleCount(Math.max(1, count));
+  }, [items.length]);
+
+  useEffect(() => {
+    measure();
+    const obs = new ResizeObserver(measure);
+    if (measureRef.current) obs.observe(measureRef.current);
+    return () => obs.disconnect();
+  }, [measure, items.length]);
+
+  const hasOverflow = visibleCount !== null && visibleCount < items.length;
+  const displayed = visibleCount !== null ? items.slice(0, visibleCount) : items;
+
+  return (
+    <div className="relative">
+      {/* Hidden measurer — renders all items to find cutoff */}
+      <div
+        ref={measureRef}
+        className="text-[13px] leading-7"
+        style={{ position: "absolute", visibility: "hidden", top: 0, left: 0, right: 0, pointerEvents: "none" }}
+        aria-hidden="true"
+      >
+        <span className="text-[11px] font-medium uppercase tracking-[0.08em] mr-1.5">
+          {label}:
+        </span>
+        {items}
+        {/* Hidden "more…" to measure its actual width */}
+        <span ref={moreRef} className="inline-flex items-baseline text-[12px] font-medium whitespace-nowrap">
+          more…
+        </span>
+      </div>
+      {/* Visible section */}
+      <div className="text-[13px] leading-7">
+        <span
+          className="text-[11px] font-medium uppercase tracking-[0.08em] mr-1.5"
+          style={{ color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}
+        >
+          {label}:
+        </span>
+        {displayed}
+        {hasOverflow && (
+          <Link
+            href={moreHref}
+            className="inline-flex items-baseline text-[12px] font-medium hover:underline whitespace-nowrap"
+            style={{ color: "#e8601a" }}
+          >
+            more…
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Flow Card ---------- */
+
+function ProjectFlowCard({ project }: { project: Project }) {
+  const [sourceCreateOpen, setSourceCreateOpen] = useState(false);
+  const [editingSource, setEditingSource] = useState<Source | null>(null);
+
+  const { data: srcData, mutate: mutateSources } = useSWR(
+    `project-${project.id}-card-sources`,
+    () => sourcesApi.listByProject(project.id),
+  );
+  const { data: relData } = useSWR(
+    `project-${project.id}-card-releases`,
+    () => releasesApi.listByProject(project.id, 1, 25),
+  );
+  const { data: srData } = useSWR(
+    `project-${project.id}-card-sr`,
+    () => srApi.list(project.id, 1, 10),
+  );
+
+  const sources = srcData?.data ?? [];
+  const releases = relData?.data ?? [];
+  const srItems = srData?.data ?? [];
+
+  const sourceMap = useMemo(() => {
+    const m = new Map<string, Source>();
+    for (const s of sources) m.set(s.id, s);
+    return m;
+  }, [sources]);
+
   return (
     <div
-      className="overflow-hidden rounded-md"
+      className="rounded-md px-5 py-4"
       style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
     >
       {/* Header */}
-      <div className="px-4 py-3">
-        <div className="min-w-0 flex items-center gap-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3 min-w-0">
           <ProjectCardLogo projectId={project.id} name={project.name} />
           <div className="min-w-0">
             <Link
@@ -428,7 +191,7 @@ function ProjectCard({ project }: { project: Project }) {
             </Link>
             {project.description && (
               <p
-                className="mt-0.5 text-[13px] truncate"
+                className="text-[13px] truncate"
                 style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
               >
                 {project.description}
@@ -438,12 +201,170 @@ function ProjectCard({ project }: { project: Project }) {
         </div>
       </div>
 
-      {/* Content columns: sources | recent releases | semantic releases */}
-      <div className="grid grid-cols-1 md:grid-cols-3 border-t" style={{ borderColor: "#e8e8e5" }}>
-        <SourcesSection projectId={project.id} />
-        <RecentReleasesSection projectId={project.id} />
-        <SemanticReleasesSection projectId={project.id} />
+      {/* Sources chips */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
+        <span
+          className="text-[11px] font-medium uppercase tracking-[0.08em] mr-0.5"
+          style={{ color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}
+        >
+          Sources:
+        </span>
+        {sources.map((source) => (
+          <button
+            key={source.id}
+            onClick={() => setEditingSource(source)}
+            className="group/chip inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[12px] transition-colors hover:bg-[#f0f0ee]"
+            style={{
+              backgroundColor: "#fafaf9",
+              border: "1px solid #e8e8e5",
+            }}
+          >
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: source.enabled ? "#16a34a" : "#d1d5db" }}
+            />
+            {(() => { const Icon = getProviderIcon(source.provider); return Icon ? <Icon size={12} className="shrink-0" style={{ color: "#9ca3af" }} /> : null; })()}
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#374151" }}>
+              {source.repository}
+            </span>
+            {source.last_polled_at && (
+              <span style={{ color: "#9ca3af" }}>
+                {timeAgo(source.last_polled_at).replace(" ago", "")}
+              </span>
+            )}
+            <Pencil className="h-2.5 w-2.5 hidden group-hover/chip:inline shrink-0" style={{ color: "#9ca3af", opacity: 0.5 }} />
+          </button>
+        ))}
+        <button
+          onClick={() => setSourceCreateOpen(true)}
+          className="inline-flex items-center gap-1 px-2 py-0.5 text-[12px] font-medium rounded border transition-colors hover:bg-[#f3f3f1]"
+          style={{
+            borderColor: "#e8e8e5",
+            color: "#9ca3af",
+            fontFamily: "var(--font-dm-sans)",
+          }}
+        >
+          <Plus className="h-3 w-3" />
+          Add Source
+        </button>
       </div>
+
+      {/* Releases flow */}
+      {releases.length > 0 && (
+        <FlowSection label="Releases" moreHref={`/releases?project=${project.id}`}>
+          {releases.map((r) => {
+            const src = sourceMap.get(r.source_id);
+            return (
+              <span key={r.id} className="inline-flex items-baseline mr-2.5">
+                <Link
+                  href={`/releases/${r.id}`}
+                  className="text-[#2563eb] hover:underline"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}
+                >
+                  {r.version}
+                </Link>
+                {src && (
+                  <span
+                    className="text-[11px] ml-1 hidden sm:inline"
+                    style={{ color: "#9ca3af" }}
+                  >
+                    ({src.repository.split("/").pop()})
+                  </span>
+                )}
+                <span
+                  className="text-[11px] ml-1"
+                  style={{ color: "#c4c4c0" }}
+                >
+                  {timeAgo(r.released_at || r.created_at).replace(" ago", "")}
+                </span>
+              </span>
+            );
+          })}
+        </FlowSection>
+      )}
+
+      {/* Semantic releases */}
+      {srItems.length > 0 && (
+        <FlowSection label="Semantic Releases" moreHref={`/semantic-releases?project=${project.id}`}>
+          {srItems.map((sr) => {
+            const urgencyStyle = sr.report?.urgency
+              ? URGENCY_COLORS[sr.report.urgency.toLowerCase()]
+              : undefined;
+            return (
+              <span key={sr.id} className="inline-flex items-center gap-1.5 mr-2.5">
+                <Link
+                  href={`/projects/${project.id}/semantic-releases/${sr.id}`}
+                  className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none hover:ring-1 hover:ring-blue-300 transition-shadow"
+                  style={{
+                    backgroundColor: "#eff6ff",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    color: "#1d4ed8",
+                  }}
+                >
+                  {sr.version}
+                </Link>
+                {urgencyStyle && (
+                  <span
+                    className="rounded px-1.5 py-0.5 text-[10px] uppercase font-bold tracking-wide leading-none"
+                    style={{ backgroundColor: urgencyStyle.bg, color: urgencyStyle.text }}
+                  >
+                    {sr.report?.urgency}
+                  </span>
+                )}
+              </span>
+            );
+          })}
+        </FlowSection>
+      )}
+
+      {/* Add Source dialog */}
+      <Dialog open={sourceCreateOpen} onOpenChange={setSourceCreateOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Source</DialogTitle>
+          </DialogHeader>
+          <SourceForm
+            title="Add Source"
+            projectId={project.id}
+            onSubmit={async (input) => {
+              const res = await sourcesApi.create(project.id, input);
+              if (res.data?.id) sourcesApi.poll(res.data.id).catch(() => {});
+            }}
+            onSuccess={() => {
+              setSourceCreateOpen(false);
+              mutateSources();
+            }}
+            onCancel={() => setSourceCreateOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Source dialog */}
+      <Dialog
+        open={!!editingSource}
+        onOpenChange={(open) => { if (!open) setEditingSource(null); }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Source</DialogTitle>
+          </DialogHeader>
+          {editingSource && (
+            <SourceForm
+              key={editingSource.id}
+              title="Edit Source"
+              initial={editingSource}
+              onSubmit={async (input) => {
+                await sourcesApi.update(editingSource.id, input);
+              }}
+              onSuccess={() => {
+                setEditingSource(null);
+                mutateSources();
+              }}
+              onCancel={() => setEditingSource(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -468,8 +389,11 @@ function ProjectCompactRow({ project }: { project: Project }) {
   const latest = releases[0];
   const latestSr = srItems[0];
 
-  const sourceMap = new Map<string, Source>();
-  for (const s of sources) sourceMap.set(s.id, s);
+  const sourceMap = useMemo(() => {
+    const m = new Map<string, Source>();
+    for (const s of sources) m.set(s.id, s);
+    return m;
+  }, [sources]);
 
   const latestSrc = latest ? sourceMap.get(latest.source_id) : undefined;
   const latestIcon = latestSrc ? getProviderIcon(latestSrc.provider) : undefined;
@@ -685,10 +609,10 @@ export default function ProjectsPage() {
         </p>
       ) : (
         <>
-          <div className={viewMode === "cards" ? "space-y-4" : "space-y-1.5"}>
+          <div className={viewMode === "cards" ? "space-y-5" : "space-y-1.5"}>
             {paged.map((project) =>
               viewMode === "cards" ? (
-                <ProjectCard key={project.id} project={project} />
+                <ProjectFlowCard key={project.id} project={project} />
               ) : (
                 <ProjectCompactRow key={project.id} project={project} />
               )
