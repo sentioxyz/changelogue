@@ -29,6 +29,8 @@ function getProviderUrl(
       return `https://hub.docker.com/r/${repository}/tags?name=${encodeURIComponent(version)}`;
     case "ecr-public":
       return `https://gallery.ecr.aws/${repository}`;
+    case "gitlab":
+      return `https://gitlab.com/${repository}/-/releases/${version}`;
     default:
       return null;
   }
