@@ -3,7 +3,7 @@
   "checkpoint_id": "3f094e14f979",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 13,
   "files_touched": [
     "docs/plans/2026-03-02-projects-flow-view.md",
     "web/app/projects/page.tsx"
@@ -22,13 +22,20 @@
       "context": "/3f/094e14f979/1/context.md",
       "content_hash": "/3f/094e14f979/1/content_hash.txt",
       "prompt": "/3f/094e14f979/1/prompt.txt"
+    },
+    {
+      "metadata": "/3f/094e14f979/2/metadata.json",
+      "transcript": "/3f/094e14f979/2/full.jsonl",
+      "context": "/3f/094e14f979/2/context.md",
+      "content_hash": "/3f/094e14f979/2/content_hash.txt",
+      "prompt": "/3f/094e14f979/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 14976023,
+    "input_tokens": 26343423,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 34244,
-    "api_call_count": 178
+    "output_tokens": 44288,
+    "api_call_count": 289
   }
 }

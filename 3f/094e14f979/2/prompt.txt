@@ -1,0 +1,1176 @@
+Help me redesign the projects page to a more compact view, I have a mockup, please refer to it, but redesign with our design pricinples:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compact Projects Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for specific text fading seen in the reference */
+        .faded-text { color: #a0aec0; }
+    </style>
+</head>
+<body class="bg-white text-gray-800 font-sans min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        
+        <!-- Page Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 mb-6 gap-4">
+            <div class="flex items-baseline gap-3">
+                <h1 class="text-3xl text-gray-700 font-light">Projects</h1>
+                <span class="text-gray-400 text-sm font-medium">1st of 6 Pages</span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                    <select class="appearance-none bg-white border border-gray-300 text-gray-700 py-1.5 pl-3 pr-8 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option>Recently updated</option>
+                        <option>Alphabetical</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                </div>
+                
+                <button class="p-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                </button>
+                <button class="p-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                </button>
+                <button class="p-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Project List Container -->
+        <div class="space-y-6">
+
+            <!-- Project Item 1: op-node -->
+            <div class="border-b border-gray-100 pb-6">
+                <!-- Header Row -->
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-md bg-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                            O
+                        </div>
+                        <h2 class="text-xl text-gray-800 font-semibold tracking-wide">op-node</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="px-3 py-1 text-sm border border-gray-200 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors">+ Add Source</button>
+                    </div>
+                </div>
+
+                <!-- Sources Flow (Inline) -->
+                <div class="flex flex-wrap items-center gap-2 mb-4">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Sources:</span>
+                    <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-2 py-1 rounded text-xs">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <span class="text-gray-700 font-medium">i6b2w2n6/op-geth</span>
+                        <span class="text-gray-400">10d</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-2 py-1 rounded text-xs">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <span class="text-gray-700 font-medium">i6b2w2n6/op-node</span>
+                        <span class="text-gray-400">10d</span>
+                    </div>
+                </div>
+                
+                <!-- Releases Flow -->
+                <div class="leading-8 text-sm">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2">Recent Releases:</span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">104 days ago:</span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">1.16.1-celestia-e9ec322</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(op-node)</span>
+                    </span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">106 days ago:</span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">1.16.1-celestia-f5b9369</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(op-node)</span>
+                    </span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">1.16.1-celestia-87792e2-test</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(op-node)</span>
+                    </span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">v1.101603.4</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(op-geth)</span>
+                    </span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">107 days ago:</span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">1.16.1-celestia-87792e2</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(op-node)</span>
+                    </span>
+                    
+                    <a href="#" class="text-blue-600 hover:underline font-medium ml-1">more...</a>
+                </div>
+            </div>
+
+            <!-- Project Item 2: scroll -->
+            <div class="border-b border-gray-100 pb-6">
+                <!-- Header Row -->
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-md bg-orange-100 flex items-center justify-center text-orange-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+                        </div>
+                        <h2 class="text-xl text-gray-800 font-semibold tracking-wide">scroll</h2>
+                        <span class="text-gray-400 text-sm font-light hidden sm:inline">Scroll L2</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="px-3 py-1 text-sm border border-gray-200 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors">+ Add Source</button>
+                    </div>
+                </div>
+
+                <!-- Sources Flow (Inline) -->
+                <div class="flex flex-wrap items-center gap-2 mb-4">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Sources:</span>
+                    <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-2 py-1 rounded text-xs">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <span class="text-gray-700 font-medium">scroll-tech/go-ethereum</span>
+                        <span class="text-gray-400">10d</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-2 py-1 rounded text-xs">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <span class="text-gray-700 font-medium">scroll-tech/reth</span>
+                        <span class="text-gray-400">10d</span>
+                    </div>
+                </div>
+
+                <!-- Semantic Releases Flow -->
+                <div class="leading-8 text-sm mb-1">
+                    <span class="text-xs font-semibold text-orange-600 uppercase tracking-wider mr-2">Semantic:</span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">14 hours ago:</span>
+                    <span class="inline-flex items-center mr-3">
+                        <a href="#" class="text-blue-600 hover:underline font-semibold">v1.6.0</a>
+                        <span class="ml-2 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] uppercase font-bold tracking-wide">Completed</span>
+                        <span class="ml-1 px-1.5 py-0.5 rounded bg-gray-500 text-white text-[10px] uppercase font-bold tracking-wide">Low</span>
+                    </span>
+                </div>
+                
+                <!-- Recent Releases Flow -->
+                <div class="leading-8 text-sm">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2">Recent:</span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">26 days ago:</span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">scroll-v91.7</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(reth)</span>
+                    </span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">30 days ago:</span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">scroll-v91.6</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(reth)</span>
+                    </span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">scroll-v91.5</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(reth)</span>
+                    </span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">33 days ago:</span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="faded-text hover:underline">scroll-v5.10.2-skip-signer-check</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(go-ethereum)</span>
+                    </span>
+                    
+                    <a href="#" class="text-blue-600 hover:underline font-medium ml-1">more...</a>
+                </div>
+            </div>
+
+            <!-- Project Item 3: maru -->
+            <div class="border-b border-gray-100 pb-6">
+                <!-- Header Row -->
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-md bg-lime-400 flex items-center justify-center text-lime-900 font-bold text-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm14.024-.983a1.125 1.125 0 010 1.966l-5.603 3.113A1.125 1.125 0 019 15.113V8.887c0-.857.921-1.4 1.671-.983l5.603 3.113z" clip-rule="evenodd" /></svg>
+                        </div>
+                        <h2 class="text-xl text-gray-800 font-semibold tracking-wide">maru</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="px-3 py-1 text-sm border border-gray-200 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors">+ Add Source</button>
+                    </div>
+                </div>
+
+                <!-- Sources Flow (Inline) -->
+                <div class="flex flex-wrap items-center gap-2 mb-4">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Sources:</span>
+                    <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-2 py-1 rounded text-xs">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <span class="text-gray-700 font-medium">consensys/maru</span>
+                        <span class="text-gray-400">10d</span>
+                    </div>
+                </div>
+                
+                <!-- Recent Releases Flow -->
+                <div class="leading-8 text-sm">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2">Recent Releases:</span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">19 days ago:</span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">buildcache</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(maru)</span>
+                    </span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">develop</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(maru)</span>
+                    </span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">5796344</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(maru)</span>
+                    </span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">24 days ago:</span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">2c8ff6d</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(maru)</span>
+                    </span>
+                    
+                    <span class="font-semibold text-gray-800 mr-1">25 days ago:</span>
+                    <span class="inline-flex items-baseline mr-3">
+                        <a href="#" class="text-blue-600 hover:underline">4c048b7</a>
+                        <span class="text-gray-400 text-xs ml-1 hidden sm:inline">(maru)</span>
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/brainstorming
+
+# Brainstorming Ideas Into Designs
+
+## Overview
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+
+<HARD-GATE>
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+</HARD-GATE>
+
+## Anti-Pattern: "This Is Too Simple To Need A Design"
+
+Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Explore project context** — check files, docs, recent commits
+2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+3. **Propose 2-3 approaches** — with trade-offs and your recommendation
+4. **Present design** — in sections scaled to their complexity, get user approval after each section
+5. **Write design doc** — save to `docs/plans/YYYY-MM-DD-<topic>-design.md` and commit
+6. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+
+## Process Flow
+
+```dot
+digraph brainstorming {
+    "Explore project context" [shape=box];
+    "Ask clarifying questions" [shape=box];
+    "Propose 2-3 approaches" [shape=box];
+    "Present design sections" [shape=box];
+    "User approves design?" [shape=diamond];
+    "Write design doc" [shape=box];
+    "Invoke writing-plans skill" [shape=doublecircle];
+
+    "Explore project context" -> "Ask clarifying questions";
+    "Ask clarifying questions" -> "Propose 2-3 approaches";
+    "Propose 2-3 approaches" -> "Present design sections";
+    "Present design sections" -> "User approves design?";
+    "User approves design?" -> "Present design sections" [label="no, revise"];
+    "User approves design?" -> "Write design doc" [label="yes"];
+    "Write design doc" -> "Invoke writing-plans skill";
+}
+```
+
+**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+
+## The Process
+
+**Understanding the idea:**
+- Check out the current project state first (files, docs, recent commits)
+- Ask questions one at a time to refine the idea
+- Prefer multiple choice questions when possible, but open-ended is fine too
+- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Focus on understanding: purpose, constraints, success criteria
+
+**Exploring approaches:**
+- Propose 2-3 different approaches with trade-offs
+- Present options conversationally with your recommendation and reasoning
+- Lead with your recommended option and explain why
+
+**Presenting the design:**
+- Once you believe you understand what you're building, present the design
+- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- Ask after each section whether it looks right so far
+- Cover: architecture, components, data flow, error handling, testing
+- Be ready to go back and clarify if something doesn't make sense
+
+## After the Design
+
+**Documentation:**
+- Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Use elements-of-style:writing-clearly-and-concisely skill if available
+- Commit the design document to git
+
+**Implementation:**
+- Invoke the writing-plans skill to create a detailed implementation plan
+- Do NOT invoke any other skill. writing-plans is the next step.
+
+## Key Principles
+
+- **One question at a time** - Don't overwhelm with multiple questions
+- **Multiple choice preferred** - Easier to answer than open-ended when possible
+- **YAGNI ruthlessly** - Remove unnecessary features from all designs
+- **Explore alternatives** - Always propose 2-3 approaches before settling
+- **Incremental validation** - Present design, get approval before moving on
+- **Be flexible** - Go back and clarify when something doesn't make sense
+
+
+ARGUMENTS: Redesign the projects page to a compact view based on a user-provided HTML mockup. The mockup shows: inline flowing releases (not cards/tables), sources as small chips, project headers with avatars, semantic releases section, "more..." links, and a dense information layout.
+
+---
+
+We should show the polled age, but the release page.
+
+---
+
+We should show the release date instead
+
+---
+
+Let's show the polled age for Sources chips, "+ Add Source" button:should not  navigates to project detail page, instead should pop up a source configuration and user can configure it then add it
+
+---
+
+We already have the dialog in the project detail pages while adding the source, let's reuse it
+
+---
+
+click the source should also have this pop-up dialog to edit an existing source
+
+---
+
+Sure
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/writing-plans
+
+# Writing Plans
+
+## Overview
+
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+
+Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+
+**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+
+**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+
+**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+
+## Bite-Sized Task Granularity
+
+**Each step is one action (2-5 minutes):**
+- "Write the failing test" - step
+- "Run it to make sure it fails" - step
+- "Implement the minimal code to make the test pass" - step
+- "Run the tests and make sure they pass" - step
+- "Commit" - step
+
+## Plan Document Header
+
+**Every plan MUST start with this header:**
+
+```markdown
+# [Feature Name] Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** [One sentence describing what this builds]
+
+**Architecture:** [2-3 sentences about approach]
+
+**Tech Stack:** [Key technologies/libraries]
+
+---
+```
+
+## Task Structure
+
+````markdown
+### Task N: [Component Name]
+
+**Files:**
+- Create: `exact/path/to/file.py`
+- Modify: `exact/path/to/existing.py:123-145`
+- Test: `tests/exact/path/to/test.py`
+
+**Step 1: Write the failing test**
+
+```python
+def test_specific_behavior():
+    result = function(input)
+    assert result == expected
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: FAIL with "function not defined"
+
+**Step 3: Write minimal implementation**
+
+```python
+def function(input):
+    return expected
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: PASS
+
+**Step 5: Commit**
+
+```bash
+git add tests/path/test.py src/path/file.py
+git commit -m "feat: add specific feature"
+```
+````
+
+## Remember
+- Exact file paths always
+- Complete code in plan (not "add validation")
+- Exact commands with expected output
+- Reference relevant skills with @ syntax
+- DRY, YAGNI, TDD, frequent commits
+
+## Execution Handoff
+
+After saving the plan, offer execution choice:
+
+**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+
+**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+
+**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
+
+**Which approach?"**
+
+**If Subagent-Driven chosen:**
+- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+- Stay in this session
+- Fresh subagent per task + code review
+
+**If Parallel Session chosen:**
+- Guide them to open new session in worktree
+- **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+
+
+ARGUMENTS: Redesign the projects page default (card) view to a compact flowing layout. Replace `ProjectCard` with `ProjectFlowCard`. The design is finalized — see conversation for full details. Key changes:
+
+1. Replace `ProjectCard` component with new `ProjectFlowCard` component
+2. Each project shows: header (logo + name link + description + "+ Add Source" button), sources as clickable chips (green dot + repo mono + polled age), semantic releases line (if any), recent releases as flowing inline text (up to 8, each with version link + source name + relative date, then "more...")
+3. "+ Add Source" opens SourceForm in Dialog (reuse from project-detail.tsx pattern)
+4. Clicking a source chip opens SourceForm in edit mode (pre-filled)
+5. Release versions link to /releases/{id}, "more..." links to /releases?project={id}
+6. No API changes needed
+7. Existing compact view (ProjectCompactRow) remains unchanged
+
+---
+
+1
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation plan?" [shape=diamond];
+    "Tasks mostly independent?" [shape=diamond];
+    "Stay in this session?" [shape=diamond];
+    "subagent-driven-development" [shape=box];
+    "executing-plans" [shape=box];
+    "Manual execution or brainstorm first" [shape=box];
+
+    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
+    "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
+    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
+    "Stay in this session?" -> "subagent-driven-development" [label="yes"];
+    "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
+}
+```
+
+**vs. Executing Plans (parallel session):**
+- Same session (no context switch)
+- Fresh subagent per task (no context pollution)
+- Two-stage review after each task: spec compliance first, then code quality
+- Faster iteration (no human-in-loop between tasks)
+
+## The Process
+
+```dot
+digraph process {
+    rankdir=TB;
+
+    subgraph cluster_per_task {
+        label="Per Task";
+        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Implementer subagent asks questions?" [shape=diamond];
+        "Answer questions, provide context" [shape=box];
+        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
+        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
+        "Implementer subagent fixes spec gaps" [shape=box];
+        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
+        "Code quality reviewer subagent approves?" [shape=diamond];
+        "Implementer subagent fixes quality issues" [shape=box];
+        "Mark task complete in TodoWrite" [shape=box];
+    }
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "More tasks remain?" [shape=diamond];
+    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
+    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
+    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+}
+```
+
+## Prompt Templates
+
+- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+
+## Example Workflow
+
+```
+You: I'm using Subagent-Driven Development to execute this plan.
+
+[Read plan file once: docs/plans/feature-plan.md]
+[Extract all 5 tasks with full text and context]
+[Create TodoWrite with all tasks]
+
+Task 1: Hook installation script
+
+[Get Task 1 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: "Before I begin - should the hook be installed at user or system level?"
+
+You: "User level (~/.config/superpowers/hooks/)"
+
+Implementer: "Got it. Implementing now..."
+[Later] Implementer:
+  - Implemented install-hook command
+  - Added tests, 5/5 passing
+  - Self-review: Found I missed --force flag, added it
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+
+[Get git SHAs, dispatch code quality reviewer]
+Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
+
+[Mark Task 1 complete]
+
+Task 2: Recovery modes
+
+[Get Task 2 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: [No questions, proceeds]
+Implementer:
+  - Added verify/repair modes
+  - 8/8 tests passing
+  - Self-review: All good
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ❌ Issues:
+  - Missing: Progress reporting (spec says "report every 100 items")
+  - Extra: Added --json flag (not requested)
+
+[Implementer fixes issues]
+Implementer: Removed --json flag, added progress reporting
+
+[Spec reviewer reviews again]
+Spec reviewer: ✅ Spec compliant now
+
+[Dispatch code quality reviewer]
+Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
+
+[Implementer fixes]
+Implementer: Extracted PROGRESS_INTERVAL constant
+
+[Code reviewer reviews again]
+Code reviewer: ✅ Approved
+
+[Mark Task 2 complete]
+
+...
+
+[After all tasks]
+[Dispatch final code-reviewer]
+Final reviewer: All requirements met, ready to merge
+
+Done!
+```
+
+## Advantages
+
+**vs. Manual execution:**
+- Subagents follow TDD naturally
+- Fresh context per task (no confusion)
+- Parallel-safe (subagents don't interfere)
+- Subagent can ask questions (before AND during work)
+
+**vs. Executing Plans:**
+- Same session (no handoff)
+- Continuous progress (no waiting)
+- Review checkpoints automatic
+
+**Efficiency gains:**
+- No file reading overhead (controller provides full text)
+- Controller curates exactly what context is needed
+- Subagent gets complete information upfront
+- Questions surfaced before work begins (not after)
+
+**Quality gates:**
+- Self-review catches issues before handoff
+- Two-stage review: spec compliance, then code quality
+- Review loops ensure fixes actually work
+- Spec compliance prevents over/under-building
+- Code quality ensures implementation is well-built
+
+**Cost:**
+- More subagent invocations (implementer + 2 reviewers per task)
+- Controller does more prep work (extracting all tasks upfront)
+- Review loops add iterations
+- But catches issues early (cheaper than debugging later)
+
+## Red Flags
+
+**Never:**
+- Start implementation on main/master branch without explicit user consent
+- Skip reviews (spec compliance OR code quality)
+- Proceed with unfixed issues
+- Dispatch multiple implementation subagents in parallel (conflicts)
+- Make subagent read plan file (provide full text instead)
+- Skip scene-setting context (subagent needs to understand where task fits)
+- Ignore subagent questions (answer before letting them proceed)
+- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
+- Skip review loops (reviewer found issues = implementer fixes = review again)
+- Let implementer self-review replace actual review (both are needed)
+- **Start code quality review before spec compliance is ✅** (wrong order)
+- Move to next task while either review has open issues
+
+**If subagent asks questions:**
+- Answer clearly and completely
+- Provide additional context if needed
+- Don't rush them into implementation
+
+**If reviewer finds issues:**
+- Implementer (same subagent) fixes them
+- Reviewer reviews again
+- Repeat until approved
+- Don't skip the re-review
+
+**If subagent fails task:**
+- Dispatch fix subagent with specific instructions
+- Don't try to fix manually (context pollution)
+
+## Integration
+
+**Required workflow skills:**
+- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+
+**Subagents should use:**
+- **superpowers:test-driven-development** - Subagents follow TDD for each task
+
+**Alternative workflow:**
+- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+
+ARGUMENTS: Implement the plan in docs/plans/2026-03-02-projects-flow-view.md
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/verification-before-completion
+
+# Verification Before Completion
+
+## Overview
+
+Claiming work is complete without verification is dishonesty, not efficiency.
+
+**Core principle:** Evidence before claims, always.
+
+**Violating the letter of this rule is violating the spirit of this rule.**
+
+## The Iron Law
+
+```
+NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
+```
+
+If you haven't run the verification command in this message, you cannot claim it passes.
+
+## The Gate Function
+
+```
+BEFORE claiming any status or expressing satisfaction:
+
+1. IDENTIFY: What command proves this claim?
+2. RUN: Execute the FULL command (fresh, complete)
+3. READ: Full output, check exit code, count failures
+4. VERIFY: Does output confirm the claim?
+   - If NO: State actual status with evidence
+   - If YES: State claim WITH evidence
+5. ONLY THEN: Make the claim
+
+Skip any step = lying, not verifying
+```
+
+## Common Failures
+
+| Claim | Requires | Not Sufficient |
+|-------|----------|----------------|
+| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
+| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
+| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
+| Regression test works | Red-green cycle verified | Test passes once |
+| Agent completed | VCS diff shows changes | Agent reports "success" |
+| Requirements met | Line-by-line checklist | Tests passing |
+
+## Red Flags - STOP
+
+- Using "should", "probably", "seems to"
+- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
+- About to commit/push/PR without verification
+- Trusting agent success reports
+- Relying on partial verification
+- Thinking "just this once"
+- Tired and wanting work over
+- **ANY wording implying success without having run verification**
+
+## Rationalization Prevention
+
+| Excuse | Reality |
+|--------|---------|
+| "Should work now" | RUN the verification |
+| "I'm confident" | Confidence ≠ evidence |
+| "Just this once" | No exceptions |
+| "Linter passed" | Linter ≠ compiler |
+| "Agent said success" | Verify independently |
+| "I'm tired" | Exhaustion ≠ excuse |
+| "Partial check is enough" | Partial proves nothing |
+| "Different words so rule doesn't apply" | Spirit over letter |
+
+## Key Patterns
+
+**Tests:**
+```
+✅ [Run test command] [See: 34/34 pass] "All tests pass"
+❌ "Should pass now" / "Looks correct"
+```
+
+**Regression tests (TDD Red-Green):**
+```
+✅ Write → Run (pass) → Revert fix → Run (MUST FAIL) → Restore → Run (pass)
+❌ "I've written a regression test" (without red-green verification)
+```
+
+**Build:**
+```
+✅ [Run build] [See: exit 0] "Build passes"
+❌ "Linter passed" (linter doesn't check compilation)
+```
+
+**Requirements:**
+```
+✅ Re-read plan → Create checklist → Verify each → Report gaps or completion
+❌ "Tests pass, phase complete"
+```
+
+**Agent delegation:**
+```
+✅ Agent reports success → Check VCS diff → Verify changes → Report actual state
+❌ Trust agent report
+```
+
+## Why This Matters
+
+From 24 failure memories:
+- your human partner said "I don't believe you" - trust broken
+- Undefined functions shipped - would crash
+- Missing requirements shipped - incomplete features
+- Time wasted on false completion → redirect → rework
+- Violates: "Honesty is a core value. If you lie, you'll be replaced."
+
+## When To Apply
+
+**ALWAYS before:**
+- ANY variation of success/completion claims
+- ANY expression of satisfaction
+- ANY positive statement about work state
+- Committing, PR creation, task completion
+- Moving to next task
+- Delegating to agents
+
+**Rule applies to:**
+- Exact phrases
+- Paraphrases and synonyms
+- Implications of success
+- ANY communication suggesting completion/correctness
+
+## The Bottom Line
+
+**No shortcuts for verification.**
+
+Run the command. Read the output. THEN claim the result.
+
+This is non-negotiable.
+
+
+ARGUMENTS: Review the ProjectFlowCard implementation in web/app/projects/page.tsx against the plan in docs/plans/2026-03-02-projects-flow-view.md
+
+---
+
+put the add source button next to the last source, and add a pencil hint while hovering on the existing source to indicate the editing capability; put the Semantic under the recent, and using the same color with recent, change "recent" to "releases", "semantic" to "semantic releases"
+
+---
+
+The pencil icon makes the source wider and when not-hovering on it, it has a space, weird
+
+---
+
+To show the more... for both releases/semantic releases, let's dont use a fixed number like 8, we should dynamically adjust based on the screen width, and show as many releases as possible
+
+---
+
+"more.." shows on the new line, I prefer to show it end of the second line to a more compact view
+
+---
+
+more should right next to the last release, if no space left, on the right of the box
+
+---
+
+I cannot see the "more.." any more
+
+---
+
+but if there's no space, the more... have been moved to the next line, I want to see it is placed at the right of the same line with the releases
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me go through the conversation chronologically:
+
+1. **Initial Request**: User wants to redesign the projects page to a more compact view, providing an HTML mockup showing inline flowing releases, source chips, project headers with avatars, semantic releases, and "more..." links.
+
+2. **Brainstorming Phase**: Used the brainstorming skill to explore the project context. Dispatched a subagent to explore the frontend structure thoroughly. Found the existing projects page at `/Users/pc/web3/ReleaseBeacon/web/app/projects/page.tsx` with card view and compact view modes.
+
+3. **Clarifying Questions & Design Decisions**:
+   - Replace the default (card) view, not the compact view
+   - "+ Add Source" button should pop up a source configuration dialog (not navigate to project detail)
+   - Show 8 releases (later changed to dynamic)
+   - Show individual dates per release (not grouped by date)
+   - Show polled age on source chips (then user said don't show, then said DO show polled age)
+   - Release versions link to individual release pages
+   - Reuse the existing `SourceForm` component in a `Dialog` (same pattern as project-detail.tsx)
+   - Clicking a source chip opens the edit dialog
+
+4. **Implementation Plan**: Created plan at `docs/plans/2026-03-02-projects-flow-view.md`
+
+5. **Implementation via Subagent**: Dispatched implementer subagent that:
+   - Added `SourceForm` import
+   - Created `ProjectFlowCard` component
+   - Removed old components (`InlineSourceForm`, `SourcesSection`, `RecentReleasesSection`, `SemanticReleasesSection`, `ProjectCard`)
+   - Updated render section
+   - Removed unused imports
+
+6. **Code Reviews**: Spec review passed. Code quality review found two issues:
+   - `sourceMap` should use `useMemo` — fixed
+   - `sr.report!.urgency` should use `sr.report?.urgency` — fixed
+
+7. **User feedback round 1**: "put the add source button next to the last source, and add a pencil hint while hovering on the existing source to indicate the editing capability; put the Semantic under the recent, and using the same color with recent, change 'recent' to 'releases', 'semantic' to 'semantic releases'"
+   - Moved Add Source button inline after source chips
+   - Added Pencil icon with `group-hover/chip` 
+   - Reordered: Releases before Semantic Releases
+   - Renamed labels
+
+8. **User feedback**: "Remove the completed status for semantic releases" — removed the status badge
+
+9. **User feedback on pencil**: "The pencil icon makes the source wider and when not-hovering on it, it has a space, weird"
+   - Fixed by changing from `opacity-0 group-hover/chip:opacity-50` to `hidden group-hover/chip:inline`
+
+10. **User feedback on dynamic width**: "To show the more... for both releases/semantic releases, let's dont use a fixed number like 8, we should dynamically adjust based on the screen width, and show as many releases as possible"
+    - Created `FlowSection` component with `ResizeObserver` and max-height clamping
+    - Increased fetch from 8 to 25 releases, 3 to 10 semantic releases
+
+11. **User feedback**: "more.. shows on the new line" — changed to absolute positioning with gradient fade
+
+12. **User feedback**: "I cannot see the 'more..' any more" — the absolute positioned "more..." was covered or the overflow hidden clipped it. Rewrote to use a hidden measurer approach: measure all items in a hidden div, count how many fit in 2 lines, render only those + "more..." inline.
+
+13. **User feedback**: "but if there's no space, the more... have been moved to the next line, I want to see it is placed at the right of the same line with the releases" — Updated measure function to reserve space for "more..." (MORE_WIDTH = 48px) when calculating visible items.
+
+Current state of the FlowSection component and the file - the last edit was to the measure function to account for "more..." width, but the build hasn't been verified yet.
+
+Summary:
+1. Primary Request and Intent:
+   The user wants to redesign the projects page default (card) view to a compact flowing layout inspired by a provided HTML mockup. Key requirements evolved through conversation:
+   - Replace the default card view (not the compact view) with a new flowing layout
+   - Sources displayed as inline clickable chips (green dot + repo name + polled age), clicking opens edit dialog
+   - "+ Add Source" button placed inline after the last source chip, opens a `SourceForm` dialog
+   - Pencil icon appears on hover over source chips to hint at edit capability (using `hidden`/`inline` toggle, not opacity)
+   - Releases section shows flowing inline releases with version links + source name + relative date
+   - Semantic Releases section appears below Releases, using same gray label color
+   - Labels: "Releases:" and "Semantic Releases:" (not "Recent:" or "Semantic:")
+   - No status badge on semantic releases (removed "Completed"/"Pending")
+   - Dynamic overflow: show as many items as fit in 2 lines based on screen width, with "more..." appearing inline right after the last visible item on the same line (not on a new line)
+
+2. Key Technical Concepts:
+   - Next.js client component with `"use client"`
+   - SWR for data fetching with shared cache keys
+   - Shadcn UI components (Dialog, SourceForm)
+   - `ResizeObserver` for dynamic overflow measurement
+   - Hidden measurer pattern for calculating visible item count
+   - Tailwind CSS with inline styles for design system colors
+   - Font system: Fraunces (display), DM Sans (body), JetBrains Mono (monospace)
+   - Color palette: `#e8601a` (orange accent), `#9ca3af` (gray labels), `#2563eb` (blue links)
+   - `useMemo` for sourceMap optimization
+   - Group hover with Tailwind (`group/chip`, `group-hover/chip:inline`)
+
+3. Files and Code Sections:
+
+   - **`/Users/pc/web3/ReleaseBeacon/web/app/projects/page.tsx`** — Main file being modified. Originally 748 lines with `ProjectCard`, `ProjectCompactRow`, `InlineSourceForm`, `SourcesSection`, `RecentReleasesSection`, `SemanticReleasesSection`. Now restructured with `ProjectFlowCard` and `FlowSection`.
+
+     Current `FlowSection` component (most recent version with "more..." width reservation):
+     ```typescript
+     const LINE_HEIGHT = 28;
+     const MAX_LINES = 2;
+     const MAX_HEIGHT = LINE_HEIGHT * MAX_LINES;
+     const MORE_WIDTH = 48;
+
+     function FlowSection({
+       label,
+       moreHref,
+       children,
+     }: {
+       label: string;
+       moreHref: string;
+       children: React.ReactNode;
+     }) {
+       const measureRef = useRef<HTMLDivElement>(null);
+       const [visibleCount, setVisibleCount] = useState<number | null>(null);
+       const items = React.Children.toArray(children);
+
+       const measure = useCallback(() => {
+         const el = measureRef.current;
+         if (!el) return;
+         const nodes = el.children;
+         if (el.scrollHeight <= MAX_HEIGHT + 4) {
+           setVisibleCount(items.length);
+           return;
+         }
+         const containerWidth = el.offsetWidth;
+         let count = 0;
+         for (let i = 1; i < nodes.length; i++) {
+           const node = nodes[i] as HTMLElement;
+           const nodeBottom = node.offsetTop + node.offsetHeight;
+           const nodeRight = node.offsetLeft + node.offsetWidth;
+           if (nodeBottom > MAX_HEIGHT) break;
+           if (nodeBottom > LINE_HEIGHT && nodeRight + MORE_WIDTH > containerWidth) break;
+           count = i;
+         }
+         setVisibleCount(Math.max(1, count));
+       }, [items.length]);
+
+       useEffect(() => {
+         measure();
+         const obs = new ResizeObserver(measure);
+         if (measureRef.current) obs.observe(measureRef.current);
+         return () => obs.disconnect();
+       }, [measure, items.length]);
+
+       const hasOverflow = visibleCount !== null && visibleCount < items.length;
+       const displayed = visibleCount !== null ? items.slice(0, visibleCount) : items;
+
+       return (
+         <div className="relative">
+           <div ref={measureRef} className="text-[13px] leading-7"
+             style={{ position: "absolute", visibility: "hidden", top: 0, left: 0, right: 0, pointerEvents: "none" }}
+             aria-hidden="true">
+             <span className="text-[11px] font-medium uppercase tracking-[0.08em] mr-1.5">{label}:</span>
+             {items}
+           </div>
+           <div className="text-[13px] leading-7">
+             <span className="text-[11px] font-medium uppercase tracking-[0.08em] mr-1.5"
+               style={{ color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}>{label}:</span>
+             {displayed}
+             {hasOverflow && (
+               <Link href={moreHref}
+                 className="inline-flex items-baseline text-[12px] font-medium hover:underline whitespace-nowrap"
+                 style={{ color: "#e8601a" }}>more…</Link>
+             )}
+           </div>
+         </div>
+       );
+     }
+     ```
+
+     Source chips section with pencil and inline Add Source:
+     ```typescript
+     <div className="flex flex-wrap items-center gap-1.5 mb-3">
+       <span className="text-[11px] font-medium uppercase tracking-[0.08em] mr-0.5"
+         style={{ color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}>Sources:</span>
+       {sources.map((source) => (
+         <button key={source.id} onClick={() => setEditingSource(source)}
+           className="group/chip inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[12px] transition-colors hover:bg-[#f0f0ee]"
+           style={{ backgroundColor: "#fafaf9", border: "1px solid #e8e8e5" }}>
+           <span className="inline-block h-1.5 w-1.5 rounded-full"
+             style={{ backgroundColor: source.enabled ? "#16a34a" : "#d1d5db" }} />
+           <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#374151" }}>{source.repository}</span>
+           {source.last_polled_at && (
+             <span style={{ color: "#9ca3af" }}>{timeAgo(source.last_polled_at).replace(" ago", "")}</span>
+           )}
+           <Pencil className="h-2.5 w-2.5 hidden group-hover/chip:inline shrink-0" style={{ color: "#9ca3af", opacity: 0.5 }} />
+         </button>
+       ))}
+       <button onClick={() => setSourceCreateOpen(true)}
+         className="inline-flex items-center gap-1 px-2 py-0.5 text-[12px] font-medium rounded border transition-colors hover:bg-[#f3f3f1]"
+         style={{ borderColor: "#e8e8e5", color: "#9ca3af", fontFamily: "var(--font-dm-sans)" }}>
+         <Plus className="h-3 w-3" /> Add Source
+       </button>
+     </div>
+     ```
+
+     API fetch counts updated:
+     ```typescript
+     () => releasesApi.listByProject(project.id, 1, 25),  // was 8
+     () => srApi.list(project.id, 1, 10),  // was 3
+     ```
+
+   - **`/Users/pc/web3/ReleaseBeacon/web/components/sources/source-form.tsx`** — Existing `SourceForm` component reused for both create and edit dialogs. Not modified.
+
+   - **`/Users/pc/web3/ReleaseBeacon/web/components/projects/project-detail.tsx`** — Reference for the dialog pattern with `SourceForm`. Not modified.
+
+   - **`/Users/pc/web3/ReleaseBeacon/web/lib/api/types.ts`** — Types for `Project`, `Source`, `Release`, `SemanticRelease`. Not modified.
+
+   - **`/Users/pc/web3/ReleaseBeacon/web/lib/format.ts`** — `timeAgo()` utility used throughout. Not modified.
+
+   - **`/Users/pc/web3/ReleaseBeacon/docs/plans/2026-03-02-projects-flow-view.md`** — Implementation plan (now partially outdated due to iterative changes).
+
+4. Errors and Fixes:
+   - **`sourceMap` not memoized**: Code quality reviewer flagged rebuilding `Map` on every render. Fixed by wrapping in `useMemo` in both `ProjectFlowCard` and `ProjectCompactRow`.
+   - **Non-null assertion `sr.report!.urgency`**: Reviewer flagged. Fixed to `sr.report?.urgency`.
+   - **Pencil icon taking space when hidden**: User reported "The pencil icon makes the source wider and when not-hovering on it, it has a space, weird". Originally used `opacity-0 group-hover/chip:opacity-50` which reserves layout space. Fixed by changing to `hidden group-hover/chip:inline` so it takes zero space when not hovered.
+   - **"more..." on new line**: User wanted it inline. First attempt used absolute positioning with gradient — user couldn't see it at all ("I cannot see the 'more..' any more"). Second attempt put it inline inside overflow container — it got clipped. Third attempt used hidden measurer pattern to count visible items and render only those + "more..." inline. User reported "more..." still wrapping to next line when no space. Latest fix reserves `MORE_WIDTH = 48px` in the measurement calculation.
+
+5. Problem Solving:
+   - **Dynamic overflow detection**: Evolved through multiple iterations. Final approach uses a hidden measurer div that renders all items to measure their positions, then calculates how many fit within 2 lines (56px max height), reserving 48px for the "more..." link. Only the fitting items are rendered in the visible div with "more..." appended inline.
+   - **Source edit/create dialogs**: Reused existing `SourceForm` component in `Dialog` wrappers, matching the exact pattern from `project-detail.tsx`.
+   - The "more..." positioning problem went through 4 iterations and the latest fix (reserving MORE_WIDTH) hasn't been verified in the browser yet.
+
+6. All User Messages:
+   - "Help me redesign the projects page to a more compact view, I have a mockup, please refer to it, but redesign with our design principles: [HTML mockup]"
+   - "Replace the default view, not the compact view"
+   - "Add source button pops up the same configuration view in the project detail page"
+   - "8 releases"
+   - "Individual release pages"
+   - "We should show the polled age, but the release page."
+   - "we shouldn't show the polled age" (then later clarified to show polled age on sources but not releases)
+   - "We already have the dialog in the project detail pages while adding the source, let's reuse it"
+   - "click the source should also have this pop-up dialog to edit an existing source"
+   - "Sure" (to proceed with implementation)
+   - "1" (chose subagent-driven execution)
+   - "put the add source button next to the last source, and add a pencil hint while hovering on the existing source to indicate the editing capability; put the Semantic under the recent, and using the same color with recent, change 'recent' to 'releases', 'semantic' to 'semantic releases'"
+   - "Remove the completed status for semantic releases"
+   - "The pencil icon makes the source wider and when not-hovering on it, it has a space, weird"
+   - "To show the more... for both releases/semantic releases, let's dont use a fixed number like 8, we should dynamically adjust based on the screen width, and show as many releases as possible"
+   - "'more..' shows on the new line, I prefer to show it end of the second line to a more compact view"
+   - "I cannot see the 'more..' any more"
+   - "but if there's no space, the more... have been moved to the next line, I want to see it is placed at the right of the same line with the releases"
+
+7. Pending Tasks:
+   - Verify the latest `FlowSection` fix (MORE_WIDTH reservation) actually works in the browser — build hasn't been run yet for the latest edit
+   - Commit the final implementation once the user is satisfied
+   - The "more..." positioning may still need refinement based on user testing
+
+8. Current Work:
+   Working on fixing the `FlowSection` component's "more..." link positioning. The user's latest feedback: "but if there's no space, the more... have been moved to the next line, I want to see it is placed at the right of the same line with the releases." The latest edit adds `MORE_WIDTH = 48` pixel reservation in the measure function so that items on the second line are only counted if there's room for "more..." after them. The build has NOT been verified for this latest change.
+
+9. Optional Next Step:
+   Run `npx next build` to verify the latest `FlowSection` edit compiles, then have the user test in browser to confirm "more..." now stays on the same line as releases. The user's exact quote: "but if there's no space, the more... have been moved to the next line, I want to see it is placed at the right of the same line with the releases" — this is the issue being addressed. If the 48px constant isn't accurate enough, may need to measure the actual "more..." element width or use a different approach like rendering a hidden "more..." element and measuring it.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/820a1dee-869d-44c6-bee8-daff7a916977.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+No, still oneline
+
+---
+
+please include the icon in the source, now it only shows the status and the mae
+
+---
+
+Looks great, commit and push
