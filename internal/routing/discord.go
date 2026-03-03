@@ -121,7 +121,7 @@ func buildSemanticEmbed(title string, version string, report *models.SemanticRep
 	}
 
 	fields := []discordEmbedField{
-		{Name: "Risk Level", Value: fmt.Sprintf("%s %s", riskEmoji(report.RiskLevel), report.RiskLevel), Inline: true},
+		{Name: "Risk Level", Value: fmt.Sprintf("%s %s", urgencyEmoji(report.RiskLevel), report.RiskLevel), Inline: true},
 		{Name: "Urgency", Value: report.Urgency, Inline: true},
 	}
 	if report.Availability != "" {
