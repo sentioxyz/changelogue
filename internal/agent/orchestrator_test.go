@@ -390,8 +390,7 @@ func TestCheckAllSourcesReady(t *testing.T) {
 func TestParseReport_NewFormat(t *testing.T) {
 	input := `{
 		"subject": "Ready to Deploy: Geth v1.10.15",
-		"risk_level": "CRITICAL",
-		"risk_reason": "Hard Fork detected",
+		"urgency_reason": "Hard Fork detected",
 		"status_checks": ["Docker Image Verified"],
 		"changelog_summary": "Fixes sync bug",
 		"availability": "GA",
@@ -409,8 +408,8 @@ func TestParseReport_NewFormat(t *testing.T) {
 	if report.Subject != "Ready to Deploy: Geth v1.10.15" {
 		t.Errorf("subject: got %q", report.Subject)
 	}
-	if report.RiskLevel != "CRITICAL" {
-		t.Errorf("risk_level: got %q", report.RiskLevel)
+	if report.UrgencyReason != "Hard Fork detected" {
+		t.Errorf("urgency_reason: got %q", report.UrgencyReason)
 	}
 	if len(report.StatusChecks) != 1 {
 		t.Errorf("status_checks: got %d", len(report.StatusChecks))

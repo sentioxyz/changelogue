@@ -62,14 +62,13 @@ For download_links: prefer direct binary/artifact URLs for specific platforms (e
 
 The JSON object must have exactly these fields:
 {
-  "subject": "Ready to Deploy: <Project> <Version> (<Risk Summary>)",
-  "risk_level": "CRITICAL|HIGH|MEDIUM|LOW",
-  "risk_reason": "Why this risk level (e.g., 'Hard Fork detected in Discord #announcements')",
+  "subject": "Ready to Deploy: <Project> <Version> (<Urgency Summary>)",
+  "urgency": "Critical|High|Medium|Low",
+  "urgency_reason": "Why this urgency level (e.g., 'Hard Fork detected in Discord #announcements')",
   "status_checks": ["Docker Image Verified", "Binaries Available"],
   "changelog_summary": "One-line summary of key changes (e.g., 'Fixes sync bug in block 14,000,000')",
   "availability": "GA|RC|Beta",
   "adoption": "Percentage or recommendation (e.g., '12% of network updated (Wait recommended if not urgent)')",
-  "urgency": "Critical|High|Medium|Low",
   "recommendation": "Actionable 1-2 sentence recommendation for the SRE team",
   "download_commands": ["docker pull ethereum/client-go:v1.10.15"],
   "download_links": ["https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.10.15-8be800ff.tar.gz", "https://gethstore.blob.core.windows.net/builds/geth-darwin-arm64-1.10.15-8be800ff.tar.gz", "https://github.com/ethereum/go-ethereum/releases/tag/v1.10.15"]
