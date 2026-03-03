@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/sentioxyz/changelogue/internal/models"
@@ -133,5 +134,76 @@ func TestDiscordSender_BodyTruncation(t *testing.T) {
 	desc := embed["description"].(string)
 	if len(desc) > 4096 {
 		t.Errorf("expected description to be at most 4096 chars, got %d", len(desc))
+	}
+}
+
+func TestDiscordSender_SemanticReport(t *testing.T) {
+	var received []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	sender := &DiscordSender{Client: srv.Client()}
+	ch := &models.NotificationChannel{
+		Type:   "discord",
+		Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
+	}
+
+	reportJSON := `{
+		"subject": "Ready to Deploy: go-ethereum v1.16.4",
+		"urgency": "Critical",
+		"urgency_reason": "Hard fork — deploy before block 18M",
+		"changelog_summary": "Consensus-critical update",
+		"download_commands": ["docker pull ethereum/client-go:v1.16.4"],
+		"availability": "GA"
+	}`
+
+	msg := Notification{
+		Title:       "go-ethereum v1.16.4",
+		Body:        reportJSON,
+		Version:     "v1.16.4",
+		ProjectName: "go-ethereum",
+		Provider:    "github",
+		Repository:  "ethereum/go-ethereum",
+		SourceURL:   "https://github.com/ethereum/go-ethereum/releases/tag/v1.16.4",
+		ReleaseURL:  "https://changelogue.example.com/sr/1",
+	}
+
+	err := sender.Send(context.Background(), ch, msg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var payload discordPayload
+	if err := json.Unmarshal(received, &payload); err != nil {
+		t.Fatalf("received invalid JSON: %v", err)
+	}
+
+	if len(payload.Embeds) != 1 {
+		t.Fatalf("expected 1 embed, got %d", len(payload.Embeds))
+	}
+
+	embed := payload.Embeds[0]
+
+	// Should contain urgency reason for Critical
+	if !strings.Contains(embed.Description, "Hard fork") {
+		t.Fatal("critical urgency should include urgency_reason in description")
+	}
+
+	// Should contain changelog
+	if !strings.Contains(embed.Description, "Consensus-critical update") {
+		t.Fatal("should include changelog summary")
+	}
+
+	// Should NOT have inline fields (compact format removes them)
+	if len(embed.Fields) > 0 {
+		t.Fatalf("compact format should not have embed fields, got %d", len(embed.Fields))
+	}
+
+	// Color should be CRITICAL near-black
+	if embed.Color != 0x111113 {
+		t.Fatalf("expected critical color 0x111113, got 0x%06X", embed.Color)
 	}
 }

@@ -47,8 +47,8 @@ type discordEmbedFooter struct {
 	Text string `json:"text"`
 }
 
-// discordRiskColor returns a Discord embed color based on risk level.
-func discordRiskColor(level string) int {
+// discordUrgencyColor returns a Discord embed color based on urgency level.
+func discordUrgencyColor(level string) int {
 	switch strings.ToUpper(strings.TrimSpace(level)) {
 	case "CRITICAL":
 		return 0x111113 // near-black
@@ -63,47 +63,46 @@ func discordRiskColor(level string) int {
 	}
 }
 
-// buildSemanticEmbed builds a rich Discord embed from a SemanticReport.
+// buildSemanticEmbed builds a compact Discord embed from a SemanticReport.
 func buildSemanticEmbed(title string, version string, report *models.SemanticReport, msg Notification) discordEmbed {
+	// Resolve urgency from new field or backward-compat risk_level
+	urgency := report.Urgency
+	if urgency == "" {
+		urgency = report.RiskLevel
+	}
+	urgencyReason := report.UrgencyReason
+	if urgencyReason == "" {
+		urgencyReason = report.RiskReason
+	}
+
 	var descParts []string
 
-	if report.Subject != "" {
-		descParts = append(descParts, fmt.Sprintf("**%s**", report.Subject))
+	// Urgency badge
+	if urgency != "" {
+		descParts = append(descParts, fmt.Sprintf("%s **%s Urgency**", urgencyEmoji(urgency), urgency))
 	}
 
-	if report.RiskReason != "" {
-		descParts = append(descParts, fmt.Sprintf(">>> %s", report.RiskReason))
+	// Urgency reason (only for Critical/High)
+	upperUrgency := strings.ToUpper(strings.TrimSpace(urgency))
+	if (upperUrgency == "CRITICAL" || upperUrgency == "HIGH") && urgencyReason != "" {
+		descParts = append(descParts, urgencyReason)
 	}
 
-	if len(report.StatusChecks) > 0 {
-		var checks []string
-		for _, check := range report.StatusChecks {
-			checks = append(checks, fmt.Sprintf("✅ %s", check))
-		}
-		descParts = append(descParts, strings.Join(checks, "\n"))
-	}
-
+	// Changelog summary
 	summary := report.ChangelogSummary
 	if summary == "" {
 		summary = report.Summary
 	}
 	if summary != "" {
-		descParts = append(descParts, fmt.Sprintf("**Changelog**\n%s", summary))
+		descParts = append(descParts, summary)
 	}
 
+	// First download command
 	if len(report.DownloadCommands) > 0 {
-		descParts = append(descParts, fmt.Sprintf("**Download Commands**\n```\n%s\n```", strings.Join(report.DownloadCommands, "\n")))
+		descParts = append(descParts, fmt.Sprintf("`%s`", report.DownloadCommands[0]))
 	}
 
-	if len(report.DownloadLinks) > 0 {
-		var links []string
-		for _, link := range report.DownloadLinks {
-			links = append(links, fmt.Sprintf("• %s", link))
-		}
-		descParts = append(descParts, fmt.Sprintf("**Download Links**\n%s", strings.Join(links, "\n")))
-	}
-
-	// Add links section
+	// Links
 	var linkParts []string
 	if msg.SourceURL != "" {
 		linkParts = append(linkParts, fmt.Sprintf("[View on %s](%s)", ProviderLabel(msg.Provider), msg.SourceURL))
@@ -120,17 +119,6 @@ func buildSemanticEmbed(title string, version string, report *models.SemanticRep
 		description = description[:discordEmbedDescriptionLimit-3] + "..."
 	}
 
-	fields := []discordEmbedField{
-		{Name: "Risk Level", Value: fmt.Sprintf("%s %s", urgencyEmoji(report.RiskLevel), report.RiskLevel), Inline: true},
-		{Name: "Urgency", Value: report.Urgency, Inline: true},
-	}
-	if report.Availability != "" {
-		fields = append(fields, discordEmbedField{Name: "Availability", Value: report.Availability, Inline: true})
-	}
-	if report.Adoption != "" {
-		fields = append(fields, discordEmbedField{Name: "Adoption", Value: report.Adoption, Inline: false})
-	}
-
 	// Footer with source info
 	var footerText string
 	if msg.Provider != "" && msg.Repository != "" {
@@ -140,8 +128,7 @@ func buildSemanticEmbed(title string, version string, report *models.SemanticRep
 	embed := discordEmbed{
 		Title:       title,
 		Description: description,
-		Color:       discordRiskColor(report.RiskLevel),
-		Fields:      fields,
+		Color:       discordUrgencyColor(urgency),
 	}
 	if footerText != "" {
 		embed.Footer = &discordEmbedFooter{Text: footerText}
