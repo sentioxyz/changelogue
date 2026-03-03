@@ -51,8 +51,10 @@ export default function ReleasesPage() {
 function ReleasesPageInner() {
   const searchParams = useSearchParams();
   const initialProject = searchParams.get("project") ?? "all";
+  const initialShowExcluded = searchParams.get("show_excluded") !== "false";
   const [page, setPage] = useState(1);
   const [projectFilter, setProjectFilter] = useState<string>(initialProject);
+  const [showExcluded, setShowExcluded] = useState(initialShowExcluded);
 
   /* Fetch projects for the filter dropdown */
   const { data: projectsData } = useSWR("projects-for-filter", async () => {
@@ -62,13 +64,13 @@ function ReleasesPageInner() {
 
   /* Fetch releases — scoped by project or all */
   const { data: scopedData, isLoading: scopedLoading } = useSWR(
-    projectFilter !== "all" ? ["releases", page, projectFilter] : null,
-    () => releasesApi.listByProject(projectFilter, page, PER_PAGE)
+    projectFilter !== "all" ? ["releases", page, projectFilter, showExcluded] : null,
+    () => releasesApi.listByProject(projectFilter, page, PER_PAGE, showExcluded)
   );
 
   const { data: allReleasesData, isLoading: allLoading } = useSWR(
-    projectFilter === "all" ? ["all-releases", page] : null,
-    () => releasesApi.list(page, PER_PAGE)
+    projectFilter === "all" ? ["all-releases", page, showExcluded] : null,
+    () => releasesApi.list(page, PER_PAGE, showExcluded)
   );
 
   const isLoading = projectFilter !== "all" ? scopedLoading : allLoading;
@@ -100,8 +102,8 @@ function ReleasesPageInner() {
         Releases
       </h1>
 
-      {/* Project filter */}
-      <div>
+      {/* Filters */}
+      <div className="flex items-center gap-3">
         <select
           value={projectFilter}
           onChange={(e) => {
@@ -127,6 +129,36 @@ function ReleasesPageInner() {
             </option>
           ))}
         </select>
+
+        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+          <span style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            color: "#6b7280",
+          }}>
+            Show excluded
+          </span>
+          <button
+            role="switch"
+            aria-checked={showExcluded}
+            onClick={() => {
+              const next = !showExcluded;
+              setShowExcluded(next);
+              setPage(1);
+              const params = new URLSearchParams(window.location.search);
+              if (next) params.delete("show_excluded");
+              else params.set("show_excluded", "false");
+              window.history.replaceState({}, "", `?${params.toString()}`);
+            }}
+            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+            style={{ backgroundColor: showExcluded ? "#e8601a" : "#d1d5db" }}
+          >
+            <span
+              className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
+              style={{ transform: showExcluded ? "translateX(18px)" : "translateX(3px)" }}
+            />
+          </button>
+        </label>
       </div>
 
       {/* Table card */}
@@ -186,8 +218,11 @@ function ReleasesPageInner() {
               {releases.map((release) => (
                 <tr
                   key={release.id}
-                  className="transition-colors hover:bg-[#fafaf9]"
-                  style={{ borderBottom: "1px solid #e8e8e5" }}
+                  className={`transition-colors ${release.excluded ? '' : 'hover:bg-[#fafaf9]'}`}
+                  style={{
+                    borderBottom: "1px solid #e8e8e5",
+                    opacity: release.excluded ? 0.45 : 1,
+                  }}
                 >
                   {/* Project */}
                   <td className="px-4 py-3">
