@@ -202,7 +202,7 @@ func (s *PgStore) DeleteSource(ctx context.Context, id string) error {
 
 // --- ReleasesStore ---
 
-func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int) ([]models.Release, int, error) {
+func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
 	var total int
 	err := s.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM releases r
@@ -240,7 +240,7 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int) ([]mod
 	return releases, total, nil
 }
 
-func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int) ([]models.Release, int, error) {
+func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
 	var total int
 	err := s.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM releases r
@@ -280,7 +280,7 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 	return releases, total, nil
 }
 
-func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Release, int, error) {
+func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
 	var total int
 	err := s.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id WHERE s.project_id = $1

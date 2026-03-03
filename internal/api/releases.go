@@ -9,9 +9,9 @@ import (
 
 // ReleasesStore defines the persistence operations for releases (read-only).
 type ReleasesStore interface {
-	ListAllReleases(ctx context.Context, page, perPage int) ([]models.Release, int, error)
-	ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int) ([]models.Release, int, error)
-	ListReleasesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Release, int, error)
+	ListAllReleases(ctx context.Context, page, perPage int, includeExcluded bool) ([]models.Release, int, error)
+	ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error)
+	ListReleasesByProject(ctx context.Context, projectID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error)
 	GetRelease(ctx context.Context, id string) (*models.Release, error)
 }
 
@@ -28,7 +28,8 @@ func NewReleasesHandler(store ReleasesStore) *ReleasesHandler {
 // List handles GET /releases — returns all releases across all projects.
 func (h *ReleasesHandler) List(w http.ResponseWriter, r *http.Request) {
 	page, perPage := ParsePagination(r)
-	releases, total, err := h.store.ListAllReleases(r.Context(), page, perPage)
+	includeExcluded := r.URL.Query().Get("include_excluded") == "true"
+	releases, total, err := h.store.ListAllReleases(r.Context(), page, perPage, includeExcluded)
 	if err != nil {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to list releases")
 		return
@@ -47,7 +48,8 @@ func (h *ReleasesHandler) ListBySource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page, perPage := ParsePagination(r)
-	releases, total, err := h.store.ListReleasesBySource(r.Context(), sourceID, page, perPage)
+	includeExcluded := r.URL.Query().Get("include_excluded") == "true"
+	releases, total, err := h.store.ListReleasesBySource(r.Context(), sourceID, page, perPage, includeExcluded)
 	if err != nil {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to list releases")
 		return
@@ -66,7 +68,8 @@ func (h *ReleasesHandler) ListByProject(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	page, perPage := ParsePagination(r)
-	releases, total, err := h.store.ListReleasesByProject(r.Context(), projectID, page, perPage)
+	includeExcluded := r.URL.Query().Get("include_excluded") == "true"
+	releases, total, err := h.store.ListReleasesByProject(r.Context(), projectID, page, perPage, includeExcluded)
 	if err != nil {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to list releases")
 		return
