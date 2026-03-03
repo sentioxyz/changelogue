@@ -3,7 +3,7 @@
   "checkpoint_id": "854fc8047193",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "web/app/page.tsx",
     "web/components/dashboard/release-trend-chart.tsx",
@@ -31,13 +31,20 @@
       "context": "/85/4fc8047193/2/context.md",
       "content_hash": "/85/4fc8047193/2/content_hash.txt",
       "prompt": "/85/4fc8047193/2/prompt.txt"
+    },
+    {
+      "metadata": "/85/4fc8047193/3/metadata.json",
+      "transcript": "/85/4fc8047193/3/full.jsonl",
+      "context": "/85/4fc8047193/3/context.md",
+      "content_hash": "/85/4fc8047193/3/content_hash.txt",
+      "prompt": "/85/4fc8047193/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 15067807,
+    "input_tokens": 16755507,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 33125,
-    "api_call_count": 171
+    "output_tokens": 40139,
+    "api_call_count": 205
   }
 }
