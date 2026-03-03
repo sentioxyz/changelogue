@@ -83,12 +83,16 @@ export const sources = {
 };
 
 export const releases = {
-  list: (page = 1, perPage = 25) =>
-    request<ApiResponse<Release[]>>(`/releases?page=${page}&per_page=${perPage}`),
+  list: (page = 1, perPage = 25, includeExcluded = false) =>
+    request<ApiResponse<Release[]>>(
+      `/releases?page=${page}&per_page=${perPage}${includeExcluded ? '&include_excluded=true' : ''}`
+    ),
   listBySource: (sourceId: string, page = 1) =>
     request<ApiResponse<Release[]>>(`/sources/${sourceId}/releases?page=${page}`),
-  listByProject: (projectId: string, page = 1, perPage = 25) =>
-    request<ApiResponse<Release[]>>(`/projects/${projectId}/releases?page=${page}&per_page=${perPage}`),
+  listByProject: (projectId: string, page = 1, perPage = 25, includeExcluded = false) =>
+    request<ApiResponse<Release[]>>(
+      `/projects/${projectId}/releases?page=${page}&per_page=${perPage}${includeExcluded ? '&include_excluded=true' : ''}`
+    ),
   get: (id: string) =>
     request<ApiResponse<Release>>(`/releases/${id}`),
 };

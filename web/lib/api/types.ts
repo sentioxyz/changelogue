@@ -84,6 +84,7 @@ export interface Release {
   project_name?: string;
   provider?: string;
   repository?: string;
+  excluded?: boolean;
 }
 
 export interface ContextSource {
