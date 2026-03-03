@@ -154,7 +154,7 @@ function ProjectFlowCard({ project }: { project: Project }) {
   );
   const { data: relData } = useSWR(
     `project-${project.id}-card-releases`,
-    () => releasesApi.listByProject(project.id, 1, 25),
+    () => releasesApi.listByProject(project.id, 1, 25, true),
   );
   const { data: srData } = useSWR(
     `project-${project.id}-card-sr`,
@@ -258,22 +258,26 @@ function ProjectFlowCard({ project }: { project: Project }) {
               <span key={r.id} className="inline-flex items-baseline mr-2.5">
                 <Link
                   href={`/releases/${r.id}`}
-                  className="text-[#2563eb] hover:underline"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}
+                  className={r.excluded ? "" : "text-[#2563eb] hover:underline"}
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: "12px",
+                    ...(r.excluded ? { color: "#c4c4c0" } : {}),
+                  }}
                 >
                   {r.version}
                 </Link>
                 {src && (
                   <span
                     className="text-[11px] ml-1 hidden sm:inline"
-                    style={{ color: "#9ca3af" }}
+                    style={{ color: r.excluded ? "#dcdcda" : "#9ca3af" }}
                   >
                     ({src.repository.split("/").pop()})
                   </span>
                 )}
                 <span
                   className="text-[11px] ml-1"
-                  style={{ color: "#c4c4c0" }}
+                  style={{ color: r.excluded ? "#dcdcda" : "#c4c4c0" }}
                 >
                   {timeAgo(r.released_at || r.created_at).replace(" ago", "")}
                 </span>
@@ -374,7 +378,7 @@ function ProjectFlowCard({ project }: { project: Project }) {
 function ProjectCompactRow({ project }: { project: Project }) {
   const router = useRouter();
   const { data: relData } = useSWR(`project-${project.id}-card-releases`, () =>
-    releasesApi.listByProject(project.id, 1, 5)
+    releasesApi.listByProject(project.id, 1, 5, true)
   );
   const { data: srcData } = useSWR(`project-${project.id}-card-sources`, () =>
     sourcesApi.listByProject(project.id)
