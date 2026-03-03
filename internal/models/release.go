@@ -18,4 +18,5 @@ type Release struct {
 	ProjectName string `json:"project_name,omitempty"`
 	Provider    string `json:"provider,omitempty"`
 	Repository  string `json:"repository,omitempty"`
+	Excluded    bool   `json:"excluded"` // true when filtered out by source version filters
 }
