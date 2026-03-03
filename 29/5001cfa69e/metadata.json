@@ -3,7 +3,7 @@
   "checkpoint_id": "295001cfa69e",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 4,
   "files_touched": [
     "docs/plans/2026-03-03-projects-sort-design.md",
     "web/app/projects/page.tsx"
@@ -29,13 +29,20 @@
       "context": "/29/5001cfa69e/2/context.md",
       "content_hash": "/29/5001cfa69e/2/content_hash.txt",
       "prompt": "/29/5001cfa69e/2/prompt.txt"
+    },
+    {
+      "metadata": "/29/5001cfa69e/3/metadata.json",
+      "transcript": "/29/5001cfa69e/3/full.jsonl",
+      "context": "/29/5001cfa69e/3/context.md",
+      "content_hash": "/29/5001cfa69e/3/content_hash.txt",
+      "prompt": "/29/5001cfa69e/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 15554170,
+    "input_tokens": 16859473,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 37389,
-    "api_call_count": 185
+    "output_tokens": 42406,
+    "api_call_count": 218
   }
 }
