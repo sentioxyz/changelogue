@@ -13,7 +13,7 @@ import {
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { ProjectLogo } from "@/components/ui/project-logo";
 import { timeAgo } from "@/lib/format";
-import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil } from "lucide-react";
+import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil, ArrowUpDown } from "lucide-react";
 import { SourceForm } from "@/components/sources/source-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/projects/project-form";
@@ -493,6 +493,7 @@ export default function ProjectsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "compact">("cards");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"updated" | "added" | "name">("updated");
   const [page, setPage] = useState(1);
   const { data, isLoading } = useSWR("projects", () => projectsApi.list(1, 100));
   const items = data?.data ?? [];
@@ -501,9 +502,20 @@ export default function ProjectsPage() {
   const filtered = search
     ? items.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
     : items;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    switch (sortBy) {
+      case "updated":
+        return arr.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+      case "added":
+        return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case "name":
+        return arr.sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }, [filtered, sortBy]);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paged = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-4 fade-in">
@@ -537,6 +549,19 @@ export default function ProjectsPage() {
               className="rounded-md border py-1.5 pl-8 pr-3 text-[13px] w-48"
               style={{ borderColor: "#e8e8e5", fontFamily: "var(--font-dm-sans)", color: "#374151" }}
             />
+          </div>
+          <div className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[13px]" style={{ borderColor: "#e8e8e5", fontFamily: "var(--font-dm-sans)", color: "#374151" }}>
+            <ArrowUpDown className="h-3.5 w-3.5 shrink-0" style={{ color: "#9ca3af" }} />
+            <select
+              value={sortBy}
+              onChange={(e) => { setSortBy(e.target.value as "updated" | "added" | "name"); setPage(1); }}
+              className="bg-transparent outline-none cursor-pointer text-[13px]"
+              style={{ fontFamily: "var(--font-dm-sans)", color: "#374151" }}
+            >
+              <option value="updated">Recently updated</option>
+              <option value="added">Recently added</option>
+              <option value="name">Name</option>
+            </select>
           </div>
           <div className="flex items-center rounded-md border" style={{ borderColor: "#e8e8e5" }}>
             <button
