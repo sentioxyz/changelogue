@@ -20,7 +20,7 @@ type mockDataStore struct {
 	err            error
 }
 
-func (m *mockDataStore) ListReleasesByProject(_ context.Context, _ string, page, perPage int) ([]models.Release, int, error) {
+func (m *mockDataStore) ListReleasesByProject(_ context.Context, _ string, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
 	if m.err != nil {
 		return nil, 0, m.err
 	}
