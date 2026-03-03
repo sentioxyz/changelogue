@@ -204,26 +204,53 @@ func (s *PgStore) DeleteSource(ctx context.Context, id string) error {
 
 func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
 	var total int
-	err := s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM releases r
-		 LEFT JOIN sources s ON r.source_id = s.id
-		 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count releases: %w", err)
+	if includeExcluded {
+		err := s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM releases r
+			 LEFT JOIN sources s ON r.source_id = s.id`).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("count releases: %w", err)
+		}
+	} else {
+		err := s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM releases r
+			 LEFT JOIN sources s ON r.source_id = s.id
+			 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("count releases: %w", err)
+		}
 	}
 	offset := (page - 1) * perPage
-	rows, err := s.pool.Query(ctx,
-		`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-		        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,'')
-		 FROM releases r
-		 LEFT JOIN sources s ON r.source_id = s.id
-		 LEFT JOIN projects p ON s.project_id = p.id
-		 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
-		 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	var rows pgx.Rows
+	var err error
+	if includeExcluded {
+		rows, err = s.pool.Query(ctx,
+			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
+			        CASE WHEN
+			          (s.version_filter_include IS NOT NULL AND r.version !~ s.version_filter_include)
+			          OR (s.version_filter_exclude IS NOT NULL AND r.version ~ s.version_filter_exclude)
+			          OR (s.exclude_prereleases = true AND r.raw_data->>'prerelease' = 'true')
+			        THEN true ELSE false END
+			 FROM releases r
+			 LEFT JOIN sources s ON r.source_id = s.id
+			 LEFT JOIN projects p ON s.project_id = p.id
+			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	} else {
+		rows, err = s.pool.Query(ctx,
+			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
+			        false
+			 FROM releases r
+			 LEFT JOIN sources s ON r.source_id = s.id
+			 LEFT JOIN projects p ON s.project_id = p.id
+			 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
+			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	}
 	if err != nil {
 		return nil, 0, fmt.Errorf("list all releases: %w", err)
 	}
@@ -232,7 +259,7 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includ
 	for rows.Next() {
 		var rel models.Release
 		if err := rows.Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt,
-			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository); err != nil {
+			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository, &rel.Excluded); err != nil {
 			return nil, 0, fmt.Errorf("scan release: %w", err)
 		}
 		releases = append(releases, rel)
@@ -242,28 +269,57 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includ
 
 func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
 	var total int
-	err := s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM releases r
-		 JOIN sources s ON r.source_id = s.id
-		 WHERE r.source_id = $1
-		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`, sourceID).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count releases: %w", err)
+	if includeExcluded {
+		err := s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM releases r
+			 JOIN sources s ON r.source_id = s.id
+			 WHERE r.source_id = $1`, sourceID).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("count releases: %w", err)
+		}
+	} else {
+		err := s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM releases r
+			 JOIN sources s ON r.source_id = s.id
+			 WHERE r.source_id = $1
+			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`, sourceID).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("count releases: %w", err)
+		}
 	}
 	offset := (page - 1) * perPage
-	rows, err := s.pool.Query(ctx,
-		`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-		        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,'')
-		 FROM releases r
-		 LEFT JOIN sources s ON r.source_id = s.id
-		 LEFT JOIN projects p ON s.project_id = p.id
-		 WHERE r.source_id = $1
-		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
-		 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
+	var rows pgx.Rows
+	var err error
+	if includeExcluded {
+		rows, err = s.pool.Query(ctx,
+			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
+			        CASE WHEN
+			          (s.version_filter_include IS NOT NULL AND r.version !~ s.version_filter_include)
+			          OR (s.version_filter_exclude IS NOT NULL AND r.version ~ s.version_filter_exclude)
+			          OR (s.exclude_prereleases = true AND r.raw_data->>'prerelease' = 'true')
+			        THEN true ELSE false END
+			 FROM releases r
+			 LEFT JOIN sources s ON r.source_id = s.id
+			 LEFT JOIN projects p ON s.project_id = p.id
+			 WHERE r.source_id = $1
+			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
+	} else {
+		rows, err = s.pool.Query(ctx,
+			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
+			        false
+			 FROM releases r
+			 LEFT JOIN sources s ON r.source_id = s.id
+			 LEFT JOIN projects p ON s.project_id = p.id
+			 WHERE r.source_id = $1
+			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
+			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
+	}
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by source: %w", err)
 	}
@@ -272,7 +328,7 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 	for rows.Next() {
 		var rel models.Release
 		if err := rows.Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt,
-			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository); err != nil {
+			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository, &rel.Excluded); err != nil {
 			return nil, 0, fmt.Errorf("scan release: %w", err)
 		}
 		releases = append(releases, rel)
@@ -282,27 +338,55 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 
 func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
 	var total int
-	err := s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id WHERE s.project_id = $1
-		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
-		projectID).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count releases: %w", err)
+	if includeExcluded {
+		err := s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id WHERE s.project_id = $1`,
+			projectID).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("count releases: %w", err)
+		}
+	} else {
+		err := s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id WHERE s.project_id = $1
+			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
+			projectID).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("count releases: %w", err)
+		}
 	}
 	offset := (page - 1) * perPage
-	rows, err := s.pool.Query(ctx,
-		`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-		        p.id, p.name, s.provider, s.repository
-		 FROM releases r
-		 JOIN sources s ON r.source_id = s.id
-		 JOIN projects p ON s.project_id = p.id
-		 WHERE s.project_id = $1
-		   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-		   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-		   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
-		 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
+	var rows pgx.Rows
+	var err error
+	if includeExcluded {
+		rows, err = s.pool.Query(ctx,
+			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+			        p.id, p.name, s.provider, s.repository,
+			        CASE WHEN
+			          (s.version_filter_include IS NOT NULL AND r.version !~ s.version_filter_include)
+			          OR (s.version_filter_exclude IS NOT NULL AND r.version ~ s.version_filter_exclude)
+			          OR (s.exclude_prereleases = true AND r.raw_data->>'prerelease' = 'true')
+			        THEN true ELSE false END
+			 FROM releases r
+			 JOIN sources s ON r.source_id = s.id
+			 JOIN projects p ON s.project_id = p.id
+			 WHERE s.project_id = $1
+			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
+	} else {
+		rows, err = s.pool.Query(ctx,
+			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+			        p.id, p.name, s.provider, s.repository,
+			        false
+			 FROM releases r
+			 JOIN sources s ON r.source_id = s.id
+			 JOIN projects p ON s.project_id = p.id
+			 WHERE s.project_id = $1
+			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
+			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
+			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
+			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
+	}
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by project: %w", err)
 	}
@@ -311,7 +395,7 @@ func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, p
 	for rows.Next() {
 		var rel models.Release
 		if err := rows.Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt,
-			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository); err != nil {
+			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository, &rel.Excluded); err != nil {
 			return nil, 0, fmt.Errorf("scan release: %w", err)
 		}
 		releases = append(releases, rel)
