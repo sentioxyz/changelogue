@@ -150,9 +150,11 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 		}
 		if fields, ok := parseRawBody(msg.Body); ok {
 			if fields.Changelog != "" {
+				// Wrap changelog in a code block — Slack auto-collapses long
+				// code blocks with a built-in "Show more" button.
 				blocks = append(blocks, slackBlock{
 					Type: "section",
-					Text: &slackText{Type: "mrkdwn", Text: fields.Changelog},
+					Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("```%s```", fields.Changelog)},
 				})
 			}
 		} else {

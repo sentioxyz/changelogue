@@ -312,10 +312,13 @@ func TestSlackSender_RawJSONFallback(t *testing.T) {
 		t.Fatalf("expected 3 blocks, got %d", len(payload.Blocks))
 	}
 
-	// Changelog text should appear without raw JSON
+	// Changelog text should appear in a code block
 	changelogBlock := payload.Blocks[1]
 	if changelogBlock.Text == nil || !strings.Contains(changelogBlock.Text.Text, "Fixed wrong genesis commit") {
 		t.Fatal("expected changelog text in second block")
+	}
+	if !strings.Contains(changelogBlock.Text.Text, "```") {
+		t.Fatal("changelog should be wrapped in code block")
 	}
 	if strings.Contains(changelogBlock.Text.Text, "release_url") {
 		t.Fatal("raw JSON keys should not appear in formatted output")

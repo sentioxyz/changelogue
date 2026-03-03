@@ -189,12 +189,13 @@ func (o *Orchestrator) checkAllSourcesReady(ctx context.Context, projectID, vers
 type Orchestrator struct {
 	store     OrchestratorStore
 	llmConfig LLMConfig
+	publicURL string // base URL for internal Changelogue links (e.g. "https://changelogue.example.com")
 }
 
 // NewOrchestrator creates a new Orchestrator. It validates that the provided
 // LLMConfig has the required API key for the configured provider. If the key
 // is missing, it returns an error so the caller can degrade gracefully.
-func NewOrchestrator(store OrchestratorStore, cfg LLMConfig) (*Orchestrator, error) {
+func NewOrchestrator(store OrchestratorStore, cfg LLMConfig, publicURL string) (*Orchestrator, error) {
 	switch cfg.Provider {
 	case "openai":
 		if cfg.OpenAIAPIKey == "" {
@@ -208,6 +209,7 @@ func NewOrchestrator(store OrchestratorStore, cfg LLMConfig) (*Orchestrator, err
 	return &Orchestrator{
 		store:     store,
 		llmConfig: cfg,
+		publicURL: strings.TrimRight(publicURL, "/"),
 	}, nil
 }
 
@@ -454,9 +456,23 @@ func (o *Orchestrator) sendProjectNotifications(ctx context.Context, run *models
 	senders := defaultSenders()
 
 	msg := routing.Notification{
-		Title:   fmt.Sprintf("Semantic Release Report: %s %s", result.projectName, result.version),
-		Body:    result.reportText,
-		Version: result.version,
+		Title:       fmt.Sprintf("Semantic Release Report: %s %s", result.projectName, result.version),
+		Body:        result.reportText,
+		Version:     result.version,
+		ProjectName: result.projectName,
+	}
+
+	// Build ReleaseURL for the semantic release detail page.
+	if o.publicURL != "" {
+		msg.ReleaseURL = fmt.Sprintf("%s/projects/%s/semantic-releases/%s", o.publicURL, run.ProjectID, result.semanticReleaseID)
+	}
+
+	// Look up the first source for provider/repo info to build SourceURL.
+	sources, _, err := o.store.ListSourcesByProject(ctx, run.ProjectID, 1, 1)
+	if err == nil && len(sources) > 0 {
+		msg.Provider = sources[0].Provider
+		msg.Repository = sources[0].Repository
+		msg.SourceURL = routing.ProviderURL(sources[0].Provider, sources[0].Repository, result.version)
 	}
 
 	for _, sub := range subs {

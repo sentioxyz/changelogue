@@ -76,7 +76,7 @@ func main() {
 		OpenAIBaseURL:     os.Getenv("OPENAI_BASE_URL"),
 		OpenAISearchModel: envOr("OPENAI_SEARCH_MODEL", "gpt-5-search-api"),
 	}
-	agentOrchestrator, err := agentpkg.NewOrchestrator(pgStore, llmConfig)
+	agentOrchestrator, err := agentpkg.NewOrchestrator(pgStore, llmConfig, os.Getenv("PUBLIC_URL"))
 	if err != nil {
 		slog.Warn("agent orchestrator not available — agent jobs will not be processed", "err", err)
 	} else {

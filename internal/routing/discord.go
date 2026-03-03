@@ -151,7 +151,9 @@ func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel
 		var descParts []string
 		if fields, ok := parseRawBody(msg.Body); ok {
 			if fields.Changelog != "" {
-				descParts = append(descParts, fields.Changelog)
+				// Wrap changelog in a code block — Discord auto-collapses
+				// long code blocks with a built-in "Show more" button.
+				descParts = append(descParts, fmt.Sprintf("```%s```", fields.Changelog))
 			}
 		} else {
 			descParts = append(descParts, msg.Body)
