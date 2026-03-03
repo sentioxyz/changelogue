@@ -92,10 +92,13 @@ function FlowSection({
   }, [items.length]);
 
   useEffect(() => {
-    measure();
+    const raf = requestAnimationFrame(measure);
     const obs = new ResizeObserver(measure);
     if (measureRef.current) obs.observe(measureRef.current);
-    return () => obs.disconnect();
+    return () => {
+      cancelAnimationFrame(raf);
+      obs.disconnect();
+    };
   }, [measure, items.length]);
 
   const hasOverflow = visibleCount !== null && visibleCount < items.length;
