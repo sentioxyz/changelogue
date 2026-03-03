@@ -3,7 +3,7 @@
   "checkpoint_id": "cf815705c6a0",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "docs/plans/2026-03-03-compact-notifications.md"
   ],
@@ -21,13 +21,20 @@
       "context": "/cf/815705c6a0/1/context.md",
       "content_hash": "/cf/815705c6a0/1/content_hash.txt",
       "prompt": "/cf/815705c6a0/1/prompt.txt"
+    },
+    {
+      "metadata": "/cf/815705c6a0/2/metadata.json",
+      "transcript": "/cf/815705c6a0/2/full.jsonl",
+      "context": "/cf/815705c6a0/2/context.md",
+      "content_hash": "/cf/815705c6a0/2/content_hash.txt",
+      "prompt": "/cf/815705c6a0/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 13512146,
+    "input_tokens": 15199846,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 27384,
-    "api_call_count": 146
+    "output_tokens": 34398,
+    "api_call_count": 180
   }
 }
