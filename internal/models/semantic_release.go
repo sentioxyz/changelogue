@@ -6,10 +6,10 @@ import (
 )
 
 type SemanticReport struct {
-	// SRE-focused fields
+	// Primary fields
 	Subject          string   `json:"subject"`
-	RiskLevel        string   `json:"risk_level"`
-	RiskReason       string   `json:"risk_reason"`
+	Urgency          string   `json:"urgency"`
+	UrgencyReason    string   `json:"urgency_reason,omitempty"`
 	StatusChecks     []string `json:"status_checks"`
 	ChangelogSummary string   `json:"changelog_summary"`
 	DownloadCommands []string `json:"download_commands,omitempty"`
@@ -19,8 +19,11 @@ type SemanticReport struct {
 	Summary        string `json:"summary,omitempty"`
 	Availability   string `json:"availability"`
 	Adoption       string `json:"adoption"`
-	Urgency        string `json:"urgency"`
 	Recommendation string `json:"recommendation"`
+
+	// Backward compat — old reports may still have these in JSONB
+	RiskLevel  string `json:"risk_level,omitempty"`
+	RiskReason string `json:"risk_reason,omitempty"`
 }
 
 type SemanticRelease struct {
