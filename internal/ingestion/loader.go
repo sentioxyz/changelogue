@@ -5,9 +5,18 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// ScheduledSource wraps an IIngestionSource with its scheduling metadata
+// so the orchestrator can decide whether the source is due for polling.
+type ScheduledSource struct {
+	Source              IIngestionSource
+	PollIntervalSeconds int
+	LastPolledAt         *time.Time
+}
 
 // SourceLoader reads source configuration from the database and constructs
 // IIngestionSource instances. It bridges the API-managed sources table with
@@ -22,20 +31,23 @@ func NewSourceLoader(pool *pgxpool.Pool, client *http.Client) *SourceLoader {
 }
 
 // LoadEnabledSources queries all enabled sources and constructs the
-// appropriate IIngestionSource for each one based on provider.
-func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]IIngestionSource, error) {
+// appropriate IIngestionSource for each one, along with scheduling metadata.
+func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]ScheduledSource, error) {
 	rows, err := l.pool.Query(ctx,
-		`SELECT id, provider, repository FROM sources WHERE enabled = true`)
+		`SELECT id, provider, repository, poll_interval_seconds, last_polled_at
+		 FROM sources WHERE enabled = true`)
 	if err != nil {
 		return nil, fmt.Errorf("query enabled sources: %w", err)
 	}
 	defer rows.Close()
 
-	var sources []IIngestionSource
+	var sources []ScheduledSource
 	for rows.Next() {
 		var id string
 		var sourceType, repository string
-		if err := rows.Scan(&id, &sourceType, &repository); err != nil {
+		var pollInterval int
+		var lastPolledAt *time.Time
+		if err := rows.Scan(&id, &sourceType, &repository, &pollInterval, &lastPolledAt); err != nil {
 			return nil, fmt.Errorf("scan source row: %w", err)
 		}
 
@@ -45,7 +57,11 @@ func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]IIngestionSour
 				"id", id, "type", sourceType, "repo", repository)
 			continue
 		}
-		sources = append(sources, src)
+		sources = append(sources, ScheduledSource{
+			Source:              src,
+			PollIntervalSeconds: pollInterval,
+			LastPolledAt:         lastPolledAt,
+		})
 	}
 	return sources, rows.Err()
 }

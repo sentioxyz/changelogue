@@ -30,6 +30,10 @@ export function validateRepository(provider: string, repo: string): string | nul
 }
 
 export function formatInterval(seconds: number): string {
+  if (seconds === 3600) return "Hourly";
+  if (seconds === 86400) return "Daily";
+  if (seconds === 604800) return "Weekly";
+  if (seconds === 2592000) return "Monthly";
   if (seconds < 60) return `${seconds}s`;
   if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
   if (seconds < 86400) return `${(seconds / 3600).toFixed(1)}h`;

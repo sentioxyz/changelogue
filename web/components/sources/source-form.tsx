@@ -23,13 +23,32 @@ interface SourceFormProps {
 }
 
 
+const POLL_INTERVAL_OPTIONS = [
+    { label: "Hourly", value: "3600" },
+    { label: "Daily", value: "86400" },
+    { label: "Weekly", value: "604800" },
+    { label: "Monthly", value: "2592000" },
+  ];
+
+  function nearestPollInterval(seconds: number): string {
+    const values = POLL_INTERVAL_OPTIONS.map((o) => Number(o.value));
+    let closest = values[0];
+    for (const v of values) {
+      if (Math.abs(v - seconds) < Math.abs(closest - seconds)) closest = v;
+    }
+    return String(closest);
+  }
+
+
 export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, onCancel }: SourceFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [provider, setProvider] = useState(initial?.provider ?? "dockerhub");
   const [repository, setRepository] = useState(initial?.repository ?? "");
-  const [pollInterval, setPollInterval] = useState(String(initial?.poll_interval_seconds ?? 86400));
+  const [pollInterval, setPollInterval] = useState(
+    nearestPollInterval(initial?.poll_interval_seconds ?? 86400)
+  );
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
   const [configJson, setConfigJson] = useState(
     JSON.stringify(initial?.config ?? {}, null, 2)
@@ -110,8 +129,15 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         <Input id="repository" value={repository} onChange={(e) => setRepository(e.target.value)} placeholder="e.g. library/golang or ethereum/go-ethereum" required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="poll_interval">Poll Interval (seconds)</Label>
-        <Input id="poll_interval" type="number" min={60} value={pollInterval} onChange={(e) => setPollInterval(e.target.value)} />
+        <Label>Poll Interval</Label>
+        <Select value={pollInterval} onValueChange={setPollInterval}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {POLL_INTERVAL_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
         <Label htmlFor="config">Config (JSON, optional)</Label>

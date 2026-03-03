@@ -153,14 +153,16 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="poll_interval">Poll Interval (seconds)</Label>
-                <Input
-                  id="poll_interval"
-                  type="number"
-                  min={60}
-                  value={pollInterval}
-                  onChange={(e) => setPollInterval(e.target.value)}
-                />
+                <Label>Poll Interval</Label>
+                <Select value={pollInterval} onValueChange={setPollInterval}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3600">Hourly</SelectItem>
+                    <SelectItem value="86400">Daily</SelectItem>
+                    <SelectItem value="604800">Weekly</SelectItem>
+                    <SelectItem value="2592000">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="version_filter_include">Version Filter — Include (regex, optional)</Label>
