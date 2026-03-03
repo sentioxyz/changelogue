@@ -146,7 +146,7 @@ export function SemanticReleaseDetail() {
   };
 
   const report = sr.report;
-  const riskLevel = report?.risk_level?.toUpperCase();
+  const riskLevel = (report?.urgency ?? report?.risk_level)?.toUpperCase();
   const hasRiskOrUrgency = riskLevel || report?.urgency;
   const riskColors = getRiskColors(riskLevel);
 
@@ -267,19 +267,11 @@ export function SemanticReleaseDetail() {
                           color: "#ffffff",
                         }}
                       >
-                        {riskLevel} RISK
-                      </span>
-                    )}
-                    {report.urgency && (
-                      <span
-                        className="text-[13px] font-medium"
-                        style={{ color: riskColors.text }}
-                      >
-                        {report.urgency} Urgency
+                        {riskLevel} URGENCY
                       </span>
                     )}
                   </div>
-                  {report.risk_reason && (
+                  {(report.urgency_reason ?? report.risk_reason) && (
                     <p
                       className="text-[14px] leading-[1.6]"
                       style={{
@@ -287,7 +279,7 @@ export function SemanticReleaseDetail() {
                         fontFamily: "var(--font-dm-sans)",
                       }}
                     >
-                      {report.risk_reason}
+                      {report.urgency_reason ?? report.risk_reason}
                     </p>
                   )}
                 </div>

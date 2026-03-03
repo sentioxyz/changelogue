@@ -116,8 +116,8 @@ export interface SemanticRelease {
 
 export interface SemanticReport {
   subject?: string;
-  risk_level?: string;
-  risk_reason?: string;
+  urgency?: string;
+  urgency_reason?: string;
   status_checks?: string[];
   changelog_summary?: string;
   download_commands?: string[];
@@ -125,8 +125,10 @@ export interface SemanticReport {
   summary?: string;
   availability?: string;
   adoption?: string;
-  urgency?: string;
   recommendation?: string;
+  // Backward compat — old reports may still have these
+  risk_level?: string;
+  risk_reason?: string;
 }
 
 export interface AgentRun {
