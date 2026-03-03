@@ -13,7 +13,9 @@ interface StatItem {
 }
 
 export function StatsCards() {
-  const { data, isLoading } = useSWR("stats", () => system.stats());
+  const { data, isLoading } = useSWR("stats", () => system.stats(), {
+    refreshInterval: 30_000,
+  });
 
   const stats = data?.data;
 

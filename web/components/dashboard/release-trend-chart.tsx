@@ -42,7 +42,8 @@ export function ReleaseTrendChart() {
 
   const { data, isLoading } = useSWR(
     `trend-${range.granularity}-${range.days}`,
-    () => system.trend(range.granularity, range.days)
+    () => system.trend(range.granularity, range.days),
+    { refreshInterval: 30_000 }
   );
 
   const buckets: TrendBucket[] = data?.data?.buckets ?? [];

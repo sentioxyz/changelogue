@@ -117,7 +117,8 @@ export function UnifiedFeed() {
       // Sort by timestamp descending, take first 15
       items.sort((a, b) => getTimestamp(b) - getTimestamp(a));
       return items.slice(0, 15);
-    }
+    },
+    { refreshInterval: 30_000 }
   );
 
   if (isLoading) {
