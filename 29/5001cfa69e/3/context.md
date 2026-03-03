@@ -4,7 +4,7 @@
 
 ### Prompt 1
 
-Add the sort by Recently updated/Recently added/name in the projects page
+I want to show all the releases for sources in the projects even they are filtered out, these releases will be marked as gray. And in the releaes page, we have a toggle to show excluded versions or not, add this into the releases url as option
 
 ### Prompt 2
 
@@ -23,7 +23,7 @@ Do NOT invoke any implementat...
 
 ### Prompt 3
 
-A
+Yes
 
 ### Prompt 4
 
@@ -31,13 +31,45 @@ Yes
 
 ### Prompt 5
 
-commit and push
+Yes
 
 ### Prompt 6
 
-[Request interrupted by user]
+Yes
 
 ### Prompt 7
 
-commit and push
+Yes
+
+### Prompt 8
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/writing-plans
+
+# Writing Plans
+
+## Overview
+
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+
+Ass...
+
+### Prompt 9
+
+1
+
+### Prompt 10
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation...
 
