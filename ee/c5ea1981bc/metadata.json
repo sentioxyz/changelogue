@@ -3,7 +3,7 @@
   "checkpoint_id": "eec5ea1981bc",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "docs/plans/2026-03-03-compact-notifications-design.md"
   ],
@@ -28,13 +28,20 @@
       "context": "/ee/c5ea1981bc/2/context.md",
       "content_hash": "/ee/c5ea1981bc/2/content_hash.txt",
       "prompt": "/ee/c5ea1981bc/2/prompt.txt"
+    },
+    {
+      "metadata": "/ee/c5ea1981bc/3/metadata.json",
+      "transcript": "/ee/c5ea1981bc/3/full.jsonl",
+      "context": "/ee/c5ea1981bc/3/context.md",
+      "content_hash": "/ee/c5ea1981bc/3/content_hash.txt",
+      "prompt": "/ee/c5ea1981bc/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 15149963,
+    "input_tokens": 16837663,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 36751,
-    "api_call_count": 174
+    "output_tokens": 43765,
+    "api_call_count": 208
   }
 }
