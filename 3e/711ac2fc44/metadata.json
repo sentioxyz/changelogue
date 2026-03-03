@@ -3,7 +3,7 @@
   "checkpoint_id": "3e711ac2fc44",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "internal/routing/discord.go",
     "internal/routing/slack.go"
@@ -22,13 +22,20 @@
       "context": "/3e/711ac2fc44/1/context.md",
       "content_hash": "/3e/711ac2fc44/1/content_hash.txt",
       "prompt": "/3e/711ac2fc44/1/prompt.txt"
+    },
+    {
+      "metadata": "/3e/711ac2fc44/2/metadata.json",
+      "transcript": "/3e/711ac2fc44/2/full.jsonl",
+      "context": "/3e/711ac2fc44/2/context.md",
+      "content_hash": "/3e/711ac2fc44/2/content_hash.txt",
+      "prompt": "/3e/711ac2fc44/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 13958150,
+    "input_tokens": 15645850,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 27949,
-    "api_call_count": 150
+    "output_tokens": 34963,
+    "api_call_count": 184
   }
 }
