@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "270e09d86aa7",
+  "session_id": "6f73c6de-ee03-43e5-b840-eb39f893ff4b",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T13:31:38.873324Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "internal/models/release.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "7e39e36fa4ad",
+  "checkpoint_transcript_start": 27,
+  "transcript_lines_at_start": 27,
+  "token_usage": {
+    "input_tokens": 574080,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 1866,
+    "api_call_count": 16
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T13:31:38.75836Z",
+    "agent_lines": 0,
+    "human_added": 1,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/6f73c6de-ee03-43e5-b840-eb39f893ff4b.jsonl"
+}
