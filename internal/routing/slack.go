@@ -154,7 +154,7 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 				// code blocks with a built-in "Show more" button.
 				blocks = append(blocks, slackBlock{
 					Type: "section",
-					Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("```%s```", fields.Changelog)},
+					Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("```markdown\n%s```", fields.Changelog)},
 				})
 			}
 		} else {

@@ -153,7 +153,7 @@ func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel
 			if fields.Changelog != "" {
 				// Wrap changelog in a code block — Discord auto-collapses
 				// long code blocks with a built-in "Show more" button.
-				descParts = append(descParts, fmt.Sprintf("```%s```", fields.Changelog))
+				descParts = append(descParts, fmt.Sprintf("```markdown\n%s```", fields.Changelog))
 			}
 		} else {
 			descParts = append(descParts, msg.Body)
