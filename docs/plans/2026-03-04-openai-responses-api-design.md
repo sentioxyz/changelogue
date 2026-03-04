@@ -1,7 +1,7 @@
 # Design: Migrate OpenAI Adapter to Responses API
 
 **Date:** 2026-03-04
-**Status:** Approved
+**Status:** Implemented
 
 ## Problem
 
