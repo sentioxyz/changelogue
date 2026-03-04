@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "413a361966a6",
+  "session_id": "1fe8b167-20fe-4369-a9ef-8a96ed92a30e",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-04T13:33:35.761204Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/plans/2026-03-04-openai-responses-api.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "43ec806f77df",
+  "checkpoint_transcript_start": 767,
+  "transcript_lines_at_start": 767,
+  "token_usage": {
+    "input_tokens": 1111341,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 900,
+    "api_call_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-04T13:33:35.126343Z",
+    "agent_lines": 0,
+    "human_added": 977,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 977,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/1fe8b167-20fe-4369-a9ef-8a96ed92a30e.jsonl"
+}
