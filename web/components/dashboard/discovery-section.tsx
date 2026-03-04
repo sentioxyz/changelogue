@@ -105,7 +105,7 @@ export function DiscoverySection() {
               color: "#111113",
             }}
           >
-            Discover Projects
+            Trending Projects
           </h3>
           <p
             className="mt-0.5"
@@ -115,7 +115,7 @@ export function DiscoverySection() {
               color: "#6b7280",
             }}
           >
-            Track popular repositories with one click
+            Track trending repositories with one click
           </p>
         </div>
 

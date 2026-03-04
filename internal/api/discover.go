@@ -85,9 +85,12 @@ func (h *DiscoverHandler) GitHub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Approximate GitHub Trending: search for repos with recent star activity.
+	// Default query filters to repos created in the last 7 days, sorted by stars.
+	since := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
 	searchQ := q
 	if searchQ == "" {
-		searchQ = "stars:>1000"
+		searchQ = fmt.Sprintf("created:>%s stars:>10", since)
 	}
 	if language != "" {
 		searchQ = fmt.Sprintf("%s language:%s", searchQ, language)
