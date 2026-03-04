@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -57,7 +58,11 @@ func (h *DiscoverHandler) getCached(key string) ([]DiscoverItem, bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	c, ok := h.cache[key]
-	if !ok || time.Since(c.fetchedAt) > discoverCacheTTL {
+	if !ok {
+		return nil, false
+	}
+	if time.Since(c.fetchedAt) > discoverCacheTTL {
+		delete(h.cache, key)
 		return nil, false
 	}
 	return c.items, true
@@ -81,12 +86,27 @@ func (h *DiscoverHandler) GitHub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	searchQ := q
+	if searchQ == "" {
+		searchQ = "stars:>1000"
+	}
 	if language != "" {
-		searchQ = fmt.Sprintf("%s language:%s", q, language)
+		searchQ = fmt.Sprintf("%s language:%s", searchQ, language)
 	}
 
-	url := fmt.Sprintf("%s/search/repositories?q=%s&sort=stars&order=desc&per_page=25", h.githubURL, searchQ)
-	resp, err := h.client.Get(url)
+	u, _ := url.Parse(h.githubURL + "/search/repositories")
+	params := url.Values{}
+	params.Set("q", searchQ)
+	params.Set("sort", "stars")
+	params.Set("order", "desc")
+	params.Set("per_page", "25")
+	u.RawQuery = params.Encode()
+
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, u.String(), nil)
+	if err != nil {
+		RespondError(w, r, http.StatusInternalServerError, "request_error", "failed to build GitHub request")
+		return
+	}
+	resp, err := h.client.Do(req)
 	if err != nil {
 		RespondError(w, r, http.StatusBadGateway, "upstream_error", "failed to reach GitHub API")
 		return
@@ -147,8 +167,18 @@ func (h *DiscoverHandler) DockerHub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/v2/search/repositories/?query=%s&page_size=25", h.dockerHubURL, q)
-	resp, err := h.client.Get(url)
+	u, _ := url.Parse(h.dockerHubURL + "/v2/search/repositories/")
+	params := url.Values{}
+	params.Set("query", q)
+	params.Set("page_size", "25")
+	u.RawQuery = params.Encode()
+
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, u.String(), nil)
+	if err != nil {
+		RespondError(w, r, http.StatusInternalServerError, "request_error", "failed to build Docker Hub request")
+		return
+	}
+	resp, err := h.client.Do(req)
 	if err != nil {
 		RespondError(w, r, http.StatusBadGateway, "upstream_error", "failed to reach Docker Hub API")
 		return
@@ -180,12 +210,16 @@ func (h *DiscoverHandler) DockerHub(w http.ResponseWriter, r *http.Request) {
 		if repo.IsOfficial {
 			fullName = "library/" + repo.RepoName
 		}
+		hubURL := fmt.Sprintf("https://hub.docker.com/r/%s", repo.RepoName)
+		if repo.IsOfficial {
+			hubURL = fmt.Sprintf("https://hub.docker.com/_/%s", repo.RepoName)
+		}
 		items = append(items, DiscoverItem{
 			Name:        name,
 			FullName:    fullName,
 			Description: repo.ShortDescription,
 			Stars:       repo.StarCount,
-			URL:         fmt.Sprintf("https://hub.docker.com/_/%s", repo.RepoName),
+			URL:         hubURL,
 			Provider:    "dockerhub",
 		})
 	}
