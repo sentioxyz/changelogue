@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "07127d6fd959",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "internal/agent/openai/openai.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/07/127d6fd959/0/metadata.json",
+      "transcript": "/07/127d6fd959/0/full.jsonl",
+      "context": "/07/127d6fd959/0/context.md",
+      "content_hash": "/07/127d6fd959/0/content_hash.txt",
+      "prompt": "/07/127d6fd959/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 571745,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 3639,
+    "api_call_count": 4
+  }
+}
