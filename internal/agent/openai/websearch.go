@@ -9,11 +9,15 @@ import (
 	"google.golang.org/adk/tool"
 )
 
-// WebSearch is a tool that enables OpenAI's built-in web search via
-// web_search_options. It mirrors geminitool.GoogleSearch by adding a
-// GoogleSearch marker to the request config, which the OpenAI wrapper
-// translates into the web_search_options HTTP body field.
-type WebSearch struct{}
+// WebSearch is a tool that enables OpenAI's built-in web search via the
+// Responses API. It mirrors geminitool.GoogleSearch by adding a GoogleSearch
+// marker to the request config, which the OpenAI model wrapper detects and
+// translates into a web_search tool entry. SearchContextSize and
+// AllowedDomains are read directly from this struct by the model wrapper.
+type WebSearch struct {
+	SearchContextSize string   // "low", "medium", or "high"
+	AllowedDomains    []string // restrict search to these domains
+}
 
 // Name implements tool.Tool.
 func (WebSearch) Name() string { return "web_search" }

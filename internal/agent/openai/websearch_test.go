@@ -20,8 +20,8 @@ func TestWebSearch_IsLongRunning(t *testing.T) {
 	}
 }
 
-func TestWebSearch_ProcessRequest(t *testing.T) {
-	ws := WebSearch{}
+func TestWebSearch_ProcessRequest_SetsMarker(t *testing.T) {
+	ws := WebSearch{SearchContextSize: "high"}
 	req := &model.LLMRequest{}
 
 	if err := ws.ProcessRequest(nil, req); err != nil {
@@ -36,6 +36,9 @@ func TestWebSearch_ProcessRequest(t *testing.T) {
 	}
 	if req.Config.Tools[0].GoogleSearch == nil {
 		t.Error("expected GoogleSearch marker to be set")
+	}
+	if ws.SearchContextSize != "high" {
+		t.Errorf("expected SearchContextSize 'high', got %q", ws.SearchContextSize)
 	}
 }
 

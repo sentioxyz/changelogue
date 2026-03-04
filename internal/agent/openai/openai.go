@@ -22,16 +22,18 @@ type Config struct {
 	BaseURL string // defaults to https://api.openai.com/v1
 }
 
-// openaiModel implements model.LLM for OpenAI-compatible chat completion APIs.
+// openaiModel implements model.LLM for OpenAI-compatible Responses APIs.
 type openaiModel struct {
-	name    string
-	apiKey  string
-	baseURL string
-	client  *http.Client
+	name     string
+	apiKey   string
+	baseURL  string
+	client   *http.Client
+	wsConfig *WebSearch
 }
 
-// NewModel creates an OpenAI-backed model.LLM.
-func NewModel(_ context.Context, modelName string, cfg Config) (model.LLM, error) {
+// NewModel creates an OpenAI-backed model.LLM. wsConfig may be nil if web
+// search is not needed.
+func NewModel(_ context.Context, modelName string, cfg Config, wsConfig *WebSearch) (model.LLM, error) {
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("openai: API key is required")
 	}
@@ -40,10 +42,11 @@ func NewModel(_ context.Context, modelName string, cfg Config) (model.LLM, error
 		baseURL = defaultBaseURL
 	}
 	return &openaiModel{
-		name:    modelName,
-		apiKey:  cfg.APIKey,
-		baseURL: baseURL,
-		client:  &http.Client{},
+		name:     modelName,
+		apiKey:   cfg.APIKey,
+		baseURL:  baseURL,
+		client:   &http.Client{},
+		wsConfig: wsConfig,
 	}, nil
 }
 
@@ -66,66 +69,82 @@ func (m *openaiModel) GenerateContent(ctx context.Context, req *model.LLMRequest
 // Close is a no-op; the HTTP client has no persistent state.
 func (m *openaiModel) Close() {}
 
-// --- OpenAI API types ---
+// --- Responses API types ---
 
-type webSearchOptions struct{}
-
-type chatRequest struct {
-	Model            string            `json:"model"`
-	Messages         []chatMessage     `json:"messages"`
-	Tools            []chatTool        `json:"tools,omitempty"`
-	Temperature      *float32          `json:"temperature,omitempty"`
-	TopP             *float32          `json:"top_p,omitempty"`
-	MaxTokens        int32             `json:"max_tokens,omitempty"`
-	Stop             []string          `json:"stop,omitempty"`
-	Stream           bool              `json:"stream"`
-	WebSearchOptions *webSearchOptions `json:"web_search_options,omitempty"`
+type responsesRequest struct {
+	Model        string         `json:"model"`
+	Input        []inputItem    `json:"input"`
+	Instructions string         `json:"instructions,omitempty"`
+	Tools        []responseTool `json:"tools,omitempty"`
+	Temperature  *float32       `json:"temperature,omitempty"`
+	TopP         *float32       `json:"top_p,omitempty"`
+	MaxTokens    int32          `json:"max_output_tokens,omitempty"`
+	Store        bool           `json:"store"`
 }
 
-type chatMessage struct {
-	Role       string     `json:"role"`
-	Content    string     `json:"content,omitempty"`
-	ToolCalls  []toolCall `json:"tool_calls,omitempty"`
-	ToolCallID string     `json:"tool_call_id,omitempty"`
+type inputItem struct {
+	Type      string `json:"type"`               // "message", "function_call", "function_call_output"
+	Role      string `json:"role,omitempty"`
+	Content   string `json:"content,omitempty"`
+	ID        string `json:"id,omitempty"`
+	CallID    string `json:"call_id,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Arguments string `json:"arguments,omitempty"`
+	Output    string `json:"output,omitempty"`
 }
 
-type toolCall struct {
-	ID       string       `json:"id"`
-	Type     string       `json:"type"`
-	Function functionCall `json:"function"`
+type responseTool struct {
+	Type              string         `json:"type"` // "function" or "web_search"
+	Name              string         `json:"name,omitempty"`
+	Description       string         `json:"description,omitempty"`
+	Parameters        any            `json:"parameters,omitempty"`
+	SearchContextSize string         `json:"search_context_size,omitempty"`
+	UserLocation      any            `json:"user_location,omitempty"`
+	Filters           *searchFilters `json:"filters,omitempty"`
 }
 
-type functionCall struct {
-	Name      string `json:"name"`
-	Arguments string `json:"arguments"`
+type searchFilters struct {
+	AllowedDomains []string `json:"allowed_domains,omitempty"`
 }
 
-type chatTool struct {
-	Type     string       `json:"type"`
-	Function chatFunction `json:"function"`
+type responsesResponse struct {
+	ID         string       `json:"id"`
+	Status     string       `json:"status"`
+	Output     []outputItem `json:"output"`
+	OutputText string       `json:"output_text"`
+	Usage      *respUsage   `json:"usage,omitempty"`
+	Error      *apiError    `json:"error,omitempty"`
 }
 
-type chatFunction struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Parameters  any    `json:"parameters,omitempty"`
+type outputItem struct {
+	Type      string          `json:"type"` // "message", "function_call", "web_search_call"
+	ID        string          `json:"id,omitempty"`
+	Status    string          `json:"status,omitempty"`
+	CallID    string          `json:"call_id,omitempty"`
+	Name      string          `json:"name,omitempty"`
+	Arguments string          `json:"arguments,omitempty"`
+	Role      string          `json:"role,omitempty"`
+	Content   []outputContent `json:"content,omitempty"`
 }
 
-type chatResponse struct {
-	Choices []chatChoice `json:"choices"`
-	Usage   *chatUsage   `json:"usage,omitempty"`
-	Error   *apiError    `json:"error,omitempty"`
+type outputContent struct {
+	Type        string       `json:"type"` // "output_text"
+	Text        string       `json:"text"`
+	Annotations []annotation `json:"annotations,omitempty"`
 }
 
-type chatChoice struct {
-	Message      chatMessage `json:"message"`
-	FinishReason string      `json:"finish_reason"`
+type annotation struct {
+	Type       string `json:"type"` // "url_citation"
+	URL        string `json:"url"`
+	Title      string `json:"title"`
+	StartIndex int    `json:"start_index"`
+	EndIndex   int    `json:"end_index"`
 }
 
-type chatUsage struct {
-	PromptTokens     int32 `json:"prompt_tokens"`
-	CompletionTokens int32 `json:"completion_tokens"`
-	TotalTokens      int32 `json:"total_tokens"`
+type respUsage struct {
+	InputTokens  int32 `json:"input_tokens"`
+	OutputTokens int32 `json:"output_tokens"`
+	TotalTokens  int32 `json:"total_tokens"`
 }
 
 type apiError struct {
@@ -137,37 +156,31 @@ type apiError struct {
 // --- request/response conversion ---
 
 func (m *openaiModel) doRequest(ctx context.Context, req *model.LLMRequest) (*model.LLMResponse, error) {
-	msgs := convertContents(req)
-	tools := convertTools(req)
+	items, instructions := convertInputs(req)
+	tools := convertResponseTools(req, m.wsConfig)
 
-	chatReq := chatRequest{
-		Model:    m.name,
-		Messages: msgs,
-		Tools:    tools,
-		Stream:   false,
+	respReq := responsesRequest{
+		Model:        m.name,
+		Input:        items,
+		Instructions: instructions,
+		Tools:        tools,
+		Store:        false,
 	}
 
 	if req.Config != nil {
-		chatReq.Temperature = req.Config.Temperature
-		chatReq.TopP = req.Config.TopP
+		respReq.Temperature = req.Config.Temperature
+		respReq.TopP = req.Config.TopP
 		if req.Config.MaxOutputTokens > 0 {
-			chatReq.MaxTokens = req.Config.MaxOutputTokens
-		}
-		if len(req.Config.StopSequences) > 0 {
-			chatReq.Stop = req.Config.StopSequences
+			respReq.MaxTokens = req.Config.MaxOutputTokens
 		}
 	}
 
-	if hasWebSearch(req) {
-		chatReq.WebSearchOptions = &webSearchOptions{}
-	}
-
-	body, err := json.Marshal(chatReq)
+	body, err := json.Marshal(respReq)
 	if err != nil {
 		return nil, fmt.Errorf("openai: marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, m.baseURL+"/chat/completions", bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, m.baseURL+"/responses", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("openai: create http request: %w", err)
 	}
@@ -189,22 +202,24 @@ func (m *openaiModel) doRequest(ctx context.Context, req *model.LLMRequest) (*mo
 		return nil, fmt.Errorf("openai: API returned status %d: %s", httpResp.StatusCode, string(respBody))
 	}
 
-	var chatResp chatResponse
-	if err := json.Unmarshal(respBody, &chatResp); err != nil {
+	var respOut responsesResponse
+	if err := json.Unmarshal(respBody, &respOut); err != nil {
 		return nil, fmt.Errorf("openai: unmarshal response: %w", err)
 	}
 
-	if chatResp.Error != nil {
+	if respOut.Error != nil {
 		return nil, fmt.Errorf("openai: API error: %s (type=%s, code=%s)",
-			chatResp.Error.Message, chatResp.Error.Type, chatResp.Error.Code)
+			respOut.Error.Message, respOut.Error.Type, respOut.Error.Code)
 	}
 
-	return convertResponse(&chatResp), nil
+	return convertResponseOutput(&respOut), nil
 }
 
-// convertContents transforms ADK genai.Content messages into OpenAI chat messages.
-func convertContents(req *model.LLMRequest) []chatMessage {
-	var msgs []chatMessage
+// convertInputs transforms ADK Contents into Responses API input items and
+// extracts the system instruction as a separate instructions string.
+func convertInputs(req *model.LLMRequest) ([]inputItem, string) {
+	var items []inputItem
+	var instructions string
 
 	// System instruction.
 	if req.Config != nil && req.Config.SystemInstruction != nil {
@@ -214,110 +229,84 @@ func convertContents(req *model.LLMRequest) []chatMessage {
 				text += p.Text
 			}
 		}
-		if text != "" {
-			msgs = append(msgs, chatMessage{Role: "system", Content: text})
-		}
+		instructions = text
 	}
 
 	// Conversation contents.
 	for _, c := range req.Contents {
-		role := mapRole(c.Role)
-
-		// Check each part: could be text, function_call, or function_response.
 		for _, p := range c.Parts {
 			switch {
 			case p.FunctionCall != nil:
 				argsJSON, _ := json.Marshal(p.FunctionCall.Args)
-				msgs = append(msgs, chatMessage{
-					Role: "assistant",
-					ToolCalls: []toolCall{{
-						ID:   p.FunctionCall.ID,
-						Type: "function",
-						Function: functionCall{
-							Name:      p.FunctionCall.Name,
-							Arguments: string(argsJSON),
-						},
-					}},
+				items = append(items, inputItem{
+					Type:      "function_call",
+					CallID:    p.FunctionCall.ID,
+					Name:      p.FunctionCall.Name,
+					Arguments: string(argsJSON),
 				})
 			case p.FunctionResponse != nil:
 				respJSON, _ := json.Marshal(p.FunctionResponse.Response)
-				msgs = append(msgs, chatMessage{
-					Role:       "tool",
-					Content:    string(respJSON),
-					ToolCallID: p.FunctionResponse.ID,
+				items = append(items, inputItem{
+					Type:   "function_call_output",
+					CallID: p.FunctionResponse.ID,
+					Output: string(respJSON),
 				})
 			case p.Text != "":
-				msgs = append(msgs, chatMessage{Role: role, Content: p.Text})
+				items = append(items, inputItem{
+					Type:    "message",
+					Role:    mapRole(c.Role),
+					Content: p.Text,
+				})
 			}
 		}
 	}
 
-	// Merge consecutive assistant messages with tool_calls.
-	msgs = mergeAssistantToolCalls(msgs)
-
-	return msgs
+	return items, instructions
 }
 
-// mergeAssistantToolCalls combines adjacent assistant messages that each have
-// tool_calls into a single message, as OpenAI expects multiple tool_calls in
-// one message rather than separate messages.
-func mergeAssistantToolCalls(msgs []chatMessage) []chatMessage {
-	if len(msgs) == 0 {
-		return msgs
-	}
-	var merged []chatMessage
-	for _, msg := range msgs {
-		if msg.Role == "assistant" && len(msg.ToolCalls) > 0 && len(merged) > 0 {
-			prev := &merged[len(merged)-1]
-			if prev.Role == "assistant" && len(prev.ToolCalls) > 0 {
-				prev.ToolCalls = append(prev.ToolCalls, msg.ToolCalls...)
-				continue
-			}
-		}
-		merged = append(merged, msg)
-	}
-	return merged
-}
-
-// hasWebSearch checks whether the request contains a GoogleSearch tool marker,
-// indicating the caller wants web search capability.
-func hasWebSearch(req *model.LLMRequest) bool {
-	if req.Config == nil {
-		return false
-	}
-	for _, t := range req.Config.Tools {
-		if t != nil && t.GoogleSearch != nil {
-			return true
-		}
-	}
-	return false
-}
-
-// convertTools transforms ADK genai.Tool definitions into OpenAI tool format.
-func convertTools(req *model.LLMRequest) []chatTool {
+// convertResponseTools transforms ADK tools to Responses API flat format.
+// Function tools become {type: "function", name, description, parameters}.
+// If a GoogleSearch marker is present, a {type: "web_search"} tool is added
+// using wsConfig for search_context_size and allowed_domains.
+func convertResponseTools(req *model.LLMRequest, wsConfig *WebSearch) []responseTool {
 	if req.Config == nil || len(req.Config.Tools) == 0 {
 		return nil
 	}
 
-	var tools []chatTool
+	var tools []responseTool
+	hasSearch := false
+
 	for _, t := range req.Config.Tools {
 		if t.GoogleSearch != nil {
+			hasSearch = true
 			continue
 		}
 		for _, fd := range t.FunctionDeclarations {
-			ct := chatTool{
-				Type: "function",
-				Function: chatFunction{
-					Name:        fd.Name,
-					Description: fd.Description,
-				},
+			rt := responseTool{
+				Type:        "function",
+				Name:        fd.Name,
+				Description: fd.Description,
 			}
 			if fd.Parameters != nil {
-				ct.Function.Parameters = schemaToMap(fd.Parameters)
+				rt.Parameters = schemaToMap(fd.Parameters)
 			}
-			tools = append(tools, ct)
+			tools = append(tools, rt)
 		}
 	}
+
+	if hasSearch {
+		wsTool := responseTool{Type: "web_search"}
+		if wsConfig != nil {
+			wsTool.SearchContextSize = wsConfig.SearchContextSize
+			if len(wsConfig.AllowedDomains) > 0 {
+				wsTool.Filters = &searchFilters{
+					AllowedDomains: wsConfig.AllowedDomains,
+				}
+			}
+		}
+		tools = append(tools, wsTool)
+	}
+
 	return tools
 }
 
@@ -350,48 +339,49 @@ func schemaToMap(s *genai.Schema) map[string]any {
 	return m
 }
 
-// convertResponse transforms an OpenAI chat completion response into an ADK LLMResponse.
-func convertResponse(resp *chatResponse) *model.LLMResponse {
+// convertResponseOutput transforms a Responses API response into an ADK LLMResponse.
+func convertResponseOutput(resp *responsesResponse) *model.LLMResponse {
 	llmResp := &model.LLMResponse{
 		TurnComplete: true,
 	}
 
-	if len(resp.Choices) == 0 {
-		llmResp.Content = genai.NewContentFromText("", "model")
-		return llmResp
-	}
-
-	choice := resp.Choices[0]
-	llmResp.FinishReason = mapFinishReason(choice.FinishReason)
-
 	content := &genai.Content{Role: "model"}
 
-	// Text content.
-	if choice.Message.Content != "" {
-		content.Parts = append(content.Parts, &genai.Part{Text: choice.Message.Content})
+	for _, item := range resp.Output {
+		switch item.Type {
+		case "function_call":
+			var args map[string]any
+			if item.Arguments != "" {
+				_ = json.Unmarshal([]byte(item.Arguments), &args)
+			}
+			content.Parts = append(content.Parts, &genai.Part{
+				FunctionCall: &genai.FunctionCall{
+					ID:   item.CallID,
+					Name: item.Name,
+					Args: args,
+				},
+			})
+		case "message":
+			for _, c := range item.Content {
+				if c.Text != "" {
+					content.Parts = append(content.Parts, &genai.Part{Text: c.Text})
+				}
+			}
+		case "web_search_call":
+			// Skipped — handled internally by the API.
+		}
 	}
 
-	// Tool calls.
-	for _, tc := range choice.Message.ToolCalls {
-		var args map[string]any
-		if tc.Function.Arguments != "" {
-			_ = json.Unmarshal([]byte(tc.Function.Arguments), &args)
-		}
-		content.Parts = append(content.Parts, &genai.Part{
-			FunctionCall: &genai.FunctionCall{
-				ID:   tc.ID,
-				Name: tc.Function.Name,
-				Args: args,
-			},
-		})
+	if len(content.Parts) == 0 {
+		content.Parts = append(content.Parts, &genai.Part{Text: ""})
 	}
 
 	llmResp.Content = content
 
 	if resp.Usage != nil {
 		llmResp.UsageMetadata = &genai.GenerateContentResponseUsageMetadata{
-			PromptTokenCount:     resp.Usage.PromptTokens,
-			CandidatesTokenCount: resp.Usage.CompletionTokens,
+			PromptTokenCount:     resp.Usage.InputTokens,
+			CandidatesTokenCount: resp.Usage.OutputTokens,
 			TotalTokenCount:      resp.Usage.TotalTokens,
 		}
 	}
