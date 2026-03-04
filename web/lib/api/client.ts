@@ -19,6 +19,7 @@ import type {
   HealthStatus,
   Stats,
   TrendData,
+  DiscoverItem,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -208,4 +209,22 @@ export const system = {
   stats: () => request<ApiResponse<Stats>>("/stats"),
   trend: (granularity: "daily" | "weekly" | "monthly" = "daily", days = 7) =>
     request<ApiResponse<TrendData>>(`/stats/trend?granularity=${granularity}&days=${days}`),
+};
+
+// --- Discovery ---
+
+export const discover = {
+  github: (params?: { q?: string; language?: string }) => {
+    const search = new URLSearchParams();
+    if (params?.q) search.set("q", params.q);
+    if (params?.language) search.set("language", params.language);
+    const qs = search.toString();
+    return request<ApiResponse<DiscoverItem[]>>(`/discover/github${qs ? `?${qs}` : ""}`);
+  },
+  dockerhub: (params?: { q?: string }) => {
+    const search = new URLSearchParams();
+    if (params?.q) search.set("q", params.q);
+    const qs = search.toString();
+    return request<ApiResponse<DiscoverItem[]>>(`/discover/dockerhub${qs ? `?${qs}` : ""}`);
+  },
 };

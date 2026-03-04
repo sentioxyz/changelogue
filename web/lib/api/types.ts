@@ -217,6 +217,19 @@ export interface TrendData {
   buckets: TrendBucket[];
 }
 
+// --- Discovery Types ---
+
+export interface DiscoverItem {
+  name: string;
+  full_name: string;
+  description: string;
+  stars: number;
+  language?: string;
+  url: string;
+  avatar_url?: string;
+  provider: "github" | "dockerhub";
+}
+
 // --- SSE Event Types ---
 
 export type SSEEventType = "release" | "semantic_release";
