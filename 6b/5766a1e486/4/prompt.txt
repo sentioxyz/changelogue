@@ -1,0 +1,9 @@
+In the current slack/discord notifications, there are duplicated information in the header iota — New release: v1.18.0-rc `v1.18.0-rc`, let's keep `v1.18.0-rc` only
+
+---
+
+I mean in the message there's already version, should we still need it in the tile?
+
+---
+
+Looks good, commit and push
