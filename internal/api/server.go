@@ -107,6 +107,11 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	providers := NewProvidersHandler()
 	mux.Handle("GET /api/v1/providers", chain(http.HandlerFunc(providers.List)))
 
+	// Discovery (public — no auth, proxies external APIs)
+	discover := NewDiscoverHandler(deps.HTTPClient, "", "")
+	mux.Handle("GET /api/v1/discover/github", publicChain(http.HandlerFunc(discover.GitHub)))
+	mux.Handle("GET /api/v1/discover/dockerhub", publicChain(http.HandlerFunc(discover.DockerHub)))
+
 	// SSE events
 	events := NewEventsHandler(deps.Broadcaster)
 	mux.Handle("GET /api/v1/events", chain(http.HandlerFunc(events.Stream)))
