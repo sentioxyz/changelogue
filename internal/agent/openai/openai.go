@@ -287,7 +287,10 @@ func convertResponseTools(req *model.LLMRequest, wsConfig *WebSearch) []response
 				Name:        fd.Name,
 				Description: fd.Description,
 			}
-			if fd.Parameters != nil {
+			switch {
+			case fd.ParametersJsonSchema != nil:
+				rt.Parameters = fd.ParametersJsonSchema
+			case fd.Parameters != nil:
 				rt.Parameters = schemaToMap(fd.Parameters)
 			}
 			tools = append(tools, rt)

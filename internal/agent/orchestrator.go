@@ -48,10 +48,10 @@ Focus ONLY on version {{VERSION}}. Cross-check this version across all available
 Use the available tools to:
 1. Fetch releases and find the one matching {{VERSION}} from each source.
 2. Inspect release details (changelogs, commit data, raw payloads) for {{VERSION}} only.
-3. Check binary/image availability directly from the source data.
+3. Check binary/image availability.
 4. Review the project's context sources (runbooks, documentation) for relevant background.
 5. Always search the web for supplementary context about this release
-   (community sentiment, security advisories, network adoption stats, known issues, migration guides).
+   (community sentiment, security advisories, network adoption stats, known issues, migration guides, direct download links).
 
 CRITICAL: Your final response MUST be a single JSON object and nothing else.
 Do not include any explanation, commentary, or markdown formatting — just the raw JSON.
@@ -64,11 +64,9 @@ The JSON object must have exactly these fields:
   "urgency": "Critical|High|Medium|Low",
   "urgency_reason": "Why this urgency level (e.g., 'Hard Fork detected in Discord #announcements')",
   "status_checks": ["Docker Image Verified", "Binaries Available"],
-  "changelog_summary": "One-line summary of key changes (e.g., 'Fixes sync bug in block 14,000,000')",
-  "availability": "GA|RC|Beta",
+  "changelog_summary": "summary of key changes (e.g., 'Fixes sync bug in block 14,000,000')",
   "adoption": "Percentage or recommendation (e.g., '12% of network updated (Wait recommended if not urgent)')",
-  "recommendation": "Actionable 1-2 sentence recommendation for the SRE team",
-  "download_commands": ["docker pull ethereum/client-go:v1.10.15"],
+  "download_commands": ["docker pull ethereum/client-go:v1.10.15", "curl -L -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.10.15-8be800ff.tar.gz"],
   "download_links": ["https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.10.15-8be800ff.tar.gz", "https://gethstore.blob.core.windows.net/builds/geth-darwin-arm64-1.10.15-8be800ff.tar.gz", "https://github.com/ethereum/go-ethereum/releases/tag/v1.10.15"]
 }`
 
