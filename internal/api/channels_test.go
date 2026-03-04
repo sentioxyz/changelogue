@@ -328,7 +328,7 @@ func TestChannelsHandlerTestSuccess(t *testing.T) {
 	if sender.sent == nil {
 		t.Fatal("expected sender.Send to be called")
 	}
-	if sender.sent.Title != "Test notification from Changelogue" {
+	if sender.sent.Title != "Changelogue — New release: v1.0.0-test" {
 		t.Fatalf("unexpected title: %s", sender.sent.Title)
 	}
 }

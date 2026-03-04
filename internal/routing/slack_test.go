@@ -307,39 +307,136 @@ func TestSlackSender_RawJSONFallback(t *testing.T) {
 		t.Fatalf("received invalid JSON: %v", err)
 	}
 
-	// Should have header + changelog section + context with links = 3 blocks
-	if len(payload.Blocks) != 3 {
-		t.Fatalf("expected 3 blocks, got %d", len(payload.Blocks))
+	// Should use attachments for changelog (auto-collapse with "Show more")
+	if len(payload.Attachments) != 1 {
+		t.Fatalf("expected 1 attachment, got %d", len(payload.Attachments))
 	}
 
-	// Changelog text should appear in a code block
-	changelogBlock := payload.Blocks[1]
-	if changelogBlock.Text == nil || !strings.Contains(changelogBlock.Text.Text, "Fixed wrong genesis commit") {
-		t.Fatal("expected changelog text in second block")
+	att := payload.Attachments[0]
+
+	// Attachment title should show repo on provider
+	if !strings.Contains(att.Title, "matter-labs/zksync-era") {
+		t.Fatalf("expected repo in attachment title, got %q", att.Title)
 	}
-	if !strings.Contains(changelogBlock.Text.Text, "```") {
+	if !strings.Contains(att.Title, "GitHub") {
+		t.Fatalf("expected provider label in attachment title, got %q", att.Title)
+	}
+
+	// Attachment text should contain changelog in a code block
+	if !strings.Contains(att.Text, "Fixed wrong genesis commit") {
+		t.Fatal("expected changelog text in attachment")
+	}
+	if !strings.Contains(att.Text, "```") {
 		t.Fatal("changelog should be wrapped in code block")
 	}
-	if strings.Contains(changelogBlock.Text.Text, "release_url") {
+	if strings.Contains(att.Text, "release_url") {
 		t.Fatal("raw JSON keys should not appear in formatted output")
 	}
 
-	// Context block should have source info and links
-	contextBlock := payload.Blocks[2]
-	if contextBlock.Type != "context" {
-		t.Fatalf("expected context block, got %s", contextBlock.Type)
+	// Title link should point to source
+	if att.TitleLink != "https://github.com/matter-labs/zksync-era/releases/tag/zkos-0.29.4-rc1" {
+		t.Fatalf("unexpected title_link: %s", att.TitleLink)
 	}
-	if len(contextBlock.Elements) == 0 {
-		t.Fatal("expected context elements")
+
+	// Links should be in the attachment text
+	if !strings.Contains(att.Text, "View on GitHub") {
+		t.Fatal("expected 'View on GitHub' link in attachment text")
 	}
-	contextText := contextBlock.Elements[0].Text
-	if !strings.Contains(contextText, "View on GitHub") {
-		t.Fatal("expected 'View on GitHub' link in context")
+	if !strings.Contains(att.Text, "View in Changelogue") {
+		t.Fatal("expected 'View in Changelogue' link in attachment text")
 	}
-	if !strings.Contains(contextText, "View in Changelogue") {
-		t.Fatal("expected 'View in Changelogue' link in context")
+
+	// No separate blocks needed
+	if len(payload.Blocks) != 0 {
+		t.Fatalf("expected no blocks (all in attachment), got %d", len(payload.Blocks))
 	}
-	if !strings.Contains(contextText, "matter-labs/zksync-era") {
-		t.Fatal("expected repository name in context")
+}
+
+func TestMarkdownToASCII(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		contains []string
+		excludes []string
+	}{
+		{
+			name:     "heading converted to ASCII art",
+			input:    "## Protocol",
+			contains: []string{"--------\nProtocol\n--------"},
+			excludes: []string{"##"},
+		},
+		{
+			name:     "h1 heading",
+			input:    "# Release Notes",
+			contains: []string{"-------------\nRelease Notes\n-------------"},
+			excludes: []string{"# "},
+		},
+		{
+			name:     "GitHub PR URL converted",
+			input:    "Fixed bug https://github.com/MystenLabs/sui/pull/25364 today",
+			contains: []string{"#25364 ( https://github.com/MystenLabs/sui/pull/25364 )"},
+		},
+		{
+			name:     "GitHub issue URL converted",
+			input:    "See https://github.com/org/repo/issues/123",
+			contains: []string{"#123 ( https://github.com/org/repo/issues/123 )"},
+		},
+		{
+			name:     "markdown link converted",
+			input:    "Check [the docs](https://example.com/docs) for details",
+			contains: []string{"the docs ( https://example.com/docs )"},
+			excludes: []string{"[the docs]"},
+		},
+		{
+			name:     "bold stripped",
+			input:    "This is **important** text",
+			contains: []string{"important"},
+			excludes: []string{"**"},
+		},
+		{
+			name:     "inline code stripped",
+			input:    "Run `npm install` to start",
+			contains: []string{"npm install"},
+			excludes: []string{"`"},
+		},
+		{
+			name:     "image stripped",
+			input:    "![screenshot](https://example.com/img.png)",
+			contains: []string{"screenshot"},
+			excludes: []string{"![", "https://example.com/img.png"},
+		},
+		{
+			name:     "HTML tags stripped",
+			input:    "Text <br/> more <b>bold</b> text",
+			contains: []string{"Text", "more", "bold", "text"},
+			excludes: []string{"<br/>", "<b>", "</b>"},
+		},
+		{
+			name:  "full changelog example",
+			input: "## What's Changed\n\n* feat: add monitoring by @dev in https://github.com/org/repo/pull/42\n* fix: **memory leak** in `worker`\n\n**Full Changelog**: [v0.9...v1.0](https://github.com/org/repo/compare/v0.9.0...v1.0.0)",
+			contains: []string{
+				"What's Changed",
+				"#42 ( https://github.com/org/repo/pull/42 )",
+				"memory leak",
+				"worker",
+			},
+			excludes: []string{"##", "**", "`worker`", "[v0.9...v1.0]"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := markdownToASCII(tt.input)
+			for _, want := range tt.contains {
+				if !strings.Contains(result, want) {
+					t.Errorf("expected result to contain %q, got:\n%s", want, result)
+				}
+			}
+			for _, exclude := range tt.excludes {
+				if strings.Contains(result, exclude) {
+					t.Errorf("expected result NOT to contain %q, got:\n%s", exclude, result)
+				}
+			}
+		})
 	}
 }

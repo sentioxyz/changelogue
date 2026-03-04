@@ -20,9 +20,10 @@ type SlackSender struct {
 	Client *http.Client
 }
 
-// slackPayload is the Slack incoming webhook payload using Block Kit.
+// slackPayload is the Slack incoming webhook payload using Block Kit and/or attachments.
 type slackPayload struct {
-	Blocks []slackBlock `json:"blocks"`
+	Blocks      []slackBlock      `json:"blocks,omitempty"`
+	Attachments []slackAttachment `json:"attachments,omitempty"`
 }
 
 type slackBlock struct {
@@ -35,6 +36,16 @@ type slackBlock struct {
 type slackText struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
+}
+
+// slackAttachment uses Slack's legacy attachment format which auto-collapses
+// long text with a "Show more" button.
+type slackAttachment struct {
+	Color     string   `json:"color,omitempty"`
+	Title     string   `json:"title,omitempty"`
+	TitleLink string   `json:"title_link,omitempty"`
+	Text      string   `json:"text,omitempty"`
+	MrkdwnIn  []string `json:"mrkdwn_in,omitempty"`
 }
 
 // urgencyEmoji returns an emoji indicator for the given urgency level.
@@ -139,53 +150,83 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 	}
 
 	// Try to parse body as a SemanticReport for rich formatting.
-	var blocks []slackBlock
+	var payload slackPayload
 	var report models.SemanticReport
 	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
-		blocks = buildSemanticBlocks(msg.Title, &report, msg)
+		payload.Blocks = buildSemanticBlocks(msg.Title, &report, msg)
 	} else {
-		// Fallback: extract known fields from raw data for a readable message.
-		blocks = []slackBlock{
-			{Type: "header", Text: &slackText{Type: "plain_text", Text: msg.Title}},
-		}
+		// Fallback: source-level release notification.
+		// Use attachments for changelog so Slack auto-collapses long text
+		// with a "Show more" button.
+		var changelogText string
 		if fields, ok := parseRawBody(msg.Body); ok {
-			if fields.Changelog != "" {
-				// Wrap changelog in a code block — Slack auto-collapses long
-				// code blocks with a built-in "Show more" button.
+			changelogText = fields.Changelog
+		}
+
+		if changelogText != "" {
+			// Build title link label
+			titleLabel := msg.Title
+			if msg.Repository != "" && msg.Provider != "" {
+				titleLabel = fmt.Sprintf("%s on %s", msg.Repository, ProviderLabel(msg.Provider))
+			}
+
+			// Build attachment text: title + version badge, then changelog
+			// converted to ASCII and wrapped in a code block. Slack
+			// auto-collapses long code blocks in attachments with a
+			// "Show more" button.
+			asciiChangelog := markdownToASCII(changelogText)
+			attachText := fmt.Sprintf("*%s* `%s`\n```%s```", msg.Title, msg.Version, asciiChangelog)
+
+			// Append links after the code block
+			var linkParts []string
+			if msg.SourceURL != "" {
+				linkParts = append(linkParts, fmt.Sprintf("<%s|View on %s>", msg.SourceURL, ProviderLabel(msg.Provider)))
+			}
+			if msg.ReleaseURL != "" {
+				linkParts = append(linkParts, fmt.Sprintf("<%s|View in Changelogue>", msg.ReleaseURL))
+			}
+			if len(linkParts) > 0 {
+				attachText += "\n" + strings.Join(linkParts, "  |  ")
+			}
+
+			attachment := slackAttachment{
+				Color:    "#D3D3D3",
+				Title:    titleLabel,
+				Text:     attachText,
+				MrkdwnIn: []string{"text"},
+			}
+			if msg.SourceURL != "" {
+				attachment.TitleLink = msg.SourceURL
+			}
+			payload.Attachments = []slackAttachment{attachment}
+		} else {
+			// No changelog — simple blocks fallback
+			blocks := []slackBlock{
+				{Type: "header", Text: &slackText{Type: "plain_text", Text: msg.Title}},
+				{Type: "section", Text: &slackText{Type: "mrkdwn", Text: msg.Body}},
+			}
+
+			var linkParts []string
+			if msg.Provider != "" && msg.Repository != "" {
+				linkParts = append(linkParts, fmt.Sprintf("%s · %s", ProviderLabel(msg.Provider), msg.Repository))
+			}
+			if msg.SourceURL != "" {
+				linkParts = append(linkParts, fmt.Sprintf("<%s|View on %s>", msg.SourceURL, ProviderLabel(msg.Provider)))
+			}
+			if msg.ReleaseURL != "" {
+				linkParts = append(linkParts, fmt.Sprintf("<%s|View in Changelogue>", msg.ReleaseURL))
+			}
+			if len(linkParts) > 0 {
 				blocks = append(blocks, slackBlock{
-					Type: "section",
-					Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("```markdown\n%s```", fields.Changelog)},
+					Type: "context",
+					Elements: []slackText{
+						{Type: "mrkdwn", Text: strings.Join(linkParts, "  |  ")},
+					},
 				})
 			}
-		} else {
-			blocks = append(blocks, slackBlock{
-				Type: "section",
-				Text: &slackText{Type: "mrkdwn", Text: msg.Body},
-			})
-		}
-
-		// Add source info and links
-		var linkParts []string
-		if msg.Provider != "" && msg.Repository != "" {
-			linkParts = append(linkParts, fmt.Sprintf("%s · %s", ProviderLabel(msg.Provider), msg.Repository))
-		}
-		if msg.SourceURL != "" {
-			linkParts = append(linkParts, fmt.Sprintf("<%s|View on %s>", msg.SourceURL, ProviderLabel(msg.Provider)))
-		}
-		if msg.ReleaseURL != "" {
-			linkParts = append(linkParts, fmt.Sprintf("<%s|View in Changelogue>", msg.ReleaseURL))
-		}
-		if len(linkParts) > 0 {
-			blocks = append(blocks, slackBlock{
-				Type: "context",
-				Elements: []slackText{
-					{Type: "mrkdwn", Text: strings.Join(linkParts, "  |  ")},
-				},
-			})
+			payload.Blocks = blocks
 		}
 	}
-
-	payload := slackPayload{Blocks: blocks}
 
 	body, err := json.Marshal(payload)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/sentioxyz/changelogue/internal/models"
@@ -86,4 +87,62 @@ func ProviderLabel(provider string) string {
 	default:
 		return provider
 	}
+}
+
+// Regex patterns for markdown-to-ASCII conversion.
+var (
+	// GitHub PR/issue URLs → #NNN ( url )
+	reGitHubPR = regexp.MustCompile(`https?://github\.com/([^/]+/[^/]+)/(pull|issues)/(\d+)`)
+	// Markdown links [text](url) → text ( url )
+	reMdLink = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
+	// Headings ## Text → dashed ASCII box
+	reHeading = regexp.MustCompile(`(?m)^#{1,6}\s+(.+)$`)
+	// Bold **text** and __text__
+	reBoldStar = regexp.MustCompile(`\*\*(.+?)\*\*`)
+	reBoldUnderscore = regexp.MustCompile(`__(.+?)__`)
+	// Inline code `text`
+	reInlineCode = regexp.MustCompile("`([^`]+)`")
+	// HTML tags
+	reHTML = regexp.MustCompile(`<[^>]+>`)
+	// Images ![alt](url)
+	reImage = regexp.MustCompile(`!\[([^\]]*)\]\([^)]+\)`)
+)
+
+// markdownToASCII converts GitHub-flavored Markdown into clean ASCII text
+// suitable for display inside Slack/Discord code blocks.
+func markdownToASCII(md string) string {
+	s := md
+
+	// Strip images first (before link processing)
+	s = reImage.ReplaceAllString(s, "$1")
+
+	// Convert GitHub PR/issue URLs to #NNN ( url )
+	s = reGitHubPR.ReplaceAllString(s, "#$3 ( $0 )")
+
+	// Convert markdown links [text](url) → text ( url )
+	s = reMdLink.ReplaceAllString(s, "$1 ( $2 )")
+
+	// Convert headings to ASCII art with dashes
+	s = reHeading.ReplaceAllStringFunc(s, func(match string) string {
+		parts := reHeading.FindStringSubmatch(match)
+		title := strings.TrimSpace(parts[1])
+		dashes := strings.Repeat("-", len(title))
+		return dashes + "\n" + title + "\n" + dashes
+	})
+
+	// Strip bold markers
+	s = reBoldStar.ReplaceAllString(s, "$1")
+	s = reBoldUnderscore.ReplaceAllString(s, "$1")
+
+	// Strip inline code backticks
+	s = reInlineCode.ReplaceAllString(s, "$1")
+
+	// Strip HTML tags
+	s = reHTML.ReplaceAllString(s, "")
+
+	// Collapse 3+ consecutive blank lines into 2
+	reBlankLines := regexp.MustCompile(`\n{3,}`)
+	s = reBlankLines.ReplaceAllString(s, "\n\n")
+
+	return strings.TrimSpace(s)
 }

@@ -151,9 +151,10 @@ func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel
 		var descParts []string
 		if fields, ok := parseRawBody(msg.Body); ok {
 			if fields.Changelog != "" {
-				// Wrap changelog in a code block — Discord auto-collapses
-				// long code blocks with a built-in "Show more" button.
-				descParts = append(descParts, fmt.Sprintf("```markdown\n%s```", fields.Changelog))
+				// Convert changelog markdown to ASCII and wrap in a code
+				// block. Discord auto-collapses long code blocks.
+				asciiChangelog := markdownToASCII(fields.Changelog)
+				descParts = append(descParts, fmt.Sprintf("```%s```", asciiChangelog))
 			}
 		} else {
 			descParts = append(descParts, msg.Body)
