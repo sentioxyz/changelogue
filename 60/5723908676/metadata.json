@@ -3,7 +3,7 @@
   "checkpoint_id": "605723908676",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": [
     "internal/agent/orchestrator.go"
   ],
@@ -14,13 +14,20 @@
       "context": "/60/5723908676/0/context.md",
       "content_hash": "/60/5723908676/0/content_hash.txt",
       "prompt": "/60/5723908676/0/prompt.txt"
+    },
+    {
+      "metadata": "/60/5723908676/1/metadata.json",
+      "transcript": "/60/5723908676/1/full.jsonl",
+      "context": "/60/5723908676/1/context.md",
+      "content_hash": "/60/5723908676/1/content_hash.txt",
+      "prompt": "/60/5723908676/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 12292366,
+    "input_tokens": 13355534,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 24269,
-    "api_call_count": 125
+    "output_tokens": 26755,
+    "api_call_count": 139
   }
 }
