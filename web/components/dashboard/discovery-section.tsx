@@ -20,15 +20,9 @@ export function DiscoverySection() {
   const [trackingIds, setTrackingIds] = useState<Set<string>>(new Set());
   const [paused, setPaused] = useState(false);
 
-  const { data: githubData, isLoading: githubLoading } = useSWR(
+  const { data: githubData, isLoading } = useSWR(
     "discover-github",
     () => discover.github(),
-    { revalidateOnFocus: false },
-  );
-
-  const { data: dockerData, isLoading: dockerLoading } = useSWR(
-    "discover-dockerhub",
-    () => discover.dockerhub(),
     { revalidateOnFocus: false },
   );
 
@@ -49,20 +43,7 @@ export function DiscoverySection() {
     [projectsData],
   );
 
-  // Interleave GitHub and Docker Hub items
-  const allItems = useMemo(() => {
-    const gh = githubData?.data ?? [];
-    const dh = dockerData?.data ?? [];
-    const merged: DiscoverItem[] = [];
-    const maxLen = Math.max(gh.length, dh.length);
-    for (let i = 0; i < maxLen; i++) {
-      if (i < gh.length) merged.push(gh[i]);
-      if (i < dh.length) merged.push(dh[i]);
-    }
-    return merged;
-  }, [githubData, dockerData]);
-
-  const isLoading = githubLoading && dockerLoading;
+  const allItems = useMemo(() => githubData?.data ?? [], [githubData]);
 
   const isTracked = useCallback(
     (item: DiscoverItem) =>
@@ -185,7 +166,10 @@ export function DiscoverySection() {
           <div
             className="flex gap-2.5"
             style={{
-              animation: `marquee ${Math.max(allItems.length * 3, 30)}s linear infinite`,
+              animationName: "marquee",
+              animationDuration: `${Math.max(allItems.length * 6, 60)}s`,
+              animationTimingFunction: "linear",
+              animationIterationCount: "infinite",
               animationPlayState: paused ? "paused" : "running",
               width: "max-content",
             }}
