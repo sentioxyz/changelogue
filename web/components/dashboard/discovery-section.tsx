@@ -1,14 +1,12 @@
 // web/components/dashboard/discovery-section.tsx
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import useSWR, { mutate } from "swr";
-import { Star, Loader2, Check } from "lucide-react";
+import { Star, Loader2, Check, Plus } from "lucide-react";
 import { FaGithub, FaDocker } from "react-icons/fa";
 import { discover, projects, sources } from "@/lib/api/client";
 import type { DiscoverItem } from "@/lib/api/types";
-
-type Tab = "github" | "dockerhub";
 
 function formatStars(count: number): string {
   if (count >= 1000) {
@@ -19,8 +17,8 @@ function formatStars(count: number): string {
 }
 
 export function DiscoverySection() {
-  const [activeTab, setActiveTab] = useState<Tab>("github");
   const [trackingIds, setTrackingIds] = useState<Set<string>>(new Set());
+  const [paused, setPaused] = useState(false);
 
   const { data: githubData, isLoading: githubLoading } = useSWR(
     "discover-github",
@@ -40,18 +38,36 @@ export function DiscoverySection() {
     { revalidateOnFocus: false },
   );
 
-  const trackedNames = new Set(
-    (projectsData?.data ?? []).flatMap((p) => [p.name, p.name.split("/").pop()!]),
+  const trackedNames = useMemo(
+    () =>
+      new Set(
+        (projectsData?.data ?? []).flatMap((p) => [
+          p.name,
+          p.name.split("/").pop()!,
+        ]),
+      ),
+    [projectsData],
   );
 
-  const items = activeTab === "github" ? githubData?.data : dockerData?.data;
-  const isLoading = activeTab === "github" ? githubLoading : dockerLoading;
+  // Interleave GitHub and Docker Hub items
+  const allItems = useMemo(() => {
+    const gh = githubData?.data ?? [];
+    const dh = dockerData?.data ?? [];
+    const merged: DiscoverItem[] = [];
+    const maxLen = Math.max(gh.length, dh.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < gh.length) merged.push(gh[i]);
+      if (i < dh.length) merged.push(dh[i]);
+    }
+    return merged;
+  }, [githubData, dockerData]);
+
+  const isLoading = githubLoading && dockerLoading;
 
   const isTracked = useCallback(
     (item: DiscoverItem) =>
       trackedNames.has(item.full_name) || trackedNames.has(item.name),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [projectsData],
+    [trackedNames],
   );
 
   const handleTrack = useCallback(
@@ -75,8 +91,10 @@ export function DiscoverySection() {
 
         await sources.poll(sourceRes.data.id);
         await mutate("projects-list");
+        await mutate("projects-for-dashboard");
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Failed to track project";
+        const msg =
+          err instanceof Error ? err.message : "Failed to track project";
         alert(msg);
       } finally {
         setTrackingIds((prev) => {
@@ -89,240 +107,183 @@ export function DiscoverySection() {
     [],
   );
 
-  return (
-    <div
-      className="rounded-lg bg-white"
-      style={{ border: "1px solid #e8e8e5" }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3">
-        <div>
-          <h3
+  if (isLoading) {
+    return (
+      <div
+        className="rounded-lg bg-white px-5 py-4"
+        style={{ border: "1px solid #e8e8e5" }}
+      >
+        <div className="flex items-center gap-3">
+          <span
             style={{
               fontFamily: "var(--font-fraunces)",
-              fontSize: "16px",
+              fontSize: "14px",
               fontWeight: 600,
               color: "#111113",
             }}
           >
-            Trending Projects
-          </h3>
-          <p
-            className="mt-0.5"
-            style={{
-              fontFamily: "var(--font-dm-sans)",
-              fontSize: "12px",
-              color: "#6b7280",
-            }}
-          >
-            Track trending repositories with one click
-          </p>
-        </div>
-
-        {/* Tabs */}
-        <div
-          className="flex items-center gap-1 rounded-full p-1"
-          style={{ backgroundColor: "#f5f5f3" }}
-        >
-          <TabButton
-            active={activeTab === "github"}
-            onClick={() => setActiveTab("github")}
-            icon={<FaGithub className="h-3.5 w-3.5" />}
-            label="GitHub"
-          />
-          <TabButton
-            active={activeTab === "dockerhub"}
-            onClick={() => setActiveTab("dockerhub")}
-            icon={<FaDocker className="h-3.5 w-3.5" />}
-            label="Docker Hub"
-          />
-        </div>
-      </div>
-
-      {/* Scrollable cards */}
-      <div className="flex gap-3 overflow-x-auto px-5 pb-4" style={{ scrollbarWidth: "thin" }}>
-        {isLoading
-          ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
-          : (items ?? []).map((item) => (
-              <DiscoverCard
-                key={item.full_name}
-                item={item}
-                tracked={isTracked(item)}
-                tracking={trackingIds.has(item.full_name)}
-                onTrack={handleTrack}
-                showLanguage={activeTab === "github"}
+            Trending
+          </span>
+          <div className="flex gap-3 overflow-hidden">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-8 w-48 flex-shrink-0 animate-pulse rounded-full"
+                style={{ backgroundColor: "#f0f0ed" }}
               />
             ))}
+          </div>
+        </div>
       </div>
+    );
+  }
+
+  if (allItems.length === 0) return null;
+
+  return (
+    <div
+      className="rounded-lg bg-white"
+      style={{ border: "1px solid #e8e8e5", overflow: "hidden" }}
+    >
+      <div className="flex items-center gap-4 px-5 py-3">
+        {/* Label */}
+        <span
+          className="flex-shrink-0"
+          style={{
+            fontFamily: "var(--font-fraunces)",
+            fontSize: "14px",
+            fontWeight: 600,
+            color: "#111113",
+          }}
+        >
+          Trending
+        </span>
+
+        {/* Marquee container */}
+        <div
+          className="relative flex-1 overflow-hidden"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {/* Fade edges */}
+          <div
+            className="pointer-events-none absolute left-0 top-0 z-10 h-full w-8"
+            style={{
+              background:
+                "linear-gradient(to right, white, transparent)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute right-0 top-0 z-10 h-full w-8"
+            style={{
+              background:
+                "linear-gradient(to left, white, transparent)",
+            }}
+          />
+
+          {/* Scrolling track — duplicated for seamless loop */}
+          <div
+            className="flex gap-2.5"
+            style={{
+              animation: `marquee ${Math.max(allItems.length * 3, 30)}s linear infinite`,
+              animationPlayState: paused ? "paused" : "running",
+              width: "max-content",
+            }}
+          >
+            {[...allItems, ...allItems].map((item, idx) => {
+              const tracked = isTracked(item);
+              const tracking = trackingIds.has(item.full_name);
+
+              return (
+                <MarqueeChip
+                  key={`${item.full_name}-${idx}`}
+                  item={item}
+                  tracked={tracked}
+                  tracking={tracking}
+                  onTrack={handleTrack}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Keyframes injected via style tag */}
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
 
-function TabButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-all"
-      style={{
-        fontFamily: "var(--font-dm-sans)",
-        backgroundColor: active ? "#ffffff" : "transparent",
-        boxShadow: active ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
-        color: active ? "#111113" : "#6b7280",
-        fontWeight: active ? 500 : 400,
-      }}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-
-function DiscoverCard({
+function MarqueeChip({
   item,
   tracked,
   tracking,
   onTrack,
-  showLanguage,
 }: {
   item: DiscoverItem;
   tracked: boolean;
   tracking: boolean;
   onTrack: (item: DiscoverItem) => void;
-  showLanguage: boolean;
 }) {
+  const ProviderIcon =
+    item.provider === "github" ? FaGithub : FaDocker;
+
+  if (tracked) {
+    return (
+      <span
+        className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5"
+        style={{
+          fontFamily: "var(--font-dm-sans)",
+          fontSize: "12px",
+          color: "#16a34a",
+          backgroundColor: "#f0fdf4",
+          border: "1px solid #bbf7d0",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <ProviderIcon className="h-3 w-3" style={{ color: "#6b7280" }} />
+        {item.full_name}
+        <Check className="h-3 w-3" />
+      </span>
+    );
+  }
+
   return (
-    <div
-      className="flex flex-shrink-0 flex-col justify-between rounded-lg p-3.5"
+    <button
+      onClick={() => onTrack(item)}
+      disabled={tracking}
+      className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 transition-all hover:shadow-sm disabled:opacity-70"
       style={{
-        width: 220,
+        fontFamily: "var(--font-dm-sans)",
+        fontSize: "12px",
+        color: "#111113",
+        backgroundColor: "#fafaf9",
         border: "1px solid #e8e8e5",
-        minHeight: 160,
+        whiteSpace: "nowrap",
+        cursor: tracking ? "wait" : "pointer",
       }}
     >
-      <div>
-        <p
-          className="truncate"
-          style={{
-            fontFamily: "var(--font-dm-sans)",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "#111113",
-          }}
-          title={item.full_name}
-        >
-          {item.full_name}
-        </p>
-        <p
-          className="mt-1"
-          style={{
-            fontFamily: "var(--font-dm-sans)",
-            fontSize: "12px",
-            color: "#6b7280",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          {item.description || "No description"}
-        </p>
-      </div>
-
-      <div className="mt-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1">
-            <Star className="h-3.5 w-3.5" style={{ color: "#e8601a" }} />
-            <span
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "12px",
-                color: "#111113",
-              }}
-            >
-              {formatStars(item.stars)}
-            </span>
-          </span>
-          {showLanguage && item.language && (
-            <span
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "12px",
-                color: "#9ca3af",
-              }}
-            >
-              {item.language}
-            </span>
-          )}
-        </div>
-
-        {tracked ? (
-          <span
-            className="flex items-center gap-1 text-xs"
-            style={{
-              fontFamily: "var(--font-dm-sans)",
-              color: "#16a34a",
-              fontWeight: 500,
-            }}
-          >
-            <Check className="h-3.5 w-3.5" />
-            Tracked
-          </span>
-        ) : (
-          <button
-            onClick={() => onTrack(item)}
-            disabled={tracking}
-            className="flex items-center gap-1 rounded px-2.5 py-1 text-xs text-white transition-colors hover:opacity-90 disabled:opacity-70"
-            style={{
-              fontFamily: "var(--font-dm-sans)",
-              backgroundColor: "#e8601a",
-            }}
-          >
-            {tracking ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : null}
-            Track
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-
-function SkeletonCard() {
-  return (
-    <div
-      className="flex flex-shrink-0 flex-col justify-between rounded-lg p-3.5"
-      style={{
-        width: 220,
-        border: "1px solid #e8e8e5",
-        minHeight: 160,
-      }}
-    >
-      <div>
-        <div className="h-4 w-3/4 animate-pulse rounded" style={{ backgroundColor: "#e8e8e5" }} />
-        <div className="mt-2 h-3 w-full animate-pulse rounded" style={{ backgroundColor: "#f0f0ed" }} />
-        <div className="mt-1 h-3 w-2/3 animate-pulse rounded" style={{ backgroundColor: "#f0f0ed" }} />
-      </div>
-      <div className="mt-3 flex items-center justify-between">
-        <div className="h-3 w-10 animate-pulse rounded" style={{ backgroundColor: "#e8e8e5" }} />
-        <div className="h-6 w-14 animate-pulse rounded" style={{ backgroundColor: "#e8e8e5" }} />
-      </div>
-    </div>
+      <ProviderIcon className="h-3 w-3" style={{ color: "#6b7280" }} />
+      <span>{item.full_name}</span>
+      <Star className="h-3 w-3" style={{ color: "#e8601a" }} />
+      <span style={{ color: "#6b7280", fontSize: "11px" }}>
+        {formatStars(item.stars)}
+      </span>
+      {tracking ? (
+        <Loader2
+          className="h-3 w-3 animate-spin"
+          style={{ color: "#e8601a" }}
+        />
+      ) : (
+        <Plus className="h-3 w-3" style={{ color: "#e8601a" }} />
+      )}
+    </button>
   );
 }
