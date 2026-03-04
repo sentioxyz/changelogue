@@ -84,7 +84,7 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 	}
 	instruction = strings.ReplaceAll(instruction, "{{VERSION}}", version)
 
-	llmModel, err := NewLLMModel(ctx, llmConfig)
+	llmModel, err := NewLLMModel(ctx, llmConfig, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create LLM model: %w", err)
 	}
@@ -111,18 +111,9 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 	var searchModel model.LLM
 	switch llmConfig.Provider {
 	case "openai":
-		searchTool = oaimodel.WebSearch{}
-		// OpenAI web search requires a search-capable model.
-		searchModelName := llmConfig.OpenAISearchModel
-		if searchModelName == "" {
-			searchModelName = "gpt-5-search-api"
-		}
-		searchModel, err = NewLLMModel(ctx, LLMConfig{
-			Provider:      "openai",
-			Model:         searchModelName,
-			OpenAIAPIKey:  llmConfig.OpenAIAPIKey,
-			OpenAIBaseURL: llmConfig.OpenAIBaseURL,
-		})
+		wsConfig := &oaimodel.WebSearch{SearchContextSize: "medium"}
+		searchTool = *wsConfig
+		searchModel, err = NewLLMModel(ctx, llmConfig, wsConfig)
 		if err != nil {
 			return nil, fmt.Errorf("create OpenAI search model: %w", err)
 		}

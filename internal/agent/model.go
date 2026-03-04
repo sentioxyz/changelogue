@@ -20,13 +20,14 @@ type LLMConfig struct {
 	GoogleAPIKey string
 
 	// OpenAI
-	OpenAIAPIKey      string
-	OpenAIBaseURL     string // defaults to https://api.openai.com/v1
-	OpenAISearchModel string // search-capable model for web search sub-agent
+	OpenAIAPIKey  string
+	OpenAIBaseURL string // defaults to https://api.openai.com/v1
 }
 
 // NewLLMModel creates a model.LLM based on the configured provider.
-func NewLLMModel(ctx context.Context, cfg LLMConfig) (model.LLM, error) {
+// wsConfig is optional and only applies to the OpenAI provider; it enables
+// the Responses API built-in web_search tool on the created model.
+func NewLLMModel(ctx context.Context, cfg LLMConfig, wsConfig *oaimodel.WebSearch) (model.LLM, error) {
 	switch cfg.Provider {
 	case "gemini", "":
 		if cfg.GoogleAPIKey == "" {
@@ -40,7 +41,7 @@ func NewLLMModel(ctx context.Context, cfg LLMConfig) (model.LLM, error) {
 		return oaimodel.NewModel(ctx, cfg.Model, oaimodel.Config{
 			APIKey:  cfg.OpenAIAPIKey,
 			BaseURL: cfg.OpenAIBaseURL,
-		})
+		}, wsConfig)
 
 	default:
 		return nil, fmt.Errorf("unknown LLM provider: %q (supported: gemini, openai)", cfg.Provider)

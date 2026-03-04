@@ -69,12 +69,11 @@ func main() {
 		llmModelDefault = "gpt-5.2"
 	}
 	llmConfig := agentpkg.LLMConfig{
-		Provider:          llmProvider,
-		Model:             envOr("LLM_MODEL", llmModelDefault),
-		GoogleAPIKey:      os.Getenv("GOOGLE_API_KEY"),
-		OpenAIAPIKey:      os.Getenv("OPENAI_API_KEY"),
-		OpenAIBaseURL:     os.Getenv("OPENAI_BASE_URL"),
-		OpenAISearchModel: envOr("OPENAI_SEARCH_MODEL", "gpt-5-search-api"),
+		Provider:      llmProvider,
+		Model:         envOr("LLM_MODEL", llmModelDefault),
+		GoogleAPIKey:  os.Getenv("GOOGLE_API_KEY"),
+		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
+		OpenAIBaseURL: os.Getenv("OPENAI_BASE_URL"),
 	}
 	agentOrchestrator, err := agentpkg.NewOrchestrator(pgStore, llmConfig, os.Getenv("PUBLIC_URL"))
 	if err != nil {
