@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "71edcac98f74",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/discover.go",
+    "web/components/dashboard/discovery-section.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/71/edcac98f74/0/metadata.json",
+      "transcript": "/71/edcac98f74/0/full.jsonl",
+      "context": "/71/edcac98f74/0/context.md",
+      "content_hash": "/71/edcac98f74/0/content_hash.txt",
+      "prompt": "/71/edcac98f74/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 13288323,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 27230,
+    "api_call_count": 144
+  }
+}
