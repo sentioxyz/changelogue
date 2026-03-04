@@ -29,7 +29,7 @@ func TestSlackSender_Send(t *testing.T) {
 		Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
 	}
 	msg := Notification{
-		Title:   "New release: geth v1.14.0",
+		Title:   "geth",
 		Body:    "Released on GitHub with security fixes",
 		Version: "v1.14.0",
 	}
@@ -244,7 +244,7 @@ func TestSlackSender_NonReportFallback(t *testing.T) {
 
 	// Plain text body (not a semantic report) should use simple fallback
 	msg := Notification{
-		Title:   "New release: geth v1.14.0",
+		Title:   "geth",
 		Body:    "Released on GitHub with security fixes",
 		Version: "v1.14.0",
 	}
@@ -287,7 +287,7 @@ func TestSlackSender_RawJSONFallback(t *testing.T) {
 
 	// Raw release JSON with metadata on the Notification struct (as worker now provides)
 	msg := Notification{
-		Title:       "zkSync Era — New release: zkos-0.29.4-rc1",
+		Title:       "zkSync Era",
 		Body:        `{"changelog":"Fixed wrong genesis commit","prerelease":"false","release_url":"https://github.com/matter-labs/zksync-era/releases/tag/zkos-0.29.4-rc1"}`,
 		Version:     "zkos-0.29.4-rc1",
 		ProjectName: "zkSync Era",

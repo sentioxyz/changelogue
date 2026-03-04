@@ -204,7 +204,7 @@ func TestNotifyWorker_Work(t *testing.T) {
 	if webhookSender.sent[0].SourceURL != "https://github.com/ethereum/go-ethereum/releases/tag/v1.14.0" {
 		t.Errorf("expected source URL, got %s", webhookSender.sent[0].SourceURL)
 	}
-	expectedTitle := "test — New release: v1.14.0"
+	expectedTitle := "test"
 	if webhookSender.sent[0].Title != expectedTitle {
 		t.Errorf("expected title %q, got %q", expectedTitle, webhookSender.sent[0].Title)
 	}

@@ -28,7 +28,7 @@ func TestWebhookSender_Send(t *testing.T) {
 		Config: json.RawMessage(`{"url": "` + srv.URL + `"}`),
 	}
 	msg := Notification{
-		Title:   "New release: geth v1.14.0",
+		Title:   "geth",
 		Body:    "Released on GitHub",
 		Version: "v1.14.0",
 	}

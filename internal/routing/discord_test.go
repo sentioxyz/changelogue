@@ -29,7 +29,7 @@ func TestDiscordSender_Send(t *testing.T) {
 		Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
 	}
 	msg := Notification{
-		Title:   "New release: geth v1.14.0",
+		Title:   "geth",
 		Body:    "Released on GitHub with security fixes",
 		Version: "v1.14.0",
 	}

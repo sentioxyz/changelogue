@@ -152,7 +152,7 @@ func (h *ChannelsHandler) Test(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	msg := routing.Notification{
-		Title:       "Changelogue — New release: v1.0.0-test",
+		Title:       "Changelogue",
 		Body:        `{"changelog":"## What's Changed\n\n* feat: add new monitoring dashboard by @dev in #42\n* fix: resolve memory leak in worker pool by @dev in #43\n* docs: update API reference for v1.0 by @dev in #44\n\n**Full Changelog**: https://github.com/example/project/compare/v0.9.0...v1.0.0","prerelease":"false"}`,
 		Version:     "v1.0.0-test",
 		ProjectName: "Test Project",

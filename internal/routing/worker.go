@@ -123,9 +123,9 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 		}
 
 		// Build title with project name if available.
-		title := fmt.Sprintf("New release: %s", release.Version)
+		title := release.Version
 		if release.ProjectName != "" {
-			title = fmt.Sprintf("%s — New release: %s", release.ProjectName, release.Version)
+			title = release.ProjectName
 		}
 
 		msg := Notification{
