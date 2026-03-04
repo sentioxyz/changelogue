@@ -52,7 +52,7 @@ func NewModel(_ context.Context, modelName string, cfg Config, wsConfig *WebSear
 
 func (m *openaiModel) Name() string { return m.name }
 
-// GenerateContent converts the ADK request to an OpenAI chat completion request,
+// GenerateContent converts the ADK request to an OpenAI Responses API request,
 // calls the API, and converts the response back to an LLMResponse.
 // Streaming is not implemented; the iterator always yields a single response.
 func (m *openaiModel) GenerateContent(ctx context.Context, req *model.LLMRequest, _ bool) iter.Seq2[*model.LLMResponse, error] {
@@ -395,20 +395,5 @@ func mapRole(role string) string {
 		return "assistant"
 	default:
 		return role
-	}
-}
-
-func mapFinishReason(reason string) genai.FinishReason {
-	switch reason {
-	case "stop":
-		return genai.FinishReasonStop
-	case "length":
-		return genai.FinishReasonMaxTokens
-	case "tool_calls":
-		return genai.FinishReasonStop
-	case "content_filter":
-		return genai.FinishReasonSafety
-	default:
-		return genai.FinishReasonOther
 	}
 }
