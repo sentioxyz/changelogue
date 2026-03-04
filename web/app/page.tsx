@@ -7,6 +7,7 @@ import { StatsCards } from "@/components/dashboard/stats-cards";
 import { ReleaseTrendChart } from "@/components/dashboard/release-trend-chart";
 import { UnifiedFeed } from "@/components/dashboard/unified-feed";
 import { DashboardEmptyState } from "@/components/dashboard/empty-state";
+import { DiscoverySection } from "@/components/dashboard/discovery-section";
 import { projects as projectsApi } from "@/lib/api/client";
 
 const SSE_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -62,6 +63,8 @@ export default function DashboardPage() {
       >
         Dashboard
       </h1>
+
+      <DiscoverySection />
 
       {hasProjects ? (
         <>
