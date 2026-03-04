@@ -82,7 +82,12 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 	if project.AgentPrompt != "" {
 		instruction = project.AgentPrompt + "\n\n" + instruction
 	}
-	instruction = strings.ReplaceAll(instruction, "{{VERSION}}", version)
+	if version != "" {
+		instruction = strings.ReplaceAll(instruction, "{{VERSION}}", version)
+	} else {
+		instruction = strings.ReplaceAll(instruction, "version {{VERSION}} of", "the latest releases of")
+		instruction = strings.ReplaceAll(instruction, "{{VERSION}}", "the latest version")
+	}
 
 	llmModel, err := NewLLMModel(ctx, llmConfig, nil)
 	if err != nil {

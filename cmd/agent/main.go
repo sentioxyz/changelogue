@@ -19,6 +19,7 @@ import (
 
 func main() {
 	projectID := flag.String("project-id", "", "Project ID to scope the agent to (required)")
+	version := flag.String("version", "", "Target version to analyze (e.g. v1.10.15)")
 	flag.Parse()
 
 	// Configure log level from LOG_LEVEL env (debug, info, warn, error).
@@ -35,7 +36,7 @@ func main() {
 
 	if *projectID == "" {
 		fmt.Fprintln(os.Stderr, "error: --project-id is required")
-		fmt.Fprintf(os.Stderr, "usage: go run ./cmd/agent --project-id=<uuid> [web api webui]\n")
+		fmt.Fprintf(os.Stderr, "usage: go run ./cmd/agent --project-id=<uuid> [--version=<version>] [web api webui]\n")
 		os.Exit(1)
 	}
 
@@ -72,7 +73,7 @@ func main() {
 		OpenAIBaseURL: os.Getenv("OPENAI_BASE_URL"),
 	}
 
-	agentInstance, err := agentpkg.BuildAgent(ctx, store, project, llmConfig, "")
+	agentInstance, err := agentpkg.BuildAgent(ctx, store, project, llmConfig, *version)
 	if err != nil {
 		log.Fatalf("build agent: %v", err)
 	}
