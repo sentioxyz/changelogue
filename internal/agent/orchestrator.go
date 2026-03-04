@@ -52,13 +52,13 @@ Use the available tools to:
 2. Inspect release details (changelogs, commit data, raw payloads) for {{VERSION}} only.
 3. Check binary/image availability directly from the source data.
 4. Review the project's context sources (runbooks, documentation) for relevant background.
-5. Use web search ONLY when you need additional context not available from sources
-   (e.g., community sentiment, security advisories, network adoption stats, known issues).
+5. Always search the web for supplementary context about this release
+   (community sentiment, security advisories, network adoption stats, known issues, migration guides).
 
 CRITICAL: Your final response MUST be a single JSON object and nothing else.
 Do not include any explanation, commentary, or markdown formatting — just the raw JSON.
 
-For download_links: prefer direct binary/artifact URLs for specific platforms (e.g., linux-amd64, darwin-arm64, windows-amd64 .tar.gz/.zip files) over generic release pages. Include the general release page URL as well, but prioritize direct download links when available.
+For download_links: ONLY include URLs where the user can actually download the software — direct binary/artifact URLs for specific platforms (e.g., linux-amd64, darwin-arm64, windows-amd64 .tar.gz/.zip files) and the GitHub/project release page. Do NOT include CVE links, security advisory URLs, blog posts, documentation, or any non-download URLs.
 
 The JSON object must have exactly these fields:
 {
@@ -129,7 +129,7 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 
 	searchAgent, err := llmagent.New(llmagent.Config{
 		Name:        "search_agent",
-		Description: "Search the web for additional context about a release. Use this ONLY when you need information not available from the project's sources, such as community sentiment, security advisories, network adoption statistics, or known issues.",
+		Description: "Search the web for context about a release — community sentiment, security advisories, adoption statistics, known issues, and migration guides. Use this for every release analysis to enrich the report with external insights.",
 		Model:       searchModel,
 		Tools:       []tool.Tool{searchTool},
 	})
