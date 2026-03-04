@@ -19,7 +19,6 @@ import (
 	"google.golang.org/adk/runner"
 	"google.golang.org/adk/session"
 	"google.golang.org/adk/tool"
-	"google.golang.org/adk/tool/agenttool"
 	"google.golang.org/adk/tool/geminitool"
 
 	oaimodel "github.com/sentioxyz/changelogue/internal/agent/openai"
@@ -39,7 +38,6 @@ type OrchestratorStore interface {
 	UpdateAgentRunResult(ctx context.Context, id string, semanticReleaseID string) error
 	ListProjectSubscriptions(ctx context.Context, projectID string) ([]models.Subscription, error)
 	GetChannel(ctx context.Context, id string) (*models.NotificationChannel, error)
-	ListSourcesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Source, int, error)
 	HasReleaseForVersion(ctx context.Context, sourceID, version string) (bool, error)
 }
 
@@ -127,9 +125,28 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 		searchModel = llmModel
 	}
 
+	// Fetch project sources to give the search agent context about where releases come from.
+	sources, _, err := store.ListSourcesByProject(ctx, project.ID, 1, 100)
+	if err != nil {
+		return nil, fmt.Errorf("list project sources: %w", err)
+	}
+	var sourceLines []string
+	for _, s := range sources {
+		sourceLines = append(sourceLines, fmt.Sprintf("- %s: %s", s.Provider, s.Repository))
+	}
+
+	searchInstruction := fmt.Sprintf(
+		"You are a web search assistant for the project %q. Always include the project name in your search queries to get relevant results. Focus on this specific project — ignore results for unrelated projects that happen to share the same version number.",
+		project.Name,
+	)
+	if len(sourceLines) > 0 {
+		searchInstruction += fmt.Sprintf("\n\nThis project's upstream sources are:\n%s\nUse these repository names and URLs to refine your search queries.", strings.Join(sourceLines, "\n"))
+	}
+
 	searchAgent, err := llmagent.New(llmagent.Config{
 		Name:        "search_agent",
 		Description: "Search the web for context about a release — community sentiment, security advisories, adoption statistics, known issues, and migration guides. Use this for every release analysis to enrich the report with external insights.",
+		Instruction: searchInstruction,
 		Model:       searchModel,
 		Tools:       []tool.Tool{searchTool},
 	})
@@ -144,8 +161,8 @@ func BuildAgent(ctx context.Context, store AgentDataStore, project *models.Proje
 		Model:       llmModel,
 		Instruction: instruction,
 		Tools: []tool.Tool{
-			agenttool.New(dataAgent, nil),
-			agenttool.New(searchAgent, nil),
+			newTracedAgentTool(dataAgent),
+			newTracedAgentTool(searchAgent),
 		},
 	})
 }

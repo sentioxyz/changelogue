@@ -16,6 +16,7 @@ type AgentDataStore interface {
 	ListReleasesByProject(ctx context.Context, projectID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error)
 	GetRelease(ctx context.Context, id string) (*models.Release, error)
 	ListContextSources(ctx context.Context, projectID string, page, perPage int) ([]models.ContextSource, int, error)
+	ListSourcesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Source, int, error)
 }
 
 // --- Tool input/output types ---

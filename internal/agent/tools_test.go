@@ -44,6 +44,10 @@ func (m *mockDataStore) ListContextSources(_ context.Context, _ string, page, pe
 	return m.contextSources, m.contextTotal, nil
 }
 
+func (m *mockDataStore) ListSourcesByProject(_ context.Context, _ string, page, perPage int) ([]models.Source, int, error) {
+	return nil, 0, nil
+}
+
 func TestNewTools(t *testing.T) {
 	store := &mockDataStore{}
 	tools, err := NewTools(store, "proj-1")
