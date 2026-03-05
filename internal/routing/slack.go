@@ -200,10 +200,17 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 			}
 			payload.Attachments = []slackAttachment{attachment}
 		} else {
-			// No changelog — simple blocks fallback
+			// No changelog — show a clean version announcement instead of raw JSON.
+			headerText := msg.Title
+			if msg.Version != "" && msg.Title != msg.Version {
+				headerText = fmt.Sprintf("%s %s", msg.Title, msg.Version)
+			}
+			if len(headerText) > 150 {
+				headerText = headerText[:147] + "..."
+			}
+
 			blocks := []slackBlock{
-				{Type: "header", Text: &slackText{Type: "plain_text", Text: msg.Title}},
-				{Type: "section", Text: &slackText{Type: "mrkdwn", Text: msg.Body}},
+				{Type: "header", Text: &slackText{Type: "plain_text", Text: headerText}},
 			}
 
 			var linkParts []string

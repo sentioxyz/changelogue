@@ -3,6 +3,7 @@ package routing
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -29,9 +30,12 @@ func TestDiscordSender_Send(t *testing.T) {
 		Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
 	}
 	msg := Notification{
-		Title:   "geth",
-		Body:    "Released on GitHub with security fixes",
-		Version: "v1.14.0",
+		Title:      "geth",
+		Body:       `{"changelog":"Security fixes and performance improvements"}`,
+		Version:    "v1.14.0",
+		Provider:   "github",
+		Repository: "ethereum/go-ethereum",
+		SourceURL:  "https://github.com/ethereum/go-ethereum/releases/tag/v1.14.0",
 	}
 
 	err := sender.Send(context.Background(), ch, msg)
@@ -60,6 +64,11 @@ func TestDiscordSender_Send(t *testing.T) {
 	embed := embedList[0].(map[string]interface{})
 	if title, ok := embed["title"].(string); !ok || title != msg.Title {
 		t.Errorf("expected embed title %q, got %q", msg.Title, title)
+	}
+	// Should contain changelog text, not raw JSON keys
+	desc := embed["description"].(string)
+	if !strings.Contains(desc, "Security fixes") {
+		t.Errorf("expected description to contain changelog text, got %q", desc)
 	}
 }
 
@@ -94,6 +103,65 @@ func TestDiscordSender_InvalidConfig(t *testing.T) {
 	}
 }
 
+func TestDiscordSender_EmptyChangelog_NoRawJSON(t *testing.T) {
+	var received []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	sender := &DiscordSender{Client: srv.Client()}
+	ch := &models.NotificationChannel{
+		Type:   "discord",
+		Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
+	}
+
+	msg := Notification{
+		Title:      "external-node",
+		Body:       `{}`,
+		Version:    "v25.1.0",
+		Provider:   "dockerhub",
+		Repository: "matterlabs/external-node",
+		SourceURL:  "https://hub.docker.com/r/matterlabs/external-node/tags?name=v25.1.0",
+		ReleaseURL: "https://changelogue.example.com/releases/rel-2",
+	}
+
+	err := sender.Send(context.Background(), ch, msg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var payload discordPayload
+	if err := json.Unmarshal(received, &payload); err != nil {
+		t.Fatalf("received invalid JSON: %v", err)
+	}
+
+	if len(payload.Embeds) != 1 {
+		t.Fatalf("expected 1 embed, got %d", len(payload.Embeds))
+	}
+
+	embed := payload.Embeds[0]
+
+	// Title should be the project name
+	if embed.Title != "external-node" {
+		t.Fatalf("expected title 'external-node', got %q", embed.Title)
+	}
+
+	// Description should NOT contain raw JSON
+	if strings.Contains(embed.Description, "{}") && !strings.Contains(embed.Description, "View") {
+		t.Fatalf("should not dump raw JSON in description: %q", embed.Description)
+	}
+	if strings.Contains(embed.Description, "prerelease") {
+		t.Fatalf("should not contain raw JSON keys in description: %q", embed.Description)
+	}
+
+	// Should have links
+	if !strings.Contains(embed.Description, "View on Docker Hub") {
+		t.Fatalf("expected 'View on Docker Hub' link, got %q", embed.Description)
+	}
+}
+
 func TestDiscordSender_BodyTruncation(t *testing.T) {
 	var received []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -102,11 +170,12 @@ func TestDiscordSender_BodyTruncation(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	// Create a body longer than Discord's embed description limit (4096 chars).
-	longBody := make([]byte, 5000)
-	for i := range longBody {
-		longBody[i] = 'a'
+	// Create a changelog longer than Discord's embed description limit (4096 chars).
+	longChangelog := make([]byte, 5000)
+	for i := range longChangelog {
+		longChangelog[i] = 'a'
 	}
+	body := fmt.Sprintf(`{"changelog":"%s"}`, string(longChangelog))
 
 	sender := &DiscordSender{Client: srv.Client()}
 	ch := &models.NotificationChannel{
@@ -115,7 +184,7 @@ func TestDiscordSender_BodyTruncation(t *testing.T) {
 	}
 	msg := Notification{
 		Title:   "test",
-		Body:    string(longBody),
+		Body:    body,
 		Version: "v1.0.0",
 	}
 

@@ -149,15 +149,11 @@ func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel
 	} else {
 		// Fallback: extract known fields from raw data for a readable message.
 		var descParts []string
-		if fields, ok := parseRawBody(msg.Body); ok {
-			if fields.Changelog != "" {
-				// Convert changelog markdown to ASCII and wrap in a code
-				// block. Discord auto-collapses long code blocks.
-				asciiChangelog := markdownToASCII(fields.Changelog)
-				descParts = append(descParts, fmt.Sprintf("```%s```", asciiChangelog))
-			}
-		} else {
-			descParts = append(descParts, msg.Body)
+		if fields, ok := parseRawBody(msg.Body); ok && fields.Changelog != "" {
+			// Convert changelog markdown to ASCII and wrap in a code
+			// block. Discord auto-collapses long code blocks.
+			asciiChangelog := markdownToASCII(fields.Changelog)
+			descParts = append(descParts, fmt.Sprintf("```%s```", asciiChangelog))
 		}
 
 		// Add links

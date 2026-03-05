@@ -29,9 +29,11 @@ func TestSlackSender_Send(t *testing.T) {
 		Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
 	}
 	msg := Notification{
-		Title:   "geth",
-		Body:    "Released on GitHub with security fixes",
-		Version: "v1.14.0",
+		Title:      "geth",
+		Body:       `{"changelog":"Security fixes and performance improvements"}`,
+		Version:    "v1.14.0",
+		Provider:   "github",
+		Repository: "ethereum/go-ethereum",
 	}
 
 	err := sender.Send(context.Background(), ch, msg)
@@ -42,18 +44,18 @@ func TestSlackSender_Send(t *testing.T) {
 		t.Fatal("expected Slack to receive payload")
 	}
 
-	// Verify it's a valid Slack Block Kit payload with blocks.
+	// Verify it's a valid Slack payload with attachments (has changelog).
 	var payload map[string]interface{}
 	if err := json.Unmarshal(received, &payload); err != nil {
 		t.Fatalf("received invalid JSON: %v", err)
 	}
-	blocks, ok := payload["blocks"]
+	attachments, ok := payload["attachments"]
 	if !ok {
-		t.Fatal("expected 'blocks' key in Slack payload")
+		t.Fatal("expected 'attachments' key in Slack payload")
 	}
-	blockList, ok := blocks.([]interface{})
-	if !ok || len(blockList) < 2 {
-		t.Fatalf("expected at least 2 blocks, got %v", blocks)
+	attList, ok := attachments.([]interface{})
+	if !ok || len(attList) < 1 {
+		t.Fatalf("expected at least 1 attachment, got %v", attachments)
 	}
 }
 
@@ -259,15 +261,18 @@ func TestSlackSender_NonReportFallback(t *testing.T) {
 		t.Fatalf("received invalid JSON: %v", err)
 	}
 
-	// Fallback should produce exactly 2 blocks (header + section)
-	if len(payload.Blocks) != 2 {
-		t.Fatalf("expected 2 blocks for non-report, got %d", len(payload.Blocks))
+	// Fallback with no changelog should produce a header block (no raw JSON dumped)
+	if len(payload.Blocks) < 1 {
+		t.Fatal("expected at least 1 block for non-report")
 	}
 	if payload.Blocks[0].Type != "header" {
 		t.Fatalf("expected header block, got %s", payload.Blocks[0].Type)
 	}
-	if payload.Blocks[1].Type != "section" {
-		t.Fatalf("expected section block, got %s", payload.Blocks[1].Type)
+	// Should NOT contain raw body text in a section block
+	for _, b := range payload.Blocks {
+		if b.Type == "section" && b.Text != nil && b.Text.Text == "Released on GitHub with security fixes" {
+			t.Fatal("should not dump raw body text in section block")
+		}
 	}
 }
 
@@ -349,6 +354,97 @@ func TestSlackSender_RawJSONFallback(t *testing.T) {
 	// No separate blocks needed
 	if len(payload.Blocks) != 0 {
 		t.Fatalf("expected no blocks (all in attachment), got %d", len(payload.Blocks))
+	}
+}
+
+func TestSlackSender_EmptyChangelog_NoRawJSON(t *testing.T) {
+	var received []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	sender := &SlackSender{Client: srv.Client()}
+	ch := &models.NotificationChannel{
+		Type:   "slack",
+		Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
+	}
+
+	tests := []struct {
+		name string
+		msg  Notification
+	}{
+		{
+			name: "github release with metadata but no changelog",
+			msg: Notification{
+				Title:      "zkSync Era",
+				Body:       `{"prerelease":"false","release_url":"https://github.com/matter-labs/zksync-era/releases/tag/test-release-aba"}`,
+				Version:    "test-release-aba",
+				Provider:   "github",
+				Repository: "matter-labs/zksync-era",
+				SourceURL:  "https://github.com/matter-labs/zksync-era/releases/tag/test-release-aba",
+				ReleaseURL: "https://changelogue.example.com/releases/rel-1",
+			},
+		},
+		{
+			name: "dockerhub release with empty metadata",
+			msg: Notification{
+				Title:      "external-node",
+				Body:       `{}`,
+				Version:    "v25.1.0",
+				Provider:   "dockerhub",
+				Repository: "matterlabs/external-node",
+				SourceURL:  "https://hub.docker.com/r/matterlabs/external-node/tags?name=v25.1.0",
+				ReleaseURL: "https://changelogue.example.com/releases/rel-2",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := sender.Send(context.Background(), ch, tt.msg)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			var payload slackPayload
+			if err := json.Unmarshal(received, &payload); err != nil {
+				t.Fatalf("received invalid JSON: %v", err)
+			}
+
+			// Should use blocks (no changelog for attachments)
+			if len(payload.Blocks) < 1 {
+				t.Fatal("expected at least 1 block")
+			}
+
+			// Header should include project name and version
+			header := payload.Blocks[0].Text.Text
+			if !strings.Contains(header, tt.msg.Title) {
+				t.Fatalf("header should contain project name %q, got %q", tt.msg.Title, header)
+			}
+			if !strings.Contains(header, tt.msg.Version) {
+				t.Fatalf("header should contain version %q, got %q", tt.msg.Version, header)
+			}
+
+			// Should NOT contain raw JSON in any block
+			for _, b := range payload.Blocks {
+				if b.Text != nil {
+					if strings.Contains(b.Text.Text, "prerelease") {
+						t.Fatalf("should not contain raw JSON key 'prerelease' in block text: %q", b.Text.Text)
+					}
+					if b.Text.Text == tt.msg.Body {
+						t.Fatalf("should not dump raw body JSON in block: %q", b.Text.Text)
+					}
+				}
+			}
+
+			// Should have context block with links
+			lastBlock := payload.Blocks[len(payload.Blocks)-1]
+			if lastBlock.Type != "context" {
+				t.Fatalf("expected last block to be context with links, got %s", lastBlock.Type)
+			}
+		})
 	}
 }
 
