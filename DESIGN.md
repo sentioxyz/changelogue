@@ -108,7 +108,7 @@ type AgentRules struct {
 
 The configurable processing pipeline has been replaced by an agent-driven architecture with two distinct paths:
 
-1. **Notification Routing** -- When a new source release is detected, a `NotifyJobArgs` River job is enqueued. The notification worker resolves source-level subscriptions and sends alerts to configured channels (Slack, PagerDuty, webhooks). This provides immediate, low-latency notifications without waiting for AI analysis.
+1. **Notification Routing** -- When a new source release is detected, a `NotifyJobArgs` River job is enqueued. The notification worker resolves source-level subscriptions and sends alerts to configured channels (Slack, Discord, email, webhooks). This provides immediate, low-latency notifications without waiting for AI analysis.
 
 2. **Agent Layer** -- For project-level intelligence, an `AgentJobArgs` River job triggers an LLM agent (via ADK-Go) that researches releases, consults context sources, and produces a `SemanticRelease` with a structured `SemanticReport`. Agent behavior is configured per-project via `agent_prompt` and `agent_rules`. Detailed design for both paths will be specified in later tasks (Phase 2: Notification, Phase 3: Agent).
 
@@ -214,7 +214,7 @@ CREATE TABLE semantic_release_sources (
 CREATE TABLE notification_channels (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
-    type VARCHAR(50) NOT NULL,                  -- 'slack', 'pagerduty', 'webhook'
+    type VARCHAR(50) NOT NULL,                  -- 'slack', 'pagerduty', 'webhook', 'email'
     config JSONB NOT NULL,                      -- webhook_url, channel_id, routing_key, etc.
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -312,8 +312,9 @@ type Notification struct {
 | `webhook` | `WebhookSender` | `{"url": "..."}` | Raw JSON `Notification` |
 | `slack` | `SlackSender` | `{"webhook_url": "..."}` | Slack Block Kit (header + section) |
 | `discord` | `DiscordSender` | `{"webhook_url": "..."}` | Discord webhook with embeds |
+| `email` | `EmailSender` | `{"smtp_host", "smtp_port", "username", "password", "from_address", "to_addresses"}` | Multipart MIME (HTML + plain text) via SMTP |
 
-Each sender parses provider-specific config from the channel's `Config` JSONB field, formats the notification into the provider's expected payload structure, and POSTs to the configured URL. All senders use a 10-second HTTP timeout.
+Each sender parses provider-specific config from the channel's `Config` JSONB field, formats the notification into the provider's expected payload structure, and delivers via the appropriate transport. HTTP-based senders (webhook, Slack, Discord) use a 10-second HTTP timeout. The email sender connects via SMTP with STARTTLS (port 587) or direct TLS (port 465) and a 10-second dial timeout.
 
 ### 4.4 Delivery Flow
 

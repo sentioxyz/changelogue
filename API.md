@@ -106,7 +106,7 @@ Subscriptions link a notification channel to either a specific source or an enti
 | Method   | Path                            | Description                              |
 |----------|---------------------------------|------------------------------------------|
 | `GET`    | `/api/v1/channels`              | List registered notification channels    |
-| `POST`   | `/api/v1/channels`              | Register a new channel (Slack, Discord, webhook) |
+| `POST`   | `/api/v1/channels`              | Register a new channel (Slack, Discord, email, webhook) |
 | `GET`    | `/api/v1/channels/{id}`         | Get channel details                      |
 | `PUT`    | `/api/v1/channels/{id}`         | Update channel config                    |
 | `DELETE` | `/api/v1/channels/{id}`         | Remove a channel                         |
@@ -390,6 +390,7 @@ Response includes `id` (UUID), `created_at`, `updated_at` fields. The `config` o
 | `slack` | `webhook_url` |
 | `discord` | `webhook_url` |
 | `webhook` | `url` |
+| `email` | `smtp_host`, `smtp_port`, `username`, `password`, `from_address`, `to_addresses` |
 
 ### Health (response)
 

@@ -8,7 +8,7 @@
 ## What it does
 
 - **Discovers releases** by polling Docker Hub and GitHub on configurable intervals
-- **Routes notifications** to Slack, Discord, and webhooks the moment a new version lands
+- **Routes notifications** to Slack, Discord, email, and webhooks the moment a new version lands
 - **Generates AI reports** via Google Gemini agents that research changelogs, assess risk, and summarize what changed
 - **Serves a dashboard** (Next.js) for managing projects, sources, subscriptions, and browsing releases in real time
 
@@ -23,7 +23,7 @@ graph LR
     A -.- A1["Docker Hub<br/>GitHub"]
     B -.- B1["Transactional Outbox<br/>LISTEN/NOTIFY → SSE"]
     C -.- C1["Gemini LLM<br/>research tools"]
-    D -.- D1["Slack · Discord<br/>Webhooks"]
+    D -.- D1["Slack · Discord<br/>Email · Webhooks"]
 ```
 
 Release insert and job enqueue happen in a single SQL transaction — zero-loss guarantee.
@@ -80,7 +80,7 @@ scripts/               Integration test harness
 
 ## Extending
 
-More providers (npm, PyPI, Helm, etc.) and channels (PagerDuty, email, etc.) are planned. Adding one is a single-interface implementation:
+More providers (npm, PyPI, Helm, etc.) and channels (PagerDuty, etc.) are planned. Adding one is a single-interface implementation:
 
 **Add a registry provider** — implement `IIngestionSource` in `internal/ingestion/source.go`:
 

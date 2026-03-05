@@ -24,7 +24,7 @@ The system is decoupled into four primary layers communicating entirely through 
 1. **Ingestion Layer** — Polling workers and webhook handlers discover new releases from upstream registries.
 2. **Notification Routing** — River workers send immediate notifications to source-level subscribers on new releases.
 3. **Agent Layer** — ADK-Go agents research releases, consult context sources, and produce semantic release reports.
-4. **Routing & Output** — Notification channels (Slack, Discord, webhooks) deliver alerts via `Sender`.
+4. **Routing & Output** — Notification channels (Slack, Discord, email, webhooks) deliver alerts via `Sender`.
 
 A **Project** is the central domain entity — it groups multiple ingestion sources, context sources, and notification subscriptions under a single tracked piece of software.
 
@@ -49,6 +49,7 @@ graph LR
         PG --> |SKIP LOCKED\nRiver notify_release| NotifyWorker[Notify Worker]
         NotifyWorker --> |Sender| O_Slack(Slack)
         NotifyWorker --> |Sender| O_Discord(Discord)
+        NotifyWorker --> |Sender| O_Email(Email)
         NotifyWorker --> |Sender| O_Hook(Webhooks)
     end
 
@@ -138,7 +139,7 @@ Components do not call each other synchronously. Instead, they rely on PostgreSQ
 All external integrations are abstracted behind strict Go interfaces.
 
 * `IIngestionSource`: Standardizes how polling workers fetch data. Adding a new registry (like npm or NuGet) only requires implementing this interface. Each implementation maps to a `source_type` in the database.
-* `Sender`: Standardizes output routing. Each implementation maps to a `type` in the `notification_channels` table (Slack, Discord, webhooks).
+* `Sender`: Standardizes output routing. Each implementation maps to a `type` in the `notification_channels` table (Slack, Discord, email, webhooks).
 
 ### 2.3 REST API & Dashboard
 
@@ -199,7 +200,7 @@ This will allow the agent to autonomously deploy a sandbox, verify that the depl
 
 1. **Discovery:** A Go worker polling Docker Hub detects a new base image tag for a configured source (e.g., the "Docker Hub" source under the "Go Runtime" project). Source-level exclusion filters (`exclude_version_regexp`, `exclude_prereleases`) are applied — filtered versions are discarded immediately.
 2. **Ingestion & Transaction:** The worker stores the raw upstream payload and executes a single database transaction to insert the record into `releases` (linked to its `source_id`) and enqueue a `notify_release` River job.
-3. **Notification (Source-Level):** A River worker picks up the `notify_release` job, resolves source-level subscriptions, and sends alerts to configured notification channels (Slack, Discord, webhooks).
+3. **Notification (Source-Level):** A River worker picks up the `notify_release` job, resolves source-level subscriptions, and sends alerts to configured notification channels (Slack, Discord, email, webhooks).
 4. **Agent Rule Check:** The same notification worker evaluates the project's `agent_rules` against the new release version. If criteria match (major bump, security patch, version pattern), it enqueues an `agent_run` River job.
 5. **Agent Analysis (Project-Level):** A River worker picks up the `agent_run` job. The ADK-Go agent gathers recent releases, consults context sources, and produces a `SemanticRelease` with a structured report (subject, risk level, changelog summary, status checks, urgency, recommendation).
 6. **Broadcast:** PostgreSQL triggers fire `NOTIFY` payloads on release insert and semantic release completion, pushing SSE events to connected dashboard clients.
