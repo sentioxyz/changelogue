@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "eea8ac8e3987",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/routing/email.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ee/a8ac8e3987/0/metadata.json",
+      "transcript": "/ee/a8ac8e3987/0/full.jsonl",
+      "context": "/ee/a8ac8e3987/0/context.md",
+      "content_hash": "/ee/a8ac8e3987/0/content_hash.txt",
+      "prompt": "/ee/a8ac8e3987/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12292366,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 24269,
+    "api_call_count": 125
+  }
+}
