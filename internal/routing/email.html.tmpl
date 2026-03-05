@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{.Subject}}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:24px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
+
+<!-- Header -->
+<tr><td style="background-color:{{.UrgencyColor}};padding:20px 24px;">
+<span style="color:#ffffff;font-size:20px;font-weight:600;">{{.Subject}}</span>
+</td></tr>
+
+{{if .UrgencyBadge}}
+<!-- Urgency Badge -->
+<tr><td style="padding:16px 24px 0;">
+<span style="display:inline-block;padding:4px 12px;border-radius:4px;background-color:{{.UrgencyColor}};color:#ffffff;font-size:13px;font-weight:600;">{{.UrgencyBadge}}</span>
+{{if .UrgencyReason}}<p style="margin:8px 0 0;color:#71717a;font-size:14px;">{{.UrgencyReason}}</p>{{end}}
+</td></tr>
+{{end}}
+
+{{if .Summary}}
+<!-- Summary -->
+<tr><td style="padding:16px 24px 0;">
+<p style="margin:0;color:#27272a;font-size:15px;line-height:1.6;">{{.Summary}}</p>
+</td></tr>
+{{end}}
+
+{{if .Changelog}}
+<!-- Changelog -->
+<tr><td style="padding:16px 24px 0;">
+<div style="background-color:#f4f4f5;border-radius:6px;padding:12px 16px;">
+<pre style="margin:0;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:13px;line-height:1.5;color:#3f3f46;white-space:pre-wrap;word-wrap:break-word;">{{.Changelog}}</pre>
+</div>
+</td></tr>
+{{end}}
+
+{{if .DownloadCommand}}
+<!-- Download Command -->
+<tr><td style="padding:16px 24px 0;">
+<code style="display:block;background-color:#18181b;color:#e4e4e7;padding:10px 14px;border-radius:6px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:13px;">{{.DownloadCommand}}</code>
+</td></tr>
+{{end}}
+
+<!-- Links -->
+<tr><td style="padding:16px 24px;">
+{{if .SourceURL}}<a href="{{.SourceURL}}" style="color:#2563eb;font-size:14px;text-decoration:none;">View on {{.ProviderLabel}}</a>{{end}}
+{{if and .SourceURL .ReleaseURL}}<span style="color:#d4d4d8;margin:0 8px;">|</span>{{end}}
+{{if .ReleaseURL}}<a href="{{.ReleaseURL}}" style="color:#2563eb;font-size:14px;text-decoration:none;">View in Changelogue</a>{{end}}
+</td></tr>
+
+<!-- Footer -->
+<tr><td style="padding:12px 24px;border-top:1px solid #e4e4e7;">
+<p style="margin:0;color:#a1a1aa;font-size:12px;">{{.FooterText}}</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>
