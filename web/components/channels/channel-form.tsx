@@ -21,6 +21,14 @@ const channelFields: Record<string, { label: string; placeholder: string }[]> = 
     { label: "URL", placeholder: "https://your-service.com/api/releases" },
     { label: "Headers", placeholder: "Authorization: Bearer token" },
   ],
+  email: [
+    { label: "SMTP Host", placeholder: "smtp.example.com" },
+    { label: "SMTP Port", placeholder: "587" },
+    { label: "Username", placeholder: "alerts@example.com" },
+    { label: "Password", placeholder: "password or app-specific password" },
+    { label: "From Address", placeholder: "no-reply@example.com" },
+    { label: "To Addresses", placeholder: "team@example.com, ops@example.com" },
+  ],
 };
 
 interface ChannelFormProps {
@@ -51,7 +59,17 @@ export function ChannelForm({ initial, onSubmit, title, onSuccess, onCancel }: C
     setError("");
     setSaving(true);
     try {
-      await onSubmit({ type, name, config });
+      let finalConfig = config;
+      if (type === "email") {
+        finalConfig = {
+          ...config,
+          smtp_port: Number(config.smtp_port) || 587,
+          to_addresses: typeof config.to_addresses === "string"
+            ? (config.to_addresses as string).split(",").map((s) => s.trim()).filter(Boolean)
+            : config.to_addresses,
+        };
+      }
+      await onSubmit({ type, name, config: finalConfig });
       if (onSuccess) {
         onSuccess();
       } else {
@@ -87,6 +105,7 @@ export function ChannelForm({ initial, onSubmit, title, onSuccess, onCancel }: C
             <SelectItem value="slack">Slack</SelectItem>
             <SelectItem value="pagerduty">PagerDuty</SelectItem>
             <SelectItem value="webhook">Webhook</SelectItem>
+            <SelectItem value="email">Email</SelectItem>
           </SelectContent>
         </Select>
       </div>

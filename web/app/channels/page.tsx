@@ -6,6 +6,7 @@ import { channels as channelsApi } from "@/lib/api/client";
 import { Plus, Pencil, Trash2, Zap, Loader2 } from "lucide-react";
 import { FaSlack, FaDiscord } from "react-icons/fa";
 import { TbWebhook } from "react-icons/tb";
+import { HiOutlineMail } from "react-icons/hi";
 import type { IconType } from "react-icons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -17,6 +18,7 @@ const TYPE_STYLES: Record<string, { bg: string; text: string; icon: IconType }> 
   slack: { bg: "#4A154B", text: "#ffffff", icon: FaSlack },
   discord: { bg: "#5865F2", text: "#ffffff", icon: FaDiscord },
   webhook: { bg: "#1a1a1a", text: "#ffffff", icon: TbWebhook },
+  email: { bg: "#2563EB", text: "#ffffff", icon: HiOutlineMail },
 };
 
 function TypeBadge({ type }: { type: string }) {
