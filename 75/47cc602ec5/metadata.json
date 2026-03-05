@@ -3,7 +3,7 @@
   "checkpoint_id": "7547cc602ec5",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "internal/routing/worker.go"
   ],
@@ -21,13 +21,20 @@
       "context": "/75/47cc602ec5/1/context.md",
       "content_hash": "/75/47cc602ec5/1/content_hash.txt",
       "prompt": "/75/47cc602ec5/1/prompt.txt"
+    },
+    {
+      "metadata": "/75/47cc602ec5/2/metadata.json",
+      "transcript": "/75/47cc602ec5/2/full.jsonl",
+      "context": "/75/47cc602ec5/2/context.md",
+      "content_hash": "/75/47cc602ec5/2/content_hash.txt",
+      "prompt": "/75/47cc602ec5/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 14747575,
+    "input_tokens": 35158358,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 29891,
-    "api_call_count": 161
+    "output_tokens": 63059,
+    "api_call_count": 368
   }
 }
