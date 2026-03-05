@@ -38,7 +38,7 @@ type NotifyWorker struct {
 	publicURL string // base URL for internal Changelogue links (e.g. "https://changelogue.example.com")
 }
 
-// NewSenders returns the default sender map for webhook, Slack, and Discord.
+// NewSenders returns the default sender map for all notification channel types.
 func NewSenders() map[string]Sender {
 	return map[string]Sender{
 		"webhook": &WebhookSender{Client: &http.Client{Timeout: 10 * time.Second}},

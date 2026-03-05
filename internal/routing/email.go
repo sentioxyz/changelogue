@@ -8,11 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"mime/multipart"
 	"net"
 	"net/smtp"
 	"net/textproto"
 	"strings"
+	"time"
 
 	"github.com/sentioxyz/changelogue/internal/models"
 )
@@ -49,6 +51,11 @@ type emailData struct {
 // EmailSender sends notifications via SMTP email.
 type EmailSender struct{}
 
+// sanitizeHeader strips CR and LF characters to prevent SMTP header injection.
+func sanitizeHeader(s string) string {
+	return strings.NewReplacer("\r", "", "\n", "").Replace(s)
+}
+
 func urgencyColor(level string) string {
 	switch strings.ToUpper(strings.TrimSpace(level)) {
 	case "CRITICAL":
@@ -70,6 +77,10 @@ func (s *EmailSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 		return fmt.Errorf("parse email config: %w", err)
 	}
 
+	if len(cfg.ToAddresses) == 0 {
+		return fmt.Errorf("email config: to_addresses is empty")
+	}
+
 	data := s.buildEmailData(msg)
 
 	// Render HTML body.
@@ -83,9 +94,9 @@ func (s *EmailSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 
 	// Assemble multipart/alternative MIME message.
 	var msgBuf bytes.Buffer
-	msgBuf.WriteString(fmt.Sprintf("From: %s\r\n", cfg.FromAddress))
-	msgBuf.WriteString(fmt.Sprintf("To: %s\r\n", strings.Join(cfg.ToAddresses, ", ")))
-	msgBuf.WriteString(fmt.Sprintf("Subject: %s\r\n", data.Subject))
+	msgBuf.WriteString(fmt.Sprintf("From: %s\r\n", sanitizeHeader(cfg.FromAddress)))
+	msgBuf.WriteString(fmt.Sprintf("To: %s\r\n", sanitizeHeader(strings.Join(cfg.ToAddresses, ", "))))
+	msgBuf.WriteString(fmt.Sprintf("Subject: %s\r\n", sanitizeHeader(data.Subject)))
 	msgBuf.WriteString("MIME-Version: 1.0\r\n")
 
 	mw := multipart.NewWriter(&msgBuf)
@@ -113,12 +124,13 @@ func (s *EmailSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 
 	// Send via SMTP.
 	addr := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
 
 	var client *smtp.Client
 	if cfg.SMTPPort == 465 {
 		// Direct TLS (port 465).
 		conn, err := tls.DialWithDialer(
-			&net.Dialer{},
+			dialer,
 			"tcp", addr,
 			&tls.Config{ServerName: cfg.SMTPHost},
 		)
@@ -132,9 +144,14 @@ func (s *EmailSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 		}
 	} else {
 		// STARTTLS (port 587 or other).
-		client, err = smtp.Dial(addr)
+		conn, err := dialer.DialContext(ctx, "tcp", addr)
 		if err != nil {
 			return fmt.Errorf("smtp dial: %w", err)
+		}
+		client, err = smtp.NewClient(conn, cfg.SMTPHost)
+		if err != nil {
+			conn.Close()
+			return fmt.Errorf("smtp client: %w", err)
 		}
 		if err := client.Hello("localhost"); err != nil {
 			client.Close()
@@ -176,7 +193,10 @@ func (s *EmailSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 		return fmt.Errorf("smtp data close: %w", err)
 	}
 
-	return client.Quit()
+	if err := client.Quit(); err != nil {
+		slog.Warn("smtp quit error (email already sent)", "err", err)
+	}
+	return nil
 }
 
 func (s *EmailSender) buildEmailData(msg Notification) emailData {
