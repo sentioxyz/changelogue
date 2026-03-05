@@ -3,7 +3,7 @@
   "checkpoint_id": "2019cdf4f1c7",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "docs/plans/2026-03-05-email-support-design.md"
   ],
@@ -21,13 +21,20 @@
       "context": "/20/19cdf4f1c7/1/context.md",
       "content_hash": "/20/19cdf4f1c7/1/content_hash.txt",
       "prompt": "/20/19cdf4f1c7/1/prompt.txt"
+    },
+    {
+      "metadata": "/20/19cdf4f1c7/2/metadata.json",
+      "transcript": "/20/19cdf4f1c7/2/full.jsonl",
+      "context": "/20/19cdf4f1c7/2/context.md",
+      "content_hash": "/20/19cdf4f1c7/2/content_hash.txt",
+      "prompt": "/20/19cdf4f1c7/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 14747575,
+    "input_tokens": 35158358,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 29891,
-    "api_call_count": 161
+    "output_tokens": 63059,
+    "api_call_count": 368
   }
 }

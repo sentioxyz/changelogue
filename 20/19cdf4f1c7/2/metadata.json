@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "2019cdf4f1c7",
+  "session_id": "68d787e4-995a-4da2-9e65-603f8864e8c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-05T14:52:32.166892Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/plans/2026-03-05-email-support-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "6e7a1645ead6",
+  "transcript_identifier_at_start": "a640a2f0-ebf9-4e94-9426-5b30b240b150",
+  "token_usage": {
+    "input_tokens": 20410783,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 33168,
+    "api_call_count": 207
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-05T14:52:30.939504Z",
+    "agent_lines": 0,
+    "human_added": 56,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 56,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/68d787e4-995a-4da2-9e65-603f8864e8c1.jsonl"
+}
