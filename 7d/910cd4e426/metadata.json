@@ -3,7 +3,7 @@
   "checkpoint_id": "7d910cd4e426",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "internal/routing/discord.go",
     "internal/routing/discord_test.go",
@@ -24,13 +24,20 @@
       "context": "/7d/910cd4e426/1/context.md",
       "content_hash": "/7d/910cd4e426/1/content_hash.txt",
       "prompt": "/7d/910cd4e426/1/prompt.txt"
+    },
+    {
+      "metadata": "/7d/910cd4e426/2/metadata.json",
+      "transcript": "/7d/910cd4e426/2/full.jsonl",
+      "context": "/7d/910cd4e426/2/context.md",
+      "content_hash": "/7d/910cd4e426/2/content_hash.txt",
+      "prompt": "/7d/910cd4e426/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 14747575,
+    "input_tokens": 16750466,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 29891,
-    "api_call_count": 161
+    "output_tokens": 31847,
+    "api_call_count": 177
   }
 }
