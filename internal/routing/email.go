@@ -167,9 +167,13 @@ func (s *EmailSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 	}
 	defer client.Close()
 
-	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.SMTPHost)
-	if err := client.Auth(auth); err != nil {
-		return fmt.Errorf("smtp auth: %w", err)
+	// Only authenticate when credentials are provided. This allows
+	// unauthenticated local servers like MailHog/MailPit for testing.
+	if cfg.Username != "" || cfg.Password != "" {
+		auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.SMTPHost)
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("smtp auth: %w", err)
+		}
 	}
 
 	if err := client.Mail(cfg.FromAddress); err != nil {
