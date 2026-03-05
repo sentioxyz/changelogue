@@ -44,6 +44,7 @@ func NewSenders() map[string]Sender {
 		"webhook": &WebhookSender{Client: &http.Client{Timeout: 10 * time.Second}},
 		"slack":   &SlackSender{Client: &http.Client{Timeout: 10 * time.Second}},
 		"discord": &DiscordSender{Client: &http.Client{Timeout: 10 * time.Second}},
+		"email":   &EmailSender{},
 	}
 }
 
