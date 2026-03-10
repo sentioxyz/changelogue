@@ -28,13 +28,20 @@
       "context": "/bb/173f6211fe/2/context.md",
       "content_hash": "/bb/173f6211fe/2/content_hash.txt",
       "prompt": "/bb/173f6211fe/2/prompt.txt"
+    },
+    {
+      "metadata": "/bb/173f6211fe/3/metadata.json",
+      "transcript": "/bb/173f6211fe/3/full.jsonl",
+      "context": "/bb/173f6211fe/3/context.md",
+      "content_hash": "/bb/173f6211fe/3/content_hash.txt",
+      "prompt": "/bb/173f6211fe/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 15067003,
+    "input_tokens": 35477786,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 30821,
-    "api_call_count": 165
+    "output_tokens": 63989,
+    "api_call_count": 372
   }
 }
