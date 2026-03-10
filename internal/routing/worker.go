@@ -24,6 +24,7 @@ type NotifyStore interface {
 	GetProject(ctx context.Context, id string) (*models.Project, error)
 	GetPreviousRelease(ctx context.Context, sourceID string, beforeVersion string) (*models.Release, error)
 	EnqueueAgentRun(ctx context.Context, projectID, trigger, version string) error
+	CreateReleaseTodo(ctx context.Context, releaseID string) (string, error)
 }
 
 // NotifyWorker is a River worker that processes NotifyJobArgs.
@@ -105,6 +106,13 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 		}
 	}
 
+	// Create a TODO for this release (idempotent — safe for retries).
+	todoID, todoErr := w.store.CreateReleaseTodo(ctx, release.ID)
+	if todoErr != nil {
+		slog.Error("create release todo failed", "release_id", release.ID, "err", todoErr)
+		// Continue — notification delivery is primary responsibility.
+	}
+
 	subs, err := w.store.ListSourceSubscriptions(ctx, job.Args.SourceID)
 	if err != nil {
 		return fmt.Errorf("list subscriptions: %w", err)
@@ -140,6 +148,10 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 		}
 		if w.publicURL != "" {
 			msg.ReleaseURL = fmt.Sprintf("%s/releases/%s", w.publicURL, release.ID)
+		}
+		if todoID != "" {
+			msg.TodoID = todoID
+			msg.PublicURL = w.publicURL
 		}
 
 		if err := sender.Send(ctx, ch, msg); err != nil {

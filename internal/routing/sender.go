@@ -21,6 +21,8 @@ type Notification struct {
 	Repository  string `json:"repository,omitempty"`
 	ReleaseURL  string `json:"release_url,omitempty"`  // internal Changelogue link
 	SourceURL   string `json:"source_url,omitempty"`   // upstream provider link
+	TodoID      string `json:"todo_id,omitempty"`      // for constructing acknowledge/resolve URLs
+	PublicURL   string `json:"-"`                      // base URL for action links (not serialized)
 }
 
 // Sender is the interface that all notification channel implementations must satisfy.

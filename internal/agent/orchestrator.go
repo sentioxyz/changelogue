@@ -39,6 +39,7 @@ type OrchestratorStore interface {
 	ListProjectSubscriptions(ctx context.Context, projectID string) ([]models.Subscription, error)
 	GetChannel(ctx context.Context, id string) (*models.NotificationChannel, error)
 	HasReleaseForVersion(ctx context.Context, sourceID, version string) (bool, error)
+	CreateSemanticReleaseTodo(ctx context.Context, semanticReleaseID string) (string, error)
 }
 
 const DefaultInstruction = `You are a release intelligence agent analyzing version {{VERSION}} of a software project.
@@ -466,11 +467,22 @@ func (o *Orchestrator) sendProjectNotifications(ctx context.Context, run *models
 
 	senders := defaultSenders()
 
+	// Create a TODO for this semantic release.
+	todoID, todoErr := o.store.CreateSemanticReleaseTodo(ctx, result.semanticReleaseID)
+	if todoErr != nil {
+		slog.Error("create semantic release todo failed",
+			"semantic_release_id", result.semanticReleaseID, "err", todoErr)
+	}
+
 	msg := routing.Notification{
 		Title:       fmt.Sprintf("Semantic Release Report: %s %s", result.projectName, result.version),
 		Body:        result.reportText,
 		Version:     result.version,
 		ProjectName: result.projectName,
+	}
+	if todoID != "" {
+		msg.TodoID = todoID
+		msg.PublicURL = o.publicURL
 	}
 
 	// Build ReleaseURL for the semantic release detail page.
