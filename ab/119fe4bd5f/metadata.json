@@ -3,7 +3,7 @@
   "checkpoint_id": "ab119fe4bd5f",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "docs/plans/2026-03-10-todo-feature-design.md"
   ],
@@ -28,13 +28,20 @@
       "context": "/ab/119fe4bd5f/2/context.md",
       "content_hash": "/ab/119fe4bd5f/2/content_hash.txt",
       "prompt": "/ab/119fe4bd5f/2/prompt.txt"
+    },
+    {
+      "metadata": "/ab/119fe4bd5f/3/metadata.json",
+      "transcript": "/ab/119fe4bd5f/3/full.jsonl",
+      "context": "/ab/119fe4bd5f/3/context.md",
+      "content_hash": "/ab/119fe4bd5f/3/content_hash.txt",
+      "prompt": "/ab/119fe4bd5f/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 16237220,
+    "input_tokens": 36648003,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 34241,
-    "api_call_count": 188
+    "output_tokens": 67409,
+    "api_call_count": 395
   }
 }
