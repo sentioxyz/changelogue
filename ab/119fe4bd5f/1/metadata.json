@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "ab119fe4bd5f",
+  "session_id": "54b74b93-157e-4d66-931b-2fa1a3ba70f1",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-10T14:24:57.870466Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/plans/2026-03-10-todo-feature-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "ad74d61d787b",
+  "token_usage": {
+    "input_tokens": 1489645,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 4350,
+    "api_call_count": 27
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-10T14:24:57.466308Z",
+    "agent_lines": 0,
+    "human_added": 177,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 177,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/54b74b93-157e-4d66-931b-2fa1a3ba70f1.jsonl"
+}
