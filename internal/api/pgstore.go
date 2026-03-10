@@ -1129,3 +1129,149 @@ func (s *PgStore) GetTrend(ctx context.Context, granularity string, start, end t
 	}
 	return buckets, nil
 }
+
+// --- TodosStore ---
+
+func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage int) ([]models.Todo, int, error) {
+	// Count query
+	countQuery := `SELECT COUNT(*) FROM release_todos`
+	args := []any{}
+	if status != "" {
+		countQuery += ` WHERE status = $1`
+		args = append(args, status)
+	}
+	var total int
+	if err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count todos: %w", err)
+	}
+
+	offset := (page - 1) * perPage
+
+	// Build the enriched query with LEFT JOINs to releases and semantic_releases.
+	query := `
+		SELECT
+			t.id, t.release_id, t.semantic_release_id, t.status,
+			t.created_at, t.acknowledged_at, t.resolved_at,
+			COALESCE(p1.name, p2.name, ''),
+			COALESCE(r.version, sr.version, ''),
+			COALESCE(src.provider, ''),
+			COALESCE(src.repository, ''),
+			CASE WHEN t.release_id IS NOT NULL THEN 'release' ELSE 'semantic' END
+		FROM release_todos t
+		LEFT JOIN releases r ON r.id = t.release_id
+		LEFT JOIN sources src ON src.id = r.source_id
+		LEFT JOIN projects p1 ON p1.id = src.project_id
+		LEFT JOIN semantic_releases sr ON sr.id = t.semantic_release_id
+		LEFT JOIN projects p2 ON p2.id = sr.project_id
+	`
+	queryArgs := []any{}
+	argIdx := 1
+	if status != "" {
+		query += fmt.Sprintf(` WHERE t.status = $%d`, argIdx)
+		queryArgs = append(queryArgs, status)
+		argIdx++
+	}
+	query += fmt.Sprintf(` ORDER BY t.created_at DESC LIMIT $%d OFFSET $%d`, argIdx, argIdx+1)
+	queryArgs = append(queryArgs, perPage, offset)
+
+	rows, err := s.pool.Query(ctx, query, queryArgs...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list todos: %w", err)
+	}
+	defer rows.Close()
+
+	var todos []models.Todo
+	for rows.Next() {
+		var t models.Todo
+		if err := rows.Scan(
+			&t.ID, &t.ReleaseID, &t.SemanticReleaseID, &t.Status,
+			&t.CreatedAt, &t.AcknowledgedAt, &t.ResolvedAt,
+			&t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan todo: %w", err)
+		}
+		todos = append(todos, t)
+	}
+	return todos, total, nil
+}
+
+func (s *PgStore) GetTodo(ctx context.Context, id string) (*models.Todo, error) {
+	var t models.Todo
+	err := s.pool.QueryRow(ctx, `
+		SELECT
+			t.id, t.release_id, t.semantic_release_id, t.status,
+			t.created_at, t.acknowledged_at, t.resolved_at,
+			COALESCE(p1.name, p2.name, ''),
+			COALESCE(r.version, sr.version, ''),
+			COALESCE(src.provider, ''),
+			COALESCE(src.repository, ''),
+			CASE WHEN t.release_id IS NOT NULL THEN 'release' ELSE 'semantic' END
+		FROM release_todos t
+		LEFT JOIN releases r ON r.id = t.release_id
+		LEFT JOIN sources src ON src.id = r.source_id
+		LEFT JOIN projects p1 ON p1.id = src.project_id
+		LEFT JOIN semantic_releases sr ON sr.id = t.semantic_release_id
+		LEFT JOIN projects p2 ON p2.id = sr.project_id
+		WHERE t.id = $1
+	`, id).Scan(
+		&t.ID, &t.ReleaseID, &t.SemanticReleaseID, &t.Status,
+		&t.CreatedAt, &t.AcknowledgedAt, &t.ResolvedAt,
+		&t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get todo: %w", err)
+	}
+	return &t, nil
+}
+
+func (s *PgStore) AcknowledgeTodo(ctx context.Context, id string) error {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE release_todos SET status = 'acknowledged', acknowledged_at = NOW() WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("acknowledge todo: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("todo not found")
+	}
+	return nil
+}
+
+func (s *PgStore) ResolveTodo(ctx context.Context, id string) error {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE release_todos SET status = 'resolved', resolved_at = NOW() WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("resolve todo: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("todo not found")
+	}
+	return nil
+}
+
+// CreateReleaseTodo inserts a TODO for a source release. Returns the todo ID.
+// Uses ON CONFLICT DO UPDATE for idempotency.
+func (s *PgStore) CreateReleaseTodo(ctx context.Context, releaseID string) (string, error) {
+	var id string
+	err := s.pool.QueryRow(ctx,
+		`INSERT INTO release_todos (release_id) VALUES ($1)
+		 ON CONFLICT (release_id) WHERE release_id IS NOT NULL DO UPDATE SET release_id = EXCLUDED.release_id
+		 RETURNING id`, releaseID).Scan(&id)
+	if err != nil {
+		return "", fmt.Errorf("create release todo: %w", err)
+	}
+	return id, nil
+}
+
+// CreateSemanticReleaseTodo inserts a TODO for a semantic release. Returns the todo ID.
+// Uses ON CONFLICT DO UPDATE for idempotency.
+func (s *PgStore) CreateSemanticReleaseTodo(ctx context.Context, semanticReleaseID string) (string, error) {
+	var id string
+	err := s.pool.QueryRow(ctx,
+		`INSERT INTO release_todos (semantic_release_id) VALUES ($1)
+		 ON CONFLICT (semantic_release_id) WHERE semantic_release_id IS NOT NULL DO UPDATE SET semantic_release_id = EXCLUDED.semantic_release_id
+		 RETURNING id`, semanticReleaseID).Scan(&id)
+	if err != nil {
+		return "", fmt.Errorf("create semantic release todo: %w", err)
+	}
+	return id, nil
+}
