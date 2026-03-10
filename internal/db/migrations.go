@@ -157,6 +157,23 @@ DROP TRIGGER IF EXISTS semantic_release_trigger ON semantic_releases;
 CREATE TRIGGER semantic_release_trigger
     AFTER INSERT OR UPDATE ON semantic_releases
     FOR EACH ROW EXECUTE FUNCTION notify_semantic_release();
+
+-- Release TODOs (acknowledge/resolve tracking)
+CREATE TABLE IF NOT EXISTS release_todos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    release_id UUID REFERENCES releases(id) ON DELETE CASCADE,
+    semantic_release_id UUID REFERENCES semantic_releases(id) ON DELETE CASCADE,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    acknowledged_at TIMESTAMPTZ,
+    resolved_at TIMESTAMPTZ,
+    CHECK (
+        (release_id IS NOT NULL AND semantic_release_id IS NULL) OR
+        (release_id IS NULL AND semantic_release_id IS NOT NULL)
+    )
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_release_todos_release_id ON release_todos(release_id) WHERE release_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_release_todos_semantic_release_id ON release_todos(semantic_release_id) WHERE semantic_release_id IS NOT NULL;
 `
 
 // RunMigrations applies River's schema and the application schema. Idempotent — safe to call on every startup.
