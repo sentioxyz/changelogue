@@ -19,6 +19,8 @@ type Dependencies struct {
 	ContextSourcesStore   ContextSourcesStore
 	SemanticReleasesStore SemanticReleasesStore
 	AgentStore            AgentStore
+	TodosStore            TodosStore
+	PublicURL             string
 	KeyStore              KeyStore
 	HealthChecker         HealthChecker
 	Broadcaster           *Broadcaster
@@ -102,6 +104,16 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("POST /api/v1/projects/{projectId}/agent/run", chain(http.HandlerFunc(agent.TriggerRun)))
 	mux.Handle("GET /api/v1/projects/{projectId}/agent/runs", chain(http.HandlerFunc(agent.ListRuns)))
 	mux.Handle("GET /api/v1/agent-runs/{id}", chain(http.HandlerFunc(agent.GetRun)))
+
+	// Todos
+	todos := NewTodosHandler(deps.TodosStore, deps.PublicURL)
+	mux.Handle("GET /api/v1/todos", chain(http.HandlerFunc(todos.List)))
+	mux.Handle("GET /api/v1/todos/{id}", chain(http.HandlerFunc(todos.Get)))
+	mux.Handle("PATCH /api/v1/todos/{id}/acknowledge", chain(http.HandlerFunc(todos.Acknowledge)))
+	mux.Handle("PATCH /api/v1/todos/{id}/resolve", chain(http.HandlerFunc(todos.Resolve)))
+	// One-click endpoints for notification links (GET so they work as <a href>)
+	mux.Handle("GET /api/v1/todos/{id}/acknowledge", chain(http.HandlerFunc(todos.Acknowledge)))
+	mux.Handle("GET /api/v1/todos/{id}/resolve", chain(http.HandlerFunc(todos.Resolve)))
 
 	// Providers (metadata — static, no store needed)
 	providers := NewProvidersHandler()

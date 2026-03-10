@@ -127,6 +127,8 @@ func main() {
 		ContextSourcesStore:   pgStore,
 		SemanticReleasesStore: pgStore,
 		AgentStore:            pgStore,
+		TodosStore:            pgStore,
+		PublicURL:             os.Getenv("PUBLIC_URL"),
 		KeyStore:              pgStore,
 		HealthChecker:         pgStore,
 		Broadcaster:           broadcaster,
