@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "bb173f6211fe",
+  "session_id": "54b74b93-157e-4d66-931b-2fa1a3ba70f1",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-10T14:39:50.525869Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "internal/models/todo.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "dd1245b11d5b",
+  "checkpoint_transcript_start": 636,
+  "transcript_lines_at_start": 636,
+  "token_usage": {
+    "input_tokens": 319428,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 930,
+    "api_call_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-10T14:39:49.603773Z",
+    "agent_lines": 0,
+    "human_added": 23,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 23,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/54b74b93-157e-4d66-931b-2fa1a3ba70f1.jsonl"
+}
