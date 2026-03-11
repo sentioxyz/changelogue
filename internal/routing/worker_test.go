@@ -109,6 +109,13 @@ func (m *mockNotifyStore) EnqueueAgentRun(_ context.Context, projectID, trigger,
 	return nil
 }
 
+func (m *mockNotifyStore) CreateReleaseTodo(_ context.Context, releaseID string) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	return "todo-" + releaseID, nil
+}
+
 func (m *mockNotifyStore) agentRunCallCount() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
