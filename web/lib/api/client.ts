@@ -20,6 +20,7 @@ import type {
   Stats,
   TrendData,
   DiscoverItem,
+  Todo,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -200,6 +201,22 @@ export const channels = {
     request<ApiResponse<{ status: string }>>(`/channels/${id}/test`, {
       method: "POST",
     }),
+};
+
+// --- Todos ---
+
+export const todos = {
+  list: (status?: string, page = 1, perPage = 25) => {
+    const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+    if (status) params.set("status", status);
+    return request<ApiResponse<Todo[]>>(`/todos?${params}`);
+  },
+  get: (id: string) =>
+    request<ApiResponse<Todo>>(`/todos/${id}`),
+  acknowledge: (id: string) =>
+    request<ApiResponse<{ status: string }>>(`/todos/${id}/acknowledge`, { method: "PATCH" }),
+  resolve: (id: string) =>
+    request<ApiResponse<{ status: string }>>(`/todos/${id}/resolve`, { method: "PATCH" }),
 };
 
 // --- System ---

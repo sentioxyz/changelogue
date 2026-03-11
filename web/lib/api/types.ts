@@ -190,6 +190,26 @@ export interface BatchDeleteSubscriptionInput {
   ids: string[];
 }
 
+// --- Todo Types ---
+
+export interface Todo {
+  id: string;
+  release_id?: string;
+  semantic_release_id?: string;
+  status: "pending" | "acknowledged" | "resolved";
+  created_at: string;
+  acknowledged_at?: string;
+  resolved_at?: string;
+  project_name?: string;
+  version?: string;
+  provider?: string;
+  repository?: string;
+  source_url?: string;
+  release_url?: string;
+  urgency?: string;
+  todo_type?: "release" | "semantic";
+}
+
 // --- System Types ---
 
 export interface HealthStatus {
