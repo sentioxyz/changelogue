@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "8c189cd5a5ab",
+  "session_id": "54b74b93-157e-4d66-931b-2fa1a3ba70f1",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-11T02:08:02.732338Z",
+  "branch": "main",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "internal/api/channels.go",
+    "internal/api/channels_test.go",
+    "internal/api/pgstore.go",
+    "internal/api/server.go",
+    "internal/api/todos.go",
+    "internal/routing/slack.go",
+    "web/app/todo/page.tsx",
+    "web/components/layout/sidebar.tsx",
+    "web/lib/api/client.ts"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "a0fffdc67452",
+  "transcript_identifier_at_start": "e4e5dc4c-500d-4782-9d19-973294aa058f",
+  "checkpoint_transcript_start": 1474,
+  "transcript_lines_at_start": 1474,
+  "token_usage": {
+    "input_tokens": 5794737,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 12534,
+    "api_call_count": 61
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-11T02:08:00.658988Z",
+    "agent_lines": 157,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 157,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/54b74b93-157e-4d66-931b-2fa1a3ba70f1.jsonl"
+}

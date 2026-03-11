@@ -1,0 +1,932 @@
+Add a TODO functionality: 1. when there's a new release which needs to be notified, add two buttons in the message card - "acknowledge", "resolve", users an click the buttons/links to mark the specific release is being handled/updated, 2. In the web portal, there's a todo tab to quickly reivew which releases are not yet acked, already acked but not resolved, and resolved.
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/brainstorming
+
+# Brainstorming Ideas Into Designs
+
+## Overview
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+
+<HARD-GATE>
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+</HARD-GATE>
+
+## Anti-Pattern: "This Is Too Simple To Need A Design"
+
+Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Explore project context** — check files, docs, recent commits
+2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+3. **Propose 2-3 approaches** — with trade-offs and your recommendation
+4. **Present design** — in sections scaled to their complexity, get user approval after each section
+5. **Write design doc** — save to `docs/plans/YYYY-MM-DD-<topic>-design.md` and commit
+6. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+
+## Process Flow
+
+```dot
+digraph brainstorming {
+    "Explore project context" [shape=box];
+    "Ask clarifying questions" [shape=box];
+    "Propose 2-3 approaches" [shape=box];
+    "Present design sections" [shape=box];
+    "User approves design?" [shape=diamond];
+    "Write design doc" [shape=box];
+    "Invoke writing-plans skill" [shape=doublecircle];
+
+    "Explore project context" -> "Ask clarifying questions";
+    "Ask clarifying questions" -> "Propose 2-3 approaches";
+    "Propose 2-3 approaches" -> "Present design sections";
+    "Present design sections" -> "User approves design?";
+    "User approves design?" -> "Present design sections" [label="no, revise"];
+    "User approves design?" -> "Write design doc" [label="yes"];
+    "Write design doc" -> "Invoke writing-plans skill";
+}
+```
+
+**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+
+## The Process
+
+**Understanding the idea:**
+- Check out the current project state first (files, docs, recent commits)
+- Ask questions one at a time to refine the idea
+- Prefer multiple choice questions when possible, but open-ended is fine too
+- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Focus on understanding: purpose, constraints, success criteria
+
+**Exploring approaches:**
+- Propose 2-3 different approaches with trade-offs
+- Present options conversationally with your recommendation and reasoning
+- Lead with your recommended option and explain why
+
+**Presenting the design:**
+- Once you believe you understand what you're building, present the design
+- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- Ask after each section whether it looks right so far
+- Cover: architecture, components, data flow, error handling, testing
+- Be ready to go back and clarify if something doesn't make sense
+
+## After the Design
+
+**Documentation:**
+- Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Use elements-of-style:writing-clearly-and-concisely skill if available
+- Commit the design document to git
+
+**Implementation:**
+- Invoke the writing-plans skill to create a detailed implementation plan
+- Do NOT invoke any other skill. writing-plans is the next step.
+
+## Key Principles
+
+- **One question at a time** - Don't overwhelm with multiple questions
+- **Multiple choice preferred** - Easier to answer than open-ended when possible
+- **YAGNI ruthlessly** - Remove unnecessary features from all designs
+- **Explore alternatives** - Always propose 2-3 approaches before settling
+- **Incremental validation** - Present design, get approval before moving on
+- **Be flexible** - Go back and clarify when something doesn't make sense
+
+---
+
+A
+
+---
+
+Yes
+
+---
+
+Yes
+
+---
+
+Yes
+
+---
+
+Yes
+
+---
+
+Yes
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/writing-plans
+
+# Writing Plans
+
+## Overview
+
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+
+Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+
+**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+
+**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+
+**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+
+## Bite-Sized Task Granularity
+
+**Each step is one action (2-5 minutes):**
+- "Write the failing test" - step
+- "Run it to make sure it fails" - step
+- "Implement the minimal code to make the test pass" - step
+- "Run the tests and make sure they pass" - step
+- "Commit" - step
+
+## Plan Document Header
+
+**Every plan MUST start with this header:**
+
+```markdown
+# [Feature Name] Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** [One sentence describing what this builds]
+
+**Architecture:** [2-3 sentences about approach]
+
+**Tech Stack:** [Key technologies/libraries]
+
+---
+```
+
+## Task Structure
+
+````markdown
+### Task N: [Component Name]
+
+**Files:**
+- Create: `exact/path/to/file.py`
+- Modify: `exact/path/to/existing.py:123-145`
+- Test: `tests/exact/path/to/test.py`
+
+**Step 1: Write the failing test**
+
+```python
+def test_specific_behavior():
+    result = function(input)
+    assert result == expected
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: FAIL with "function not defined"
+
+**Step 3: Write minimal implementation**
+
+```python
+def function(input):
+    return expected
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: PASS
+
+**Step 5: Commit**
+
+```bash
+git add tests/path/test.py src/path/file.py
+git commit -m "feat: add specific feature"
+```
+````
+
+## Remember
+- Exact file paths always
+- Complete code in plan (not "add validation")
+- Exact commands with expected output
+- Reference relevant skills with @ syntax
+- DRY, YAGNI, TDD, frequent commits
+
+## Execution Handoff
+
+After saving the plan, offer execution choice:
+
+**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+
+**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+
+**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
+
+**Which approach?"**
+
+**If Subagent-Driven chosen:**
+- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+- Stay in this session
+- Fresh subagent per task + code review
+
+**If Parallel Session chosen:**
+- Guide them to open new session in worktree
+- **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+
+---
+
+1
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation plan?" [shape=diamond];
+    "Tasks mostly independent?" [shape=diamond];
+    "Stay in this session?" [shape=diamond];
+    "subagent-driven-development" [shape=box];
+    "executing-plans" [shape=box];
+    "Manual execution or brainstorm first" [shape=box];
+
+    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
+    "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
+    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
+    "Stay in this session?" -> "subagent-driven-development" [label="yes"];
+    "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
+}
+```
+
+**vs. Executing Plans (parallel session):**
+- Same session (no context switch)
+- Fresh subagent per task (no context pollution)
+- Two-stage review after each task: spec compliance first, then code quality
+- Faster iteration (no human-in-loop between tasks)
+
+## The Process
+
+```dot
+digraph process {
+    rankdir=TB;
+
+    subgraph cluster_per_task {
+        label="Per Task";
+        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Implementer subagent asks questions?" [shape=diamond];
+        "Answer questions, provide context" [shape=box];
+        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
+        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
+        "Implementer subagent fixes spec gaps" [shape=box];
+        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
+        "Code quality reviewer subagent approves?" [shape=diamond];
+        "Implementer subagent fixes quality issues" [shape=box];
+        "Mark task complete in TodoWrite" [shape=box];
+    }
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "More tasks remain?" [shape=diamond];
+    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
+    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
+    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+}
+```
+
+## Prompt Templates
+
+- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+
+## Example Workflow
+
+```
+You: I'm using Subagent-Driven Development to execute this plan.
+
+[Read plan file once: docs/plans/feature-plan.md]
+[Extract all 5 tasks with full text and context]
+[Create TodoWrite with all tasks]
+
+Task 1: Hook installation script
+
+[Get Task 1 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: "Before I begin - should the hook be installed at user or system level?"
+
+You: "User level (~/.config/superpowers/hooks/)"
+
+Implementer: "Got it. Implementing now..."
+[Later] Implementer:
+  - Implemented install-hook command
+  - Added tests, 5/5 passing
+  - Self-review: Found I missed --force flag, added it
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+
+[Get git SHAs, dispatch code quality reviewer]
+Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
+
+[Mark Task 1 complete]
+
+Task 2: Recovery modes
+
+[Get Task 2 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: [No questions, proceeds]
+Implementer:
+  - Added verify/repair modes
+  - 8/8 tests passing
+  - Self-review: All good
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ❌ Issues:
+  - Missing: Progress reporting (spec says "report every 100 items")
+  - Extra: Added --json flag (not requested)
+
+[Implementer fixes issues]
+Implementer: Removed --json flag, added progress reporting
+
+[Spec reviewer reviews again]
+Spec reviewer: ✅ Spec compliant now
+
+[Dispatch code quality reviewer]
+Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
+
+[Implementer fixes]
+Implementer: Extracted PROGRESS_INTERVAL constant
+
+[Code reviewer reviews again]
+Code reviewer: ✅ Approved
+
+[Mark Task 2 complete]
+
+...
+
+[After all tasks]
+[Dispatch final code-reviewer]
+Final reviewer: All requirements met, ready to merge
+
+Done!
+```
+
+## Advantages
+
+**vs. Manual execution:**
+- Subagents follow TDD naturally
+- Fresh context per task (no confusion)
+- Parallel-safe (subagents don't interfere)
+- Subagent can ask questions (before AND during work)
+
+**vs. Executing Plans:**
+- Same session (no handoff)
+- Continuous progress (no waiting)
+- Review checkpoints automatic
+
+**Efficiency gains:**
+- No file reading overhead (controller provides full text)
+- Controller curates exactly what context is needed
+- Subagent gets complete information upfront
+- Questions surfaced before work begins (not after)
+
+**Quality gates:**
+- Self-review catches issues before handoff
+- Two-stage review: spec compliance, then code quality
+- Review loops ensure fixes actually work
+- Spec compliance prevents over/under-building
+- Code quality ensures implementation is well-built
+
+**Cost:**
+- More subagent invocations (implementer + 2 reviewers per task)
+- Controller does more prep work (extracting all tasks upfront)
+- Review loops add iterations
+- But catches issues early (cheaper than debugging later)
+
+## Red Flags
+
+**Never:**
+- Start implementation on main/master branch without explicit user consent
+- Skip reviews (spec compliance OR code quality)
+- Proceed with unfixed issues
+- Dispatch multiple implementation subagents in parallel (conflicts)
+- Make subagent read plan file (provide full text instead)
+- Skip scene-setting context (subagent needs to understand where task fits)
+- Ignore subagent questions (answer before letting them proceed)
+- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
+- Skip review loops (reviewer found issues = implementer fixes = review again)
+- Let implementer self-review replace actual review (both are needed)
+- **Start code quality review before spec compliance is ✅** (wrong order)
+- Move to next task while either review has open issues
+
+**If subagent asks questions:**
+- Answer clearly and completely
+- Provide additional context if needed
+- Don't rush them into implementation
+
+**If reviewer finds issues:**
+- Implementer (same subagent) fixes them
+- Reviewer reviews again
+- Repeat until approved
+- Don't skip the re-review
+
+**If subagent fails task:**
+- Dispatch fix subagent with specific instructions
+- Don't try to fix manually (context pollution)
+
+## Integration
+
+**Required workflow skills:**
+- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+
+**Subagents should use:**
+- **superpowers:test-driven-development** - Subagents follow TDD for each task
+
+**Alternative workflow:**
+- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. The user asked to add a TODO functionality with two parts:
+   - Notification cards should have "acknowledge" and "resolve" buttons
+   - Web portal should have a todo tab to review release statuses
+
+2. I invoked the brainstorming skill and went through a structured design process:
+   - Explored project context using subagents (notification system, frontend, API/database)
+   - Read ARCH.md and DESIGN.md for architecture understanding
+   - Asked clarifying questions one at a time:
+     - Scope: Both source releases AND semantic releases (user chose "Both types")
+     - Buttons: Native + fallback (user chose "Native + fallback")
+     - Actor tracking: Anonymous actions (user chose "Anonymous actions (Recommended)")
+     - Slack integration: Action URL redirect/simpler (user chose "Action URL redirect (simpler)")
+     - Todo tab location: Separate sidebar tab (user chose "Separate sidebar tab (Recommended)")
+
+3. Proposed 3 approaches:
+   - A: Dedicated `release_todos` table (Recommended)
+   - B: Add status columns to existing tables
+   - C: JSONB status field
+   - User chose "A"
+
+4. Presented design in 5 sections, each approved by user:
+   - Section 1: Database Schema
+   - Section 2: API Endpoints
+   - Section 3: Notification Card Changes
+   - Section 4: Frontend Todo Tab
+   - Section 5: TODO Creation Flow
+
+5. Wrote and committed design doc to `docs/plans/2026-03-10-todo-feature-design.md`
+
+6. Transitioned to writing-plans skill:
+   - Read multiple source files for exact line numbers
+   - Created detailed 12-task implementation plan
+   - Saved to `docs/plans/2026-03-10-todo-feature.md`
+   - Committed
+
+7. User chose "1" (Subagent-Driven Development in this session)
+
+8. I invoked the subagent-driven-development skill, read the plan, and was about to start dispatching subagents for the 12 tasks when the summary was requested.
+
+Key files examined:
+- internal/db/migrations.go - schema definitions
+- internal/routing/worker.go - NotifyWorker
+- internal/routing/sender.go - Notification struct, Sender interface
+- internal/routing/slack.go - Slack Block Kit message construction
+- internal/routing/discord.go - Discord embed construction
+- internal/routing/email.go + email.html.tmpl - Email sender
+- internal/routing/webhook.go - Webhook sender
+- internal/api/server.go - Route registration, Dependencies struct
+- internal/api/pgstore.go - Store implementations
+- internal/agent/orchestrator.go - Agent orchestrator with sendProjectNotifications
+- cmd/server/main.go - Server bootstrap
+- web/components/layout/sidebar.tsx - Navigation items
+- web/lib/api/client.ts - API client
+- web/lib/api/types.ts - TypeScript types
+- ARCH.md, DESIGN.md - Architecture docs
+
+The implementation plan has 12 tasks:
+1. Database Schema - Add release_todos table
+2. Model - Add Todo struct
+3. Store - Add TodosStore methods to PgStore
+4. API Handler - Todos endpoints
+5. Route Registration - Wire into server
+6. Notification Integration - TodoID in Notification + create TODOs
+7. Sender Updates - Action buttons/links in all channels
+8. Tests - Backend unit tests
+9. Frontend - Types and API client
+10. Frontend - Sidebar navigation
+11. Frontend - Todo page
+12. Verification - End-to-end
+
+No errors were encountered during the design/planning phase.
+
+Summary:
+1. Primary Request and Intent:
+   The user requested adding a TODO functionality to the Changelogue release monitoring system with two main components:
+   - **Notification buttons**: When a new release triggers a notification, the message card (Slack, Discord, Email, Webhook) should include "Acknowledge" and "Resolve" buttons/links so users can mark releases as being handled/updated.
+   - **Web portal Todo tab**: A dedicated tab in the web frontend to quickly review which releases are not yet acknowledged, already acknowledged but not resolved, and resolved.
+
+   Through clarifying questions, the following design decisions were made:
+   - Applies to **both** source releases and semantic releases
+   - **Anonymous** actions (no user tracking)
+   - **Native + fallback** buttons: Slack URL buttons that open browser, Discord markdown links, styled HTML buttons in email, URLs in webhook JSON
+   - **Separate sidebar tab** in the web portal (not a dashboard widget)
+   - **Dedicated `release_todos` table** (Approach A) rather than adding columns to existing tables
+
+2. Key Technical Concepts:
+   - Go (Golang) backend with stdlib `net/http` routing (Go 1.22+ path parameters)
+   - PostgreSQL with JSONB, partial unique indexes, CHECK constraints, pg_notify/LISTEN for SSE
+   - River job queue (transactional outbox pattern) for notification and agent jobs
+   - ADK-Go (Google Agent Development Kit) for LLM-powered semantic release analysis
+   - Next.js 16 + React 19 + SWR + Tailwind CSS v4 + shadcn/ui frontend
+   - Slack Block Kit (URL buttons, actions blocks), Discord embeds (markdown links)
+   - Store interface pattern (each resource has a Go interface, PgStore implements all)
+   - Sender interface pattern for notification channels
+   - SSE (Server-Sent Events) for real-time UI updates via PostgreSQL LISTEN/NOTIFY
+
+3. Files and Code Sections:
+
+   - **`internal/db/migrations.go`** - Database schema definitions. New `release_todos` table to be added after line 159 (after semantic_release_trigger). Uses `CREATE TABLE IF NOT EXISTS` pattern with partial unique indexes.
+     ```sql
+     CREATE TABLE IF NOT EXISTS release_todos (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         release_id UUID REFERENCES releases(id) ON DELETE CASCADE,
+         semantic_release_id UUID REFERENCES semantic_releases(id) ON DELETE CASCADE,
+         status VARCHAR(20) NOT NULL DEFAULT 'pending',
+         created_at TIMESTAMPTZ DEFAULT NOW(),
+         acknowledged_at TIMESTAMPTZ,
+         resolved_at TIMESTAMPTZ,
+         CHECK (
+             (release_id IS NOT NULL AND semantic_release_id IS NULL) OR
+             (release_id IS NULL AND semantic_release_id IS NOT NULL)
+         )
+     );
+     CREATE UNIQUE INDEX IF NOT EXISTS idx_release_todos_release_id ON release_todos(release_id) WHERE release_id IS NOT NULL;
+     CREATE UNIQUE INDEX IF NOT EXISTS idx_release_todos_semantic_release_id ON release_todos(semantic_release_id) WHERE semantic_release_id IS NOT NULL;
+     ```
+
+   - **`internal/routing/sender.go`** - Contains the `Notification` struct (lines 15-24) and `Sender` interface (lines 27-29). Needs new fields `TodoID`, `PublicURL` added to Notification, and new helper functions `TodoAcknowledgeURL()` and `TodoResolveURL()`.
+     ```go
+     type Notification struct {
+         Title       string `json:"title"`
+         Body        string `json:"body"`
+         Version     string `json:"version"`
+         ProjectName string `json:"project_name,omitempty"`
+         Provider    string `json:"provider,omitempty"`
+         Repository  string `json:"repository,omitempty"`
+         ReleaseURL  string `json:"release_url,omitempty"`
+         SourceURL   string `json:"source_url,omitempty"`
+     }
+     ```
+
+   - **`internal/routing/worker.go`** - `NotifyWorker` processes release notifications. `NotifyStore` interface (lines 19-27) needs `CreateReleaseTodo` method. `Work()` method (lines 81-154) needs TODO creation before sending notifications. Constructs `Notification` at lines 132-143.
+
+   - **`internal/routing/slack.go`** - Slack Block Kit message construction. `slackPayload` (line 24-27) uses `[]slackBlock`. Needs to change to `[]any` to support mixed block types (regular blocks + action buttons). New `slackButton` and `slackActionsBlock` structs needed. `buildSemanticBlocks()` (lines 67-144) and source-level fallback paths need action buttons.
+
+   - **`internal/routing/discord.go`** - Discord embed construction. `buildSemanticEmbed()` (lines 66-137) and fallback path add markdown action links `[✅ Acknowledge](url) · [☑️ Resolve](url)` to the `linkParts` slice.
+
+   - **`internal/routing/email.go` + `email.html.tmpl`** - Email sender. `emailData` struct (lines 37-49) needs `TodoAckURL` and `TodoResolveURL` fields. Template needs styled HTML anchor button blocks after the Links section (line 53-54).
+
+   - **`internal/routing/webhook.go`** - Webhook sender. `webhookSemanticPayload` (lines 22-32) needs `AcknowledgeURL` and `ResolveURL` fields.
+
+   - **`internal/agent/orchestrator.go`** - Agent orchestrator. `OrchestratorStore` interface (lines 32-42) needs `CreateSemanticReleaseTodo` method. `sendProjectNotifications()` (lines 454-511) creates TODO and passes ID to notifications.
+
+   - **`internal/api/server.go`** - Route registration. `Dependencies` struct (lines 12-28) needs `TodosStore` and `PublicURL`. Routes registered after Agent section (line 104).
+
+   - **`cmd/server/main.go`** - Server bootstrap. `api.Dependencies` struct (lines 120-136) needs `TodosStore: pgStore` and `PublicURL: os.Getenv("PUBLIC_URL")`.
+
+   - **`internal/api/pgstore.go`** - Store implementations. New methods: `ListTodos`, `GetTodo`, `AcknowledgeTodo`, `ResolveTodo`, `CreateReleaseTodo`, `CreateSemanticReleaseTodo`.
+
+   - **`web/components/layout/sidebar.tsx`** - Navigation items array (lines 18-25). Add `{ href: "/todo", label: "Todo", icon: ListTodo }` after Dashboard.
+
+   - **`web/lib/api/types.ts`** - TypeScript type definitions. Add `Todo` interface after line 191.
+
+   - **`web/lib/api/client.ts`** - API client. Add `todos` module with `list`, `get`, `acknowledge`, `resolve` methods.
+
+   - **`docs/plans/2026-03-10-todo-feature-design.md`** - Design document (committed).
+   - **`docs/plans/2026-03-10-todo-feature.md`** - Implementation plan with 12 tasks (committed).
+
+4. Errors and fixes:
+   - No code errors were encountered during the design and planning phase.
+   - In the implementation plan (Task 7), the plan initially tried to extract the base URL from `ReleaseURL` for constructing TODO action URLs, which was overly complicated. This was revised to add a `PublicURL` field directly to the `Notification` struct (with `json:"-"` to skip serialization) set from `w.publicURL` and `o.publicURL` respectively.
+   - The plan identified that Slack's `slackPayload.Blocks` type `[]slackBlock` couldn't hold the new `slackActionsBlock` type, so it was revised to use `[]any`.
+
+5. Problem Solving:
+   - Solved the design challenge of how to add action buttons across 4 different notification channels (Slack, Discord, Email, Webhook) with their different capabilities
+   - Solved the "one-click from notification" problem by using GET endpoints with `?redirect=true` that perform the action then 302 redirect to the web portal
+   - Solved idempotency for TODO creation using `ON CONFLICT ... DO UPDATE ... RETURNING id` pattern
+   - Solved the Slack button URL issue — since Changelogue uses incoming webhooks (not a Slack App), buttons use URL links that open in browser rather than interactive callbacks
+
+6. All user messages:
+   - "Add a TODO functionality: 1. when there's a new release which needs to be notified, add two buttons in the message card - "acknowledge", "resolve", users an click the buttons/links to mark the specific release is being handled/updated, 2. In the web portal, there's a todo tab to quickly reivew which releases are not yet acked, already acked but not resolved, and resolved."
+   - "Both types" (scope applies to both source and semantic releases)
+   - "Native + fallback" (notification button approach)
+   - "Anonymous actions (Recommended)" (no user tracking)
+   - "Action URL redirect (simpler)" (Slack buttons open browser, no Slack App needed)
+   - "Separate sidebar tab (Recommended)" (new Todo tab in sidebar)
+   - "A" (chose Approach A: dedicated release_todos table)
+   - "Yes" (approved database schema design)
+   - "Yes" (approved API endpoints design)
+   - "Yes" (approved notification card changes design)
+   - "Yes" (approved frontend todo tab design)
+   - "Yes" (approved TODO creation flow design)
+   - "1" (chose Subagent-Driven Development in this session for execution)
+
+7. Pending Tasks:
+   The 12-task implementation plan needs to be executed via Subagent-Driven Development:
+   - Task 1: Database Schema — Add `release_todos` table to migrations.go
+   - Task 2: Model — Create `internal/models/todo.go` with Todo struct
+   - Task 3: Store — Add TodosStore methods to PgStore
+   - Task 4: API Handler — Create `internal/api/todos.go` with handler
+   - Task 5: Route Registration — Wire into server.go and main.go
+   - Task 6: Notification Integration — Add TodoID to Notification, create TODOs in worker/orchestrator
+   - Task 7: Sender Updates — Add action buttons/links to Slack, Discord, Email, Webhook
+   - Task 8: Tests — Backend unit tests for URL helpers
+   - Task 9: Frontend — Add Todo type and API client module
+   - Task 10: Frontend — Add Todo to sidebar navigation
+   - Task 11: Frontend — Build the Todo page (`web/app/todo/page.tsx`)
+   - Task 12: Verification — End-to-end build and test
+
+8. Current Work:
+   I had just invoked and read the `superpowers:subagent-driven-development` skill. I read the full implementation plan from `docs/plans/2026-03-10-todo-feature.md` and attempted to clean up old brainstorming tasks (tasks 1-6 which were completed). The task deletion returned "Task not found" errors (likely already cleaned up). I was about to start the subagent-driven execution loop: create TodoWrite items for all 12 implementation tasks, then dispatch the first implementer subagent for Task 1 (Database Schema).
+
+9. Optional Next Step:
+   Begin executing the 12-task implementation plan using Subagent-Driven Development. The user chose option "1" (Subagent-Driven, this session). Per the skill process:
+   1. Create TodoWrite entries for all 12 tasks
+   2. Dispatch implementer subagent for Task 1 (Database Schema — add `release_todos` table to `internal/db/migrations.go`)
+   3. After implementation, dispatch spec reviewer, then code quality reviewer
+   4. Proceed to Task 2 and continue through all 12 tasks
+
+   The user's last explicit message was "1" choosing subagent-driven development, and the skill instructions say to: "Read plan, extract all tasks with full text, note context, create TodoWrite" then start dispatching implementer subagents.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+Also in the todo list, can we introduce an aggregated view that for each release, only the latest version (non-filtered) will be shown
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **Context from previous session**: The user had already completed a full brainstorming, design, and planning cycle for a TODO feature in the Changelogue release monitoring system. They chose Subagent-Driven Development to execute a 12-task implementation plan.
+
+2. **This session began** by continuing from the previous context. I read the implementation plan, created TodoWrite items for all 12 tasks, and began dispatching implementer subagents.
+
+3. **Tasks 1-6 completed**: Database schema, model, store methods, API handler, route registration, and notification integration were all implemented via subagents with spec reviews.
+
+4. **Task 7 (Sender Updates)**: The most complex task - added action buttons/links to all 4 notification channels (Slack, Discord, Email, Webhook). This involved modifying 6 files. A spec review confirmed all changes were correct.
+
+5. **Task 8 (Tests)**: Created URL helper tests. The subagent also fixed a compile issue in `worker_test.go` where the mock was missing the `CreateReleaseTodo` method.
+
+6. **Tasks 9-10 (Frontend types/client + sidebar)**: I implemented these directly rather than via subagents since they were simple edits.
+
+7. **Task 11 (Todo page)**: Dispatched a subagent to create the full Todo page with status tabs, data table, action buttons, SWR fetching, SSE revalidation, and pagination. Spec review passed.
+
+8. **Task 12 (Verification)**: 
+   - `go vet` found `orchestrator_test.go` mock was missing `CreateSemanticReleaseTodo` method
+   - I fixed it by adding the stub method
+   - All tests passed, go vet clean, go build success, next build success
+
+9. **User's new request**: "Also in the todo list, can we introduce an aggregated view that for each release, only the latest version (non-filtered) will be shown"
+
+10. **My response**: I read `pgstore.go` (the ListTodos query) and the todo page to understand the current implementation. Then the conversation was cut for summary.
+
+The user's latest request is about adding an "aggregated view" to the todo list. This would group todos by source/project and show only the latest (most recent) version's todo, rather than listing every individual release todo. This is a new feature request on top of the completed TODO feature.
+
+Let me capture all the technical details from the completed work and the new request.
+
+Key files modified during this session:
+- `internal/db/migrations.go` - Added release_todos table
+- `internal/models/todo.go` - Created Todo struct
+- `internal/api/pgstore.go` - Added 6 TodosStore methods
+- `internal/api/todos.go` - Created TodosHandler
+- `internal/api/server.go` - Added TodosStore/PublicURL to Dependencies, registered routes
+- `cmd/server/main.go` - Wired TodosStore and PublicURL
+- `internal/routing/sender.go` - Added TodoID, PublicURL fields + URL helper functions
+- `internal/routing/worker.go` - Added CreateReleaseTodo to NotifyStore, TODO creation in Work()
+- `internal/routing/slack.go` - Added action buttons (slackButton, slackActionsBlock, changed Blocks to []any)
+- `internal/routing/discord.go` - Added action links
+- `internal/routing/email.go` + `email.html.tmpl` - Added styled buttons
+- `internal/routing/webhook.go` - Added AcknowledgeURL/ResolveURL fields
+- `internal/agent/orchestrator.go` - Added CreateSemanticReleaseTodo to OrchestratorStore
+- `internal/agent/orchestrator_test.go` - Fixed mock
+- `internal/routing/worker_test.go` - Fixed mock (by subagent)
+- `internal/routing/todo_urls_test.go` - Created URL helper tests
+- `web/lib/api/types.ts` - Added Todo interface
+- `web/lib/api/client.ts` - Added todos API module
+- `web/components/layout/sidebar.tsx` - Added Todo nav item
+- `web/app/todo/page.tsx` - Created full Todo page
+
+The user's final message asks for an aggregated view. This means:
+- For source releases: group by source (provider+repository), show only the latest version's todo  
+- This would reduce noise when a source has many version releases, each creating a todo
+
+I need to fully understand what "for each release" means here - likely "for each source/project", show only the latest version todo rather than all of them.
+
+Summary:
+1. Primary Request and Intent:
+   The user originally requested adding a TODO functionality to the Changelogue release monitoring system with two components: notification action buttons (acknowledge/resolve) and a web portal todo tab. This was designed, planned, and executed across 12 tasks using Subagent-Driven Development. All 12 tasks were completed successfully.
+
+   **Most recent request**: The user asked: "Also in the todo list, can we introduce an aggregated view that for each release, only the latest version (non-filtered) will be shown" — meaning they want a view mode where instead of showing every individual release todo, the list groups by source/project and only shows the most recent version's todo item.
+
+2. Key Technical Concepts:
+   - Go backend with stdlib `net/http` routing (Go 1.22+ path parameters)
+   - PostgreSQL with partial unique indexes, CHECK constraints, pg_notify/LISTEN for SSE
+   - River job queue (transactional outbox pattern) for notification and agent jobs
+   - ADK-Go for LLM-powered semantic release analysis
+   - Next.js + React + SWR + Tailwind CSS frontend
+   - Slack Block Kit (URL buttons via `slackActionsBlock`), Discord embeds (markdown links)
+   - Store interface pattern (PgStore implements all store interfaces)
+   - Sender interface pattern for notification channels
+   - Subagent-Driven Development skill for task execution with spec/quality reviews
+   - `release_todos` table with 1:1 relationship to either `releases` or `semantic_releases`
+   - `ON CONFLICT ... DO UPDATE ... RETURNING id` for idempotent TODO creation
+   - Partial unique indexes instead of UNIQUE constraints for nullable columns
+
+3. Files and Code Sections:
+
+   - **`internal/db/migrations.go`** — Added `release_todos` table to schema constant (after line 159):
+     ```sql
+     CREATE TABLE IF NOT EXISTS release_todos (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         release_id UUID REFERENCES releases(id) ON DELETE CASCADE,
+         semantic_release_id UUID REFERENCES semantic_releases(id) ON DELETE CASCADE,
+         status VARCHAR(20) NOT NULL DEFAULT 'pending',
+         created_at TIMESTAMPTZ DEFAULT NOW(),
+         acknowledged_at TIMESTAMPTZ,
+         resolved_at TIMESTAMPTZ,
+         CHECK (
+             (release_id IS NOT NULL AND semantic_release_id IS NULL) OR
+             (release_id IS NULL AND semantic_release_id IS NOT NULL)
+         )
+     );
+     CREATE UNIQUE INDEX IF NOT EXISTS idx_release_todos_release_id ON release_todos(release_id) WHERE release_id IS NOT NULL;
+     CREATE UNIQUE INDEX IF NOT EXISTS idx_release_todos_semantic_release_id ON release_todos(semantic_release_id) WHERE semantic_release_id IS NOT NULL;
+     ```
+
+   - **`internal/models/todo.go`** — Created Todo struct with core DB fields + enriched JOIN fields:
+     ```go
+     type Todo struct {
+         ID                string     `json:"id"`
+         ReleaseID         *string    `json:"release_id,omitempty"`
+         SemanticReleaseID *string    `json:"semantic_release_id,omitempty"`
+         Status            string     `json:"status"`
+         CreatedAt         time.Time  `json:"created_at"`
+         AcknowledgedAt    *time.Time `json:"acknowledged_at,omitempty"`
+         ResolvedAt        *time.Time `json:"resolved_at,omitempty"`
+         ProjectName string `json:"project_name,omitempty"`
+         Version     string `json:"version,omitempty"`
+         Provider    string `json:"provider,omitempty"`
+         Repository  string `json:"repository,omitempty"`
+         SourceURL   string `json:"source_url,omitempty"`
+         ReleaseURL  string `json:"release_url,omitempty"`
+         Urgency     string `json:"urgency,omitempty"`
+         TodoType    string `json:"todo_type,omitempty"`
+     }
+     ```
+
+   - **`internal/api/pgstore.go`** — Added 6 methods after line 1131: `ListTodos`, `GetTodo`, `AcknowledgeTodo`, `ResolveTodo`, `CreateReleaseTodo`, `CreateSemanticReleaseTodo`. The `ListTodos` query uses LEFT JOINs to releases, sources, projects, and semantic_releases to populate enriched fields. Important: the current query returns ALL todos ordered by created_at DESC — the user now wants an aggregated view option.
+
+   - **`internal/api/todos.go`** — Created `TodosStore` interface and `TodosHandler` with List, Get, Acknowledge, Resolve methods. The handler adapted to use `RespondJSON`/`RespondError`/`RespondList` (the actual codebase helper names, not `WriteJSON`/`WriteError`/`WriteList` from the plan). Supports `?redirect=true` for 302 redirect after one-click actions.
+
+   - **`internal/api/server.go`** — Added `TodosStore TodosStore` and `PublicURL string` to Dependencies struct. Registered 6 routes: GET list, GET by id, PATCH+GET acknowledge, PATCH+GET resolve.
+
+   - **`cmd/server/main.go`** — Added `TodosStore: pgStore` and `PublicURL: os.Getenv("PUBLIC_URL")` to Dependencies.
+
+   - **`internal/routing/sender.go`** — Added `TodoID string` and `PublicURL string` fields to Notification struct. Added `TodoAcknowledgeURL()` and `TodoResolveURL()` helper functions.
+
+   - **`internal/routing/worker.go`** — Added `CreateReleaseTodo` to `NotifyStore` interface. Creates TODO before sending notifications in `Work()` method.
+
+   - **`internal/routing/slack.go`** — Added `slackButton`, `slackActionsBlock` structs. Changed `slackPayload.Blocks` from `[]slackBlock` to `[]any`. Changed `buildSemanticBlocks` return type to `[]any`. Added action buttons in all three paths (semantic, attachment, no-changelog).
+
+   - **`internal/routing/discord.go`** — Added markdown action links in both `buildSemanticEmbed` and `Send()` fallback.
+
+   - **`internal/routing/email.go` + `email.html.tmpl`** — Added `TodoAckURL`/`TodoResolveURL` to `emailData`, populated in `buildEmailData`, added plain text links in `buildPlainText`, styled green/blue HTML buttons in template.
+
+   - **`internal/routing/webhook.go`** — Added `AcknowledgeURL`/`ResolveURL` to `webhookSemanticPayload`.
+
+   - **`internal/agent/orchestrator.go`** — Added `CreateSemanticReleaseTodo` to `OrchestratorStore` interface. Creates TODO in `sendProjectNotifications()`.
+
+   - **`internal/routing/todo_urls_test.go`** — Unit tests for `TodoAcknowledgeURL` and `TodoResolveURL`.
+
+   - **`web/lib/api/types.ts`** — Added `Todo` interface.
+
+   - **`web/lib/api/client.ts`** — Added `Todo` to imports and `todos` API module with list, get, acknowledge, resolve methods.
+
+   - **`web/components/layout/sidebar.tsx`** — Added `ListTodo` import and `{ href: "/todo", label: "Todo", icon: ListTodo }` nav item after Dashboard.
+
+   - **`web/app/todo/page.tsx`** — Full Todo page with: Suspense wrapper, 3 status tabs with count badges, data table (Project, Version, Type, Provider, Urgency, Created, Actions), SWR data fetching with `["todos", activeTab, page]` key, optimistic UI via `mutate()`, SSE revalidation via EventSource, pagination. The full file was read at the end of the conversation to provide context for the new aggregated view request.
+
+4. Errors and fixes:
+   - **`worker_test.go` mock missing `CreateReleaseTodo`**: When Task 6 added `CreateReleaseTodo` to the `NotifyStore` interface, the mock in worker_test.go broke. The Task 8 subagent fixed this by adding a stub implementation.
+   - **`orchestrator_test.go` mock missing `CreateSemanticReleaseTodo`**: When Task 6 added `CreateSemanticReleaseTodo` to the `OrchestratorStore` interface, the mock in orchestrator_test.go broke. `go vet` caught this during Task 12 verification. Fixed by adding: `func (m *mockOrchestratorStore) CreateSemanticReleaseTodo(_ context.Context, semanticReleaseID string) (string, error) { return "todo-" + semanticReleaseID, nil }`
+   - **Plan function name mismatch**: The plan referenced `WriteJSON`/`WriteError`/`WriteList` but the actual codebase uses `RespondJSON`/`RespondError`/`RespondList`. Task 4 subagent correctly adapted.
+   - **`slack_test.go` type change**: When `slackPayload.Blocks` changed to `[]any`, existing Slack tests needed a `slackTestPayload` struct with `[]slackBlock` for JSON unmarshalling assertions.
+
+5. Problem Solving:
+   - Solved Slack button integration without Slack App (URL buttons that open browser)
+   - Solved mixed block types in Slack payload by changing `[]slackBlock` to `[]any`
+   - Solved idempotent TODO creation with `ON CONFLICT ... DO UPDATE ... RETURNING id`
+   - Solved PublicURL propagation by adding it to Notification struct with `json:"-"` tag
+   - All 12 implementation tasks completed and verified end-to-end
+
+6. All user messages:
+   - *[From previous session context]* "Add a TODO functionality..." with subsequent design decisions (Both types, Native+fallback, Anonymous, Action URL redirect, Separate sidebar tab, Approach A)
+   - *[From previous session]* "1" (chose Subagent-Driven Development)
+   - "Also in the todo list, can we introduce an aggregated view that for each release, only the latest version (non-filtered) will be shown"
+
+7. Pending Tasks:
+   - Implement the aggregated view for the todo list — for each source/project, show only the latest version's todo instead of all individual release todos
+
+8. Current Work:
+   I had just completed all 12 tasks of the TODO feature implementation and the user made a new request: "Also in the todo list, can we introduce an aggregated view that for each release, only the latest version (non-filtered) will be shown". I read the current state of `internal/api/pgstore.go` (specifically the `ListTodos` method at lines 1135-1196) and the full `web/app/todo/page.tsx` to understand the current implementation before starting on this new feature request.
+
+9. Optional Next Step:
+   Begin implementing the aggregated view. This likely involves:
+   - Clarifying with the user exactly what "for each release" means — likely per-source (provider+repository combination) for source releases, and per-project for semantic releases
+   - Adding an `?aggregated=true` query parameter to the `GET /api/v1/todos` endpoint
+   - Writing a new SQL query in `ListTodos` that uses `DISTINCT ON` or window functions to select only the latest version per source/project
+   - Adding a toggle in the frontend Todo page to switch between "All" and "Aggregated" views
+
+   The user's exact words were: "Also in the todo list, can we introduce an aggregated view that for each release, only the latest version (non-filtered) will be shown"
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+in the todo page, latest only is by default enabled, also move the todo tab under the project tab
+
+---
+
+Help me update the test channel to include the ack, resolve links for preview
+
+---
+
+I cannot see it in the test message in slack why?
+
+---
+
+I cannot see it still: example/project on GitHubChangelogue v1.0.0-test--------------
+What's Changed
+--------------
+
+* feat: add new monitoring dashboard by @dev in #42
+* fix: resolve memory leak in worker pool by @dev in #43
+* docs: update API reference for v1.0 by @dev in #44
+
+Full Changelog: https://github.com/example/project/compare/v0.9.0...v1.0.0View on GitHub  |  View in Changelogue
+
+---
+
+Now the button is above the message, i want it to be under the message
+
+---
+
+Cool, commit and push
