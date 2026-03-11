@@ -1,0 +1,749 @@
+Add email support
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/brainstorming
+
+# Brainstorming Ideas Into Designs
+
+## Overview
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+
+<HARD-GATE>
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+</HARD-GATE>
+
+## Anti-Pattern: "This Is Too Simple To Need A Design"
+
+Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Explore project context** — check files, docs, recent commits
+2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+3. **Propose 2-3 approaches** — with trade-offs and your recommendation
+4. **Present design** — in sections scaled to their complexity, get user approval after each section
+5. **Write design doc** — save to `docs/plans/YYYY-MM-DD-<topic>-design.md` and commit
+6. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+
+## Process Flow
+
+```dot
+digraph brainstorming {
+    "Explore project context" [shape=box];
+    "Ask clarifying questions" [shape=box];
+    "Propose 2-3 approaches" [shape=box];
+    "Present design sections" [shape=box];
+    "User approves design?" [shape=diamond];
+    "Write design doc" [shape=box];
+    "Invoke writing-plans skill" [shape=doublecircle];
+
+    "Explore project context" -> "Ask clarifying questions";
+    "Ask clarifying questions" -> "Propose 2-3 approaches";
+    "Propose 2-3 approaches" -> "Present design sections";
+    "Present design sections" -> "User approves design?";
+    "User approves design?" -> "Present design sections" [label="no, revise"];
+    "User approves design?" -> "Write design doc" [label="yes"];
+    "Write design doc" -> "Invoke writing-plans skill";
+}
+```
+
+**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+
+## The Process
+
+**Understanding the idea:**
+- Check out the current project state first (files, docs, recent commits)
+- Ask questions one at a time to refine the idea
+- Prefer multiple choice questions when possible, but open-ended is fine too
+- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Focus on understanding: purpose, constraints, success criteria
+
+**Exploring approaches:**
+- Propose 2-3 different approaches with trade-offs
+- Present options conversationally with your recommendation and reasoning
+- Lead with your recommended option and explain why
+
+**Presenting the design:**
+- Once you believe you understand what you're building, present the design
+- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- Ask after each section whether it looks right so far
+- Cover: architecture, components, data flow, error handling, testing
+- Be ready to go back and clarify if something doesn't make sense
+
+## After the Design
+
+**Documentation:**
+- Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Use elements-of-style:writing-clearly-and-concisely skill if available
+- Commit the design document to git
+
+**Implementation:**
+- Invoke the writing-plans skill to create a detailed implementation plan
+- Do NOT invoke any other skill. writing-plans is the next step.
+
+## Key Principles
+
+- **One question at a time** - Don't overwhelm with multiple questions
+- **Multiple choice preferred** - Easier to answer than open-ended when possible
+- **YAGNI ruthlessly** - Remove unnecessary features from all designs
+- **Explore alternatives** - Always propose 2-3 approaches before settling
+- **Incremental validation** - Present design, get approval before moving on
+- **Be flexible** - Go back and clarify when something doesn't make sense
+
+
+ARGUMENTS: Add email support to Changelogue
+
+---
+
+yes
+
+---
+
+yes
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/writing-plans
+
+# Writing Plans
+
+## Overview
+
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+
+Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+
+**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+
+**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+
+**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+
+## Bite-Sized Task Granularity
+
+**Each step is one action (2-5 minutes):**
+- "Write the failing test" - step
+- "Run it to make sure it fails" - step
+- "Implement the minimal code to make the test pass" - step
+- "Run the tests and make sure they pass" - step
+- "Commit" - step
+
+## Plan Document Header
+
+**Every plan MUST start with this header:**
+
+```markdown
+# [Feature Name] Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** [One sentence describing what this builds]
+
+**Architecture:** [2-3 sentences about approach]
+
+**Tech Stack:** [Key technologies/libraries]
+
+---
+```
+
+## Task Structure
+
+````markdown
+### Task N: [Component Name]
+
+**Files:**
+- Create: `exact/path/to/file.py`
+- Modify: `exact/path/to/existing.py:123-145`
+- Test: `tests/exact/path/to/test.py`
+
+**Step 1: Write the failing test**
+
+```python
+def test_specific_behavior():
+    result = function(input)
+    assert result == expected
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: FAIL with "function not defined"
+
+**Step 3: Write minimal implementation**
+
+```python
+def function(input):
+    return expected
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: PASS
+
+**Step 5: Commit**
+
+```bash
+git add tests/path/test.py src/path/file.py
+git commit -m "feat: add specific feature"
+```
+````
+
+## Remember
+- Exact file paths always
+- Complete code in plan (not "add validation")
+- Exact commands with expected output
+- Reference relevant skills with @ syntax
+- DRY, YAGNI, TDD, frequent commits
+
+## Execution Handoff
+
+After saving the plan, offer execution choice:
+
+**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+
+**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+
+**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
+
+**Which approach?"**
+
+**If Subagent-Driven chosen:**
+- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+- Stay in this session
+- Fresh subagent per task + code review
+
+**If Parallel Session chosen:**
+- Guide them to open new session in worktree
+- **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+
+
+ARGUMENTS: Implement the email notification channel per the design in docs/plans/2026-03-05-email-support-design.md
+
+---
+
+1
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation plan?" [shape=diamond];
+    "Tasks mostly independent?" [shape=diamond];
+    "Stay in this session?" [shape=diamond];
+    "subagent-driven-development" [shape=box];
+    "executing-plans" [shape=box];
+    "Manual execution or brainstorm first" [shape=box];
+
+    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
+    "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
+    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
+    "Stay in this session?" -> "subagent-driven-development" [label="yes"];
+    "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
+}
+```
+
+**vs. Executing Plans (parallel session):**
+- Same session (no context switch)
+- Fresh subagent per task (no context pollution)
+- Two-stage review after each task: spec compliance first, then code quality
+- Faster iteration (no human-in-loop between tasks)
+
+## The Process
+
+```dot
+digraph process {
+    rankdir=TB;
+
+    subgraph cluster_per_task {
+        label="Per Task";
+        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Implementer subagent asks questions?" [shape=diamond];
+        "Answer questions, provide context" [shape=box];
+        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
+        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
+        "Implementer subagent fixes spec gaps" [shape=box];
+        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
+        "Code quality reviewer subagent approves?" [shape=diamond];
+        "Implementer subagent fixes quality issues" [shape=box];
+        "Mark task complete in TodoWrite" [shape=box];
+    }
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "More tasks remain?" [shape=diamond];
+    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
+    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
+    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+}
+```
+
+## Prompt Templates
+
+- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+
+## Example Workflow
+
+```
+You: I'm using Subagent-Driven Development to execute this plan.
+
+[Read plan file once: docs/plans/feature-plan.md]
+[Extract all 5 tasks with full text and context]
+[Create TodoWrite with all tasks]
+
+Task 1: Hook installation script
+
+[Get Task 1 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: "Before I begin - should the hook be installed at user or system level?"
+
+You: "User level (~/.config/superpowers/hooks/)"
+
+Implementer: "Got it. Implementing now..."
+[Later] Implementer:
+  - Implemented install-hook command
+  - Added tests, 5/5 passing
+  - Self-review: Found I missed --force flag, added it
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+
+[Get git SHAs, dispatch code quality reviewer]
+Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
+
+[Mark Task 1 complete]
+
+Task 2: Recovery modes
+
+[Get Task 2 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: [No questions, proceeds]
+Implementer:
+  - Added verify/repair modes
+  - 8/8 tests passing
+  - Self-review: All good
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ❌ Issues:
+  - Missing: Progress reporting (spec says "report every 100 items")
+  - Extra: Added --json flag (not requested)
+
+[Implementer fixes issues]
+Implementer: Removed --json flag, added progress reporting
+
+[Spec reviewer reviews again]
+Spec reviewer: ✅ Spec compliant now
+
+[Dispatch code quality reviewer]
+Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
+
+[Implementer fixes]
+Implementer: Extracted PROGRESS_INTERVAL constant
+
+[Code reviewer reviews again]
+Code reviewer: ✅ Approved
+
+[Mark Task 2 complete]
+
+...
+
+[After all tasks]
+[Dispatch final code-reviewer]
+Final reviewer: All requirements met, ready to merge
+
+Done!
+```
+
+## Advantages
+
+**vs. Manual execution:**
+- Subagents follow TDD naturally
+- Fresh context per task (no confusion)
+- Parallel-safe (subagents don't interfere)
+- Subagent can ask questions (before AND during work)
+
+**vs. Executing Plans:**
+- Same session (no handoff)
+- Continuous progress (no waiting)
+- Review checkpoints automatic
+
+**Efficiency gains:**
+- No file reading overhead (controller provides full text)
+- Controller curates exactly what context is needed
+- Subagent gets complete information upfront
+- Questions surfaced before work begins (not after)
+
+**Quality gates:**
+- Self-review catches issues before handoff
+- Two-stage review: spec compliance, then code quality
+- Review loops ensure fixes actually work
+- Spec compliance prevents over/under-building
+- Code quality ensures implementation is well-built
+
+**Cost:**
+- More subagent invocations (implementer + 2 reviewers per task)
+- Controller does more prep work (extracting all tasks upfront)
+- Review loops add iterations
+- But catches issues early (cheaper than debugging later)
+
+## Red Flags
+
+**Never:**
+- Start implementation on main/master branch without explicit user consent
+- Skip reviews (spec compliance OR code quality)
+- Proceed with unfixed issues
+- Dispatch multiple implementation subagents in parallel (conflicts)
+- Make subagent read plan file (provide full text instead)
+- Skip scene-setting context (subagent needs to understand where task fits)
+- Ignore subagent questions (answer before letting them proceed)
+- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
+- Skip review loops (reviewer found issues = implementer fixes = review again)
+- Let implementer self-review replace actual review (both are needed)
+- **Start code quality review before spec compliance is ✅** (wrong order)
+- Move to next task while either review has open issues
+
+**If subagent asks questions:**
+- Answer clearly and completely
+- Provide additional context if needed
+- Don't rush them into implementation
+
+**If reviewer finds issues:**
+- Implementer (same subagent) fixes them
+- Reviewer reviews again
+- Repeat until approved
+- Don't skip the re-review
+
+**If subagent fails task:**
+- Dispatch fix subagent with specific instructions
+- Don't try to fix manually (context pollution)
+
+## Integration
+
+**Required workflow skills:**
+- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+
+**Subagents should use:**
+- **superpowers:test-driven-development** - Subagents follow TDD for each task
+
+**Alternative workflow:**
+- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+
+ARGUMENTS: Execute docs/plans/2026-03-05-email-support.md
+
+---
+
+how to create a smtp server?
+
+---
+
+I cannot see the email channle in the "Add Channel" pop up
+
+---
+
+I test the local mailhog channel to send email to pooytr1@gmail.com I don't recieve any message why?
+
+---
+
+then locally how can i test the email?
+
+---
+
+looks good , thanks
+
+---
+
+commit and push
+
+---
+
+update docs and commit and push
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. User requests "Add email support" - this kicks off a brainstorming skill workflow
+2. Brainstorming phase: explored project context, asked clarifying questions (Direct SMTP, HTML+plain text, STARTTLS/SSL with credentials), proposed approaches (Go html/template recommended), presented design, got approval
+3. Design doc written to `docs/plans/2026-03-05-email-support-design.md` and committed
+4. Implementation plan written to `docs/plans/2026-03-05-email-support.md` and committed
+5. Subagent-driven development executed:
+   - Task 1-3 combined: Created email.html.tmpl, email.go, email_test.go via subagent
+   - Task 4: Registered EmailSender in worker.go NewSenders()
+   - Task 5: Final verification (build + full test suite)
+6. Code review found critical issues:
+   - SMTP header injection (unsanitized From/To/Subject)
+   - Missing 10-second dial timeout
+   - Stale comment in worker.go
+   - Empty ToAddresses not validated
+   - Quit() error could cause duplicate emails
+7. All review fixes applied and committed
+8. User says "how to create a smtp server?" - explained MailHog/MailPit options
+9. User says "I cannot see the email channel in the 'Add Channel' pop up" - found frontend was missing email type
+10. Fixed frontend: added email to channel-form.tsx (fields + dropdown + config transform) and channels/page.tsx (TYPE_STYLES + icon)
+11. User says "I test the local mailhog channel to send email to pooytr1@gmail.com I don't receive any message why?"
+    - Diagnosed: Go's smtp.PlainAuth refuses credentials over unencrypted connections, and MailHog doesn't deliver to real inboxes
+    - Fixed: skip auth when username/password are empty
+    - Explained MailHog is a local mail trap, check http://localhost:8025
+12. User says "then locally how can i test the email?" - explained to use MailHog web UI at localhost:8025
+13. User says "looks good, thanks" - summarized all work
+14. User says "commit and push" - everything was already committed, just pushed
+15. User says "update docs and commit and push" - read README.md, ARCH.md, DESIGN.md, API.md to identify what needs updating
+16. Then the summary request came
+
+Key files created/modified:
+- `internal/routing/email.go` - EmailSender implementation
+- `internal/routing/email.html.tmpl` - HTML email template
+- `internal/routing/email_test.go` - 4 tests with mock SMTP server
+- `internal/routing/worker.go` - added "email" to NewSenders()
+- `web/components/channels/channel-form.tsx` - added email fields, dropdown option, config transform
+- `web/app/channels/page.tsx` - added email TYPE_STYLES with HiOutlineMail icon
+- `docs/plans/2026-03-05-email-support-design.md` - design doc
+- `docs/plans/2026-03-05-email-support.md` - implementation plan
+
+Errors encountered:
+1. Tests with mock SMTP server - initial mock server design needed to handle the SMTP protocol correctly
+2. smtp.PlainAuth refusing over unencrypted connections - fixed by skipping auth when credentials empty
+3. Git commit from wrong directory (web/ instead of project root) - fixed by using full paths
+4. Frontend missing email option - user reported, fixed by adding to both form and styles
+5. MailHog doesn't deliver to real inboxes - explained to user
+
+The most recent task: User said "update docs and commit and push". I read all 4 doc files (README.md, ARCH.md, DESIGN.md, API.md) but hadn't yet made the edits when the summary was requested. The docs need updating to mention email as a notification channel alongside Slack, Discord, and webhooks.
+
+Specific areas needing doc updates:
+- README.md line 11: "Routes notifications to Slack, Discord, and webhooks" → add email
+- README.md line 26: mermaid diagram D1 shows "Slack · Discord · Webhooks" → add Email
+- README.md line 83: "channels (PagerDuty, email, etc.) are planned" → email is now implemented
+- ARCH.md line 27: "Notification channels (Slack, Discord, webhooks)" → add email
+- ARCH.md lines 50-52: mermaid diagram missing email sender
+- ARCH.md line 141: Sender description → add email
+- DESIGN.md line 111: "Slack, PagerDuty, webhooks" → add email
+- DESIGN.md lines 310-315: Channel Types table → add email row
+- API.md line 109: "Register a new channel (Slack, Discord, webhook)" → add email
+- API.md lines 388-393: Config Fields table → add email row
+
+Summary:
+1. Primary Request and Intent:
+   The user requested "Add email support" to the Changelogue notification system. This involved a full feature implementation lifecycle: design brainstorming, implementation planning, TDD-based development, code review, frontend integration, debugging SMTP issues with MailHog, and finally updating documentation. The user's most recent explicit request was "update docs and commit and push" — to update the project documentation (README.md, ARCH.md, DESIGN.md, API.md) to reflect the newly added email notification channel, then commit and push.
+
+2. Key Technical Concepts:
+   - Go `net/smtp` with STARTTLS (port 587) and direct TLS (port 465)
+   - `smtp.PlainAuth` security restriction: refuses to send credentials over unencrypted connections
+   - Go `html/template` with `//go:embed` for email templates
+   - Multipart MIME (HTML + plain text) email assembly using `mime/multipart`
+   - SMTP header injection prevention via `sanitizeHeader()`
+   - Sender interface pattern: `Send(ctx context.Context, ch *models.NotificationChannel, msg Notification) error`
+   - Plugin-style channel registration via `NewSenders()` map
+   - SemanticReport vs raw release fallback pattern (matching Slack/Discord senders)
+   - MailHog as local SMTP trap (captures but doesn't forward emails)
+   - River job queue for notification delivery with transactional outbox pattern
+   - React/Next.js form with config type transformation (string→number for port, comma-separated→array for addresses)
+
+3. Files and Code Sections:
+
+   - **`internal/routing/email.go`** (Created)
+     - Core EmailSender implementation. Implements the Sender interface with SMTP delivery.
+     - Key functions: `Send()`, `buildEmailData()`, `buildPlainText()`, `urgencyColor()`, `sanitizeHeader()`
+     - Handles both SemanticReport (rich formatting with urgency badges) and raw release fallback
+     - Skips auth when credentials empty (for MailHog compatibility)
+     - Uses 10-second dial timeout via `net.Dialer{Timeout: 10 * time.Second}`
+     - Logs Quit() errors instead of returning them (prevents duplicate emails)
+     ```go
+     // Key config struct
+     type emailConfig struct {
+         SMTPHost    string   `json:"smtp_host"`
+         SMTPPort    int      `json:"smtp_port"`
+         Username    string   `json:"username"`
+         Password    string   `json:"password"`
+         FromAddress string   `json:"from_address"`
+         ToAddresses []string `json:"to_addresses"`
+     }
+     
+     // Auth skip for local test servers
+     if cfg.Username != "" || cfg.Password != "" {
+         auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.SMTPHost)
+         if err := client.Auth(auth); err != nil {
+             return fmt.Errorf("smtp auth: %w", err)
+         }
+     }
+     
+     // Header injection prevention
+     func sanitizeHeader(s string) string {
+         return strings.NewReplacer("\r", "", "\n", "").Replace(s)
+     }
+     
+     // Empty recipients validation
+     if len(cfg.ToAddresses) == 0 {
+         return fmt.Errorf("email config: to_addresses is empty")
+     }
+     
+     // Safe Quit handling
+     if err := client.Quit(); err != nil {
+         slog.Warn("smtp quit error (email already sent)", "err", err)
+     }
+     return nil
+     ```
+
+   - **`internal/routing/email.html.tmpl`** (Created)
+     - Responsive HTML email template with inline CSS for email client compatibility
+     - Table-based layout with urgency-colored header, badge, summary, changelog (pre block), download command (code block), links, and footer
+     - Uses Go template conditionals (`{{if .UrgencyBadge}}`, etc.)
+
+   - **`internal/routing/email_test.go`** (Created)
+     - 4 tests using a `mockSMTPServer` that simulates SMTP protocol
+     - `TestEmailSender_Send` — basic send with changelog fallback, verifies multipart/alternative
+     - `TestEmailSender_SemanticReport` — rich formatting from SemanticReport JSON
+     - `TestEmailSender_InvalidConfig` — error handling for malformed config
+     - `TestEmailSender_MultipleRecipients` — verifies multiple recipients in To header
+
+   - **`internal/routing/worker.go`** (Modified)
+     - Added `"email": &EmailSender{}` to `NewSenders()` map
+     - Updated comment from "webhook, Slack, and Discord" to "all notification channel types"
+     ```go
+     func NewSenders() map[string]Sender {
+         return map[string]Sender{
+             "webhook": &WebhookSender{Client: &http.Client{Timeout: 10 * time.Second}},
+             "slack":   &SlackSender{Client: &http.Client{Timeout: 10 * time.Second}},
+             "discord": &DiscordSender{Client: &http.Client{Timeout: 10 * time.Second}},
+             "email":   &EmailSender{},
+         }
+     }
+     ```
+
+   - **`web/components/channels/channel-form.tsx`** (Modified)
+     - Added email entry to `channelFields` with 6 fields (SMTP Host, SMTP Port, Username, Password, From Address, To Addresses)
+     - Added `<SelectItem value="email">Email</SelectItem>` to dropdown
+     - Added config transformation in handleSubmit to convert smtp_port to number and to_addresses from comma-separated string to array
+     ```typescript
+     email: [
+       { label: "SMTP Host", placeholder: "smtp.example.com" },
+       { label: "SMTP Port", placeholder: "587" },
+       { label: "Username", placeholder: "alerts@example.com" },
+       { label: "Password", placeholder: "password or app-specific password" },
+       { label: "From Address", placeholder: "no-reply@example.com" },
+       { label: "To Addresses", placeholder: "team@example.com, ops@example.com" },
+     ],
+     
+     // Config transform on submit:
+     if (type === "email") {
+       finalConfig = {
+         ...config,
+         smtp_port: Number(config.smtp_port) || 587,
+         to_addresses: typeof config.to_addresses === "string"
+           ? (config.to_addresses as string).split(",").map((s) => s.trim()).filter(Boolean)
+           : config.to_addresses,
+       };
+     }
+     ```
+
+   - **`web/app/channels/page.tsx`** (Modified)
+     - Added `import { HiOutlineMail } from "react-icons/hi"`
+     - Added email entry to `TYPE_STYLES`: `email: { bg: "#2563EB", text: "#ffffff", icon: HiOutlineMail }`
+
+   - **`docs/plans/2026-03-05-email-support-design.md`** (Created) — Design document
+   - **`docs/plans/2026-03-05-email-support.md`** (Created) — Implementation plan with 5 tasks
+
+   - **`internal/routing/sender.go`** (Read only) — Contains Sender interface, Notification struct, parseRawBody(), markdownToASCII(), ProviderURL(), ProviderLabel()
+   - **`internal/routing/slack.go`** (Read only) — Reference for pattern: config parsing, SemanticReport detection, urgencyEmoji()
+   - **`internal/routing/discord.go`** (Read only) — Reference for pattern: urgencyColor mapping, embed building
+   - **`internal/routing/slack_test.go`** (Read only) — Reference for test patterns with httptest
+   - **`internal/routing/webhook.go`** (Read only) — Reference for simplest sender pattern
+   - **`internal/api/channels.go`** (Read only) — Channel CRUD handlers and test endpoint
+   - **`internal/models/semantic_release.go`** (Read only) — SemanticReport struct fields
+   - **README.md, ARCH.md, DESIGN.md, API.md** (Read only, pending update) — Project documentation that needs email channel added
+
+4. Errors and Fixes:
+   - **Frontend missing email option**: User reported "I cannot see the email channel in the 'Add Channel' pop up". The backend had email support but the frontend form and styles didn't include it. Fixed by adding email to `channelFields`, the Select dropdown, config transform logic in `channel-form.tsx`, and `TYPE_STYLES` with `HiOutlineMail` icon in `page.tsx`.
+   - **MailHog email not received**: User tested with MailHog but didn't receive email at pooytr1@gmail.com. Two causes: (1) Go's `smtp.PlainAuth` refuses to send credentials over unencrypted connections — MailHog uses plain SMTP on port 1025; (2) MailHog is a local mail trap that doesn't forward to real inboxes. Fixed by making auth conditional (skip when username/password empty). Explained to user to check http://localhost:8025 for captured emails.
+   - **SMTP header injection vulnerability** (found in code review): Unsanitized From/To/Subject values written directly into MIME headers. Fixed by adding `sanitizeHeader()` that strips `\r` and `\n` characters.
+   - **Missing connection timeout** (found in code review): No timeout on SMTP dial, could block River worker pool indefinitely. Fixed by using `net.Dialer{Timeout: 10 * time.Second}` and `dialer.DialContext(ctx, ...)`.
+   - **Quit() error causing duplicate emails** (found in code review): If `client.Quit()` failed after email was already sent, the error would propagate to River which would retry the job. Fixed by logging the Quit error instead of returning it.
+   - **Git commit from wrong directory**: `git add web/components/...` failed because shell was in `web/` directory. Fixed by using `cd /Users/pc/web3/ReleaseBeacon && git add ...`.
+
+5. Problem Solving:
+   - Designed email notification channel following the existing Sender plugin pattern (Slack/Discord/Webhook)
+   - Solved SMTP compatibility with local test servers (MailHog/MailPit) by making auth optional
+   - Solved config type mismatch in frontend (form stores strings, backend needs number for port and array for addresses) with submit-time transformation
+   - Addressed security concerns from code review (header injection, empty recipients validation)
+   - Addressed reliability concerns (connection timeout, safe Quit handling)
+
+6. All User Messages:
+   - "Add email support"
+   - Selected "Direct SMTP (Recommended)" for SMTP approach
+   - Selected "HTML + plain text (Recommended)" for email format
+   - Selected "STARTTLS/SSL with credentials (Recommended)" for auth method
+   - "yes" (approving Approach A: Go html/template)
+   - "yes" (approving the design)
+   - "1" (choosing Subagent-Driven execution in this session)
+   - "how to create a smtp server?"
+   - "I cannot see the email channle in the 'Add Channel' pop up"
+   - "I test the local mailhog channel to send email to pooytr1@gmail.com I don't recieve any message why?"
+   - "then locally how can i test the email?"
+   - "looks good, thanks"
+   - "commit and push"
+   - "update docs and commit and push"
+
+7. Pending Tasks:
+   - Update README.md, ARCH.md, DESIGN.md, and API.md to reflect email as an implemented notification channel (not planned), then commit and push
+
+8. Current Work:
+   The user's most recent request was "update docs and commit and push". I read all four documentation files (README.md, ARCH.md, DESIGN.md, API.md) to identify what needs updating but had not yet made any edits when the summary was requested. 
+   
+   Specific updates needed:
+   - **README.md**: Line 11 "Routes notifications to Slack, Discord, and webhooks" → add email. Line 26 mermaid diagram `D1["Slack · Discord<br/>Webhooks"]` → add Email. Line 83 "channels (PagerDuty, email, etc.) are planned" → email is now implemented.
+   - **ARCH.md**: Line 27 "Notification channels (Slack, Discord, webhooks)" → add email. Lines 50-52 mermaid diagram missing email sender node. Line 141 Sender description → mention email.
+   - **DESIGN.md**: Line 111 "Slack, PagerDuty, webhooks" → add email. Lines 310-315 Channel Types table → add email row with config fields and payload format. Line 217 notification_channels type comment `'slack', 'pagerduty', 'webhook'` → add `'email'`.
+   - **API.md**: Line 109 "Register a new channel (Slack, Discord, webhook)" → add email. Lines 388-393 Config Fields table → add email row with `smtp_host, smtp_port, username, password, from_address, to_addresses`.
+
+9. Optional Next Step:
+   Apply the documentation updates identified above to README.md, ARCH.md, DESIGN.md, and API.md, then commit and push. This directly follows the user's most recent request: "update docs and commit and push".
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
