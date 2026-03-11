@@ -114,6 +114,10 @@ func (m *mockOrchestratorStore) HasReleaseForVersion(_ context.Context, sourceID
 	return true, nil
 }
 
+func (m *mockOrchestratorStore) CreateSemanticReleaseTodo(_ context.Context, semanticReleaseID string) (string, error) {
+	return "todo-" + semanticReleaseID, nil
+}
+
 // --- mock sender for testing ---
 
 type mockNotifySender struct {
