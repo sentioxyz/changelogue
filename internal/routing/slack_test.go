@@ -12,6 +12,12 @@ import (
 	"github.com/sentioxyz/changelogue/internal/models"
 )
 
+// slackTestPayload mirrors slackPayload but with typed Blocks for test assertions.
+type slackTestPayload struct {
+	Blocks      []slackBlock      `json:"blocks,omitempty"`
+	Attachments []slackAttachment `json:"attachments,omitempty"`
+}
+
 func TestSlackSender_Send(t *testing.T) {
 	var received []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +139,7 @@ func TestSlackSender_SemanticReport(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	var payload slackPayload
+	var payload slackTestPayload
 	if err := json.Unmarshal(received, &payload); err != nil {
 		t.Fatalf("received invalid JSON: %v", err)
 	}
@@ -217,7 +223,7 @@ func TestSlackSender_SemanticReport_LowUrgency(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	var payload slackPayload
+	var payload slackTestPayload
 	if err := json.Unmarshal(received, &payload); err != nil {
 		t.Fatalf("received invalid JSON: %v", err)
 	}
@@ -256,7 +262,7 @@ func TestSlackSender_NonReportFallback(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	var payload slackPayload
+	var payload slackTestPayload
 	if err := json.Unmarshal(received, &payload); err != nil {
 		t.Fatalf("received invalid JSON: %v", err)
 	}
@@ -307,7 +313,7 @@ func TestSlackSender_RawJSONFallback(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	var payload slackPayload
+	var payload slackTestPayload
 	if err := json.Unmarshal(received, &payload); err != nil {
 		t.Fatalf("received invalid JSON: %v", err)
 	}
@@ -408,7 +414,7 @@ func TestSlackSender_EmptyChangelog_NoRawJSON(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			var payload slackPayload
+			var payload slackTestPayload
 			if err := json.Unmarshal(received, &payload); err != nil {
 				t.Fatalf("received invalid JSON: %v", err)
 			}

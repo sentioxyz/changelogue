@@ -91,6 +91,22 @@ func ProviderLabel(provider string) string {
 	}
 }
 
+// TodoAcknowledgeURL returns the one-click acknowledge URL for a TODO.
+func TodoAcknowledgeURL(publicURL, todoID string) string {
+	if publicURL == "" || todoID == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/api/v1/todos/%s/acknowledge?redirect=true", publicURL, todoID)
+}
+
+// TodoResolveURL returns the one-click resolve URL for a TODO.
+func TodoResolveURL(publicURL, todoID string) string {
+	if publicURL == "" || todoID == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/api/v1/todos/%s/resolve?redirect=true", publicURL, todoID)
+}
+
 // Regex patterns for markdown-to-ASCII conversion.
 var (
 	// GitHub PR/issue URLs → #NNN ( url )

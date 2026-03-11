@@ -29,6 +29,8 @@ type webhookSemanticPayload struct {
 	ReleaseURL  string                `json:"release_url,omitempty"`
 	SourceURL   string                `json:"source_url,omitempty"`
 	Report      *models.SemanticReport `json:"report"`
+	AcknowledgeURL string `json:"acknowledge_url,omitempty"`
+	ResolveURL     string `json:"resolve_url,omitempty"`
 }
 
 func (s *WebhookSender) Send(ctx context.Context, ch *models.NotificationChannel, msg Notification) error {
@@ -50,6 +52,8 @@ func (s *WebhookSender) Send(ctx context.Context, ch *models.NotificationChannel
 			ReleaseURL:  msg.ReleaseURL,
 			SourceURL:   msg.SourceURL,
 			Report:      &report,
+			AcknowledgeURL: TodoAcknowledgeURL(msg.PublicURL, msg.TodoID),
+			ResolveURL:     TodoResolveURL(msg.PublicURL, msg.TodoID),
 		}
 	} else {
 		payload = msg

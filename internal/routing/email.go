@@ -46,6 +46,8 @@ type emailData struct {
 	ReleaseURL      string
 	ProviderLabel   string
 	FooterText      string
+	TodoAckURL      string
+	TodoResolveURL  string
 }
 
 // EmailSender sends notifications via SMTP email.
@@ -216,6 +218,12 @@ func (s *EmailSender) buildEmailData(msg Notification) emailData {
 		data.FooterText = fmt.Sprintf("%s · %s", ProviderLabel(msg.Provider), msg.Repository)
 	}
 
+	// Action URLs for TODO acknowledge/resolve
+	if msg.TodoID != "" && msg.PublicURL != "" {
+		data.TodoAckURL = TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)
+		data.TodoResolveURL = TodoResolveURL(msg.PublicURL, msg.TodoID)
+	}
+
 	// Try semantic report first.
 	var report models.SemanticReport
 	if err := json.Unmarshal([]byte(msg.Body), &report); err == nil && report.Subject != "" {
@@ -286,6 +294,11 @@ func (s *EmailSender) buildPlainText(data emailData) string {
 	}
 	if data.ReleaseURL != "" {
 		b.WriteString("View in Changelogue: " + data.ReleaseURL + "\n")
+	}
+
+	if data.TodoAckURL != "" {
+		b.WriteString("\nAcknowledge: " + data.TodoAckURL + "\n")
+		b.WriteString("Resolve: " + data.TodoResolveURL + "\n")
 	}
 
 	if data.FooterText != "" {

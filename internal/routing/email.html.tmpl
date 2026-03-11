@@ -53,6 +53,14 @@
 {{if .ReleaseURL}}<a href="{{.ReleaseURL}}" style="color:#2563eb;font-size:14px;text-decoration:none;">View in Changelogue</a>{{end}}
 </td></tr>
 
+{{if .TodoAckURL}}
+<!-- Action Buttons -->
+<tr><td style="padding:0 24px 16px;">
+<a href="{{.TodoAckURL}}" style="display:inline-block;padding:8px 16px;background-color:#16A34A;color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;border-radius:4px;margin-right:8px;">Acknowledge</a>
+<a href="{{.TodoResolveURL}}" style="display:inline-block;padding:8px 16px;background-color:#2563EB;color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;border-radius:4px;">Resolve</a>
+</td></tr>
+{{end}}
+
 <!-- Footer -->
 <tr><td style="padding:12px 24px;border-top:1px solid #e4e4e7;">
 <p style="margin:0;color:#a1a1aa;font-size:12px;">{{.FooterText}}</p>

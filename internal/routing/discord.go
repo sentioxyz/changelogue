@@ -110,6 +110,13 @@ func buildSemanticEmbed(title string, version string, report *models.SemanticRep
 	if msg.ReleaseURL != "" {
 		linkParts = append(linkParts, fmt.Sprintf("[View in Changelogue](%s)", msg.ReleaseURL))
 	}
+	// Action links for TODO acknowledge/resolve
+	if msg.TodoID != "" && msg.PublicURL != "" {
+		linkParts = append(linkParts,
+			fmt.Sprintf("[Acknowledge](%s)", TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)),
+			fmt.Sprintf("[Resolve](%s)", TodoResolveURL(msg.PublicURL, msg.TodoID)),
+		)
+	}
 	if len(linkParts) > 0 {
 		descParts = append(descParts, strings.Join(linkParts, "  •  "))
 	}
@@ -163,6 +170,12 @@ func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel
 		}
 		if msg.ReleaseURL != "" {
 			linkParts = append(linkParts, fmt.Sprintf("[View in Changelogue](%s)", msg.ReleaseURL))
+		}
+		if msg.TodoID != "" && msg.PublicURL != "" {
+			linkParts = append(linkParts,
+				fmt.Sprintf("[Acknowledge](%s)", TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)),
+				fmt.Sprintf("[Resolve](%s)", TodoResolveURL(msg.PublicURL, msg.TodoID)),
+			)
 		}
 		if len(linkParts) > 0 {
 			descParts = append(descParts, strings.Join(linkParts, "  •  "))

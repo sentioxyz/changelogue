@@ -22,7 +22,7 @@ type SlackSender struct {
 
 // slackPayload is the Slack incoming webhook payload using Block Kit and/or attachments.
 type slackPayload struct {
-	Blocks      []slackBlock      `json:"blocks,omitempty"`
+	Blocks      []any             `json:"blocks,omitempty"`
 	Attachments []slackAttachment `json:"attachments,omitempty"`
 }
 
@@ -36,6 +36,19 @@ type slackBlock struct {
 type slackText struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
+}
+
+// slackButton represents a Slack button element in an actions block.
+type slackButton struct {
+	Type string    `json:"type"`
+	Text slackText `json:"text"`
+	URL  string    `json:"url,omitempty"`
+}
+
+// slackActionsBlock is a Slack actions block containing button elements.
+type slackActionsBlock struct {
+	Type     string        `json:"type"`
+	Elements []slackButton `json:"elements"`
 }
 
 // slackAttachment uses Slack's legacy attachment format which auto-collapses
@@ -66,7 +79,7 @@ func urgencyEmoji(level string) string {
 
 // buildSemanticBlocks builds compact Slack Block Kit blocks from a SemanticReport.
 // For Critical/High urgency, includes the urgency reason. For Low/Medium, omits it.
-func buildSemanticBlocks(title string, report *models.SemanticReport, msg Notification) []slackBlock {
+func buildSemanticBlocks(title string, report *models.SemanticReport, msg Notification) []any {
 	// Resolve urgency from new field or backward-compat risk_level
 	urgency := report.Urgency
 	if urgency == "" {
@@ -87,8 +100,8 @@ func buildSemanticBlocks(title string, report *models.SemanticReport, msg Notifi
 		headerText = headerText[:147] + "..."
 	}
 
-	blocks := []slackBlock{
-		{Type: "header", Text: &slackText{Type: "plain_text", Text: headerText}},
+	blocks := []any{
+		slackBlock{Type: "header", Text: &slackText{Type: "plain_text", Text: headerText}},
 	}
 
 	// Urgency reason (only for Critical/High)
@@ -140,6 +153,17 @@ func buildSemanticBlocks(title string, report *models.SemanticReport, msg Notifi
 		})
 	}
 
+	// Action buttons for TODO acknowledge/resolve
+	if msg.TodoID != "" && msg.PublicURL != "" {
+		blocks = append(blocks, slackActionsBlock{
+			Type: "actions",
+			Elements: []slackButton{
+				{Type: "button", Text: slackText{Type: "plain_text", Text: "Acknowledge"}, URL: TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)},
+				{Type: "button", Text: slackText{Type: "plain_text", Text: "Resolve"}, URL: TodoResolveURL(msg.PublicURL, msg.TodoID)},
+			},
+		})
+	}
+
 	return blocks
 }
 
@@ -185,6 +209,12 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 			if msg.ReleaseURL != "" {
 				linkParts = append(linkParts, fmt.Sprintf("<%s|View in Changelogue>", msg.ReleaseURL))
 			}
+			if msg.TodoID != "" && msg.PublicURL != "" {
+				linkParts = append(linkParts,
+					fmt.Sprintf("<%s|Acknowledge>", TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)),
+					fmt.Sprintf("<%s|Resolve>", TodoResolveURL(msg.PublicURL, msg.TodoID)),
+				)
+			}
 			if len(linkParts) > 0 {
 				attachText += "\n" + strings.Join(linkParts, "  |  ")
 			}
@@ -209,8 +239,8 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 				headerText = headerText[:147] + "..."
 			}
 
-			blocks := []slackBlock{
-				{Type: "header", Text: &slackText{Type: "plain_text", Text: headerText}},
+			blocks := []any{
+				slackBlock{Type: "header", Text: &slackText{Type: "plain_text", Text: headerText}},
 			}
 
 			var linkParts []string
@@ -228,6 +258,15 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 					Type: "context",
 					Elements: []slackText{
 						{Type: "mrkdwn", Text: strings.Join(linkParts, "  |  ")},
+					},
+				})
+			}
+			if msg.TodoID != "" && msg.PublicURL != "" {
+				blocks = append(blocks, slackActionsBlock{
+					Type: "actions",
+					Elements: []slackButton{
+						{Type: "button", Text: slackText{Type: "plain_text", Text: "Acknowledge"}, URL: TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)},
+						{Type: "button", Text: slackText{Type: "plain_text", Text: "Resolve"}, URL: TodoResolveURL(msg.PublicURL, msg.TodoID)},
 					},
 				})
 			}
