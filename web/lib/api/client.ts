@@ -206,9 +206,10 @@ export const channels = {
 // --- Todos ---
 
 export const todos = {
-  list: (status?: string, page = 1, perPage = 25) => {
+  list: (status?: string, page = 1, perPage = 25, aggregated = false) => {
     const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
     if (status) params.set("status", status);
+    if (aggregated) params.set("aggregated", "true");
     return request<ApiResponse<Todo[]>>(`/todos?${params}`);
   },
   get: (id: string) =>

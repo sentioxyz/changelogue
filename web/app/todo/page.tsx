@@ -41,25 +41,26 @@ export default function TodoPage() {
 function TodoPageInner() {
   const [activeTab, setActiveTab] = useState<StatusTab>("pending");
   const [page, setPage] = useState(1);
+  const [aggregated, setAggregated] = useState(true);
 
   /* Fetch todos for active tab */
   const { data, isLoading, mutate } = useSWR(
-    ["todos", activeTab, page],
-    () => todosApi.list(activeTab, page, PER_PAGE)
+    ["todos", activeTab, page, aggregated],
+    () => todosApi.list(activeTab, page, PER_PAGE, aggregated)
   );
 
   /* Fetch counts for all three tabs */
   const { data: pendingData, mutate: mutatePending } = useSWR(
-    ["todos-count", "pending"],
-    () => todosApi.list("pending", 1, 1)
+    ["todos-count", "pending", aggregated],
+    () => todosApi.list("pending", 1, 1, aggregated)
   );
   const { data: ackedData, mutate: mutateAcked } = useSWR(
-    ["todos-count", "acknowledged"],
-    () => todosApi.list("acknowledged", 1, 1)
+    ["todos-count", "acknowledged", aggregated],
+    () => todosApi.list("acknowledged", 1, 1, aggregated)
   );
   const { data: resolvedData, mutate: mutateResolved } = useSWR(
-    ["todos-count", "resolved"],
-    () => todosApi.list("resolved", 1, 1)
+    ["todos-count", "resolved", aggregated],
+    () => todosApi.list("resolved", 1, 1, aggregated)
   );
 
   const counts: Record<StatusTab, number> = {
@@ -148,42 +149,62 @@ function TodoPageInner() {
         Todo
       </h1>
 
-      {/* Status tabs */}
-      <div className="flex items-center gap-2">
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveTab(tab.key);
-                setPage(1);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors"
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "13px",
-                fontWeight: 500,
-                color: isActive ? "#111113" : "#6b7280",
-                backgroundColor: isActive ? "#f3f3f1" : "transparent",
-                border: isActive ? "1px solid #e8e8e5" : "1px solid transparent",
-              }}
-            >
-              {tab.label}
-              <span
-                className="inline-flex items-center justify-center rounded-full px-1.5 text-[11px] font-medium leading-none"
+      {/* Status tabs + aggregated toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setPage(1);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors"
                 style={{
-                  minWidth: "18px",
-                  height: "18px",
-                  backgroundColor: isActive ? "#e8e8e5" : "#f3f3f1",
-                  color: isActive ? "#111113" : "#9ca3af",
+                  fontFamily: "var(--font-dm-sans)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: isActive ? "#111113" : "#6b7280",
+                  backgroundColor: isActive ? "#f3f3f1" : "transparent",
+                  border: isActive ? "1px solid #e8e8e5" : "1px solid transparent",
                 }}
               >
-                {counts[tab.key]}
-              </span>
-            </button>
-          );
-        })}
+                {tab.label}
+                <span
+                  className="inline-flex items-center justify-center rounded-full px-1.5 text-[11px] font-medium leading-none"
+                  style={{
+                    minWidth: "18px",
+                    height: "18px",
+                    backgroundColor: isActive ? "#e8e8e5" : "#f3f3f1",
+                    color: isActive ? "#111113" : "#9ca3af",
+                  }}
+                >
+                  {counts[tab.key]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => {
+            setAggregated((v) => !v);
+            setPage(1);
+          }}
+          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors"
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            fontWeight: 500,
+            color: aggregated ? "#111113" : "#6b7280",
+            backgroundColor: aggregated ? "#f3f3f1" : "transparent",
+            border: aggregated ? "1px solid #e8e8e5" : "1px solid transparent",
+          }}
+        >
+          Latest only
+        </button>
       </div>
 
       {/* Table card */}

@@ -18,8 +18,8 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/todo", label: "Todo", icon: ListTodo },
   { href: "/projects", label: "Projects", icon: FolderKanban },
+  { href: "/todo", label: "Todo", icon: ListTodo },
   { href: "/releases", label: "Releases", icon: Package },
   { href: "/semantic-releases", label: "Semantic Releases", icon: Brain },
   { href: "/channels", label: "Channels", icon: Megaphone },

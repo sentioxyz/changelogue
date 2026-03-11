@@ -20,13 +20,14 @@ type ChannelsStore interface {
 
 // ChannelsHandler implements HTTP handlers for the /channels resource.
 type ChannelsHandler struct {
-	store   ChannelsStore
-	senders map[string]routing.Sender
+	store     ChannelsStore
+	senders   map[string]routing.Sender
+	publicURL string
 }
 
 // NewChannelsHandler returns a new ChannelsHandler.
-func NewChannelsHandler(store ChannelsStore, senders map[string]routing.Sender) *ChannelsHandler {
-	return &ChannelsHandler{store: store, senders: senders}
+func NewChannelsHandler(store ChannelsStore, senders map[string]routing.Sender, publicURL string) *ChannelsHandler {
+	return &ChannelsHandler{store: store, senders: senders, publicURL: publicURL}
 }
 
 // List handles GET /channels — returns a paginated list of notification channels.
@@ -151,6 +152,10 @@ func (h *ChannelsHandler) Test(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, r, http.StatusUnprocessableEntity, "unsupported_type", "Unsupported channel type: "+ch.Type)
 		return
 	}
+	testPublicURL := h.publicURL
+	if testPublicURL == "" {
+		testPublicURL = "https://your-changelogue-instance.example.com"
+	}
 	msg := routing.Notification{
 		Title:       "Changelogue",
 		Body:        `{"changelog":"## What's Changed\n\n* feat: add new monitoring dashboard by @dev in #42\n* fix: resolve memory leak in worker pool by @dev in #43\n* docs: update API reference for v1.0 by @dev in #44\n\n**Full Changelog**: https://github.com/example/project/compare/v0.9.0...v1.0.0","prerelease":"false"}`,
@@ -160,6 +165,8 @@ func (h *ChannelsHandler) Test(w http.ResponseWriter, r *http.Request) {
 		Repository:  "example/project",
 		SourceURL:   "https://github.com/example/project/releases/tag/v1.0.0-test",
 		ReleaseURL:  "https://changelogue.example.com/releases/test",
+		TodoID:      "00000000-0000-0000-0000-000000000000",
+		PublicURL:   testPublicURL,
 	}
 	if err := sender.Send(r.Context(), ch, msg); err != nil {
 		RespondError(w, r, http.StatusBadGateway, "send_failed", "Failed to send test notification: "+err.Error())

@@ -99,7 +99,7 @@ func setupChannelsMux(store ChannelsStore) *http.ServeMux {
 }
 
 func setupChannelsMuxWithSenders(store ChannelsStore, senders map[string]routing.Sender) *http.ServeMux {
-	h := NewChannelsHandler(store, senders)
+	h := NewChannelsHandler(store, senders, "https://test.example.com")
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /channels", h.List)
 	mux.HandleFunc("POST /channels", h.Create)

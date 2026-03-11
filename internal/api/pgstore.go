@@ -1132,31 +1132,17 @@ func (s *PgStore) GetTrend(ctx context.Context, granularity string, start, end t
 
 // --- TodosStore ---
 
-func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage int) ([]models.Todo, int, error) {
-	// Count query
-	countQuery := `SELECT COUNT(*) FROM release_todos`
-	args := []any{}
+func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage int, aggregated bool) ([]models.Todo, int, error) {
+	// Base WHERE clause
+	whereClause := ""
+	countArgs := []any{}
 	if status != "" {
-		countQuery += ` WHERE status = $1`
-		args = append(args, status)
-	}
-	var total int
-	if err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("count todos: %w", err)
+		whereClause = ` WHERE t.status = $1`
+		countArgs = append(countArgs, status)
 	}
 
-	offset := (page - 1) * perPage
-
-	// Build the enriched query with LEFT JOINs to releases and semantic_releases.
-	query := `
-		SELECT
-			t.id, t.release_id, t.semantic_release_id, t.status,
-			t.created_at, t.acknowledged_at, t.resolved_at,
-			COALESCE(p1.name, p2.name, ''),
-			COALESCE(r.version, sr.version, ''),
-			COALESCE(src.provider, ''),
-			COALESCE(src.repository, ''),
-			CASE WHEN t.release_id IS NOT NULL THEN 'release' ELSE 'semantic' END
+	// Shared FROM/JOIN clause.
+	fromClause := `
 		FROM release_todos t
 		LEFT JOIN releases r ON r.id = t.release_id
 		LEFT JOIN sources src ON src.id = r.source_id
@@ -1164,14 +1150,58 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		LEFT JOIN semantic_releases sr ON sr.id = t.semantic_release_id
 		LEFT JOIN projects p2 ON p2.id = sr.project_id
 	`
-	queryArgs := []any{}
-	argIdx := 1
-	if status != "" {
-		query += fmt.Sprintf(` WHERE t.status = $%d`, argIdx)
-		queryArgs = append(queryArgs, status)
-		argIdx++
+
+	// Shared select columns with aliases for subquery use.
+	selectCols := `
+			t.id, t.release_id, t.semantic_release_id, t.status,
+			t.created_at, t.acknowledged_at, t.resolved_at,
+			COALESCE(p1.name, p2.name, '') AS project_name,
+			COALESCE(r.version, sr.version, '') AS version,
+			COALESCE(src.provider, '') AS provider,
+			COALESCE(src.repository, '') AS repository,
+			CASE WHEN t.release_id IS NOT NULL THEN 'release' ELSE 'semantic' END AS todo_type`
+
+	var countQuery string
+	var query string
+	offset := (page - 1) * perPage
+
+	if aggregated {
+		// Aggregated: keep only the latest todo per grouping key.
+		// Group by (source_id) for release todos, (project_id) for semantic todos.
+		partitionExpr := `CASE WHEN t.release_id IS NOT NULL THEN r.source_id::text ELSE sr.project_id::text END`
+
+		countQuery = `
+			SELECT COUNT(*) FROM (
+				SELECT t.id,
+					ROW_NUMBER() OVER (PARTITION BY ` + partitionExpr + ` ORDER BY t.created_at DESC) AS rn
+				` + fromClause + whereClause + `
+			) sub WHERE sub.rn = 1`
+
+		query = `
+			SELECT id, release_id, semantic_release_id, status,
+				created_at, acknowledged_at, resolved_at,
+				project_name, version, provider, repository, todo_type
+			FROM (
+				SELECT ` + selectCols + `,
+					ROW_NUMBER() OVER (PARTITION BY ` + partitionExpr + ` ORDER BY t.created_at DESC) AS rn
+				` + fromClause + whereClause + `
+			) sub WHERE sub.rn = 1
+			ORDER BY created_at DESC`
+	} else {
+		countQuery = `SELECT COUNT(*) FROM release_todos t` + whereClause
+		query = `SELECT ` + selectCols + fromClause + whereClause + ` ORDER BY t.created_at DESC`
 	}
-	query += fmt.Sprintf(` ORDER BY t.created_at DESC LIMIT $%d OFFSET $%d`, argIdx, argIdx+1)
+
+	// Execute count query
+	var total int
+	if err := s.pool.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count todos: %w", err)
+	}
+
+	// Add pagination
+	queryArgs := append([]any{}, countArgs...)
+	argIdx := len(queryArgs) + 1
+	query += fmt.Sprintf(` LIMIT $%d OFFSET $%d`, argIdx, argIdx+1)
 	queryArgs = append(queryArgs, perPage, offset)
 
 	rows, err := s.pool.Query(ctx, query, queryArgs...)

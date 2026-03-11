@@ -59,6 +59,7 @@ type slackAttachment struct {
 	TitleLink string   `json:"title_link,omitempty"`
 	Text      string   `json:"text,omitempty"`
 	MrkdwnIn  []string `json:"mrkdwn_in,omitempty"`
+	Blocks    []any    `json:"blocks,omitempty"`
 }
 
 // urgencyEmoji returns an emoji indicator for the given urgency level.
@@ -229,6 +230,22 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 				attachment.TitleLink = msg.SourceURL
 			}
 			payload.Attachments = []slackAttachment{attachment}
+
+			// Action buttons as a second attachment (renders below the changelog)
+			if msg.TodoID != "" && msg.PublicURL != "" {
+				payload.Attachments = append(payload.Attachments, slackAttachment{
+					Color: "#D3D3D3",
+					Blocks: []any{
+						slackActionsBlock{
+							Type: "actions",
+							Elements: []slackButton{
+								{Type: "button", Text: slackText{Type: "plain_text", Text: "Acknowledge"}, URL: TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)},
+								{Type: "button", Text: slackText{Type: "plain_text", Text: "Resolve"}, URL: TodoResolveURL(msg.PublicURL, msg.TodoID)},
+							},
+						},
+					},
+				})
+			}
 		} else {
 			// No changelog — show a clean version announcement instead of raw JSON.
 			headerText := msg.Title

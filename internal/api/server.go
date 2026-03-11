@@ -91,7 +91,7 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("DELETE /api/v1/subscriptions/{id}", chain(http.HandlerFunc(subscriptions.Delete)))
 
 	// Channels (CRUD + test)
-	channels := NewChannelsHandler(deps.ChannelsStore, routing.NewSenders())
+	channels := NewChannelsHandler(deps.ChannelsStore, routing.NewSenders(), deps.PublicURL)
 	mux.Handle("GET /api/v1/channels", chain(http.HandlerFunc(channels.List)))
 	mux.Handle("POST /api/v1/channels", chain(http.HandlerFunc(channels.Create)))
 	mux.Handle("GET /api/v1/channels/{id}", chain(http.HandlerFunc(channels.Get)))

@@ -9,7 +9,7 @@ import (
 
 // TodosStore defines the data access interface for TODO operations.
 type TodosStore interface {
-	ListTodos(ctx context.Context, status string, page, perPage int) ([]models.Todo, int, error)
+	ListTodos(ctx context.Context, status string, page, perPage int, aggregated bool) ([]models.Todo, int, error)
 	GetTodo(ctx context.Context, id string) (*models.Todo, error)
 	AcknowledgeTodo(ctx context.Context, id string) error
 	ResolveTodo(ctx context.Context, id string) error
@@ -30,8 +30,9 @@ func NewTodosHandler(store TodosStore, publicURL string) *TodosHandler {
 func (h *TodosHandler) List(w http.ResponseWriter, r *http.Request) {
 	page, perPage := ParsePagination(r)
 	status := r.URL.Query().Get("status")
+	aggregated := r.URL.Query().Get("aggregated") == "true"
 
-	todos, total, err := h.store.ListTodos(r.Context(), status, page, perPage)
+	todos, total, err := h.store.ListTodos(r.Context(), status, page, perPage, aggregated)
 	if err != nil {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", err.Error())
 		return
