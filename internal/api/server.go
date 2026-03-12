@@ -111,6 +111,7 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("GET /api/v1/todos/{id}", chain(http.HandlerFunc(todos.Get)))
 	mux.Handle("PATCH /api/v1/todos/{id}/acknowledge", chain(http.HandlerFunc(todos.Acknowledge)))
 	mux.Handle("PATCH /api/v1/todos/{id}/resolve", chain(http.HandlerFunc(todos.Resolve)))
+	mux.Handle("PATCH /api/v1/todos/{id}/reopen", chain(http.HandlerFunc(todos.Reopen)))
 	// One-click endpoints for notification links (GET so they work as <a href>)
 	mux.Handle("GET /api/v1/todos/{id}/acknowledge", chain(http.HandlerFunc(todos.Acknowledge)))
 	mux.Handle("GET /api/v1/todos/{id}/resolve", chain(http.HandlerFunc(todos.Resolve)))

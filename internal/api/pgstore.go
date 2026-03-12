@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -792,6 +793,16 @@ func (s *PgStore) TriggerAgentRun(ctx context.Context, projectID, trigger, versi
 			Version:    version,
 		}, nil)
 		if err != nil {
+			// If the agent worker isn't registered (missing LLM API key),
+			// mark the run as failed rather than returning an error.
+			if strings.Contains(err.Error(), "not registered") {
+				_, _ = s.pool.Exec(ctx,
+					`UPDATE agent_runs SET status = 'failed', error = $2, completed_at = NOW() WHERE id = $1`,
+					run.ID, "Agent worker not available — configure GOOGLE_API_KEY or OPENAI_API_KEY")
+				run.Status = "failed"
+				run.Error = "Agent worker not available — configure GOOGLE_API_KEY or OPENAI_API_KEY"
+				return &run, nil
+			}
 			return nil, fmt.Errorf("enqueue agent job: %w", err)
 		}
 	}
@@ -1273,6 +1284,18 @@ func (s *PgStore) ResolveTodo(ctx context.Context, id string) error {
 		`UPDATE release_todos SET status = 'resolved', resolved_at = NOW() WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("resolve todo: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("todo not found")
+	}
+	return nil
+}
+
+func (s *PgStore) ReopenTodo(ctx context.Context, id string) error {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE release_todos SET status = 'pending', acknowledged_at = NULL, resolved_at = NULL WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("reopen todo: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("todo not found")

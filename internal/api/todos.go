@@ -13,6 +13,7 @@ type TodosStore interface {
 	GetTodo(ctx context.Context, id string) (*models.Todo, error)
 	AcknowledgeTodo(ctx context.Context, id string) error
 	ResolveTodo(ctx context.Context, id string) error
+	ReopenTodo(ctx context.Context, id string) error
 }
 
 // TodosHandler handles HTTP requests for release TODOs.
@@ -86,4 +87,15 @@ func (h *TodosHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondJSON(w, r, http.StatusOK, map[string]string{"status": "resolved"})
+}
+
+// Reopen marks a TODO as pending again, clearing acknowledged/resolved timestamps.
+func (h *TodosHandler) Reopen(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := h.store.ReopenTodo(r.Context(), id); err != nil {
+		RespondError(w, r, http.StatusNotFound, "not_found", "Todo not found")
+		return
+	}
+
+	RespondJSON(w, r, http.StatusOK, map[string]string{"status": "pending"})
 }

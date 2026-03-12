@@ -50,7 +50,7 @@ func (h *AgentHandler) TriggerRun(w http.ResponseWriter, r *http.Request) {
 	version := strings.TrimSpace(req.Version)
 	run, err := h.store.TriggerAgentRun(r.Context(), projectID, trigger, version)
 	if err != nil {
-		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to trigger agent run")
+		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to trigger agent run: "+err.Error())
 		return
 	}
 	RespondJSON(w, r, http.StatusCreated, run)

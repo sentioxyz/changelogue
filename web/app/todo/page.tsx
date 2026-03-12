@@ -135,6 +135,26 @@ function TodoPageInner() {
     revalidateAll();
   };
 
+  const handleReopen = async (id: string) => {
+    mutate(
+      (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          data: prev.data.filter((t) => t.id !== id),
+          meta: prev.meta ? { ...prev.meta, total: prev.meta.total - 1 } : prev.meta,
+        };
+      },
+      { revalidate: false }
+    );
+    try {
+      await todosApi.reopen(id);
+    } catch {
+      /* Revert on failure */
+    }
+    revalidateAll();
+  };
+
   return (
     <div className="space-y-6">
       {/* Page title */}
@@ -380,38 +400,70 @@ function TodoPageInner() {
 
                   {/* Actions */}
                   <td className="px-4 py-3">
-                    {activeTab === "pending" && (
-                      <button
-                        onClick={() => handleAcknowledge(todo.id)}
-                        className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
-                        style={{
-                          fontFamily: "var(--font-dm-sans)",
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          backgroundColor: "#dcfce7",
-                          color: "#166534",
-                          border: "1px solid #bbf7d0",
-                        }}
-                      >
-                        Acknowledge
-                      </button>
-                    )}
-                    {activeTab === "acknowledged" && (
-                      <button
-                        onClick={() => handleResolve(todo.id)}
-                        className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
-                        style={{
-                          fontFamily: "var(--font-dm-sans)",
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          backgroundColor: "#dbeafe",
-                          color: "#1e40af",
-                          border: "1px solid #bfdbfe",
-                        }}
-                      >
-                        Resolve
-                      </button>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {activeTab === "pending" && (
+                        <button
+                          onClick={() => handleAcknowledge(todo.id)}
+                          className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
+                          style={{
+                            fontFamily: "var(--font-dm-sans)",
+                            fontSize: "12px",
+                            fontWeight: 500,
+                            backgroundColor: "#dcfce7",
+                            color: "#166534",
+                            border: "1px solid #bbf7d0",
+                          }}
+                        >
+                          Acknowledge
+                        </button>
+                      )}
+                      {activeTab === "acknowledged" && (
+                        <>
+                          <button
+                            onClick={() => handleResolve(todo.id)}
+                            className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
+                            style={{
+                              fontFamily: "var(--font-dm-sans)",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                              backgroundColor: "#dbeafe",
+                              color: "#1e40af",
+                              border: "1px solid #bfdbfe",
+                            }}
+                          >
+                            Resolve
+                          </button>
+                          <button
+                            onClick={() => handleReopen(todo.id)}
+                            className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
+                            style={{
+                              fontFamily: "var(--font-dm-sans)",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                              color: "#6b7280",
+                              border: "1px solid #e8e8e5",
+                            }}
+                          >
+                            Undo
+                          </button>
+                        </>
+                      )}
+                      {activeTab === "resolved" && (
+                        <button
+                          onClick={() => handleReopen(todo.id)}
+                          className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
+                          style={{
+                            fontFamily: "var(--font-dm-sans)",
+                            fontSize: "12px",
+                            fontWeight: 500,
+                            color: "#6b7280",
+                            border: "1px solid #e8e8e5",
+                          }}
+                        >
+                          Reopen
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -218,6 +218,8 @@ export const todos = {
     request<ApiResponse<{ status: string }>>(`/todos/${id}/acknowledge`, { method: "PATCH" }),
   resolve: (id: string) =>
     request<ApiResponse<{ status: string }>>(`/todos/${id}/resolve`, { method: "PATCH" }),
+  reopen: (id: string) =>
+    request<ApiResponse<{ status: string }>>(`/todos/${id}/reopen`, { method: "PATCH" }),
 };
 
 // --- System ---
