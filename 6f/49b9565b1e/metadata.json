@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "6f49b9565b1e",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/agent.go",
+    "internal/api/pgstore.go",
+    "internal/api/server.go",
+    "internal/api/todos.go",
+    "web/app/todo/page.tsx",
+    "web/lib/api/client.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/6f/49b9565b1e/0/metadata.json",
+      "transcript": "/6f/49b9565b1e/0/full.jsonl",
+      "context": "/6f/49b9565b1e/0/context.md",
+      "content_hash": "/6f/49b9565b1e/0/content_hash.txt",
+      "prompt": "/6f/49b9565b1e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12292366,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 24269,
+    "api_call_count": 125
+  }
+}
