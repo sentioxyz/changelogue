@@ -12,6 +12,7 @@ type Todo struct {
 	AcknowledgedAt    *time.Time `json:"acknowledged_at,omitempty"`
 	ResolvedAt        *time.Time `json:"resolved_at,omitempty"`
 	// Enriched fields from JOINs (populated by list queries)
+	ProjectID   string `json:"project_id,omitempty"`
 	ProjectName string `json:"project_name,omitempty"`
 	Version     string `json:"version,omitempty"`
 	Provider    string `json:"provider,omitempty"`

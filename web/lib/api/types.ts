@@ -200,6 +200,7 @@ export interface Todo {
   created_at: string;
   acknowledged_at?: string;
   resolved_at?: string;
+  project_id?: string;
   project_name?: string;
   version?: string;
   provider?: string;

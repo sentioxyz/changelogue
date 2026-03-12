@@ -1155,6 +1155,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 	selectCols := `
 			t.id, t.release_id, t.semantic_release_id, t.status,
 			t.created_at, t.acknowledged_at, t.resolved_at,
+			COALESCE(p1.id, p2.id, gen_random_uuid())::text AS project_id,
 			COALESCE(p1.name, p2.name, '') AS project_name,
 			COALESCE(r.version, sr.version, '') AS version,
 			COALESCE(src.provider, '') AS provider,
@@ -1180,7 +1181,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		query = `
 			SELECT id, release_id, semantic_release_id, status,
 				created_at, acknowledged_at, resolved_at,
-				project_name, version, provider, repository, todo_type
+				project_id, project_name, version, provider, repository, todo_type
 			FROM (
 				SELECT ` + selectCols + `,
 					ROW_NUMBER() OVER (PARTITION BY ` + partitionExpr + ` ORDER BY t.created_at DESC) AS rn
@@ -1216,7 +1217,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		if err := rows.Scan(
 			&t.ID, &t.ReleaseID, &t.SemanticReleaseID, &t.Status,
 			&t.CreatedAt, &t.AcknowledgedAt, &t.ResolvedAt,
-			&t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType,
+			&t.ProjectID, &t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan todo: %w", err)
 		}
@@ -1231,6 +1232,7 @@ func (s *PgStore) GetTodo(ctx context.Context, id string) (*models.Todo, error) 
 		SELECT
 			t.id, t.release_id, t.semantic_release_id, t.status,
 			t.created_at, t.acknowledged_at, t.resolved_at,
+			COALESCE(p1.id, p2.id, gen_random_uuid())::text,
 			COALESCE(p1.name, p2.name, ''),
 			COALESCE(r.version, sr.version, ''),
 			COALESCE(src.provider, ''),
@@ -1246,7 +1248,7 @@ func (s *PgStore) GetTodo(ctx context.Context, id string) (*models.Todo, error) 
 	`, id).Scan(
 		&t.ID, &t.ReleaseID, &t.SemanticReleaseID, &t.Status,
 		&t.CreatedAt, &t.AcknowledgedAt, &t.ResolvedAt,
-		&t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType,
+		&t.ProjectID, &t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get todo: %w", err)

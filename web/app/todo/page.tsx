@@ -286,8 +286,8 @@ function TodoPageInner() {
                     {todo.version ? (
                       <Link
                         href={
-                          todo.todo_type === "semantic" && todo.semantic_release_id
-                            ? `/semantic-releases?id=${todo.semantic_release_id}`
+                          todo.todo_type === "semantic" && todo.semantic_release_id && todo.project_id
+                            ? `/projects/${todo.project_id}/semantic-releases/${todo.semantic_release_id}`
                             : todo.release_id
                               ? `/releases/${todo.release_id}`
                               : "#"
