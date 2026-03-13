@@ -1,0 +1,212 @@
+Fix https://github.com/sentioxyz/changelogue/issues/8
+
+---
+
+http://localhost:3001/releases/93d97da7-8897-446a-ac46-ce1084eb8116
+still shows wrong format
+
+---
+
+continue, the release notes is:
+### Features - Mobile layout & PWA — responsive editor with touch-optimized toolbar, swipeable bottom drawer (layers/properties/design/code), HUD overlay, and installable PWA with icons and service worker - Tailwind CSS v4 JSX export — export selections as HTML with Tailwind utility classes (`
+`) from the Code panel, CLI (`bun open-pencil export --format jsx --style tailwind`), or programmatically via `sceneNodeToJSX(id, graph, 'tailwind')`. Supports layout, sizing, colors, border radius, opacity, rotation, overflow, shadows, blur, and typography. Uses v4 spacing semantics (px/4 multiplier) with automatic fallback to arbitrary values. - Code panel format toggle — switch between OpenPencil (custom components) and Tailwind (HTML + utility classes) output - Homebrew tap — `brew install open-pencil/tap/open-pencil` for macOS (arm64 + x64), auto-updated on each release - Double-click to rename layers — inline rename in layer panel, shared `useInlineRename` composable - New AI/MCP tools: `analyze_colors`, `analyze_typography`, `analyze_spacing`, `analyze_clusters`, `diff_create`, `diff_show`, `get_components`, `get_current_page`, `arrange`, `node_to_component` - CLI-to-app RPC bridge — all CLI commands work against the running app when no file is specified. Start the app, then run `bun open-pencil tree` to inspect the live document - VitePress docs site — user guide, reference, architecture, and development docs at openpencil.dev with 6 locales (en, de, fr, es, it, pl), SEO (OG tags, hreflang, JSON-LD, sitemap), and dark theme ### Improvements - Refactor mobile drawer tabs, layout sizing dropdowns, and inline rename to use Reka UI primitives - Add shared UI style helpers with tailwind-variants for menus, selects, buttons, and surfaces - Unified tool definitions — define once in `packages/core/src/tools/`, automatically available in AI chat, CLI, and MCP - Harden FigmaAPI — hide internals via Symbols, freeze arrays, fix `layoutSizing`, 30+ new properties and methods - Split tools into domain files (read, create, modify, structure, variables, vector, analyze) — easier to navigate and extend - Replace inline type definitions with named types (`Color`, `Vector`, `SceneNode`) across the codebase - Split 3200-line `renderer.ts` into `packages/core/src/renderer/` with 10 focused files (scene, overlays, fills, strokes, shapes, effects, rulers, labels) - Centralize all color utilities in `packages/core/src/color.ts` — `colorToHex8`, `colorToCSSCompact`, `normalizeColor`, `colorDistance`; remove 5 duplicate implementations across the codebase - Add `geometry.ts` with shared rotation math (`degToRad`, `radToDeg`, `rotatePoint`, `rotatedCorners`, `rotatedBBox`) - Extract `isArrayMixed()` helper for multi-selection property panels ### Fixes - Fix drawer animation jump on close — single spring transition instead of two-phase - Fix `ALL_TOOLS` registry missing newer tools (`analyzeColors`, `diffCreate`, `exportImage`, `arrangeNodes`) - Fix `renderJSX` typo in tool definitions (`renderJsx` → `renderJSX`) - Fix all oxlint warnings and tsgo errors — replace `!` non-null assertions in `use-collab.ts` with local const captures - Fix broken test imports — stale `../../src/engine/` paths updated to `@open-pencil/core` - Fix flaky E2E tests: layers panel navigates to `/demo`, zoom-to-fit test zooms in first, snapshot rendering stabilized with `workers: 1` and `colorScheme: dark` - Fix bogus .fig import mappings for `expanded` and `strokeMiterLimit` fields - Fix PWA manifest error in dev mode, handle invalid font data gracefully - Fix eval response unwrapping and `export_jsx` page selection in RPC bridge - Fix automation commands not recomputing layouts after mutations - Fix workspace dependency not resolved when installing from npm (switch CI to pnpm publish) ### Internal - Add `motion-v` for declarative animations — used in mobile drawer (spring-animated height with pan gestures) and toolbar (layout-animated category switching with directional slide transitions) - Mobile drawer: replace `useSwipe` + manual rAF animation with `motion.div` `:animate` + `@pan`/`@panEnd`; always-on tab state (no more null `activeRibbonTab`); content stays rendered when closed - Mobile toolbar: replace manual `scrollWidth` measuring + inline CSS transitions with `motion.div layout` + `AnimatePresence` directional slide variants - Mobile UI cleanup: extract shared `colorToCSS` util to core, `initials` to `src/utils/text`, `toolIcons` to `src/utils/tools`; replace hand-rolled dropdowns with reka-ui Popover/DropdownMenu; narrow `mobileDrawerSnap` type to string union; move magic numbers to constants; disable PWA service worker in dev mode - 83 new E2E tests (57 → 140): design panel, code panel, components, copy/paste, multi-page, text editing, keyboard shortcuts, context menu - 150 new unit tests (588 → 738): color, undo, snap, vector, style-runs, text-editor - 48 new E2E tests (9 spec files) + 26 mutation unit tests + store/canvas test helpers - Add `data-test-id` attributes to AppearanceSection, LayoutSection, TypographySection, VariablesDialog, EditorView
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **User's initial request**: Fix GitHub issue #8 at https://github.com/sentioxyz/changelogue/issues/8
+
+2. **Issue investigation**: 
+   - Fetched issue #8 details via `gh issue view 8`
+   - Title: "release notes format broken"
+   - Body: Contains raw markdown from a reth v1.11.3 GitHub release with complex formatting (tables, images, code blocks, GitHub alerts like `> [!IMPORTANT]`)
+   - Comment from Poytr1 links to: `https://changelogue-app.azurewebsites.net/releases/026da51d-827f-4b34-b483-ec433c8f6f40`
+
+3. **Code exploration**:
+   - Used a subagent to explore the codebase for release notes rendering
+   - Read `semantic-release-detail.tsx` - this shows `changelog_summary` as plain text in a `<p>` tag
+   - Read `release-detail.tsx` - this properly uses `marked` library to parse markdown via `changelogToHtml()` function and renders with `dangerouslySetInnerHTML` using the `release-notes-content` CSS class
+   - Grepped for `changelog_summary`, `changelog_html`, `marked` across the codebase
+   - Read `globals.css` - found `.release-notes-content` CSS class with styles for headings, paragraphs, lists, links, code blocks, blockquotes, images, and hr - but **NO table styles**
+
+4. **Initial diagnosis**: I initially thought the issue was about missing table CSS styles in `.release-notes-content` because the reth release notes in the issue body contained markdown tables.
+
+5. **First fix**: Added table CSS styles to `globals.css`:
+   ```css
+   .release-notes-content table { width: 100%; border-collapse: collapse; margin-bottom: 0.75em; font-size: 0.95em; }
+   .release-notes-content th, .release-notes-content td { border: 1px solid #e8e8e5; padding: 0.5em 0.75em; text-align: left; }
+   .release-notes-content th { background: #fafaf9; font-weight: 600; color: #111113; }
+   .release-notes-content tr:nth-child(even) { background: #fafaf9; }
+   ```
+
+6. **Build verification**: `npx next build` succeeded.
+
+7. **User feedback**: User said "still shows wrong format" and pointed to `http://localhost:3001/releases/93d97da7-8897-446a-ac46-ce1084eb8116`
+
+8. **Second investigation**: Navigated to the page with Playwright. The snapshot revealed the actual problem: the release notes markdown is being rendered as **raw text**, not parsed by `marked`. The markdown source (`### Features - Mobile layout...`) appears verbatim including the `###` markers, `-` bullets, and backticks.
+
+9. **Screenshot confirmed**: The release notes area shows the content like: `"### Features - Mobile layout & PWA — responsive editor..."` — all as a flat text string, not rendered HTML.
+
+10. **User provided the actual release notes content**: The content is a long markdown document with `### Features`, `### Improvements`, `### Fixes`, `### Internal` sections, each with `-` bullet items.
+
+The key insight from the Playwright snapshot is that the release notes are being displayed as raw text. Looking at the code flow:
+
+In `release-detail.tsx`:
+```typescript
+const changelogHtml = useMemo(() => {
+    const raw = release?.raw_data?.changelog;
+    if (!raw) return null;
+    return changelogToHtml(String(raw));
+}, [release?.raw_data?.changelog]);
+```
+
+And in the `changelogToHtml` function:
+```typescript
+function changelogToHtml(raw: string): string {
+  if (looksLikeHtml(raw)) return raw;
+  return marked.parse(raw, { async: false }) as string;
+}
+```
+
+And `looksLikeHtml`:
+```typescript
+function looksLikeHtml(s: string): boolean {
+  return /<[a-z][\s\S]*>/i.test(s);
+}
+```
+
+The problem could be:
+1. `looksLikeHtml` is returning true because the content might contain HTML tags (like inline `<code>` or something), causing the markdown to be passed through unparsed
+2. The `marked.parse()` is being called but the markdown lacks proper newlines - the content shown in the snapshot appears as a single long string with no line breaks between items, which would cause `marked` to not parse it as separate list items/headings
+
+Looking at the Playwright snapshot text output, the content appears as one continuous string: `"### Features - Mobile layout & PWA..."` - this matches what the user showed. The issue is likely that the changelog stored in the database has had its newlines stripped or the markdown was stored improperly (all on one line), so `marked` can't parse the headings and lists correctly since markdown requires newlines between elements.
+
+But wait - I need to check more carefully. The `marked` library does require newlines for proper parsing. If the content like `### Features` is not on its own line preceded by a blank line, it won't be parsed as a heading. Similarly, `- item` needs to be on its own line.
+
+Actually, looking more carefully at the Playwright snapshot, the div at ref=e97 contains the text with `###` visible, meaning `marked` either:
+1. Didn't parse it (because `looksLikeHtml` returned true)
+2. Parsed it but the markdown was malformed (no newlines)
+
+I should investigate both possibilities. This is what I was about to do when the summary was requested.
+
+The table CSS fix was a valid improvement but didn't address the real issue. The real issue is that the markdown is not being converted to HTML at all - it's displayed as raw text.
+
+Current state: I was about to investigate WHY the markdown isn't being rendered as HTML. The most likely causes are:
+1. The `looksLikeHtml()` check returning true on content that contains angle brackets (like inline code with HTML tags)
+2. The markdown content lacking proper newlines between elements
+3. Both issues combined
+
+Summary:
+1. Primary Request and Intent:
+   The user asked to fix GitHub issue #8 (https://github.com/sentioxyz/changelogue/issues/8), titled "release notes format broken". The issue reports that release notes markdown content is not being rendered properly on the release detail page. The user confirmed the issue persists at `http://localhost:3001/releases/93d97da7-8897-446a-ac46-ce1084eb8116` after an initial CSS-only fix attempt.
+
+2. Key Technical Concepts:
+   - `marked` library (v17.0.3) for markdown-to-HTML conversion
+   - `dangerouslySetInnerHTML` for rendering parsed HTML in React
+   - `.release-notes-content` CSS class for styling rendered markdown
+   - GitHub release notes ingestion pipeline: GitHub API `body` → `Changelog` field → `raw_data.changelog` in DB → frontend rendering
+   - `looksLikeHtml()` guard that short-circuits markdown parsing if content already contains HTML tags
+   - `changelogToHtml()` helper function that conditionally parses markdown
+
+3. Files and Code Sections:
+   - **`/Users/pc/web3/ReleaseBeacon/web/components/releases/release-detail.tsx`**
+     - This is the release detail page that renders raw release notes with markdown support. It's the page at `/releases/{id}`.
+     - Uses `marked.parse()` and `dangerouslySetInnerHTML` for rendering.
+     - Key functions:
+       ```typescript
+       function looksLikeHtml(s: string): boolean {
+         return /<[a-z][\s\S]*>/i.test(s);
+       }
+       function changelogToHtml(raw: string): string {
+         if (looksLikeHtml(raw)) return raw;
+         return marked.parse(raw, { async: false }) as string;
+       }
+       ```
+     - Changelog data access: `release?.raw_data?.changelog` (lines 113-117)
+     - Rendering (lines 399-412):
+       ```tsx
+       {changelogHtml ? (
+         <div
+           className="release-notes-content"
+           style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", lineHeight: 1.7, color: "#374151" }}
+           dangerouslySetInnerHTML={{ __html: changelogHtml }}
+         />
+       ) : ( /* No release notes available */ )}
+       ```
+
+   - **`/Users/pc/web3/ReleaseBeacon/web/app/globals.css`**
+     - Contains all CSS styles for `.release-notes-content` class (lines 102-191)
+     - Was edited to add table styles (lines 169-188). This was a valid improvement but didn't fix the core issue.
+     - Added:
+       ```css
+       .release-notes-content table { width: 100%; border-collapse: collapse; margin-bottom: 0.75em; font-size: 0.95em; }
+       .release-notes-content th, .release-notes-content td { border: 1px solid #e8e8e5; padding: 0.5em 0.75em; text-align: left; }
+       .release-notes-content th { background: #fafaf9; font-weight: 600; color: #111113; }
+       .release-notes-content tr:nth-child(even) { background: #fafaf9; }
+       ```
+
+   - **`/Users/pc/web3/ReleaseBeacon/web/components/semantic-releases/semantic-release-detail.tsx`**
+     - The semantic release detail page at `/projects/{id}/semantic-releases/{srId}`
+     - Renders `report.changelog_summary` as plain text in a `<p>` tag (line 586) — does NOT use markdown rendering
+     - Full file was read (597 lines)
+
+   - **`/Users/pc/web3/ReleaseBeacon/internal/ingestion/github.go`**
+     - GitHub API response field `body` (line 17) contains the markdown
+     - Stored as `Changelog` field in `IngestionResult` struct
+
+   - **`/Users/pc/web3/ReleaseBeacon/internal/ingestion/pgstore.go`**
+     - `Changelog` from IngestionResult placed into `raw` map with key `"changelog"` (lines 34-40)
+     - JSON marshalled and stored as `raw_data` in DB
+
+   - **`/Users/pc/web3/ReleaseBeacon/web/lib/api/types.ts`**
+     - `Release` interface with `raw_data?: Record<string, unknown>` (lines 76-91)
+     - `SemanticReleaseReport` has `changelog_summary?: string` (line 126)
+
+4. Errors and fixes:
+   - **Initial misdiagnosis — missing table CSS**: Initially thought the issue was about missing CSS table styles in `.release-notes-content`. Added table styles to `globals.css`. The build succeeded, but the user confirmed the fix didn't resolve the issue: "still shows wrong format".
+   - **Root cause identified via Playwright**: After navigating to the actual page, the Playwright snapshot revealed that the markdown content (`### Features - Mobile layout...`) is displayed as **raw text** — the `###` markers, `-` bullets, and backticks are all visible as-is. The markdown is NOT being converted to HTML at all.
+   - The likely root causes (not yet fixed):
+     1. `looksLikeHtml()` returning `true` because the content may contain angle brackets/HTML-like patterns (e.g., inline code with `<code>` tags), causing `changelogToHtml()` to skip `marked.parse()` and return the raw string
+     2. The markdown content may lack proper newlines between elements (stored as a single line), making `marked` unable to parse headings (`###`) and list items (`-`) which require newline separation
+
+5. Problem Solving:
+   - **Solved**: Table CSS gap identified and fixed in `globals.css` (valid improvement, but not the core issue)
+   - **Ongoing**: The markdown content is not being rendered as HTML on the release detail page. The Playwright investigation confirmed the raw markdown text is displayed verbatim. Need to debug why `changelogToHtml()` is not converting the markdown — either `looksLikeHtml()` is short-circuiting, or the stored markdown has formatting issues (e.g., missing newlines).
+
+6. All user messages:
+   - "Fix https://github.com/sentioxyz/changelogue/issues/8"
+   - "http://localhost:3001/releases/93d97da7-8897-446a-ac46-ce1084eb8116 still shows wrong format"
+   - "continue, the release notes is: ### Features - Mobile layout & PWA — responsive editor with touch-optimized toolbar..." (provided the full raw release notes content showing it renders as a flat text string with markdown markers visible)
+
+7. Pending Tasks:
+   - Fix the actual root cause of why markdown is not being rendered as HTML in `release-detail.tsx`
+   - Investigate whether `looksLikeHtml()` is incorrectly returning `true` for this content
+   - Investigate whether the markdown content stored in the database lacks proper newlines
+   - Verify the fix works on `http://localhost:3001/releases/93d97da7-8897-446a-ac46-ce1084eb8116`
+
+8. Current Work:
+   After the initial CSS table-styles fix failed to resolve the issue, I navigated to the actual broken page using Playwright and confirmed that the markdown is displayed as raw text (not parsed). The user then provided the release notes content showing `### Features - Mobile layout & PWA...` rendered as flat text. I was about to debug why `changelogToHtml()` in `release-detail.tsx` is not converting the markdown to HTML. The two most likely causes are: (1) the `looksLikeHtml()` regex matching something in the content and bypassing `marked.parse()`, or (2) the stored changelog lacking newlines needed for markdown parsing.
+
+9. Optional Next Step:
+   Debug why the markdown isn't being parsed by examining the actual stored data. Specifically:
+   - Check what `release?.raw_data?.changelog` actually contains for this release (via API call or database query)
+   - Test if `looksLikeHtml()` returns `true` for this content (the content may contain angle brackets in inline code like backtick-wrapped HTML elements)
+   - If `looksLikeHtml()` is the culprit, fix the function to not short-circuit on content that is primarily markdown with incidental HTML-like fragments
+   - If missing newlines is the issue, fix the ingestion pipeline or add preprocessing to restore newlines before parsing
+
+   The user said: "still shows wrong format" and "continue, the release notes is: ### Features - Mobile layout & PWA..." — confirming the markdown is displayed as raw text and needs to be properly rendered as HTML.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+commit and push
+
+---
+
+fix https://github.REDACTED
