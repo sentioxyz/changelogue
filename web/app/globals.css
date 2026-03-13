@@ -166,6 +166,26 @@
   border-top: 1px solid #e8e8e5;
   margin: 1em 0;
 }
+.release-notes-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75em;
+  font-size: 0.95em;
+}
+.release-notes-content th,
+.release-notes-content td {
+  border: 1px solid #e8e8e5;
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.release-notes-content th {
+  background: #fafaf9;
+  font-weight: 600;
+  color: #111113;
+}
+.release-notes-content tr:nth-child(even) {
+  background: #fafaf9;
+}
 .release-notes-content > *:first-child {
   margin-top: 0;
 }

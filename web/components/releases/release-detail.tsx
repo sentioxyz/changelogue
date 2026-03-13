@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { marked } from "marked";
 import {
   releases as releasesApi,
@@ -22,14 +23,9 @@ import { getPathSegment } from "@/lib/path";
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-/** Returns true if the string already contains HTML tags. */
-function looksLikeHtml(s: string): boolean {
-  return /<[a-z][\s\S]*>/i.test(s);
-}
-
-/** Convert changelog to HTML — pass through if already HTML, otherwise render as markdown. */
+/** Convert changelog to HTML via markdown parser.
+ *  `marked` handles mixed markdown+HTML, so we always parse. */
 function changelogToHtml(raw: string): string {
-  if (looksLikeHtml(raw)) return raw;
   return marked.parse(raw, { async: false }) as string;
 }
 
@@ -72,6 +68,7 @@ function getProviderLabel(provider: string): string {
 /* ------------------------------------------------------------------ */
 
 export function ReleaseDetail() {
+  const router = useRouter();
   // Read ID from URL path — useParams() returns stale "0" in static export
   const id = getPathSegment(1); // /releases/{id}
   /* Fetch release */
@@ -152,9 +149,9 @@ export function ReleaseDetail() {
   return (
     <div className="space-y-8">
       {/* Back link */}
-      <Link
-        href="/releases"
-        className="inline-flex items-center gap-1.5 transition-colors hover:opacity-70"
+      <button
+        onClick={() => window.history.length > 1 ? router.back() : router.push("/releases")}
+        className="inline-flex items-center gap-1.5 transition-colors hover:opacity-70 cursor-pointer"
         style={{
           fontFamily: "var(--font-dm-sans)",
           fontSize: "13px",
@@ -162,8 +159,8 @@ export function ReleaseDetail() {
         }}
       >
         <ArrowLeft size={14} />
-        Back to Releases
-      </Link>
+        Back
+      </button>
 
       {/* Header */}
       <div>
