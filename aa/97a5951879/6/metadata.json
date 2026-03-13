@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "aa97a5951879",
+  "session_id": "774c80c5-d9a6-4f62-a2d6-df5ae0b81a87",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-13T12:25:25.884621Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "web/components/ui/urgency-pill.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "fd8bb99defe6",
+  "transcript_identifier_at_start": "733a3184-9963-47da-aaae-0af1c368e235",
+  "checkpoint_transcript_start": 242,
+  "transcript_lines_at_start": 242,
+  "token_usage": {
+    "input_tokens": 123827,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 180,
+    "api_call_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-13T12:25:25.714309Z",
+    "agent_lines": 81,
+    "human_added": 255,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 336,
+    "agent_percentage": 24.107142857142858
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/774c80c5-d9a6-4f62-a2d6-df5ae0b81a87.jsonl"
+}
