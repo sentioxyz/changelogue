@@ -85,6 +85,9 @@ export interface Release {
   provider?: string;
   repository?: string;
   excluded?: boolean;
+  semantic_release_id?: string;
+  semantic_release_status?: string;
+  semantic_release_urgency?: string;
 }
 
 export interface ContextSource {
