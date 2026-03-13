@@ -139,7 +139,7 @@ export function SemanticReleaseDetail() {
     if (!confirm("Delete this semantic release?")) return;
     try {
       await srApi.delete(srId);
-      router.push("/semantic-releases");
+      router.push("/releases");
     } catch {
       alert("Failed to delete semantic release.");
     }
@@ -161,9 +161,9 @@ export function SemanticReleaseDetail() {
   return (
     <div className="fade-in mx-auto max-w-[760px]">
       {/* 1. Back link */}
-      <Link
-        href="/semantic-releases"
-        className="mb-6 inline-flex items-center gap-1.5 transition-colors hover:opacity-70"
+      <button
+        onClick={() => window.history.length > 1 ? router.back() : router.push("/releases")}
+        className="mb-6 inline-flex items-center gap-1.5 transition-colors hover:opacity-70 cursor-pointer"
         style={{
           fontFamily: "var(--font-dm-sans)",
           fontSize: "13px",
@@ -171,8 +171,8 @@ export function SemanticReleaseDetail() {
         }}
       >
         <ArrowLeft size={14} />
-        Back to Semantic Releases
-      </Link>
+        Back
+      </button>
 
       {/* 2. Project byline */}
       {project?.name && (

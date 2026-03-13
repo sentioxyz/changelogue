@@ -1,21 +1,24 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import Link from "next/link";
 import {
   releases as releasesApi,
   projects as projectsApi,
+  agent,
 } from "@/lib/api/client";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { Release, Project } from "@/lib/api/types";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { URGENCY_STYLES } from "@/components/ui/urgency-pill";
 
 import { timeAgo } from "@/lib/format";
 
 const PER_PAGE = 15;
+const SSE_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
 function getProviderUrl(
   provider: string,
@@ -55,6 +58,7 @@ function ReleasesPageInner() {
   const [page, setPage] = useState(1);
   const [projectFilter, setProjectFilter] = useState<string>(initialProject);
   const [showExcluded, setShowExcluded] = useState(initialShowExcluded);
+  const [triggeringVersion, setTriggeringVersion] = useState<string | null>(null);
 
   /* Fetch projects for the filter dropdown */
   const { data: projectsData } = useSWR("projects-for-filter", async () => {
@@ -88,6 +92,61 @@ function ReleasesPageInner() {
   const startRow = (page - 1) * PER_PAGE + 1;
   const endRow = Math.min(page * PER_PAGE, total);
 
+  /* SSE revalidation — refresh on semantic_release events */
+  const revalidateReleases = useCallback(() => {
+    return mutate((key) => {
+      if (Array.isArray(key)) {
+        return key[0] === "releases" || key[0] === "all-releases";
+      }
+      return false;
+    }, undefined, { revalidate: true });
+  }, []);
+
+  useEffect(() => {
+    let es: EventSource | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function connect() {
+      try {
+        es = new EventSource(`${SSE_BASE}/events`);
+        es.onmessage = (event) => {
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed.type === "semantic_release") {
+              setTriggeringVersion(null);
+              revalidateReleases();
+            }
+          } catch {
+            // ignore parse errors
+          }
+        };
+        es.onerror = () => {
+          es?.close();
+          retryTimer = setTimeout(connect, 5000);
+        };
+      } catch {
+        retryTimer = setTimeout(connect, 5000);
+      }
+    }
+
+    connect();
+    return () => {
+      es?.close();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [revalidateReleases]);
+
+  /* Trigger agent run — keep spinner until SWR revalidation brings back the new status */
+  const handleTrigger = async (projectId: string, version: string) => {
+    setTriggeringVersion(version);
+    try {
+      await agent.triggerRun(projectId, version);
+      await revalidateReleases();
+    } catch {
+      setTriggeringVersion(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page title */}
@@ -107,8 +166,14 @@ function ReleasesPageInner() {
         <select
           value={projectFilter}
           onChange={(e) => {
-            setProjectFilter(e.target.value);
+            const val = e.target.value;
+            setProjectFilter(val);
             setPage(1);
+            const params = new URLSearchParams(window.location.search);
+            if (val === "all") params.delete("project");
+            else params.set("project", val);
+            const qs = params.toString();
+            window.history.pushState({}, "", qs ? `?${qs}` : window.location.pathname);
           }}
           className="appearance-none rounded-md bg-white px-3 py-2 pr-8 outline-none transition-shadow"
           style={{
@@ -194,7 +259,7 @@ function ReleasesPageInner() {
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid #e8e8e5", backgroundColor: "#fafaf9" }}>
-                {["Project", "Provider", "Repository", "Version", "Released", "Age", ""].map(
+                {["Project", "Provider", "Repository", "Version", "Released", "Age", "Report", ""].map(
                   (col) => (
                     <th
                       key={col}
@@ -315,6 +380,68 @@ function ReleasesPageInner() {
                     >
                       {timeAgo(release.released_at ?? release.created_at)}
                     </span>
+                  </td>
+
+                  {/* Report */}
+                  <td className="px-4 py-3">
+                    {release.semantic_release_status === "completed" && release.semantic_release_id && release.project_id ? (() => {
+                      const pill = release.semantic_release_urgency
+                        ? URGENCY_STYLES[release.semantic_release_urgency.toLowerCase()]
+                        : undefined;
+                      return pill ? (
+                        <Link
+                          href={`/projects/${release.project_id}/semantic-releases/${release.semantic_release_id}`}
+                          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors"
+                          style={{ backgroundColor: pill.bg, border: `1px solid ${pill.border}`, color: pill.text, fontFamily: "var(--font-dm-sans)" }}
+                          title="View report"
+                        >
+                          <pill.icon size={10} /> {release.semantic_release_urgency}
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/projects/${release.project_id}/semantic-releases/${release.semantic_release_id}`}
+                          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors"
+                          style={{ backgroundColor: "rgba(107,114,128,0.08)", border: "1px solid rgba(107,114,128,0.18)", color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+                          title="View report"
+                        >
+                          Report
+                        </Link>
+                      );
+                    })() : release.semantic_release_status === "pending" || release.semantic_release_status === "processing" || triggeringVersion === release.version ? (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{ color: "#2563eb", backgroundColor: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.18)", fontFamily: "var(--font-dm-sans)" }}
+                      >
+                        <Loader2 size={10} className="animate-spin" />
+                        {release.semantic_release_status || "analyzing"}
+                      </span>
+                    ) : release.project_id && !release.excluded ? (
+                      <button
+                        onClick={() => handleTrigger(release.project_id!, release.version)}
+                        disabled={triggeringVersion === release.version}
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors hover:bg-[#f3f3f1] disabled:opacity-50 cursor-pointer"
+                        style={{
+                          color: "#6b7280",
+                          backgroundColor: "rgba(107,114,128,0.06)",
+                          border: "1px solid rgba(107,114,128,0.18)",
+                          fontFamily: "var(--font-dm-sans)",
+                        }}
+                        title="Generate report"
+                      >
+                        <Sparkles size={10} />
+                        Analyze
+                      </button>
+                    ) : (
+                      <span
+                        style={{
+                          fontFamily: "var(--font-dm-sans)",
+                          fontSize: "13px",
+                          color: "#9ca3af",
+                        }}
+                      >
+                        {"\u2014"}
+                      </span>
+                    )}
                   </td>
 
                   {/* Provider link */}

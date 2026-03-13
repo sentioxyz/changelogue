@@ -13,18 +13,12 @@ import {
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { ProjectLogo } from "@/components/ui/project-logo";
 import { timeAgo } from "@/lib/format";
-import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil, ArrowUpDown } from "lucide-react";
+import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil, ArrowUpDown, Loader2, Info } from "lucide-react";
 import { SourceForm } from "@/components/sources/source-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/projects/project-form";
 import type { Project, Source } from "@/lib/api/types";
-
-const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
-  critical: { bg: "#dc2626", text: "#ffffff" },
-  high: { bg: "#f97316", text: "#ffffff" },
-  medium: { bg: "#f59e0b", text: "#ffffff" },
-  low: { bg: "#6b7280", text: "#ffffff" },
-};
+import { URGENCY_STYLES, URGENCY_COLORS } from "@/components/ui/urgency-pill";
 
 /* ---------- Project Card Logo ---------- */
 
@@ -145,7 +139,48 @@ function FlowSection({
   );
 }
 
-/* ---------- Flow Card ---------- */
+/* ---------- Urgency Legend ---------- */
+
+function UrgencyLegend() {
+  const entries = [
+    { key: "critical", label: "Critical", desc: "Breaking changes, security patches" },
+    { key: "high", label: "High", desc: "Significant API changes, deprecations" },
+    { key: "medium", label: "Medium", desc: "Notable changes worth reviewing" },
+    { key: "low", label: "Low", desc: "Routine updates, dependency bumps" },
+  ] as const;
+
+  return (
+    <span className="relative inline-flex items-center group mr-1">
+      <Info size={11} className="cursor-help" style={{ color: "#c4c4c0" }} />
+      <span
+        className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block rounded-lg shadow-lg py-2 px-3"
+        style={{ backgroundColor: "#ffffff", border: "1px solid #e8e8e5", width: 260 }}
+      >
+        <span className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#9ca3af" }}>
+          Urgency Legend
+        </span>
+        {entries.map(({ key, label, desc }) => {
+          const s = URGENCY_STYLES[key];
+          const Icon = s.icon;
+          return (
+            <span key={key} className="flex items-start gap-2 mb-1 last:mb-0">
+              <span
+                className="inline-flex items-center justify-center rounded-full shrink-0 mt-0.5"
+                style={{ backgroundColor: s.bg, border: `1px solid ${s.border}`, color: s.text, width: 16, height: 16 }}
+              >
+                <Icon size={9} />
+              </span>
+              <span className="flex flex-col">
+                <span className="text-[11px] font-semibold leading-tight" style={{ color: s.text }}>{label}</span>
+                <span className="text-[10px] leading-tight" style={{ color: "#9ca3af" }}>{desc}</span>
+              </span>
+            </span>
+          );
+        })}
+      </span>
+    </span>
+  );
+}
 
 function ProjectFlowCard({ project }: { project: Project }) {
   const [sourceCreateOpen, setSourceCreateOpen] = useState(false);
@@ -257,6 +292,7 @@ function ProjectFlowCard({ project }: { project: Project }) {
         <FlowSection label="Releases" moreHref={`/releases?project=${project.id}`}>
           {releases.map((r) => {
             const src = sourceMap.get(r.source_id);
+            const matchingSr = srItems.find((sr) => sr.version === r.version);
             return (
               <span key={r.id} className="inline-flex items-baseline mr-2.5">
                 <Link
@@ -270,6 +306,38 @@ function ProjectFlowCard({ project }: { project: Project }) {
                 >
                   {r.version}
                 </Link>
+                {!r.excluded && matchingSr?.status === "completed" && (() => {
+                  const pill = matchingSr.report?.urgency
+                    ? URGENCY_STYLES[matchingSr.report.urgency.toLowerCase()]
+                    : undefined;
+                  return pill ? (
+                    <Link
+                      href={`/projects/${project.id}/semantic-releases/${matchingSr.id}`}
+                      className="inline-flex items-center justify-center rounded-full ml-1 transition-colors"
+                      style={{ backgroundColor: pill.bg, border: `1px solid ${pill.border}`, color: pill.text, width: 18, height: 18 }}
+                      title={`${matchingSr.report!.urgency} — View report`}
+                    >
+                      <pill.icon size={10} />
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/projects/${project.id}/semantic-releases/${matchingSr.id}`}
+                      className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 ml-1 text-[10px] font-semibold transition-colors"
+                      style={{ backgroundColor: "rgba(107,114,128,0.08)", border: "1px solid rgba(107,114,128,0.18)", color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+                      title="View report"
+                    >
+                      Report
+                    </Link>
+                  );
+                })()}
+                {!r.excluded && (matchingSr?.status === "pending" || matchingSr?.status === "processing") && (
+                  <span
+                    className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 ml-1 text-[10px]"
+                    style={{ backgroundColor: "#fef9c3", color: "#92400e", fontFamily: "var(--font-dm-sans)" }}
+                  >
+                    <Loader2 size={10} className="animate-spin" />
+                  </span>
+                )}
                 {src && (
                   <span
                     className="text-[11px] ml-1 hidden sm:inline"
@@ -284,40 +352,6 @@ function ProjectFlowCard({ project }: { project: Project }) {
                 >
                   {timeAgo(r.released_at || r.created_at).replace(" ago", "")}
                 </span>
-              </span>
-            );
-          })}
-        </FlowSection>
-      )}
-
-      {/* Semantic releases */}
-      {srItems.length > 0 && (
-        <FlowSection label="Semantic Releases" moreHref={`/semantic-releases?project=${project.id}`}>
-          {srItems.map((sr) => {
-            const urgencyStyle = sr.report?.urgency
-              ? URGENCY_COLORS[sr.report.urgency.toLowerCase()]
-              : undefined;
-            return (
-              <span key={sr.id} className="inline-flex items-center gap-1.5 mr-2.5">
-                <Link
-                  href={`/projects/${project.id}/semantic-releases/${sr.id}`}
-                  className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none hover:ring-1 hover:ring-blue-300 transition-shadow"
-                  style={{
-                    backgroundColor: "#eff6ff",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    color: "#1d4ed8",
-                  }}
-                >
-                  {sr.version}
-                </Link>
-                {urgencyStyle && (
-                  <span
-                    className="rounded px-1.5 py-0.5 text-[10px] uppercase font-bold tracking-wide leading-none"
-                    style={{ backgroundColor: urgencyStyle.bg, color: urgencyStyle.text }}
-                  >
-                    {sr.report?.urgency}
-                  </span>
-                )}
               </span>
             );
           })}
@@ -441,6 +475,40 @@ function ProjectCompactRow({ project }: { project: Project }) {
               {latest.version}
             </Link>
             {latestIcon && latestIcon({ size: 12, className: "shrink-0", style: { color: "#9ca3af" } })}
+            {latestSr?.status === "completed" && (() => {
+              const pill = latestSr.report?.urgency
+                ? URGENCY_STYLES[latestSr.report.urgency.toLowerCase()]
+                : undefined;
+              return pill ? (
+                <Link
+                  href={`/projects/${project.id}/semantic-releases/${latestSr.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center justify-center rounded-full transition-colors"
+                  style={{ backgroundColor: pill.bg, border: `1px solid ${pill.border}`, color: pill.text, width: 18, height: 18 }}
+                  title={`${latestSr.report!.urgency} — View report`}
+                >
+                  <pill.icon size={10} />
+                </Link>
+              ) : (
+                <Link
+                  href={`/projects/${project.id}/semantic-releases/${latestSr.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors"
+                  style={{ backgroundColor: "rgba(107,114,128,0.08)", border: "1px solid rgba(107,114,128,0.18)", color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+                  title="View report"
+                >
+                  Report
+                </Link>
+              );
+            })()}
+            {(latestSr?.status === "pending" || latestSr?.status === "processing") && (
+              <span
+                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px]"
+                style={{ backgroundColor: "#fef9c3", color: "#92400e", fontFamily: "var(--font-dm-sans)" }}
+              >
+                <Loader2 size={10} className="animate-spin" />
+              </span>
+            )}
           </>
         ) : (
           <span className="text-[12px] italic" style={{ color: "#c4c4c0" }}>
@@ -449,22 +517,10 @@ function ProjectCompactRow({ project }: { project: Project }) {
         )}
       </span>
 
-      {/* Latest semantic release */}
+      {/* Summary */}
       <span className="flex items-center gap-1.5 flex-1 min-w-0">
-        {latestSr ? (
+        {latestSr?.status === "completed" ? (
           <>
-            <Link
-              href={`/projects/${project.id}/semantic-releases/${latestSr.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center rounded px-1.5 py-0.5 text-[12px] leading-none shrink-0 hover:ring-1 hover:ring-blue-300 transition-shadow"
-              style={{
-                backgroundColor: "#eff6ff",
-                fontFamily: "'JetBrains Mono', monospace",
-                color: "#1d4ed8",
-              }}
-            >
-              {latestSr.version}
-            </Link>
             {urgencyStyle && (
               <span
                 className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none shrink-0"
@@ -483,7 +539,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
           </>
         ) : (
           <span className="text-[12px] italic" style={{ color: "#c4c4c0" }}>
-            No analysis
+            {latestSr ? latestSr.status : "No analysis"}
           </span>
         )}
       </span>
@@ -539,10 +595,11 @@ export default function ProjectsPage() {
             Projects
           </h1>
           <p
-            className="mt-1 text-[13px] text-[#6b7280]"
+            className="mt-1 text-[13px] text-[#6b7280] inline-flex items-center gap-1"
             style={{ fontFamily: "var(--font-dm-sans)" }}
           >
-            Tracked software projects and their recent releases.
+            Tracked projects, releases, and urgency at a glance.
+            <UrgencyLegend />
           </p>
         </div>
         <div className="flex items-center gap-2">
