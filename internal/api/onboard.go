@@ -73,7 +73,7 @@ func (h *OnboardHandler) Scan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if active != nil {
-		RespondError(w, r, http.StatusConflict, "conflict", fmt.Sprintf("Active scan already exists: %s", active.ID))
+		RespondJSON(w, r, http.StatusConflict, active)
 		return
 	}
 

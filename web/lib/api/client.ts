@@ -255,11 +255,22 @@ export const discover = {
 // --- Onboarding ---
 
 export const onboard = {
-  scan: (repoUrl: string) =>
-    request<ApiResponse<OnboardScan>>("/onboard/scan", {
+  scan: async (repoUrl: string): Promise<ApiResponse<OnboardScan>> => {
+    const res = await fetch(`${BASE}/onboard/scan`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ repo_url: repoUrl }),
-    }),
+    });
+    // 409 returns the existing active scan — treat as success
+    if (res.status === 409) {
+      return res.json();
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error?.message ?? `Request failed: ${res.status}`);
+    }
+    return res.json();
+  },
   getScan: (id: string) =>
     request<ApiResponse<OnboardScan>>(`/onboard/scans/${id}`),
   apply: (id: string, selections: OnboardSelection[]) =>

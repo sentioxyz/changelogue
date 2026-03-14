@@ -42,6 +42,7 @@ function OnboardPageInner() {
   const [applyResult, setApplyResult] = useState<{ created_projects: Project[]; created_sources: any[]; skipped: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [autoStarted, setAutoStarted] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   // Fetch existing projects for the dropdown
   const { data: projectsResp } = useSWR("projects-all", () => projectsApi.list(1, 200));
@@ -78,36 +79,56 @@ function OnboardPageInner() {
     return () => clearInterval(interval);
   }, [step, scanId]);
 
+  // Elapsed time counter during scanning
+  useEffect(() => {
+    if (step !== "scanning") { setElapsed(0); return; }
+    const start = Date.now();
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, [step]);
+
   // Auto-start scan from ?repo= query param
   useEffect(() => {
     const repo = searchParams.get("repo");
     if (repo && !autoStarted) {
       setAutoStarted(true);
       setRepoUrl(repo);
-      (async () => {
-        setError(null);
-        try {
-          const resp = await onboardApi.scan(repo);
-          setScanId(resp.data.id);
-          setScan(resp.data);
-          setStep("scanning");
-        } catch (e: any) {
-          setError(e.message || "Failed to start scan");
-        }
-      })();
+      beginScan(repo);
     }
   }, [searchParams, autoStarted]);
 
-  const startScan = async () => {
+  const beginScan = async (url: string) => {
     setError(null);
     try {
-      const resp = await onboardApi.scan(repoUrl);
-      setScanId(resp.data.id);
-      setScan(resp.data);
-      setStep("scanning");
+      const resp = await onboardApi.scan(url);
+      const scanData = resp.data;
+      setScanId(scanData.id);
+      setScan(scanData);
+      // If scan is already completed (resuming a finished scan), go straight to results
+      if (scanData.status === "completed") {
+        const deps = scanData.results ?? [];
+        const sel: Record<number, boolean> = {};
+        const assign: Record<number, { mode: "new" | "existing"; newName?: string }> = {};
+        deps.forEach((d, i) => {
+          sel[i] = true;
+          assign[i] = { mode: "new", newName: d.name.replace(/\//g, "-") };
+        });
+        setSelections(sel);
+        setProjectAssignments(assign);
+        setStep("results");
+      } else if (scanData.status === "failed") {
+        setError(scanData.error || "Scan failed");
+        setStep("input");
+      } else {
+        setStep("scanning");
+      }
     } catch (e: any) {
       setError(e.message || "Failed to start scan");
     }
+  };
+
+  const startScan = () => {
+    if (repoUrl.trim()) beginScan(repoUrl);
   };
 
   const applySelections = async () => {
@@ -241,11 +262,38 @@ function OnboardPageInner() {
             className="text-[14px] font-medium"
             style={{ color: "#111113", fontFamily: "var(--font-dm-sans)" }}
           >
-            Scanning repository for dependencies...
+            {scan?.status === "processing"
+              ? "Analyzing dependency files..."
+              : "Waiting to start scan..."}
           </p>
-          <p className="mt-1 text-[12px]" style={{ color: "#9ca3af" }}>
-            This may take a moment while we analyze dependency files.
-          </p>
+          <div className="mt-3 flex flex-col items-center gap-2">
+            {/* Progress steps */}
+            <div className="flex items-center gap-6">
+              <ScanStep
+                label="Queued"
+                done={scan?.status === "processing"}
+                active={scan?.status === "pending"}
+              />
+              <StepConnector done={scan?.status === "processing"} />
+              <ScanStep
+                label="Fetching files"
+                done={false}
+                active={scan?.status === "processing"}
+              />
+              <StepConnector done={false} />
+              <ScanStep
+                label="Extracting deps"
+                done={false}
+                active={false}
+              />
+            </div>
+            <p className="mt-2 text-[12px]" style={{ color: "#9ca3af" }}>
+              {elapsed > 0 && `${elapsed}s elapsed · `}
+              {scan?.repo_url && (
+                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{scan.repo_url}</span>
+              )}
+            </p>
+          </div>
         </div>
       )}
 
@@ -486,5 +534,53 @@ function OnboardPageInner() {
         </>
       )}
     </div>
+  );
+}
+
+/* --- Progress step components --- */
+
+function ScanStep({ label, done, active }: { label: string; done: boolean; active: boolean }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <div
+        className="flex items-center justify-center rounded-full"
+        style={{
+          width: 18,
+          height: 18,
+          backgroundColor: done ? "#f0fdf4" : active ? "#fff7ed" : "#f3f3f1",
+          border: `1.5px solid ${done ? "#16a34a" : active ? "#e8601a" : "#e8e8e5"}`,
+        }}
+      >
+        {done ? (
+          <Check className="h-3 w-3" style={{ color: "#16a34a" }} />
+        ) : active ? (
+          <Loader2 className="h-3 w-3 animate-spin" style={{ color: "#e8601a" }} />
+        ) : (
+          <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#d1d5db" }} />
+        )}
+      </div>
+      <span
+        className="text-[12px]"
+        style={{
+          color: done ? "#16a34a" : active ? "#111113" : "#9ca3af",
+          fontFamily: "var(--font-dm-sans)",
+          fontWeight: active ? 500 : 400,
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function StepConnector({ done }: { done: boolean }) {
+  return (
+    <div
+      className="h-px"
+      style={{
+        width: 24,
+        backgroundColor: done ? "#16a34a" : "#e8e8e5",
+      }}
+    />
   );
 }
