@@ -174,6 +174,18 @@ CREATE TABLE IF NOT EXISTS release_todos (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_release_todos_release_id ON release_todos(release_id) WHERE release_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_release_todos_semantic_release_id ON release_todos(semantic_release_id) WHERE semantic_release_id IS NOT NULL;
+
+-- Onboarding scans (GitHub repo dependency detection)
+CREATE TABLE IF NOT EXISTS onboard_scans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    repo_url TEXT NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    results JSONB,
+    error TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ
+);
 `
 
 // RunMigrations applies River's schema and the application schema. Idempotent — safe to call on every startup.
