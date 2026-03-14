@@ -24,3 +24,13 @@ type AgentJobArgs struct {
 func (AgentJobArgs) Kind() string { return "agent_run" }
 
 var _ river.JobArgs = AgentJobArgs{}
+
+// ScanDependenciesJobArgs is enqueued when a user requests a GitHub repo scan.
+// The worker fetches dependency files and extracts dependencies via LLM.
+type ScanDependenciesJobArgs struct {
+	ScanID string `json:"scan_id"`
+}
+
+func (ScanDependenciesJobArgs) Kind() string { return "scan_dependencies" }
+
+var _ river.JobArgs = ScanDependenciesJobArgs{}
