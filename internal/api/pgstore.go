@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -234,19 +236,47 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includ
 			          (s.version_filter_include IS NOT NULL AND r.version !~ s.version_filter_include)
 			          OR (s.version_filter_exclude IS NOT NULL AND r.version ~ s.version_filter_exclude)
 			          OR (s.exclude_prereleases = true AND r.raw_data->>'prerelease' = 'true')
-			        THEN true ELSE false END
+			        THEN true ELSE false END,
+			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
 			 FROM releases r
 			 LEFT JOIN sources s ON r.source_id = s.id
 			 LEFT JOIN projects p ON s.project_id = p.id
+			 LEFT JOIN LATERAL (
+			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+			      FROM semantic_releases sr
+			      WHERE sr.project_id = p.id AND sr.version = r.version
+			      ORDER BY sr.created_at DESC LIMIT 1)
+			     UNION ALL
+			     (SELECT NULL::uuid, 'processing', '', 1
+			      FROM agent_runs ar
+			      WHERE ar.project_id = p.id AND ar.version = r.version
+			        AND ar.status IN ('pending', 'running')
+			      LIMIT 1)
+			     ORDER BY priority LIMIT 1
+			 ) sr_info ON true
 			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $1 OFFSET $2`, perPage, offset)
 	} else {
 		rows, err = s.pool.Query(ctx,
 			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
 			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
-			        false
+			        false,
+			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
 			 FROM releases r
 			 LEFT JOIN sources s ON r.source_id = s.id
 			 LEFT JOIN projects p ON s.project_id = p.id
+			 LEFT JOIN LATERAL (
+			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+			      FROM semantic_releases sr
+			      WHERE sr.project_id = p.id AND sr.version = r.version
+			      ORDER BY sr.created_at DESC LIMIT 1)
+			     UNION ALL
+			     (SELECT NULL::uuid, 'processing', '', 1
+			      FROM agent_runs ar
+			      WHERE ar.project_id = p.id AND ar.version = r.version
+			        AND ar.status IN ('pending', 'running')
+			      LIMIT 1)
+			     ORDER BY priority LIMIT 1
+			 ) sr_info ON true
 			 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
 			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
 			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
@@ -260,7 +290,8 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includ
 	for rows.Next() {
 		var rel models.Release
 		if err := rows.Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt,
-			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository, &rel.Excluded); err != nil {
+			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository, &rel.Excluded,
+			&rel.SemanticReleaseID, &rel.SemanticReleaseStatus, &rel.SemanticReleaseUrgency); err != nil {
 			return nil, 0, fmt.Errorf("scan release: %w", err)
 		}
 		releases = append(releases, rel)
@@ -301,20 +332,48 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 			          (s.version_filter_include IS NOT NULL AND r.version !~ s.version_filter_include)
 			          OR (s.version_filter_exclude IS NOT NULL AND r.version ~ s.version_filter_exclude)
 			          OR (s.exclude_prereleases = true AND r.raw_data->>'prerelease' = 'true')
-			        THEN true ELSE false END
+			        THEN true ELSE false END,
+			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
 			 FROM releases r
 			 LEFT JOIN sources s ON r.source_id = s.id
 			 LEFT JOIN projects p ON s.project_id = p.id
+			 LEFT JOIN LATERAL (
+			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+			      FROM semantic_releases sr
+			      WHERE sr.project_id = p.id AND sr.version = r.version
+			      ORDER BY sr.created_at DESC LIMIT 1)
+			     UNION ALL
+			     (SELECT NULL::uuid, 'processing', '', 1
+			      FROM agent_runs ar
+			      WHERE ar.project_id = p.id AND ar.version = r.version
+			        AND ar.status IN ('pending', 'running')
+			      LIMIT 1)
+			     ORDER BY priority LIMIT 1
+			 ) sr_info ON true
 			 WHERE r.source_id = $1
 			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
 	} else {
 		rows, err = s.pool.Query(ctx,
 			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
 			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
-			        false
+			        false,
+			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
 			 FROM releases r
 			 LEFT JOIN sources s ON r.source_id = s.id
 			 LEFT JOIN projects p ON s.project_id = p.id
+			 LEFT JOIN LATERAL (
+			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+			      FROM semantic_releases sr
+			      WHERE sr.project_id = p.id AND sr.version = r.version
+			      ORDER BY sr.created_at DESC LIMIT 1)
+			     UNION ALL
+			     (SELECT NULL::uuid, 'processing', '', 1
+			      FROM agent_runs ar
+			      WHERE ar.project_id = p.id AND ar.version = r.version
+			        AND ar.status IN ('pending', 'running')
+			      LIMIT 1)
+			     ORDER BY priority LIMIT 1
+			 ) sr_info ON true
 			 WHERE r.source_id = $1
 			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
 			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
@@ -329,7 +388,8 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 	for rows.Next() {
 		var rel models.Release
 		if err := rows.Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt,
-			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository, &rel.Excluded); err != nil {
+			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository, &rel.Excluded,
+			&rel.SemanticReleaseID, &rel.SemanticReleaseStatus, &rel.SemanticReleaseUrgency); err != nil {
 			return nil, 0, fmt.Errorf("scan release: %w", err)
 		}
 		releases = append(releases, rel)
@@ -368,20 +428,48 @@ func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, p
 			          (s.version_filter_include IS NOT NULL AND r.version !~ s.version_filter_include)
 			          OR (s.version_filter_exclude IS NOT NULL AND r.version ~ s.version_filter_exclude)
 			          OR (s.exclude_prereleases = true AND r.raw_data->>'prerelease' = 'true')
-			        THEN true ELSE false END
+			        THEN true ELSE false END,
+			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
 			 FROM releases r
 			 JOIN sources s ON r.source_id = s.id
 			 JOIN projects p ON s.project_id = p.id
+			 LEFT JOIN LATERAL (
+			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+			      FROM semantic_releases sr
+			      WHERE sr.project_id = p.id AND sr.version = r.version
+			      ORDER BY sr.created_at DESC LIMIT 1)
+			     UNION ALL
+			     (SELECT NULL::uuid, 'processing', '', 1
+			      FROM agent_runs ar
+			      WHERE ar.project_id = p.id AND ar.version = r.version
+			        AND ar.status IN ('pending', 'running')
+			      LIMIT 1)
+			     ORDER BY priority LIMIT 1
+			 ) sr_info ON true
 			 WHERE s.project_id = $1
 			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
 	} else {
 		rows, err = s.pool.Query(ctx,
 			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
 			        p.id, p.name, s.provider, s.repository,
-			        false
+			        false,
+			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
 			 FROM releases r
 			 JOIN sources s ON r.source_id = s.id
 			 JOIN projects p ON s.project_id = p.id
+			 LEFT JOIN LATERAL (
+			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+			      FROM semantic_releases sr
+			      WHERE sr.project_id = p.id AND sr.version = r.version
+			      ORDER BY sr.created_at DESC LIMIT 1)
+			     UNION ALL
+			     (SELECT NULL::uuid, 'processing', '', 1
+			      FROM agent_runs ar
+			      WHERE ar.project_id = p.id AND ar.version = r.version
+			        AND ar.status IN ('pending', 'running')
+			      LIMIT 1)
+			     ORDER BY priority LIMIT 1
+			 ) sr_info ON true
 			 WHERE s.project_id = $1
 			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
 			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
@@ -396,7 +484,8 @@ func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, p
 	for rows.Next() {
 		var rel models.Release
 		if err := rows.Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt,
-			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository, &rel.Excluded); err != nil {
+			&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository, &rel.Excluded,
+			&rel.SemanticReleaseID, &rel.SemanticReleaseStatus, &rel.SemanticReleaseUrgency); err != nil {
 			return nil, 0, fmt.Errorf("scan release: %w", err)
 		}
 		releases = append(releases, rel)
@@ -408,13 +497,28 @@ func (s *PgStore) GetRelease(ctx context.Context, id string) (*models.Release, e
 	var rel models.Release
 	err := s.pool.QueryRow(ctx,
 		`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-		        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,'')
+		        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
+		        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
 		 FROM releases r
 		 LEFT JOIN sources s ON r.source_id = s.id
 		 LEFT JOIN projects p ON s.project_id = p.id
+		 LEFT JOIN LATERAL (
+		     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+		      FROM semantic_releases sr
+		      WHERE sr.project_id = p.id AND sr.version = r.version
+		      ORDER BY sr.created_at DESC LIMIT 1)
+		     UNION ALL
+		     (SELECT NULL::uuid, 'processing', '', 1
+		      FROM agent_runs ar
+		      WHERE ar.project_id = p.id AND ar.version = r.version
+		        AND ar.status IN ('pending', 'running')
+		      LIMIT 1)
+		     ORDER BY priority LIMIT 1
+		 ) sr_info ON true
 		 WHERE r.id = $1`, id,
 	).Scan(&rel.ID, &rel.SourceID, &rel.Version, &rel.RawData, &rel.ReleasedAt, &rel.CreatedAt,
-		&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository)
+		&rel.ProjectID, &rel.ProjectName, &rel.Provider, &rel.Repository,
+		&rel.SemanticReleaseID, &rel.SemanticReleaseStatus, &rel.SemanticReleaseUrgency)
 	if err != nil {
 		return nil, err
 	}
@@ -1267,7 +1371,7 @@ func (s *PgStore) GetTodo(ctx context.Context, id string) (*models.Todo, error) 
 	return &t, nil
 }
 
-func (s *PgStore) AcknowledgeTodo(ctx context.Context, id string) error {
+func (s *PgStore) AcknowledgeTodo(ctx context.Context, id string, cascade bool) error {
 	tag, err := s.pool.Exec(ctx,
 		`UPDATE release_todos SET status = 'acknowledged', acknowledged_at = NOW() WHERE id = $1`, id)
 	if err != nil {
@@ -1276,10 +1380,33 @@ func (s *PgStore) AcknowledgeTodo(ctx context.Context, id string) error {
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("todo not found")
 	}
+
+	if cascade {
+		// Also acknowledge older pending todos for the same source/project.
+		_, _ = s.pool.Exec(ctx, `
+			UPDATE release_todos SET status = 'acknowledged', acknowledged_at = NOW()
+			WHERE id != $1 AND status = 'pending'
+			AND (
+				(release_id IS NOT NULL AND release_id IN (
+					SELECT r2.id FROM releases r2
+					JOIN releases r1 ON r1.source_id = r2.source_id
+					JOIN release_todos t1 ON t1.release_id = r1.id
+					WHERE t1.id = $1 AND r2.created_at <= r1.created_at AND r2.id != r1.id
+				))
+				OR
+				(semantic_release_id IS NOT NULL AND semantic_release_id IN (
+					SELECT sr2.id FROM semantic_releases sr2
+					JOIN semantic_releases sr1 ON sr1.project_id = sr2.project_id
+					JOIN release_todos t1 ON t1.semantic_release_id = sr1.id
+					WHERE t1.id = $1 AND sr2.created_at <= sr1.created_at AND sr2.id != sr1.id
+				))
+			)`, id)
+	}
+
 	return nil
 }
 
-func (s *PgStore) ResolveTodo(ctx context.Context, id string) error {
+func (s *PgStore) ResolveTodo(ctx context.Context, id string, cascade bool) error {
 	tag, err := s.pool.Exec(ctx,
 		`UPDATE release_todos SET status = 'resolved', resolved_at = NOW() WHERE id = $1`, id)
 	if err != nil {
@@ -1288,6 +1415,29 @@ func (s *PgStore) ResolveTodo(ctx context.Context, id string) error {
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("todo not found")
 	}
+
+	if cascade {
+		// Also resolve older pending/acknowledged todos for the same source/project.
+		_, _ = s.pool.Exec(ctx, `
+			UPDATE release_todos SET status = 'resolved', resolved_at = NOW()
+			WHERE id != $1 AND status IN ('pending', 'acknowledged')
+			AND (
+				(release_id IS NOT NULL AND release_id IN (
+					SELECT r2.id FROM releases r2
+					JOIN releases r1 ON r1.source_id = r2.source_id
+					JOIN release_todos t1 ON t1.release_id = r1.id
+					WHERE t1.id = $1 AND r2.created_at <= r1.created_at AND r2.id != r1.id
+				))
+				OR
+				(semantic_release_id IS NOT NULL AND semantic_release_id IN (
+					SELECT sr2.id FROM semantic_releases sr2
+					JOIN semantic_releases sr1 ON sr1.project_id = sr2.project_id
+					JOIN release_todos t1 ON t1.semantic_release_id = sr1.id
+					WHERE t1.id = $1 AND sr2.created_at <= sr1.created_at AND sr2.id != sr1.id
+				))
+			)`, id)
+	}
+
 	return nil
 }
 
@@ -1329,4 +1479,133 @@ func (s *PgStore) CreateSemanticReleaseTodo(ctx context.Context, semanticRelease
 		return "", fmt.Errorf("create semantic release todo: %w", err)
 	}
 	return id, nil
+}
+
+// --- Onboard Store ---
+
+func (s *PgStore) CreateOnboardScan(ctx context.Context, repoURL string) (*models.OnboardScan, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var scan models.OnboardScan
+	err = tx.QueryRow(ctx,
+		`INSERT INTO onboard_scans (repo_url) VALUES ($1)
+		 RETURNING id, repo_url, status, created_at`,
+		repoURL,
+	).Scan(&scan.ID, &scan.RepoURL, &scan.Status, &scan.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	// Enqueue River job in the same transaction
+	if s.river != nil {
+		_, err = s.river.InsertTx(ctx, tx, queue.ScanDependenciesJobArgs{ScanID: scan.ID}, nil)
+		if err != nil {
+			return nil, fmt.Errorf("enqueue scan job: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit: %w", err)
+	}
+	return &scan, nil
+}
+
+func (s *PgStore) GetOnboardScan(ctx context.Context, id string) (*models.OnboardScan, error) {
+	var scan models.OnboardScan
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, repo_url, status, results, COALESCE(error, ''), created_at, started_at, completed_at
+		 FROM onboard_scans WHERE id = $1`, id,
+	).Scan(&scan.ID, &scan.RepoURL, &scan.Status, &scan.Results, &scan.Error,
+		&scan.CreatedAt, &scan.StartedAt, &scan.CompletedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &scan, nil
+}
+
+func (s *PgStore) UpdateOnboardScanStatus(ctx context.Context, id, status string, results json.RawMessage, scanErr string) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE onboard_scans SET status = $2, results = $3, error = NULLIF($4, ''),
+		 started_at = CASE WHEN $2 = 'processing' AND started_at IS NULL THEN NOW() ELSE started_at END,
+		 completed_at = CASE WHEN $2 IN ('completed', 'failed') THEN NOW() ELSE completed_at END
+		 WHERE id = $1`, id, status, results, scanErr,
+	)
+	return err
+}
+
+func (s *PgStore) ActiveScanForRepo(ctx context.Context, repoURL string) (*models.OnboardScan, error) {
+	var scan models.OnboardScan
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, repo_url, status, created_at FROM onboard_scans
+		 WHERE repo_url = $1 AND status IN ('pending', 'processing')
+		 ORDER BY created_at DESC LIMIT 1`, repoURL,
+	).Scan(&scan.ID, &scan.RepoURL, &scan.Status, &scan.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &scan, nil
+}
+
+func (s *PgStore) ApplyOnboardScan(ctx context.Context, scanID string, selections []OnboardSelection) (*OnboardApplyResult, error) {
+	result := &OnboardApplyResult{
+		CreatedProjects: []models.Project{},
+		CreatedSources:  []models.Source{},
+		Skipped:         []string{},
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	for _, sel := range selections {
+		projectID := sel.ProjectID
+
+		// Create project if needed
+		if sel.NewProjectName != "" {
+			var p models.Project
+			err := tx.QueryRow(ctx,
+				`INSERT INTO projects (name, agent_rules) VALUES ($1, '{}')
+				 RETURNING id, name, description, agent_prompt, agent_rules, created_at, updated_at`,
+				sel.NewProjectName,
+			).Scan(&p.ID, &p.Name, &p.Description, &p.AgentPrompt, &p.AgentRules, &p.CreatedAt, &p.UpdatedAt)
+			if err != nil {
+				return nil, fmt.Errorf("create project %q: %w", sel.NewProjectName, err)
+			}
+			projectID = p.ID
+			result.CreatedProjects = append(result.CreatedProjects, p)
+		}
+
+		// Create source — skip if duplicate
+		var src models.Source
+		err := tx.QueryRow(ctx,
+			`INSERT INTO sources (project_id, provider, repository)
+			 VALUES ($1, $2, $3)
+			 ON CONFLICT (provider, repository) DO NOTHING
+			 RETURNING id, project_id, provider, repository, poll_interval_seconds, enabled, created_at, updated_at`,
+			projectID, sel.Provider, sel.UpstreamRepo,
+		).Scan(&src.ID, &src.ProjectID, &src.Provider, &src.Repository,
+			&src.PollIntervalSeconds, &src.Enabled, &src.CreatedAt, &src.UpdatedAt)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				result.Skipped = append(result.Skipped, fmt.Sprintf("%s/%s: source already exists", sel.Provider, sel.UpstreamRepo))
+				continue
+			}
+			return nil, fmt.Errorf("create source %s/%s: %w", sel.Provider, sel.UpstreamRepo, err)
+		}
+		result.CreatedSources = append(result.CreatedSources, src)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit: %w", err)
+	}
+	return result, nil
 }
