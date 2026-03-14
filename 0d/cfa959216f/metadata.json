@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "0dcfa959216f",
+  "strategy": "manual-commit",
+  "branch": "feat/github-repo-onboarding",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/onboard/worker.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0d/cfa959216f/0/metadata.json",
+      "transcript": "/0d/cfa959216f/0/full.jsonl",
+      "context": "/0d/cfa959216f/0/context.md",
+      "content_hash": "/0d/cfa959216f/0/content_hash.txt",
+      "prompt": "/0d/cfa959216f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 17993037,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 30038,
+    "api_call_count": 184
+  }
+}
