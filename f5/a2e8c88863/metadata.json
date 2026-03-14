@@ -3,7 +3,7 @@
   "checkpoint_id": "f5a2e8c88863",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "docs/superpowers/plans/2026-03-14-github-repo-onboarding.md"
   ],
@@ -21,13 +21,20 @@
       "context": "/f5/a2e8c88863/1/context.md",
       "content_hash": "/f5/a2e8c88863/1/content_hash.txt",
       "prompt": "/f5/a2e8c88863/1/prompt.txt"
+    },
+    {
+      "metadata": "/f5/a2e8c88863/2/metadata.json",
+      "transcript": "/f5/a2e8c88863/2/full.jsonl",
+      "context": "/f5/a2e8c88863/2/context.md",
+      "content_hash": "/f5/a2e8c88863/2/content_hash.txt",
+      "prompt": "/f5/a2e8c88863/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 24045960,
+    "input_tokens": 60320083,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 51110,
-    "api_call_count": 233
+    "output_tokens": 114083,
+    "api_call_count": 560
   }
 }
