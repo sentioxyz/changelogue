@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "5fddbfe6b507",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/superpowers/specs/2026-03-14-github-repo-onboarding-design.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/5f/ddbfe6b507/0/metadata.json",
+      "transcript": "/5f/ddbfe6b507/0/full.jsonl",
+      "context": "/5f/ddbfe6b507/0/context.md",
+      "content_hash": "/5f/ddbfe6b507/0/content_hash.txt",
+      "prompt": "/5f/ddbfe6b507/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12292366,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 24269,
+    "api_call_count": 125
+  }
+}
