@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "1baa07f6273b",
+  "session_id": "bce5ac7d-72fc-4b86-96f1-84578259e6ba",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-14T13:53:05.979082Z",
+  "branch": "feat/github-repo-onboarding",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/pgstore.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "b0b4a63b4ad4",
+  "token_usage": {
+    "input_tokens": 15807429,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 26718,
+    "api_call_count": 163
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-14T13:53:03.468917Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 3,
+    "human_removed": 0,
+    "total_committed": 0,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/bce5ac7d-72fc-4b86-96f1-84578259e6ba.jsonl"
+}
