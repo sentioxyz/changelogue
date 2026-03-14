@@ -88,13 +88,18 @@ func main() {
 	// Scan worker: requires LLM for dependency extraction
 	scanScanner := onboard.NewScanner(http.DefaultClient, "", "")
 	var scanExtractor *onboard.DependencyExtractor
-	if llmConfig.GoogleAPIKey != "" {
-		ext, err := onboard.NewDependencyExtractor(ctx, llmConfig.GoogleAPIKey, llmConfig.Model)
-		if err != nil {
-			slog.Warn("dependency extractor not available", "err", err)
-		} else {
-			scanExtractor = ext
-		}
+	extractorCfg := onboard.ExtractorConfig{
+		Provider:      llmConfig.Provider,
+		Model:         llmConfig.Model,
+		GoogleAPIKey:  llmConfig.GoogleAPIKey,
+		OpenAIAPIKey:  llmConfig.OpenAIAPIKey,
+		OpenAIBaseURL: llmConfig.OpenAIBaseURL,
+	}
+	ext, err := onboard.NewDependencyExtractor(ctx, extractorCfg)
+	if err != nil {
+		slog.Warn("dependency extractor not available", "err", err)
+	} else {
+		scanExtractor = ext
 	}
 	scanWorker := onboard.NewScanWorker(pgStore, scanScanner, scanExtractor, pool)
 	river.AddWorker(workers, scanWorker)
