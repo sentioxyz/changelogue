@@ -1574,7 +1574,7 @@ func (s *PgStore) ApplyOnboardScan(ctx context.Context, scanID string, selection
 			var p models.Project
 			err := tx.QueryRow(ctx,
 				`INSERT INTO projects (name, agent_rules) VALUES ($1, '{}')
-				 RETURNING id, name, description, agent_prompt, agent_rules, created_at, updated_at`,
+				 RETURNING id, name, COALESCE(description, ''), COALESCE(agent_prompt, ''), agent_rules, created_at, updated_at`,
 				sel.NewProjectName,
 			).Scan(&p.ID, &p.Name, &p.Description, &p.AgentPrompt, &p.AgentRules, &p.CreatedAt, &p.UpdatedAt)
 			if err != nil {
