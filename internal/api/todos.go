@@ -11,8 +11,8 @@ import (
 type TodosStore interface {
 	ListTodos(ctx context.Context, status string, page, perPage int, aggregated bool) ([]models.Todo, int, error)
 	GetTodo(ctx context.Context, id string) (*models.Todo, error)
-	AcknowledgeTodo(ctx context.Context, id string) error
-	ResolveTodo(ctx context.Context, id string) error
+	AcknowledgeTodo(ctx context.Context, id string, cascade bool) error
+	ResolveTodo(ctx context.Context, id string, cascade bool) error
 	ReopenTodo(ctx context.Context, id string) error
 }
 
@@ -58,7 +58,8 @@ func (h *TodosHandler) Get(w http.ResponseWriter, r *http.Request) {
 // Acknowledge marks a TODO as acknowledged. Supports both PATCH (API) and GET with redirect (notification links).
 func (h *TodosHandler) Acknowledge(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if err := h.store.AcknowledgeTodo(r.Context(), id); err != nil {
+	cascade := r.URL.Query().Get("cascade") == "true"
+	if err := h.store.AcknowledgeTodo(r.Context(), id, cascade); err != nil {
 		RespondError(w, r, http.StatusNotFound, "not_found", "Todo not found")
 		return
 	}
@@ -75,7 +76,8 @@ func (h *TodosHandler) Acknowledge(w http.ResponseWriter, r *http.Request) {
 // Resolve marks a TODO as resolved. Supports both PATCH (API) and GET with redirect (notification links).
 func (h *TodosHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if err := h.store.ResolveTodo(r.Context(), id); err != nil {
+	cascade := r.URL.Query().Get("cascade") == "true"
+	if err := h.store.ResolveTodo(r.Context(), id, cascade); err != nil {
 		RespondError(w, r, http.StatusNotFound, "not_found", "Todo not found")
 		return
 	}

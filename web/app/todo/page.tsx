@@ -42,6 +42,12 @@ function TodoPageInner() {
   const [activeTab, setActiveTab] = useState<StatusTab>("pending");
   const [page, setPage] = useState(1);
   const [aggregated, setAggregated] = useState(true);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    action: string;
+    projectName?: string;
+    version?: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   /* Fetch todos for active tab */
   const { data, isLoading, mutate } = useSWR(
@@ -108,14 +114,14 @@ function TodoPageInner() {
       { revalidate: false }
     );
     try {
-      await todosApi.acknowledge(id);
+      await todosApi.acknowledge(id, true);
     } catch {
       /* Revert on failure */
     }
     revalidateAll();
   };
 
-  const handleResolve = async (id: string) => {
+  const handleResolve = async (id: string, cascade = true) => {
     mutate(
       (prev) => {
         if (!prev) return prev;
@@ -128,7 +134,7 @@ function TodoPageInner() {
       { revalidate: false }
     );
     try {
-      await todosApi.resolve(id);
+      await todosApi.resolve(id, cascade);
     } catch {
       /* Revert on failure */
     }
@@ -402,20 +408,42 @@ function TodoPageInner() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       {activeTab === "pending" && (
-                        <button
-                          onClick={() => handleAcknowledge(todo.id)}
-                          className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
-                          style={{
-                            fontFamily: "var(--font-dm-sans)",
-                            fontSize: "12px",
-                            fontWeight: 500,
-                            backgroundColor: "#dcfce7",
-                            color: "#166534",
-                            border: "1px solid #bbf7d0",
-                          }}
-                        >
-                          Acknowledge
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleAcknowledge(todo.id)}
+                            className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
+                            style={{
+                              fontFamily: "var(--font-dm-sans)",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                              backgroundColor: "#dcfce7",
+                              color: "#166534",
+                              border: "1px solid #bbf7d0",
+                            }}
+                          >
+                            Acknowledge
+                          </button>
+                          <button
+                            onClick={() =>
+                              setConfirmDialog({
+                                action: "Dismiss",
+                                projectName: todo.project_name,
+                                version: todo.version,
+                                onConfirm: () => handleResolve(todo.id, false),
+                              })
+                            }
+                            className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
+                            style={{
+                              fontFamily: "var(--font-dm-sans)",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                              color: "#6b7280",
+                              border: "1px solid #e8e8e5",
+                            }}
+                          >
+                            Dismiss
+                          </button>
+                        </>
                       )}
                       {activeTab === "acknowledged" && (
                         <>
@@ -434,7 +462,14 @@ function TodoPageInner() {
                             Resolve
                           </button>
                           <button
-                            onClick={() => handleReopen(todo.id)}
+                            onClick={() =>
+                              setConfirmDialog({
+                                action: "Undo acknowledge for",
+                                projectName: todo.project_name,
+                                version: todo.version,
+                                onConfirm: () => handleReopen(todo.id),
+                              })
+                            }
                             className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
                             style={{
                               fontFamily: "var(--font-dm-sans)",
@@ -450,7 +485,14 @@ function TodoPageInner() {
                       )}
                       {activeTab === "resolved" && (
                         <button
-                          onClick={() => handleReopen(todo.id)}
+                          onClick={() =>
+                            setConfirmDialog({
+                              action: "Reopen",
+                              projectName: todo.project_name,
+                              version: todo.version,
+                              onConfirm: () => handleReopen(todo.id),
+                            })
+                          }
                           className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
                           style={{
                             fontFamily: "var(--font-dm-sans)",
@@ -511,6 +553,80 @@ function TodoPageInner() {
             >
               Next
             </button>
+          </div>
+        </div>
+      )}
+      {/* Confirmation dialog */}
+      {confirmDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+          onClick={() => setConfirmDialog(null)}
+        >
+          <div
+            className="rounded-lg bg-white p-6 shadow-xl"
+            style={{ maxWidth: "360px", width: "100%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "14px",
+                color: "#111113",
+                fontWeight: 400,
+                marginBottom: "20px",
+                lineHeight: 1.6,
+              }}
+            >
+              {confirmDialog.action}{" "}
+              {confirmDialog.projectName && (
+                <span style={{ fontWeight: 600 }}>{confirmDialog.projectName}</span>
+              )}{" "}
+              <span
+                style={{
+                  fontFamily: "var(--font-mono, ui-monospace, monospace)",
+                  fontSize: "13px",
+                  backgroundColor: "#f3f3f1",
+                  borderRadius: "4px",
+                  padding: "1px 6px",
+                  color: "#6d28d9",
+                }}
+              >
+                {confirmDialog.version ?? "this item"}
+              </span>
+              ?
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="rounded-md px-3 py-1.5 transition-colors hover:bg-[#f3f3f1]"
+                style={{
+                  fontFamily: "var(--font-dm-sans)",
+                  fontSize: "13px",
+                  color: "#6b7280",
+                  border: "1px solid #e8e8e5",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  confirmDialog.onConfirm();
+                  setConfirmDialog(null);
+                }}
+                className="rounded-md px-3 py-1.5 transition-colors hover:opacity-80"
+                style={{
+                  fontFamily: "var(--font-dm-sans)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  backgroundColor: "#fee2e2",
+                  color: "#991b1b",
+                  border: "1px solid #fecaca",
+                }}
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}

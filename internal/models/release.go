@@ -19,4 +19,9 @@ type Release struct {
 	Provider    string `json:"provider,omitempty"`
 	Repository  string `json:"repository,omitempty"`
 	Excluded    bool   `json:"excluded"` // true when filtered out by source version filters
+
+	// Enriched fields from LEFT JOINed semantic_releases table.
+	SemanticReleaseID      string `json:"semantic_release_id,omitempty"`
+	SemanticReleaseStatus  string `json:"semantic_release_status,omitempty"`
+	SemanticReleaseUrgency string `json:"semantic_release_urgency,omitempty"`
 }

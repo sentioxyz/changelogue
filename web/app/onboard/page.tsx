@@ -4,8 +4,8 @@ import React, { useState, useEffect, Suspense } from "react";
 import useSWR from "swr";
 import { useRouter, useSearchParams } from "next/navigation";
 import { onboard as onboardApi, projects as projectsApi } from "@/lib/api/client";
-import type { OnboardScan, OnboardSelection, Project } from "@/lib/api/types";
-import { Loader2, Check, Search, ExternalLink, PackageSearch, ArrowRight } from "lucide-react";
+import type { OnboardScan, OnboardSelection, Project, Source } from "@/lib/api/types";
+import { Loader2, Check, Search, PackageSearch, ArrowRight } from "lucide-react";
 
 type Step = "input" | "scanning" | "results" | "applied";
 
@@ -39,7 +39,7 @@ function OnboardPageInner() {
   const [selections, setSelections] = useState<Record<number, boolean>>({});
   const [projectAssignments, setProjectAssignments] = useState<Record<number, { mode: "new" | "existing"; projectId?: string; newName?: string }>>({});
   const [applying, setApplying] = useState(false);
-  const [applyResult, setApplyResult] = useState<{ created_projects: Project[]; created_sources: any[]; skipped: string[] } | null>(null);
+  const [applyResult, setApplyResult] = useState<{ created_projects: Project[]; created_sources: Source[]; skipped: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [autoStarted, setAutoStarted] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -122,8 +122,8 @@ function OnboardPageInner() {
       } else {
         setStep("scanning");
       }
-    } catch (e: any) {
-      setError(e.message || "Failed to start scan");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to start scan");
     }
   };
 
@@ -153,8 +153,8 @@ function OnboardPageInner() {
       const resp = await onboardApi.apply(scanId, sels);
       setApplyResult(resp.data);
       setStep("applied");
-    } catch (e: any) {
-      setError(e.message || "Failed to apply selections");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to apply selections");
     } finally {
       setApplying(false);
     }

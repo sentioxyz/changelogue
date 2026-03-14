@@ -1,5 +1,5 @@
-import { SemanticReleasesList } from "@/components/semantic-releases/semantic-releases-list";
-
+"use client";
+import { redirect } from "next/navigation";
 export default function SemanticReleasesPage() {
-  return <SemanticReleasesList />;
+  redirect("/releases");
 }
