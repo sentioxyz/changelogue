@@ -1026,7 +1026,7 @@ func (s *PgStore) ApplyOnboardScan(ctx context.Context, scanID string, selection
 		).Scan(&src.ID, &src.ProjectID, &src.Provider, &src.Repository,
 			&src.PollIntervalSeconds, &src.Enabled, &src.CreatedAt, &src.UpdatedAt)
 		if err != nil {
-			if err.Error() == "no rows in result set" {
+			if errors.Is(err, pgx.ErrNoRows) {
 				result.Skipped = append(result.Skipped, fmt.Sprintf("%s/%s: source already exists", sel.Provider, sel.UpstreamRepo))
 				continue
 			}
@@ -1190,6 +1190,7 @@ func (w *ScanWorker) notifyScanComplete(ctx context.Context, scanID string) {
 		slog.Error("pg_notify failed", "scan_id", scanID, "err", err)
 	}
 }
+```
 
 - [ ] **Step 2: Verify it compiles**
 
