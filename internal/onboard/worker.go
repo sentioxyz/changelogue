@@ -84,7 +84,7 @@ func (w *ScanWorker) Work(ctx context.Context, job *river.Job[queue.ScanDependen
 	// Extract dependencies via LLM
 	if w.extractor == nil {
 		w.store.UpdateOnboardScanStatus(ctx, scanID, "failed", nil, "LLM not configured (set GOOGLE_API_KEY)")
-		return fmt.Errorf("extractor not configured")
+		return river.JobCancel(fmt.Errorf("extractor not configured"))
 	}
 
 	deps, err := w.extractor.Extract(ctx, files)
