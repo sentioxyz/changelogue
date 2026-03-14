@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "f6c3587efc24",
+  "strategy": "manual-commit",
+  "branch": "feat/github-repo-onboarding",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/onboard/gemini.go",
+    "internal/onboard/gemini_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f6/c3587efc24/0/metadata.json",
+      "transcript": "/f6/c3587efc24/0/full.jsonl",
+      "context": "/f6/c3587efc24/0/context.md",
+      "content_hash": "/f6/c3587efc24/0/content_hash.txt",
+      "prompt": "/f6/c3587efc24/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12292366,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 24269,
+    "api_call_count": 125
+  }
+}
