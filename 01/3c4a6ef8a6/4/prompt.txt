@@ -320,3 +320,577 @@ After saving the plan:
 
 
 ARGUMENTS: Create an implementation plan for the GitHub Repo Onboarding feature based on the approved spec at docs/superpowers/specs/2026-03-14-github-repo-onboarding-design.md
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **Initial Request**: User wants to add onboarding functionality for GitHub issue #7 in the changelogue project (https://github.com/sentioxyz/changelogue/issues/7). The issue title is "be able to connect to a github repo and detect dependencies it has".
+
+2. **Brainstorming Phase**: Used the superpowers:brainstorming skill to design the feature. Key decisions made through Q&A:
+   - Ecosystem scope: Multi-ecosystem via LLM (user explicitly said "We should leverage LLM so we can support broader coverage from day one")
+   - Repo access: GitHub API (recommended)
+   - Project mapping: User picks per dependency
+   - LLM provider: Gemini (ADK-Go) (recommended)
+   - UX entry point: Dedicated onboarding page (recommended)
+   - Backend approach: River Job + ADK-Go Agent (Approach A, recommended)
+
+3. **Design Sections Approved**: All 4 design sections were approved by user:
+   - Backend (scan job, LLM parsing, apply endpoint)
+   - Frontend (dedicated /onboard page with scan → review → apply)
+   - ADK-Go agent for dependency parsing
+   - Error handling & edge cases
+
+4. **Spec Written and Reviewed**: 
+   - Initial spec written to `docs/superpowers/specs/2026-03-14-github-repo-onboarding-design.md`
+   - First spec review found issues (C1-C3 critical, I1-I7 important)
+   - Key changes in revision:
+     - Changed from ADK-Go agent to direct `genai.GenerateContent` call (simpler for single-turn)
+     - Added `started_at` column to schema
+     - Added transactional guarantee for apply endpoint
+     - Added `OnboardStore` interface
+     - Added validation rules for apply selections
+     - Added all 4 provider types to LLM prompt
+     - Changed from SSE to polling for frontend
+     - Added explicit GitHub auth documentation
+   - Second spec review: Approved
+   - User reviewed: "looks good"
+
+5. **Implementation Plan Writing**:
+   - Explored codebase extensively via subagents to understand exact patterns
+   - Key files examined: queue/jobs.go, db/migrations.go, api/server.go, api/pgstore.go, api/todos.go, agent/worker.go, agent/model.go, ingestion/github.go, cmd/server/main.go, sidebar.tsx, client.ts, types.ts, models/release.go, projects page
+   - Wrote detailed 15-task plan in 8 chunks
+
+6. **Plan Review Issues Found** (first review):
+   - C1: `river.Insert` nil guard missing + not transactional
+   - C2: Unused imports in worker.go (net/http, os)
+   - C3: `RiverInserter` interface has wrong type signature
+   - C4: `err == pgx.ErrNoRows` should use `errors.Is`
+   - I1: Missing `encoding/json` import in pgstore
+   - I3: Missing `IngestionService.PollSource()` after apply
+   - I4: Missing `pg_notify` on scan completion
+   - I5: No API handler tests
+   - I6: No worker tests
+   - I7: Repo URL not normalized before duplicate check
+   - S1: Custom string helpers unnecessary
+
+7. **Plan Fixes Applied**:
+   - Fixed Task 6: Removed `RiverInserter` entirely, added `errors.Is`, added `onboard.ParseRepoURL` for URL normalization, added `errors` and `onboard` imports
+   - Fixed Task 7: Changed to transactional `InsertTx` pattern with nil guard, added `encoding/json` import step
+   - Fixed Task 5: Replaced custom `containsString` with `strings.Contains`, added `strings` import
+   - Fixed Task 8: Removed unused imports, added `pgxpool.Pool` field, added `notifyScanComplete` method with `pg_notify`
+   - Fixed Task 9: Updated `NewScanWorker` call to pass `pool`
+   - Added Task 13: API handler tests with mock store
+   - Added Task 14: Worker tests with mock store
+   - Removed old Task 13 (RiverInserter cleanup, no longer needed)
+
+8. **Second Plan Review** - found 3 remaining issues:
+   - I-NEW-1: `ApplyOnboardScan` uses string comparison instead of `errors.Is` for no-rows check → Fixed
+   - I-NEW-2: Orphaned projects when source already exists (design tradeoff, noted)
+   - I-NEW-3: Missing code fence closure (cosmetic)
+   
+9. **Last action**: Fixed I-NEW-1 by changing string comparison to `errors.Is(err, pgx.ErrNoRows)` in ApplyOnboardScan
+
+The current state is: The plan has been fixed and committed, the second review found 3 issues, one (I-NEW-1) has been fixed. The plan needs the closing code fence fix (I-NEW-3) and then a re-review or the user needs to confirm it's ready for execution.
+
+The brainstorming task list shows Task 8 (Transition to implementation) is in_progress.
+
+Summary:
+1. Primary Request and Intent:
+   The user requested adding a "quick onboarding functionality" for GitHub issue #7 in the `sentioxyz/changelogue` project. The issue is titled "be able to connect to a GitHub repo and detect dependencies it has." The intent is to build a feature where users can point Changelogue at a GitHub repository URL, automatically detect its dependencies using an LLM (Gemini), and selectively create tracked projects/sources for those dependencies.
+
+2. Key Technical Concepts:
+   - **Changelogue/ReleaseBeacon**: A release intelligence platform that tracks software releases by polling registries (Docker Hub, GitHub, etc.)
+   - **River Job Queue**: PostgreSQL-based async job queue used for background processing (existing pattern in codebase)
+   - **ADK-Go (Google Agent Development Kit)**: Already integrated for semantic release analysis; decided NOT to use for this feature (too heavy for single-turn extraction)
+   - **Direct `genai.GenerateContent`**: Chosen over ADK-Go for LLM dependency extraction (simpler, single-turn structured output)
+   - **`google.golang.org/genai` v1.40.0**: Already in go.mod
+   - **Transactional outbox pattern**: Used for River job enqueueing via `InsertTx` within same DB transaction
+   - **SSE + PostgreSQL LISTEN/NOTIFY**: Existing real-time update infrastructure; scan uses polling instead (simpler for one-off wait)
+   - **`pg_notify`**: Added to worker for scan completion events on `release_events` channel
+   - **OnboardStore interface**: Following existing codebase pattern of interface-driven dependency injection
+   - **SWR**: React data fetching library used in frontend
+   - **Next.js App Router**: Frontend framework with `web/app/` directory structure
+
+3. Files and Code Sections:
+
+   - **`docs/superpowers/specs/2026-03-14-github-repo-onboarding-design.md`** (Created, committed)
+     - The approved design spec for the feature
+     - Key decisions: multi-ecosystem via LLM, GitHub API access, user picks per dependency, direct Gemini call, dedicated `/onboard` page, async River job
+     - Defines: `onboard_scans` table schema, 3 API endpoints (`POST /scan`, `GET /scans/{id}`, `POST /scans/{id}/apply`), `OnboardStore` interface, LLM prompt, error handling matrix
+
+   - **`docs/superpowers/plans/2026-03-14-github-repo-onboarding.md`** (Created, committed, being revised)
+     - 15-task implementation plan across 8 chunks
+     - Tasks: model, migration, job args, scanner, gemini extractor, API handler, PgStore methods, River worker, main.go wiring, routes, TS types, sidebar, onboard page, API tests, worker tests, final verification
+
+   - **`internal/models/onboard.go`** (To create - Task 1)
+     - OnboardScan and ScannedDependency model structs
+     ```go
+     type OnboardScan struct {
+         ID          string          `json:"id"`
+         RepoURL     string          `json:"repo_url"`
+         Status      string          `json:"status"`
+         Results     json.RawMessage `json:"results,omitempty"`
+         Error       string          `json:"error,omitempty"`
+         CreatedAt   time.Time       `json:"created_at"`
+         StartedAt   *time.Time      `json:"started_at,omitempty"`
+         CompletedAt *time.Time      `json:"completed_at,omitempty"`
+     }
+     type ScannedDependency struct {
+         Name         string `json:"name"`
+         Version      string `json:"version"`
+         Ecosystem    string `json:"ecosystem"`
+         UpstreamRepo string `json:"upstream_repo"`
+         Provider     string `json:"provider"`
+     }
+     ```
+
+   - **`internal/db/migrations.go`** (To modify - Task 2)
+     - Add `onboard_scans` table with: id, repo_url, status, results (JSONB), error, created_at, started_at, completed_at
+
+   - **`internal/queue/jobs.go`** (To modify - Task 3)
+     - Add `ScanDependenciesJobArgs` following existing pattern with `var _ river.JobArgs` assertion
+     ```go
+     type ScanDependenciesJobArgs struct {
+         ScanID string `json:"scan_id"`
+     }
+     func (ScanDependenciesJobArgs) Kind() string { return "scan_dependencies" }
+     var _ river.JobArgs = ScanDependenciesJobArgs{}
+     ```
+
+   - **`internal/onboard/scanner.go`** (To create - Task 4)
+     - `ParseRepoURL()` for URL normalization (handles `owner/repo`, `https://github.com/owner/repo`, `.git` suffix)
+     - `Scanner` struct with `FetchDependencyFiles()` method
+     - Uses GitHub API: repo metadata → tree → contents endpoints
+     - `GITHUB_TOKEN` from env for auth
+     - Filters tree for dependency file patterns (go.mod, package.json, requirements.txt, Cargo.toml, etc.)
+     - Decodes base64 file contents
+
+   - **`internal/onboard/gemini.go`** (To create - Task 5)
+     - `DependencyExtractor` using direct `genai.NewClient` + `genai.GenerateContent`
+     - `BuildExtractionPrompt()` constructs prompt with file contents
+     - `ParseDependencies()` handles raw JSON and markdown-fenced JSON from LLM
+     - Prompt instructs LLM to return JSON array with name, version, ecosystem, upstream_repo, provider
+
+   - **`internal/onboard/worker.go`** (To create - Task 8)
+     - `ScanWorker` embeds `river.WorkerDefaults[queue.ScanDependenciesJobArgs]`
+     - `ScanStore` interface for data access
+     - 3-minute timeout
+     - Work flow: load scan → mark processing → parse URL → fetch files → extract via LLM → store results → pg_notify
+     - `notifyScanComplete()` sends `pg_notify('release_events', ...)` with scan_complete event type
+     - Takes `*pgxpool.Pool` for pg_notify calls
+
+   - **`internal/api/onboard.go`** (To create - Task 6)
+     - `OnboardStore` interface with 5 methods
+     - `OnboardHandler` with `Scan`, `GetScan`, `Apply` handlers
+     - `Scan` normalizes URL via `onboard.ParseRepoURL` before storing
+     - `GetScan` uses `errors.Is(err, pgx.ErrNoRows)` for proper error matching
+     - `Apply` validates exactly one of `project_id` or `new_project_name` per selection
+     - `OnboardSelection` and `OnboardApplyResult` types defined here
+
+   - **`internal/api/pgstore.go`** (To modify - Task 7)
+     - `CreateOnboardScan`: Uses transaction with `InsertTx` for atomic scan creation + job enqueue, nil guard on `s.river`
+     - `GetOnboardScan`: Standard scan from DB
+     - `UpdateOnboardScanStatus`: Single UPDATE with conditional started_at/completed_at
+     - `ActiveScanForRepo`: Checks for pending/processing scans
+     - `ApplyOnboardScan`: Single transaction creates projects + sources, uses `ON CONFLICT DO NOTHING` with `errors.Is(err, pgx.ErrNoRows)` for skip detection
+     - Needs `encoding/json` added to imports
+
+   - **`internal/api/server.go`** (To modify - Task 9)
+     - Add `OnboardStore` field to `Dependencies` struct
+     - Register 3 routes: `POST /onboard/scan`, `GET /onboard/scans/{id}`, `POST /onboard/scans/{id}/apply`
+
+   - **`cmd/server/main.go`** (To modify - Task 9)
+     - Register `ScanWorker` with `river.AddWorker`
+     - Create `Scanner` and optional `DependencyExtractor` (guarded by `GOOGLE_API_KEY`)
+     - Pass `pool` to `NewScanWorker`
+     - Add `OnboardStore: pgStore` to Dependencies
+
+   - **`web/lib/api/types.ts`** (To modify - Task 10)
+     - Add `OnboardScan`, `ScannedDependency`, `OnboardSelection`, `OnboardApplyResult` interfaces
+
+   - **`web/lib/api/client.ts`** (To modify - Task 10)
+     - Add `onboard` API module with `scan`, `getScan`, `apply` methods
+
+   - **`web/components/layout/sidebar.tsx`** (To modify - Task 11)
+     - Add `Rocket` icon import from lucide-react
+     - Add `{ href: "/onboard", label: "Quick Onboard", icon: Rocket }` after Dashboard entry
+
+   - **`web/app/onboard/page.tsx`** (To create - Task 12)
+     - Multi-step page: Input → Scanning → Results → Applied
+     - Polls `getScan` every 2 seconds during scanning
+     - Results table with checkboxes, ecosystem badges, project assignment dropdowns
+     - Apply button creates projects/sources
+
+   - **Existing codebase files examined** (for pattern reference):
+     - `internal/queue/jobs.go` - River job args pattern
+     - `internal/db/migrations.go` - Migration pattern (all `IF NOT EXISTS`, `DEFAULT` values)
+     - `internal/api/server.go` - Route registration with `chain` middleware
+     - `internal/api/pgstore.go` - Store implementation patterns, `InsertTx` usage at line 1023
+     - `internal/api/todos.go` - Store interface pattern
+     - `internal/api/projects.go` - Handler pattern (Create, Get, List)
+     - `internal/api/response.go` - `RespondJSON`, `RespondError`, `RespondList`, `ParsePagination`, `DecodeJSON`
+     - `internal/agent/worker.go` - River worker pattern (WorkerDefaults, Work, Timeout)
+     - `internal/agent/model.go` - LLMConfig, Gemini client creation
+     - `internal/ingestion/github.go` - GitHub API call pattern (Authorization header, error handling)
+     - `cmd/server/main.go` - Worker registration, Dependencies wiring
+     - `web/components/layout/sidebar.tsx` - navItems array pattern
+     - `web/lib/api/client.ts` - `request<T>` wrapper pattern
+     - `web/lib/api/types.ts` - Interface definitions with snake_case JSON
+
+4. Errors and fixes:
+   - **Spec Review Round 1** (7 critical/important issues):
+     - C1: Missing GITHUB_TOKEN auth story → Added dedicated "GitHub Authentication" section
+     - C2: Missing `started_at` column → Added to schema
+     - C3: No transactional guarantee on apply → Explicitly stated single transaction
+     - I1: ADK-Go overhead for simple extraction → Changed to direct `genai.GenerateContent`
+     - I3: No OnboardStore interface → Added full interface definition
+     - I4: Apply validation rules unspecified → Added "exactly one of project_id/new_project_name"
+     - I5: Provider values incomplete → Added all 4 providers to prompt
+   
+   - **Plan Review Round 1** (4 critical, 7 important issues):
+     - C1: `river.Insert` nil guard missing + not transactional → Changed to `InsertTx` inside transaction with `if s.river != nil` guard
+     - C2: Unused imports `net/http`, `os` in worker.go → Removed from import block
+     - C3: `RiverInserter` interface wrong type signature → Removed entirely (never needed)
+     - C4: `err == pgx.ErrNoRows` direct comparison → Changed to `errors.Is(err, pgx.ErrNoRows)`
+     - I1: Missing `encoding/json` import → Added explicit step to add it
+     - I3: Missing `IngestionService.PollSource()` → Deferred (noted as follow-up)
+     - I4: Missing `pg_notify` → Added `notifyScanComplete` method
+     - I5: No API handler tests → Added Task 13 with mock store tests
+     - I6: No worker tests → Added Task 14 with mock store tests
+     - I7: Repo URL not normalized → Added `ParseRepoURL` normalization in Scan handler
+     - S1: Custom string helpers → Replaced with `strings.Contains`
+   
+   - **Plan Review Round 2** (1 important remaining):
+     - I-NEW-1: `err.Error() == "no rows in result set"` string comparison → Fixed to `errors.Is(err, pgx.ErrNoRows)`
+     - I-NEW-2: Orphaned projects when source skipped → Noted as design tradeoff
+     - I-NEW-3: Missing closing code fence → Cosmetic, not yet fixed
+
+5. Problem Solving:
+   - Chose direct Gemini API over ADK-Go agent stack after recognizing the dependency extraction is a single-turn structured output task that doesn't need agent orchestration
+   - Solved scan deduplication by normalizing repo URLs via `ParseRepoURL` before storing/querying
+   - Solved atomic scan+job creation by using `InsertTx` within a database transaction (matching existing `CreateSemanticReleaseTodo` pattern)
+   - Handled LLM response variability by stripping markdown code fences in `ParseDependencies`
+   - The orphaned project issue (I-NEW-2) when source already exists is acknowledged but not yet resolved
+
+6. All user messages:
+   - "We should add a quick onboarding functionality for https://github.com/sentioxyz/changelogue/issues/7"
+   - Selected "We should leverage LLM so we can support broader coverage from day one" with note: "We should leverage LLM so we can support broader converage from day one. You can now continue with the user's answers in mind."
+   - Selected "GitHub API (Recommended)"
+   - Selected "User picks per dependency"
+   - Selected "Gemini (ADK-Go) (Recommended)"
+   - Selected "Dedicated onboarding page (Recommended)"
+   - Selected "A: River Job + ADK-Go (Recommended)"
+   - Backend design: "Looks good, continue"
+   - Frontend design: "Looks good, continue"
+   - Agent design: "Looks good, continue"
+   - Error handling: "Looks good, continue"
+   - "looks good" (approving the written spec)
+
+7. Pending Tasks:
+   - Fix remaining cosmetic issue I-NEW-3 (missing code fence closure in plan)
+   - Commit the final plan fixes
+   - Potentially run a final plan review cycle
+   - Execute the implementation plan (15 tasks across 8 chunks)
+   - The brainstorming checklist Task 8 "Transition to implementation" is in_progress
+
+8. Current Work:
+   Working on the **writing-plans skill** to create and validate the implementation plan. The plan has been through two review cycles. In the most recent action, I fixed the last critical review finding (I-NEW-1) by changing a string comparison to `errors.Is(err, pgx.ErrNoRows)` in the `ApplyOnboardScan` method:
+   
+   ```go
+   // Changed from:
+   if err.Error() == "no rows in result set" {
+   // To:
+   if errors.Is(err, pgx.ErrNoRows) {
+   ```
+   
+   The plan has been committed. The second plan review found this was the only remaining important issue (plus a cosmetic code fence and design tradeoff note). The plan is nearly ready for execution.
+
+9. Optional Next Step:
+   The plan needs one more minor fix (I-NEW-3: missing closing code fence after `notifyScanComplete` in the worker.go code block), then should be committed and presented to the user for execution. Per the writing-plans skill flow: "Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Ready to execute?" — this is the execution handoff step. The skill mandates using `superpowers:subagent-driven-development` for execution since Claude Code has subagent capabilities.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.2/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation plan?" [shape=diamond];
+    "Tasks mostly independent?" [shape=diamond];
+    "Stay in this session?" [shape=diamond];
+    "subagent-driven-development" [shape=box];
+    "executing-plans" [shape=box];
+    "Manual execution or brainstorm first" [shape=box];
+
+    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
+    "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
+    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
+    "Stay in this session?" -> "subagent-driven-development" [label="yes"];
+    "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
+}
+```
+
+**vs. Executing Plans (parallel session):**
+- Same session (no context switch)
+- Fresh subagent per task (no context pollution)
+- Two-stage review after each task: spec compliance first, then code quality
+- Faster iteration (no human-in-loop between tasks)
+
+## The Process
+
+```dot
+digraph process {
+    rankdir=TB;
+
+    subgraph cluster_per_task {
+        label="Per Task";
+        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Implementer subagent asks questions?" [shape=diamond];
+        "Answer questions, provide context" [shape=box];
+        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
+        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
+        "Implementer subagent fixes spec gaps" [shape=box];
+        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
+        "Code quality reviewer subagent approves?" [shape=diamond];
+        "Implementer subagent fixes quality issues" [shape=box];
+        "Mark task complete in TodoWrite" [shape=box];
+    }
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "More tasks remain?" [shape=diamond];
+    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
+    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
+    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+}
+```
+
+## Model Selection
+
+Use the least powerful model that can handle each role to conserve cost and increase speed.
+
+**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): use a fast, cheap model. Most implementation tasks are mechanical when the plan is well-specified.
+
+**Integration and judgment tasks** (multi-file coordination, pattern matching, debugging): use a standard model.
+
+**Architecture, design, and review tasks**: use the most capable available model.
+
+**Task complexity signals:**
+- Touches 1-2 files with a complete spec → cheap model
+- Touches multiple files with integration concerns → standard model
+- Requires design judgment or broad codebase understanding → most capable model
+
+## Handling Implementer Status
+
+Implementer subagents report one of four statuses. Handle each appropriately:
+
+**DONE:** Proceed to spec compliance review.
+
+**DONE_WITH_CONCERNS:** The implementer completed the work but flagged doubts. Read the concerns before proceeding. If the concerns are about correctness or scope, address them before review. If they're observations (e.g., "this file is getting large"), note them and proceed to review.
+
+**NEEDS_CONTEXT:** The implementer needs information that wasn't provided. Provide the missing context and re-dispatch.
+
+**BLOCKED:** The implementer cannot complete the task. Assess the blocker:
+1. If it's a context problem, provide more context and re-dispatch with the same model
+2. If the task requires more reasoning, re-dispatch with a more capable model
+3. If the task is too large, break it into smaller pieces
+4. If the plan itself is wrong, escalate to the human
+
+**Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
+
+## Prompt Templates
+
+- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+
+## Example Workflow
+
+```
+You: I'm using Subagent-Driven Development to execute this plan.
+
+[Read plan file once: docs/superpowers/plans/feature-plan.md]
+[Extract all 5 tasks with full text and context]
+[Create TodoWrite with all tasks]
+
+Task 1: Hook installation script
+
+[Get Task 1 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: "Before I begin - should the hook be installed at user or system level?"
+
+You: "User level (~/.config/superpowers/hooks/)"
+
+Implementer: "Got it. Implementing now..."
+[Later] Implementer:
+  - Implemented install-hook command
+  - Added tests, 5/5 passing
+  - Self-review: Found I missed --force flag, added it
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+
+[Get git SHAs, dispatch code quality reviewer]
+Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
+
+[Mark Task 1 complete]
+
+Task 2: Recovery modes
+
+[Get Task 2 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: [No questions, proceeds]
+Implementer:
+  - Added verify/repair modes
+  - 8/8 tests passing
+  - Self-review: All good
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ❌ Issues:
+  - Missing: Progress reporting (spec says "report every 100 items")
+  - Extra: Added --json flag (not requested)
+
+[Implementer fixes issues]
+Implementer: Removed --json flag, added progress reporting
+
+[Spec reviewer reviews again]
+Spec reviewer: ✅ Spec compliant now
+
+[Dispatch code quality reviewer]
+Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
+
+[Implementer fixes]
+Implementer: Extracted PROGRESS_INTERVAL constant
+
+[Code reviewer reviews again]
+Code reviewer: ✅ Approved
+
+[Mark Task 2 complete]
+
+...
+
+[After all tasks]
+[Dispatch final code-reviewer]
+Final reviewer: All requirements met, ready to merge
+
+Done!
+```
+
+## Advantages
+
+**vs. Manual execution:**
+- Subagents follow TDD naturally
+- Fresh context per task (no confusion)
+- Parallel-safe (subagents don't interfere)
+- Subagent can ask questions (before AND during work)
+
+**vs. Executing Plans:**
+- Same session (no handoff)
+- Continuous progress (no waiting)
+- Review checkpoints automatic
+
+**Efficiency gains:**
+- No file reading overhead (controller provides full text)
+- Controller curates exactly what context is needed
+- Subagent gets complete information upfront
+- Questions surfaced before work begins (not after)
+
+**Quality gates:**
+- Self-review catches issues before handoff
+- Two-stage review: spec compliance, then code quality
+- Review loops ensure fixes actually work
+- Spec compliance prevents over/under-building
+- Code quality ensures implementation is well-built
+
+**Cost:**
+- More subagent invocations (implementer + 2 reviewers per task)
+- Controller does more prep work (extracting all tasks upfront)
+- Review loops add iterations
+- But catches issues early (cheaper than debugging later)
+
+## Red Flags
+
+**Never:**
+- Start implementation on main/master branch without explicit user consent
+- Skip reviews (spec compliance OR code quality)
+- Proceed with unfixed issues
+- Dispatch multiple implementation subagents in parallel (conflicts)
+- Make subagent read plan file (provide full text instead)
+- Skip scene-setting context (subagent needs to understand where task fits)
+- Ignore subagent questions (answer before letting them proceed)
+- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
+- Skip review loops (reviewer found issues = implementer fixes = review again)
+- Let implementer self-review replace actual review (both are needed)
+- **Start code quality review before spec compliance is ✅** (wrong order)
+- Move to next task while either review has open issues
+
+**If subagent asks questions:**
+- Answer clearly and completely
+- Provide additional context if needed
+- Don't rush them into implementation
+
+**If reviewer finds issues:**
+- Implementer (same subagent) fixes them
+- Reviewer reviews again
+- Repeat until approved
+- Don't skip the re-review
+
+**If subagent fails task:**
+- Dispatch fix subagent with specific instructions
+- Don't try to fix manually (context pollution)
+
+## Integration
+
+**Required workflow skills:**
+- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+
+**Subagents should use:**
+- **superpowers:test-driven-development** - Subagents follow TDD for each task
+
+**Alternative workflow:**
+- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+
+ARGUMENTS: Execute the implementation plan at docs/superpowers/plans/2026-03-14-github-repo-onboarding.md
