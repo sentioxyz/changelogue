@@ -1,0 +1,12 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+Now we think currently there are too many concepts like "releases", "semantic releases" so we want to keep only one of them, since every release can attach to a semantic release report so we can just merge the semantic report with release, so for example, in the projects page, for each release version, we can show the report next it, if there's no semantic report, show a trigger action icon, if there's a semantic report in progress, show loading status, if there's a semantic report generated, ha...
+
+### Prompt 2
+
+[Request interrupted by user for tool use]
+
