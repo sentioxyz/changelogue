@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "3634d5d80611",
+  "strategy": "manual-commit",
+  "branch": "feat/github-repo-onboarding",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/pgstore.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/36/34d5d80611/0/metadata.json",
+      "transcript": "/36/34d5d80611/0/full.jsonl",
+      "context": "/36/34d5d80611/0/context.md",
+      "content_hash": "/36/34d5d80611/0/content_hash.txt",
+      "prompt": "/36/34d5d80611/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12292366,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 24269,
+    "api_call_count": 125
+  }
+}
