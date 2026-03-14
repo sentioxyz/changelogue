@@ -1529,9 +1529,9 @@ func (s *PgStore) GetOnboardScan(ctx context.Context, id string) (*models.Onboar
 
 func (s *PgStore) UpdateOnboardScanStatus(ctx context.Context, id, status string, results json.RawMessage, scanErr string) error {
 	_, err := s.pool.Exec(ctx,
-		`UPDATE onboard_scans SET status = $2, results = $3, error = NULLIF($4, ''),
-		 started_at = CASE WHEN $2 = 'processing' AND started_at IS NULL THEN NOW() ELSE started_at END,
-		 completed_at = CASE WHEN $2 IN ('completed', 'failed') THEN NOW() ELSE completed_at END
+		`UPDATE onboard_scans SET status = $2::text, results = $3, error = NULLIF($4, ''),
+		 started_at = CASE WHEN $2::text = 'processing' AND started_at IS NULL THEN NOW() ELSE started_at END,
+		 completed_at = CASE WHEN $2::text IN ('completed', 'failed') THEN NOW() ELSE completed_at END
 		 WHERE id = $1`, id, status, results, scanErr,
 	)
 	return err
