@@ -13,6 +13,7 @@ import (
 	"github.com/sentioxyz/changelogue/internal/api"
 	"github.com/sentioxyz/changelogue/internal/db"
 	"github.com/sentioxyz/changelogue/internal/ingestion"
+	"github.com/sentioxyz/changelogue/internal/onboard"
 	"github.com/sentioxyz/changelogue/internal/queue"
 	"github.com/sentioxyz/changelogue/internal/routing"
 )
@@ -84,6 +85,21 @@ func main() {
 		slog.Info("agent worker registered")
 	}
 
+	// Scan worker: requires LLM for dependency extraction
+	scanScanner := onboard.NewScanner(http.DefaultClient, "", "")
+	var scanExtractor *onboard.DependencyExtractor
+	if llmConfig.GoogleAPIKey != "" {
+		ext, err := onboard.NewDependencyExtractor(ctx, llmConfig.GoogleAPIKey, llmConfig.Model)
+		if err != nil {
+			slog.Warn("dependency extractor not available", "err", err)
+		} else {
+			scanExtractor = ext
+		}
+	}
+	scanWorker := onboard.NewScanWorker(pgStore, scanScanner, scanExtractor, pool)
+	river.AddWorker(workers, scanWorker)
+	slog.Info("scan worker registered")
+
 	riverClient, err := queue.NewRiverClient(pool, workers)
 	if err != nil {
 		slog.Error("river client failed", "err", err)
@@ -128,6 +144,7 @@ func main() {
 		SemanticReleasesStore: pgStore,
 		AgentStore:            pgStore,
 		TodosStore:            pgStore,
+		OnboardStore:          pgStore,
 		PublicURL:             os.Getenv("PUBLIC_URL"),
 		KeyStore:              pgStore,
 		HealthChecker:         pgStore,

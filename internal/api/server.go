@@ -20,6 +20,7 @@ type Dependencies struct {
 	SemanticReleasesStore SemanticReleasesStore
 	AgentStore            AgentStore
 	TodosStore            TodosStore
+	OnboardStore          OnboardStore
 	PublicURL             string
 	KeyStore              KeyStore
 	HealthChecker         HealthChecker
@@ -115,6 +116,12 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	// One-click endpoints for notification links (GET so they work as <a href>)
 	mux.Handle("GET /api/v1/todos/{id}/acknowledge", chain(http.HandlerFunc(todos.Acknowledge)))
 	mux.Handle("GET /api/v1/todos/{id}/resolve", chain(http.HandlerFunc(todos.Resolve)))
+
+	// Onboard (repo dependency scanning)
+	ob := NewOnboardHandler(deps.OnboardStore)
+	mux.Handle("POST /api/v1/onboard/scan", chain(http.HandlerFunc(ob.Scan)))
+	mux.Handle("GET /api/v1/onboard/scans/{id}", chain(http.HandlerFunc(ob.GetScan)))
+	mux.Handle("POST /api/v1/onboard/scans/{id}/apply", chain(http.HandlerFunc(ob.Apply)))
 
 	// Providers (metadata — static, no store needed)
 	providers := NewProvidersHandler()
