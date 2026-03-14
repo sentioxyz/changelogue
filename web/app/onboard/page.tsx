@@ -5,9 +5,21 @@ import useSWR from "swr";
 import { useRouter } from "next/navigation";
 import { onboard as onboardApi, projects as projectsApi } from "@/lib/api/client";
 import type { OnboardScan, OnboardSelection, Project } from "@/lib/api/types";
-import { Rocket, Loader2, Check, Search, ExternalLink } from "lucide-react";
+import { Loader2, Check, Search, ExternalLink, PackageSearch, ArrowRight } from "lucide-react";
 
 type Step = "input" | "scanning" | "results" | "applied";
+
+const ecosystemColors: Record<string, { bg: string; text: string; border: string }> = {
+  go: { bg: "#ecfeff", text: "#0e7490", border: "#a5f3fc" },
+  npm: { bg: "#fef2f2", text: "#b91c1c", border: "#fecaca" },
+  pypi: { bg: "#fefce8", text: "#a16207", border: "#fde68a" },
+  cargo: { bg: "#fff7ed", text: "#c2410c", border: "#fed7aa" },
+  rubygems: { bg: "#fdf2f8", text: "#be185d", border: "#fbcfe8" },
+  maven: { bg: "#eff6ff", text: "#1d4ed8", border: "#bfdbfe" },
+  gradle: { bg: "#eff6ff", text: "#1d4ed8", border: "#bfdbfe" },
+  docker: { bg: "#eff6ff", text: "#1d4ed8", border: "#bfdbfe" },
+  other: { bg: "#f3f3f1", text: "#6b7280", border: "#e8e8e5" },
+};
 
 export default function OnboardPage() {
   const router = useRouter();
@@ -34,7 +46,6 @@ export default function OnboardPage() {
         setScan(resp.data);
         if (resp.data.status === "completed") {
           setStep("results");
-          // Select all by default
           const deps = resp.data.results ?? [];
           const sel: Record<number, boolean> = {};
           const assign: Record<number, { mode: "new" | "existing"; newName?: string }> = {};
@@ -101,107 +112,163 @@ export default function OnboardPage() {
   const deps = scan?.results ?? [];
   const selectedCount = Object.values(selections).filter(Boolean).length;
 
-  const ecosystemColors: Record<string, string> = {
-    go: "bg-cyan-900/50 text-cyan-300",
-    npm: "bg-red-900/50 text-red-300",
-    pypi: "bg-yellow-900/50 text-yellow-300",
-    cargo: "bg-orange-900/50 text-orange-300",
-    rubygems: "bg-pink-900/50 text-pink-300",
-    maven: "bg-blue-900/50 text-blue-300",
-    docker: "bg-blue-900/50 text-blue-300",
-    other: "bg-gray-700/50 text-gray-300",
-  };
-
   return (
-    <main className="flex flex-1 flex-col p-6">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-white">Quick Onboard</h1>
-        <p className="mt-1 text-sm text-[#9ca3af]">
+    <div className="flex flex-col gap-4 fade-in">
+      {/* Header */}
+      <div>
+        <h1
+          style={{
+            fontFamily: "var(--font-fraunces)",
+            fontSize: "24px",
+            fontWeight: 700,
+            color: "#111113",
+          }}
+        >
+          Quick Onboard
+        </h1>
+        <p
+          className="mt-1 text-[13px]"
+          style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+        >
           Scan a GitHub repository to detect dependencies and start tracking their releases.
         </p>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md bg-red-900/30 px-4 py-3 text-sm text-red-300 border border-red-800/50">
+        <div
+          className="rounded-md px-4 py-3 text-[13px]"
+          style={{
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#b91c1c",
+            fontFamily: "var(--font-dm-sans)",
+          }}
+        >
           {error}
         </div>
       )}
 
       {/* Step 1: Input */}
       {step === "input" && (
-        <div className="max-w-xl">
-          <label className="block text-sm font-medium text-[#d1d5db] mb-2">
-            GitHub Repository URL
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="owner/repo or https://github.com/owner/repo"
-              className="flex-1 rounded-md border border-[#374151] bg-[#1f2937] px-3 py-2 text-sm text-white placeholder-[#6b7280] focus:border-[#e8601a] focus:outline-none"
-              onKeyDown={(e) => e.key === "Enter" && repoUrl.trim() && startScan()}
-            />
-            <button
-              onClick={startScan}
-              disabled={!repoUrl.trim()}
-              className="flex items-center gap-2 rounded-md bg-[#e8601a] px-4 py-2 text-sm font-medium text-white hover:bg-[#d4560f] disabled:opacity-50 disabled:cursor-not-allowed"
+        <div
+          className="rounded-md px-6 py-8"
+          style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
+        >
+          <div className="max-w-xl">
+            <label
+              className="block text-[13px] font-medium mb-2"
+              style={{ color: "#374151", fontFamily: "var(--font-dm-sans)" }}
             >
-              <Search className="h-4 w-4" />
-              Scan
-            </button>
+              GitHub Repository URL
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                placeholder="owner/repo or https://github.com/owner/repo"
+                className="flex-1 rounded-md border px-3 py-2 text-[13px] focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: "#e8e8e5",
+                  color: "#111113",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  backgroundColor: "#ffffff",
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "#e8601a"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#e8e8e5"; }}
+                onKeyDown={(e) => e.key === "Enter" && repoUrl.trim() && startScan()}
+              />
+              <button
+                onClick={startScan}
+                disabled={!repoUrl.trim()}
+                className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
+              >
+                <Search className="h-4 w-4" />
+                Scan
+              </button>
+            </div>
+            <p className="mt-2 text-[12px]" style={{ color: "#9ca3af" }}>
+              We&apos;ll scan for go.mod, package.json, requirements.txt, Cargo.toml, and other dependency files.
+            </p>
           </div>
         </div>
       )}
 
       {/* Step 2: Scanning */}
       {step === "scanning" && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-[#e8601a]" />
-          <p className="mt-4 text-sm text-[#9ca3af]">
+        <div
+          className="flex flex-col items-center justify-center rounded-md py-16"
+          style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
+        >
+          <div
+            className="flex items-center justify-center rounded-full mb-4"
+            style={{ width: 48, height: 48, backgroundColor: "#fff7ed" }}
+          >
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#e8601a" }} />
+          </div>
+          <p
+            className="text-[14px] font-medium"
+            style={{ color: "#111113", fontFamily: "var(--font-dm-sans)" }}
+          >
             Scanning repository for dependencies...
           </p>
-          <p className="mt-1 text-xs text-[#6b7280]">
+          <p className="mt-1 text-[12px]" style={{ color: "#9ca3af" }}>
             This may take a moment while we analyze dependency files.
           </p>
         </div>
       )}
 
-      {/* Step 3: Results */}
+      {/* Step 3: Results — empty */}
       {step === "results" && deps.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-sm text-[#9ca3af]">No dependencies detected in this repository.</p>
+        <div
+          className="flex flex-col items-center justify-center rounded-md py-16"
+          style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
+        >
+          <PackageSearch className="h-8 w-8 mb-3" style={{ color: "#c4c4c0" }} />
+          <p
+            className="text-[14px]"
+            style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
+          >
+            No dependencies detected in this repository.
+          </p>
           <button
             onClick={() => { setStep("input"); setRepoUrl(""); }}
-            className="mt-4 text-sm text-[#e8601a] hover:underline"
+            className="mt-4 text-[13px] font-medium hover:underline"
+            style={{ color: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
           >
             Try another repository
           </button>
         </div>
       )}
 
+      {/* Step 3: Results — with deps */}
       {step === "results" && deps.length > 0 && (
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-[#9ca3af]">
-              Found <span className="text-white font-medium">{deps.length}</span> dependencies.
-              Selected: <span className="text-white font-medium">{selectedCount}</span>
+        <>
+          <div className="flex items-center justify-between">
+            <p className="text-[13px]" style={{ color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}>
+              Found <span style={{ color: "#111113", fontWeight: 600 }}>{deps.length}</span> dependencies.
+              {" "}Selected: <span style={{ color: "#111113", fontWeight: 600 }}>{selectedCount}</span>
             </p>
             <button
               onClick={applySelections}
               disabled={selectedCount === 0 || applying}
-              className="flex items-center gap-2 rounded-md bg-[#e8601a] px-4 py-2 text-sm font-medium text-white hover:bg-[#d4560f] disabled:opacity-50"
+              className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+              style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
             >
-              {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+              {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageSearch className="h-4 w-4" />}
               Track Selected ({selectedCount})
             </button>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-[#374151]">
-            <table className="w-full text-sm">
+          <div
+            className="overflow-hidden rounded-md"
+            style={{ border: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
+          >
+            <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans)" }}>
               <thead>
-                <tr className="border-b border-[#374151] bg-[#111827]">
-                  <th className="w-10 px-3 py-2">
+                <tr style={{ borderBottom: "1px solid #e8e8e5", backgroundColor: "#fafaf9" }}>
+                  <th className="w-10 px-3 py-2.5">
                     <input
                       type="checkbox"
                       checked={selectedCount === deps.length}
@@ -211,83 +278,155 @@ export default function OnboardPage() {
                         deps.forEach((_, i) => { s[i] = val; });
                         setSelections(s);
                       }}
-                      className="rounded border-[#374151]"
+                      className="rounded"
+                      style={{ accentColor: "#e8601a" }}
                     />
                   </th>
-                  <th className="px-3 py-2 text-left font-medium text-[#9ca3af]">Dependency</th>
-                  <th className="px-3 py-2 text-left font-medium text-[#9ca3af]">Version</th>
-                  <th className="px-3 py-2 text-left font-medium text-[#9ca3af]">Ecosystem</th>
-                  <th className="px-3 py-2 text-left font-medium text-[#9ca3af]">Source</th>
-                  <th className="px-3 py-2 text-left font-medium text-[#9ca3af]">Project</th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>
+                    Dependency
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>
+                    Version
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>
+                    Ecosystem
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>
+                    Source
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>
+                    Project
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {deps.map((dep, i) => (
-                  <tr key={i} className="border-b border-[#374151] hover:bg-[#1f2937]/50">
-                    <td className="px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={!!selections[i]}
-                        onChange={(e) => setSelections({ ...selections, [i]: e.target.checked })}
-                        className="rounded border-[#374151]"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-white font-mono text-xs">{dep.name}</td>
-                    <td className="px-3 py-2 text-[#9ca3af] font-mono text-xs">{dep.version}</td>
-                    <td className="px-3 py-2">
-                      <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${ecosystemColors[dep.ecosystem] || ecosystemColors.other}`}>
-                        {dep.ecosystem}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-[#9ca3af] text-xs">{dep.upstream_repo}</td>
-                    <td className="px-3 py-2">
-                      <select
-                        value={projectAssignments[i]?.mode === "existing" ? projectAssignments[i]?.projectId : "__new__"}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "__new__") {
-                            setProjectAssignments({
-                              ...projectAssignments,
-                              [i]: { mode: "new", newName: dep.name.replace(/\//g, "-") },
-                            });
-                          } else {
-                            setProjectAssignments({
-                              ...projectAssignments,
-                              [i]: { mode: "existing", projectId: val },
-                            });
-                          }
-                        }}
-                        className="rounded border border-[#374151] bg-[#1f2937] px-2 py-1 text-xs text-white"
-                      >
-                        <option value="__new__">Create new project</option>
-                        {existingProjects.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                {deps.map((dep, i) => {
+                  const eco = ecosystemColors[dep.ecosystem] || ecosystemColors.other;
+                  return (
+                    <tr
+                      key={i}
+                      className="transition-colors hover:bg-[#fafaf9]"
+                      style={{
+                        borderBottom: i < deps.length - 1 ? "1px solid #e8e8e5" : undefined,
+                        opacity: selections[i] ? 1 : 0.5,
+                      }}
+                    >
+                      <td className="px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          checked={!!selections[i]}
+                          onChange={(e) => setSelections({ ...selections, [i]: e.target.checked })}
+                          className="rounded"
+                          style={{ accentColor: "#e8601a" }}
+                        />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span
+                          className="text-[12px]"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: "#111113" }}
+                        >
+                          {dep.name}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span
+                          className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px]"
+                          style={{
+                            backgroundColor: "#f3f3f1",
+                            fontFamily: "'JetBrains Mono', monospace",
+                            color: "#374151",
+                          }}
+                        >
+                          {dep.version}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                          style={{
+                            backgroundColor: eco.bg,
+                            color: eco.text,
+                            border: `1px solid ${eco.border}`,
+                          }}
+                        >
+                          {dep.ecosystem}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className="text-[12px]" style={{ color: "#6b7280", fontFamily: "'JetBrains Mono', monospace" }}>
+                          {dep.upstream_repo}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <select
+                          value={projectAssignments[i]?.mode === "existing" ? projectAssignments[i]?.projectId : "__new__"}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "__new__") {
+                              setProjectAssignments({
+                                ...projectAssignments,
+                                [i]: { mode: "new", newName: dep.name.replace(/\//g, "-") },
+                              });
+                            } else {
+                              setProjectAssignments({
+                                ...projectAssignments,
+                                [i]: { mode: "existing", projectId: val },
+                              });
+                            }
+                          }}
+                          className="rounded-md border px-2 py-1 text-[12px] bg-white"
+                          style={{
+                            borderColor: "#e8e8e5",
+                            color: "#374151",
+                            fontFamily: "var(--font-dm-sans)",
+                          }}
+                        >
+                          <option value="__new__">Create new project</option>
+                          {existingProjects.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </div>
+        </>
       )}
 
       {/* Step 4: Applied */}
       {step === "applied" && applyResult && (
-        <div>
-          <div className="mb-6 rounded-md bg-green-900/30 px-4 py-3 text-sm text-green-300 border border-green-800/50">
+        <>
+          <div
+            className="rounded-md px-4 py-3 text-[13px]"
+            style={{
+              backgroundColor: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              color: "#15803d",
+              fontFamily: "var(--font-dm-sans)",
+            }}
+          >
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4" />
-              Successfully created {applyResult.created_sources.length} sources
-              {applyResult.created_projects.length > 0 && ` and ${applyResult.created_projects.length} projects`}.
+              Successfully created {applyResult.created_sources.length} source{applyResult.created_sources.length !== 1 ? "s" : ""}
+              {applyResult.created_projects.length > 0 && ` and ${applyResult.created_projects.length} project${applyResult.created_projects.length !== 1 ? "s" : ""}`}.
             </div>
           </div>
 
           {applyResult.skipped.length > 0 && (
-            <div className="mb-4 rounded-md bg-yellow-900/30 px-4 py-3 text-sm text-yellow-300 border border-yellow-800/50">
+            <div
+              className="rounded-md px-4 py-3 text-[13px]"
+              style={{
+                backgroundColor: "#fefce8",
+                border: "1px solid #fde68a",
+                color: "#a16207",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
               <p className="font-medium mb-1">Skipped ({applyResult.skipped.length}):</p>
-              <ul className="list-disc pl-5 text-xs">
+              <ul className="list-disc pl-5 text-[12px]">
                 {applyResult.skipped.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             </div>
@@ -296,20 +435,26 @@ export default function OnboardPage() {
           <div className="flex gap-3">
             <button
               onClick={() => router.push("/projects")}
-              className="flex items-center gap-2 rounded-md bg-[#e8601a] px-4 py-2 text-sm font-medium text-white hover:bg-[#d4560f]"
+              className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+              style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
             >
               View Projects
-              <ExternalLink className="h-3 w-3" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => { setStep("input"); setRepoUrl(""); setScanId(null); setScan(null); setApplyResult(null); }}
-              className="rounded-md border border-[#374151] px-4 py-2 text-sm text-[#9ca3af] hover:text-white hover:border-[#4b5563]"
+              className="rounded-md border px-4 py-2 text-[13px] transition-colors hover:bg-[#f3f3f1]"
+              style={{
+                borderColor: "#e8e8e5",
+                color: "#374151",
+                fontFamily: "var(--font-dm-sans)",
+              }}
             >
               Scan Another Repo
             </button>
           </div>
-        </div>
+        </>
       )}
-    </main>
+    </div>
   );
 }
