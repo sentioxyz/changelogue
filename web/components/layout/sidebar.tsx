@@ -12,13 +12,11 @@ import {
   Megaphone,
   PanelLeftOpen,
   PanelLeftClose,
-  Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/onboard", label: "Quick Onboard", icon: Rocket },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/todo", label: "Todo", icon: ListTodo },
   { href: "/releases", label: "Releases", icon: Package },
