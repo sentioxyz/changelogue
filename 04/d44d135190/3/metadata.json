@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "04d44d135190",
+  "session_id": "634e0e7e-6f25-49bb-bb5c-595301064a05",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-14T04:27:24.011421Z",
+  "branch": "feat/github-repo-onboarding",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "internal/api/onboard.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "cf6e92b0d887",
+  "checkpoint_transcript_start": 341,
+  "transcript_lines_at_start": 341,
+  "token_usage": {
+    "input_tokens": 935816,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 3647,
+    "api_call_count": 12
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-14T04:27:23.425842Z",
+    "agent_lines": 0,
+    "human_added": 131,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 131,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/634e0e7e-6f25-49bb-bb5c-595301064a05.jsonl"
+}
