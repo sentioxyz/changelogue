@@ -272,3 +272,38 @@ export type SSEEvent =
       type: "semantic_release";
       data: { id: string; project_id: string; version: string; status: string };
     });
+
+// --- Onboarding Types ---
+
+export interface OnboardScan {
+  id: string;
+  repo_url: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  results?: ScannedDependency[];
+  error?: string;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export interface ScannedDependency {
+  name: string;
+  version: string;
+  ecosystem: string;
+  upstream_repo: string;
+  provider: string;
+}
+
+export interface OnboardSelection {
+  dep_name: string;
+  upstream_repo: string;
+  provider: string;
+  project_id?: string;
+  new_project_name?: string;
+}
+
+export interface OnboardApplyResult {
+  created_projects: Project[];
+  created_sources: Source[];
+  skipped: string[];
+}

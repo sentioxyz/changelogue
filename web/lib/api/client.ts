@@ -21,6 +21,9 @@ import type {
   TrendData,
   DiscoverItem,
   Todo,
+  OnboardScan,
+  OnboardSelection,
+  OnboardApplyResult,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -214,10 +217,10 @@ export const todos = {
   },
   get: (id: string) =>
     request<ApiResponse<Todo>>(`/todos/${id}`),
-  acknowledge: (id: string) =>
-    request<ApiResponse<{ status: string }>>(`/todos/${id}/acknowledge`, { method: "PATCH" }),
-  resolve: (id: string) =>
-    request<ApiResponse<{ status: string }>>(`/todos/${id}/resolve`, { method: "PATCH" }),
+  acknowledge: (id: string, cascade = false) =>
+    request<ApiResponse<{ status: string }>>(`/todos/${id}/acknowledge${cascade ? '?cascade=true' : ''}`, { method: "PATCH" }),
+  resolve: (id: string, cascade = false) =>
+    request<ApiResponse<{ status: string }>>(`/todos/${id}/resolve${cascade ? '?cascade=true' : ''}`, { method: "PATCH" }),
   reopen: (id: string) =>
     request<ApiResponse<{ status: string }>>(`/todos/${id}/reopen`, { method: "PATCH" }),
 };
@@ -247,4 +250,21 @@ export const discover = {
     const qs = search.toString();
     return request<ApiResponse<DiscoverItem[]>>(`/discover/dockerhub${qs ? `?${qs}` : ""}`);
   },
+};
+
+// --- Onboarding ---
+
+export const onboard = {
+  scan: (repoUrl: string) =>
+    request<ApiResponse<OnboardScan>>("/onboard/scan", {
+      method: "POST",
+      body: JSON.stringify({ repo_url: repoUrl }),
+    }),
+  getScan: (id: string) =>
+    request<ApiResponse<OnboardScan>>(`/onboard/scans/${id}`),
+  apply: (id: string, selections: OnboardSelection[]) =>
+    request<ApiResponse<OnboardApplyResult>>(`/onboard/scans/${id}/apply`, {
+      method: "POST",
+      body: JSON.stringify({ selections }),
+    }),
 };
