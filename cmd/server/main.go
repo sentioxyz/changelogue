@@ -11,6 +11,7 @@ import (
 	"github.com/riverqueue/river"
 	agentpkg "github.com/sentioxyz/changelogue/internal/agent"
 	"github.com/sentioxyz/changelogue/internal/api"
+	"github.com/sentioxyz/changelogue/internal/auth"
 	"github.com/sentioxyz/changelogue/internal/db"
 	"github.com/sentioxyz/changelogue/internal/ingestion"
 	"github.com/sentioxyz/changelogue/internal/onboard"
@@ -38,6 +39,13 @@ func main() {
 	addr := envOr("LISTEN_ADDR", ":8080")
 	noAuth := os.Getenv("NO_AUTH") == "true"
 
+	githubClientID := os.Getenv("GITHUB_CLIENT_ID")
+	githubClientSecret := os.Getenv("GITHUB_CLIENT_SECRET")
+	allowedUsers := os.Getenv("ALLOWED_GITHUB_USERS")
+	allowedOrgs := os.Getenv("ALLOWED_GITHUB_ORGS")
+	sessionSecret := os.Getenv("SESSION_SECRET")
+	secureCookies := os.Getenv("SECURE_COOKIES") != "false"
+
 	// Database
 	pool, err := db.NewPool(ctx, dbURL)
 	if err != nil {
@@ -55,6 +63,27 @@ func main() {
 	// The river client is set to nil initially; TriggerAgentRun (which needs it)
 	// won't be called until the server is up and the client is set below.
 	pgStore := api.NewPgStore(pool, nil)
+
+	// Auth setup
+	allowlist := auth.NewAllowlist(allowedUsers, allowedOrgs)
+	if !noAuth && !allowlist.HasEntries() {
+		slog.Error("ALLOWED_GITHUB_USERS or ALLOWED_GITHUB_ORGS must be set when auth is enabled")
+		os.Exit(1)
+	}
+
+	sessionStore := auth.NewSessionStore(pool, sessionSecret)
+	stateStore := auth.NewStateStore(1000, 10*time.Minute)
+
+	oauthHandler := &auth.OAuthHandler{
+		ClientID:     githubClientID,
+		ClientSecret: githubClientSecret,
+		Pool:         pool,
+		Sessions:     sessionStore,
+		States:       stateStore,
+		Allowlist:    allowlist,
+		SecureCookie: secureCookies,
+		HTTPClient:   http.DefaultClient,
+	}
 
 	// Register River workers
 	workers := river.NewWorkers()
@@ -152,12 +181,15 @@ func main() {
 		OnboardStore:          pgStore,
 		PublicURL:             os.Getenv("PUBLIC_URL"),
 		KeyStore:              pgStore,
+		SessionValidator:      sessionStore,
 		HealthChecker:         pgStore,
 		Broadcaster:           broadcaster,
 		NoAuth:                noAuth,
 		IngestionService:      svc,
 		HTTPClient:            http.DefaultClient,
 	})
+
+	api.RegisterAuthRoutes(mux, oauthHandler, noAuth)
 
 	srv := &http.Server{Addr: addr, Handler: api.CORS(mux)}
 
@@ -166,6 +198,9 @@ func main() {
 
 	// Start PostgreSQL LISTEN/NOTIFY → SSE bridge
 	go api.ListenForNotifications(ctx, pool, broadcaster)
+
+	// Start session cleanup loop
+	go sessionStore.RunCleanupLoop(ctx)
 
 	// Start HTTP server
 	go func() {

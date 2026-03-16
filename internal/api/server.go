@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sentioxyz/changelogue/internal/auth"
 	"github.com/sentioxyz/changelogue/internal/ingestion"
 	"github.com/sentioxyz/changelogue/internal/routing"
 )
@@ -23,6 +24,7 @@ type Dependencies struct {
 	OnboardStore          OnboardStore
 	PublicURL             string
 	KeyStore              KeyStore
+	SessionValidator      SessionValidator
 	HealthChecker         HealthChecker
 	Broadcaster           *Broadcaster
 	NoAuth                bool
@@ -38,7 +40,7 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	// Authenticated chain: includes auth unless NoAuth is set.
 	chain := publicChain
 	if !deps.NoAuth {
-		chain = Chain(RequestID, Logger, Recovery, RateLimit(10, 20), Auth(deps.KeyStore))
+		chain = Chain(RequestID, Logger, Recovery, RateLimit(10, 20), Auth(deps.KeyStore, deps.SessionValidator))
 	}
 
 	// Projects (CRUD)
@@ -141,4 +143,21 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("GET /api/v1/health", publicChain(http.HandlerFunc(health.Check)))
 	mux.Handle("GET /api/v1/stats", chain(http.HandlerFunc(health.Stats)))
 	mux.Handle("GET /api/v1/stats/trend", chain(http.HandlerFunc(health.Trend)))
+}
+
+// RegisterAuthRoutes registers OAuth and session endpoints on the mux.
+func RegisterAuthRoutes(mux *http.ServeMux, oauthHandler *auth.OAuthHandler, noAuth bool) {
+	if noAuth {
+		mux.HandleFunc("GET /auth/me", auth.HandleMeDev)
+		mux.HandleFunc("POST /auth/logout", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/login", http.StatusFound)
+		})
+		return
+	}
+
+	sessionMw := oauthHandler.RequireSession
+	mux.HandleFunc("GET /auth/github", oauthHandler.HandleGitHubRedirect)
+	mux.HandleFunc("GET /auth/github/callback", oauthHandler.HandleGitHubCallback)
+	mux.Handle("GET /auth/me", sessionMw(http.HandlerFunc(oauthHandler.HandleMe)))
+	mux.Handle("POST /auth/logout", sessionMw(http.HandlerFunc(oauthHandler.HandleLogout)))
 }
