@@ -1,0 +1,69 @@
+Implement the following plan:
+
+# Plan: Auto-updating Code Coverage Badge via CI
+
+## Context
+
+The project has no code coverage reporting. The user wants coverage surfaced through the CI pipeline with an auto-updated badge in the README. The repo already uses `Schneegans/dynamic-badges-action@v1.7.0` + a GitHub Gist for the "AI Co-Authored" badge (`.github/workflows/ai-badge.yml`), so we replicate the same pattern.
+
+## Changes
+
+### 1. Update `.github/workflows/ci.yml` — add coverage step to backend job
+
+In the existing `backend` job, change the Test step to generate a coverage profile and then add a step that parses the total coverage % and updates a gist via `Schneegans/dynamic-badges-action`. Only update the badge on pushes to main (not on PRs).
+
+```yaml
+- name: Test
+  run: go test -coverprofile=coverage.out ./...
+
+- name: Coverage badge
+  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  uses: Schneegans/dynamic-badges-action@v1.7.0
+  with:
+    auth: ${{ secrets.GIST_SECRET }}
+    gistID: 94cc8f0ddf90bb1d04dafbb76102786d   # same gist as AI badge
+    filename: coverage.json
+    label: coverage
+    message: <parsed-pct>%
+    valColorRange: <parsed-pct>
+    minColorRange: 20
+    maxColorRange: 80
+```
+
+Coverage % is extracted with `go tool cover -func=coverage.out | grep total | awk '{print $3}'`.
+
+### 2. Update `README.md` — add coverage badge
+
+Add on line 5 (next to existing badges):
+
+```markdown
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Poytr1/94cc8f0ddf90bb1d04dafbb76102786d/raw/coverage.json)
+```
+
+### 3. Add `coverage` target to `Makefile`
+
+For local use:
+
+```makefile
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out | grep total
+```
+
+## Files modified
+
+- `.github/workflows/ci.yml` — add coverage profile + badge update step
+- `README.md` — add coverage badge
+- `Makefile` — add `coverage` target
+
+## Verification
+
+1. `make coverage` locally — should print total coverage %
+2. Push to main — CI backend job should update gist, badge should reflect coverage
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/ab8c6970-cff3-401d-9ea5-a3be38a8c460.jsonl
+
+---
+
+commit and push

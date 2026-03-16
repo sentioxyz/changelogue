@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "517e2cb24f97",
+  "session_id": "7aab837a-889a-448f-8788-716cc7a17999",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-16T15:13:45.129625Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    "Makefile",
+    "README.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "1cd584df443c",
+  "token_usage": {
+    "input_tokens": 304241,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 2279,
+    "api_call_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-16T15:13:44.901654Z",
+    "agent_lines": 27,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 27,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/7aab837a-889a-448f-8788-716cc7a17999.jsonl"
+}
