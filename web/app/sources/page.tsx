@@ -91,7 +91,7 @@ export default function SourcesPage() {
                     <TableCell className="text-sm text-muted-foreground">{source.last_polled_at ? new Date(source.last_polled_at).toLocaleString() : "Never"}</TableCell>
                     <TableCell>
                       {source.last_error ? (
-                        <Badge variant="destructive" className="text-xs">{source.last_error}</Badge>
+                        <Badge variant="destructive" className="text-xs max-w-[250px] truncate" title={source.last_error}>{source.last_error}</Badge>
                       ) : (
                         <Badge variant={source.enabled ? "default" : "secondary"}>{source.enabled ? "active" : "disabled"}</Badge>
                       )}

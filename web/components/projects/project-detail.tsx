@@ -408,17 +408,24 @@ export function ProjectDetail() {
                           {formatInterval(source.poll_interval_seconds)}
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleToggleSource(source)}
-                            className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
-                            style={{ backgroundColor: source.enabled ? "#16a34a" : "#d1d5db" }}
-                            title={source.enabled ? "Disable polling" : "Enable polling"}
-                          >
-                            <span
-                              className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200"
-                              style={{ transform: source.enabled ? "translateX(18px)" : "translateX(3px)" }}
-                            />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleToggleSource(source)}
+                              className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
+                              style={{ backgroundColor: source.last_error ? "#dc2626" : source.enabled ? "#16a34a" : "#d1d5db" }}
+                              title={source.last_error ? `Error: ${source.last_error}` : source.enabled ? "Disable polling" : "Enable polling"}
+                            >
+                              <span
+                                className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200"
+                                style={{ transform: source.enabled ? "translateX(18px)" : "translateX(3px)" }}
+                              />
+                            </button>
+                            {source.last_error ? (
+                              <span className="text-[11px] text-red-600 max-w-[200px] truncate" title={source.last_error}>
+                                {source.last_error}
+                              </span>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="px-4 py-3" style={{ color: "#9ca3af" }}>
                           {source.last_polled_at

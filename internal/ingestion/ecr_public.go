@@ -109,7 +109,7 @@ func (s *ECRPublicSource) fetchImageTags(ctx context.Context, alias, repo, nextT
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("gallery API status %d", resp.StatusCode)
+		return nil, "", httpStatusError(resp)
 	}
 
 	var result struct {

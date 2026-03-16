@@ -2,6 +2,8 @@ package ingestion
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -23,4 +25,20 @@ type IIngestionSource interface {
 	SourceID() string
 	// FetchNewReleases polls the upstream registry and returns discovered releases.
 	FetchNewReleases(ctx context.Context) ([]IngestionResult, error)
+}
+
+// httpStatusError returns a descriptive error for non-200 HTTP responses.
+func httpStatusError(resp *http.Response) error {
+	switch resp.StatusCode {
+	case http.StatusNotFound:
+		return fmt.Errorf("not found (HTTP 404) — check that the repository name is correct")
+	case http.StatusForbidden:
+		return fmt.Errorf("access denied (HTTP 403) — the repository may be private or require authentication")
+	case http.StatusUnauthorized:
+		return fmt.Errorf("unauthorized (HTTP 401) — authentication is required")
+	case http.StatusTooManyRequests:
+		return fmt.Errorf("rate limited (HTTP 429) — too many requests, will retry later")
+	default:
+		return fmt.Errorf("upstream error (HTTP %d)", resp.StatusCode)
+	}
 }

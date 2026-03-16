@@ -17,6 +17,7 @@ type SourcesStore interface {
 	GetSource(ctx context.Context, id string) (*models.Source, error)
 	UpdateSource(ctx context.Context, id string, src *models.Source) error
 	DeleteSource(ctx context.Context, id string) error
+	UpdateSourcePollStatus(ctx context.Context, id string, pollErr error) error
 }
 
 // SourcesHandler implements HTTP handlers for the /sources resource.
@@ -77,6 +78,7 @@ func (h *SourcesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to create source")
 		return
 	}
+	go h.pollSourceAsync(src.ID, src.Provider, src.Repository)
 	RespondJSON(w, r, http.StatusCreated, src)
 }
 
@@ -122,6 +124,7 @@ func (h *SourcesHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	src.ID = id
+	go h.pollSourceAsync(id, src.Provider, src.Repository)
 	RespondJSON(w, r, http.StatusOK, src)
 }
 
@@ -139,8 +142,8 @@ func (h *SourcesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// FetchReleases handles POST /sources/{id}/releases — polls upstream for new
-// releases and ingests them immediately.
+// FetchReleases handles POST /sources/{id}/poll — polls upstream for new
+// releases, ingests them, and updates last_polled_at.
 func (h *SourcesHandler) FetchReleases(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
@@ -162,9 +165,12 @@ func (h *SourcesHandler) FetchReleases(w http.ResponseWriter, r *http.Request) {
 	results, err := ingestionSrc.FetchNewReleases(r.Context())
 	if err != nil {
 		slog.Error("fetch releases failed", "source", src.ID, "err", err)
+		_ = h.store.UpdateSourcePollStatus(r.Context(), src.ID, err)
 		RespondError(w, r, http.StatusBadGateway, "upstream_error", "Failed to fetch releases from upstream")
 		return
 	}
+
+	_ = h.store.UpdateSourcePollStatus(r.Context(), src.ID, nil)
 
 	newCount := 0
 	if len(results) > 0 && h.ingestionService != nil {
@@ -178,4 +184,34 @@ func (h *SourcesHandler) FetchReleases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondJSON(w, r, http.StatusOK, map[string]int{"new_releases": newCount})
+}
+
+// pollSourceAsync polls a source in the background and updates its poll status.
+func (h *SourcesHandler) pollSourceAsync(sourceID, provider, repository string) {
+	ctx := context.Background()
+
+	ingestionSrc := ingestion.BuildSource(h.httpClient, sourceID, provider, repository)
+	if ingestionSrc == nil {
+		slog.Warn("async poll: unsupported provider", "source", sourceID, "provider", provider)
+		return
+	}
+
+	slog.Info("async poll triggered", "source", sourceID, "provider", provider, "repository", repository)
+
+	results, err := ingestionSrc.FetchNewReleases(ctx)
+	if err != nil {
+		slog.Error("async poll failed", "source", sourceID, "err", err)
+		_ = h.store.UpdateSourcePollStatus(ctx, sourceID, err)
+		return
+	}
+
+	_ = h.store.UpdateSourcePollStatus(ctx, sourceID, nil)
+
+	if len(results) > 0 && h.ingestionService != nil {
+		for _, result := range results {
+			if procErr := h.ingestionService.ProcessResults(ctx, sourceID, provider, []ingestion.IngestionResult{result}); procErr != nil {
+				slog.Error("async poll: process release failed", "source", sourceID, "version", result.RawVersion, "err", procErr)
+			}
+		}
+	}
 }

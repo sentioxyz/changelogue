@@ -15,15 +15,16 @@ import (
 
 // mockSourcesStore implements SourcesStore for testing.
 type mockSourcesStore struct {
-	sources   []models.Source
-	created   *models.Source
-	updated   *models.Source
-	deleted   string
-	listErr   error
-	createErr error
-	getErr    error
-	updateErr error
-	deleteErr error
+	sources    []models.Source
+	created    *models.Source
+	updated    *models.Source
+	deleted    string
+	pollStatus map[string]error // tracks UpdateSourcePollStatus calls
+	listErr    error
+	createErr  error
+	getErr     error
+	updateErr  error
+	deleteErr  error
 }
 
 func (m *mockSourcesStore) ListSourcesByProject(_ context.Context, projectID string, page, perPage int) ([]models.Source, int, error) {
@@ -82,6 +83,14 @@ func (m *mockSourcesStore) DeleteSource(_ context.Context, id string) error {
 		}
 	}
 	return fmt.Errorf("not found")
+}
+
+func (m *mockSourcesStore) UpdateSourcePollStatus(_ context.Context, id string, pollErr error) error {
+	if m.pollStatus == nil {
+		m.pollStatus = make(map[string]error)
+	}
+	m.pollStatus[id] = pollErr
+	return nil
 }
 
 func setupSourcesMux(store SourcesStore) *http.ServeMux {

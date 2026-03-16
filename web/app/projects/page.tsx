@@ -253,13 +253,14 @@ function ProjectFlowCard({ project }: { project: Project }) {
             onClick={() => setEditingSource(source)}
             className="group/chip inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[12px] transition-colors hover:bg-[#f0f0ee]"
             style={{
-              backgroundColor: "#fafaf9",
-              border: "1px solid #e8e8e5",
+              backgroundColor: source.last_error ? "#fef2f2" : "#fafaf9",
+              border: `1px solid ${source.last_error ? "#fecaca" : "#e8e8e5"}`,
             }}
+            title={source.last_error ? `Error: ${source.last_error}` : undefined}
           >
             <span
               className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
-              style={{ backgroundColor: source.enabled ? "#16a34a" : "#d1d5db" }}
+              style={{ backgroundColor: source.last_error ? "#dc2626" : source.enabled ? "#16a34a" : "#d1d5db" }}
             />
             {(() => { const Icon = getProviderIcon(source.provider); return Icon ? <Icon size={12} className="shrink-0" style={{ color: "#9ca3af" }} /> : null; })()}
             <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#374151" }}>

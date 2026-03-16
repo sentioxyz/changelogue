@@ -60,7 +60,7 @@ func (s *PyPISource) FetchNewReleases(ctx context.Context) ([]IngestionResult, e
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return nil, httpStatusError(resp)
 	}
 
 	var project pypiProject

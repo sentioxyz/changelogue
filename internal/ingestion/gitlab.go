@@ -65,7 +65,7 @@ func (s *GitLabSource) FetchNewReleases(ctx context.Context) ([]IngestionResult,
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return nil, httpStatusError(resp)
 	}
 
 	var releases []glRelease
