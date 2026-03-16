@@ -186,6 +186,27 @@ CREATE TABLE IF NOT EXISTS onboard_scans (
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ
 );
+
+-- Authenticated users (GitHub OAuth)
+CREATE TABLE IF NOT EXISTS users (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    github_id       BIGINT NOT NULL UNIQUE,
+    github_login    VARCHAR(100) NOT NULL,
+    name            VARCHAR(200),
+    avatar_url      TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- User sessions (server-side, referenced by HttpOnly cookie)
+CREATE TABLE IF NOT EXISTS sessions (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 `
 
 // RunMigrations applies River's schema and the application schema. Idempotent — safe to call on every startup.
