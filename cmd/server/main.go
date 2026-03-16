@@ -90,6 +90,7 @@ func main() {
 		States:       stateStore,
 		Allowlist:    allowlist,
 		SecureCookie: secureCookies,
+		FrontendURL:  os.Getenv("FRONTEND_URL"),
 		HTTPClient:   http.DefaultClient,
 	}
 

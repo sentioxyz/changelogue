@@ -21,6 +21,7 @@ type OAuthHandler struct {
 	States       *StateStore
 	Allowlist    *Allowlist
 	SecureCookie bool
+	FrontendURL  string // optional: redirect here after login/logout (for dev with separate frontend port)
 	HTTPClient   *http.Client
 }
 
@@ -46,13 +47,13 @@ func (h *OAuthHandler) HandleGitHubCallback(w http.ResponseWriter, r *http.Reque
 	// Validate state
 	state := r.URL.Query().Get("state")
 	if !h.States.Consume(state) {
-		http.Redirect(w, r, "/login?error=invalid_state", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL("/login?error=invalid_state"), http.StatusFound)
 		return
 	}
 
 	code := r.URL.Query().Get("code")
 	if code == "" {
-		http.Redirect(w, r, "/login?error=missing_code", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL("/login?error=missing_code"), http.StatusFound)
 		return
 	}
 
@@ -65,7 +66,7 @@ func (h *OAuthHandler) HandleGitHubCallback(w http.ResponseWriter, r *http.Reque
 	token, err := exchangeCode(client, h.ClientID, h.ClientSecret, code)
 	if err != nil {
 		slog.Error("github token exchange failed", "err", err)
-		http.Redirect(w, r, "/login?error=token_exchange", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL("/login?error=token_exchange"), http.StatusFound)
 		return
 	}
 
@@ -73,7 +74,7 @@ func (h *OAuthHandler) HandleGitHubCallback(w http.ResponseWriter, r *http.Reque
 	ghUser, err := fetchGitHubUser(client, token)
 	if err != nil {
 		slog.Error("github user fetch failed", "err", err)
-		http.Redirect(w, r, "/login?error=user_fetch", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL("/login?error=user_fetch"), http.StatusFound)
 		return
 	}
 
@@ -90,7 +91,7 @@ func (h *OAuthHandler) HandleGitHubCallback(w http.ResponseWriter, r *http.Reque
 	}
 	if !h.Allowlist.IsUserAllowed(ghUser.Login, orgLogins) {
 		slog.Warn("login denied: user not in allowlist", "login", ghUser.Login, "orgs", orgLogins)
-		http.Redirect(w, r, "/login?error=unauthorized", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL("/login?error=unauthorized"), http.StatusFound)
 		return
 	}
 
@@ -108,7 +109,7 @@ func (h *OAuthHandler) HandleGitHubCallback(w http.ResponseWriter, r *http.Reque
 	`, ghUser.ID, ghUser.Login, ghUser.Name, ghUser.AvatarURL).Scan(&userID)
 	if err != nil {
 		slog.Error("user upsert failed", "err", err)
-		http.Redirect(w, r, "/login?error=server_error", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL("/login?error=server_error"), http.StatusFound)
 		return
 	}
 
@@ -116,7 +117,7 @@ func (h *OAuthHandler) HandleGitHubCallback(w http.ResponseWriter, r *http.Reque
 	cookie, expiresAt, err := h.Sessions.CreateSession(r.Context(), userID)
 	if err != nil {
 		slog.Error("session creation failed", "err", err)
-		http.Redirect(w, r, "/login?error=server_error", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL("/login?error=server_error"), http.StatusFound)
 		return
 	}
 
@@ -131,7 +132,7 @@ func (h *OAuthHandler) HandleGitHubCallback(w http.ResponseWriter, r *http.Reque
 		Secure:   h.SecureCookie,
 		SameSite: http.SameSiteLaxMode,
 	})
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, h.frontendURL("/"), http.StatusFound)
 }
 
 // HandleMe returns the current user from the session context.
@@ -159,7 +160,15 @@ func (h *OAuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		Secure:   h.SecureCookie,
 		SameSite: http.SameSiteLaxMode,
 	})
-	http.Redirect(w, r, "/login", http.StatusFound)
+	http.Redirect(w, r, h.frontendURL("/login"), http.StatusFound)
+}
+
+// frontendURL returns a path prefixed with FrontendURL if set (for dev with separate frontend port).
+func (h *OAuthHandler) frontendURL(path string) string {
+	if h.FrontendURL != "" {
+		return strings.TrimRight(h.FrontendURL, "/") + path
+	}
+	return path
 }
 
 // RequireSession is middleware that loads the user from the session cookie into context.
