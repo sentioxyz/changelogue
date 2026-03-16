@@ -59,6 +59,14 @@ The API runs on `localhost:8080`, the dashboard on `localhost:3000`.
 | `GOOGLE_API_KEY` | _(empty)_ | Gemini API key (required when `LLM_PROVIDER=gemini`) |
 | `OPENAI_API_KEY` | _(empty)_ | OpenAI API key (required when `LLM_PROVIDER=openai`) |
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible API base URL |
+| `GITHUB_CLIENT_ID` | _(required in prod)_ | GitHub OAuth App client ID |
+| `GITHUB_CLIENT_SECRET` | _(required in prod)_ | GitHub OAuth App client secret |
+| `ALLOWED_GITHUB_USERS` | _(empty)_ | Comma-separated GitHub usernames allowed to log in |
+| `ALLOWED_GITHUB_ORGS` | _(empty)_ | Comma-separated GitHub org logins allowed to log in |
+| `SESSION_SECRET` | _(required in prod)_ | Secret key for HMAC-signing session cookies |
+| `SECURE_COOKIES` | `true` | Set `false` for local HTTP dev |
+
+At least one of `ALLOWED_GITHUB_USERS` or `ALLOWED_GITHUB_ORGS` must be set when `NO_AUTH` is not `true`.
 
 ## Project structure
 
