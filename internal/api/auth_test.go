@@ -3,9 +3,12 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/sentioxyz/changelogue/internal/auth"
 )
 
 type mockKeyStore struct{ valid bool }
@@ -15,7 +18,7 @@ func (m *mockKeyStore) TouchKeyUsage(_ context.Context, _ string)            {}
 
 func TestAuthMiddlewareValidKey(t *testing.T) {
 	store := &mockKeyStore{valid: true}
-	handler := Auth(store)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := Auth(store, nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -31,7 +34,7 @@ func TestAuthMiddlewareValidKey(t *testing.T) {
 
 func TestAuthMiddlewareMissingKey(t *testing.T) {
 	store := &mockKeyStore{valid: true}
-	handler := Auth(store)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := Auth(store, nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -63,7 +66,7 @@ func TestAuthMiddlewareMissingKey(t *testing.T) {
 
 func TestAuthMiddlewareInvalidKey(t *testing.T) {
 	store := &mockKeyStore{valid: false}
-	handler := Auth(store)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := Auth(store, nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -165,5 +168,58 @@ func TestRateLimitKeysByBearer(t *testing.T) {
 	handler.ServeHTTP(w3, r3)
 	if w3.Code != http.StatusTooManyRequests {
 		t.Fatalf("key-a second request: expected 429, got %d", w3.Code)
+	}
+}
+
+type mockSessionValidator struct {
+	user *auth.User
+}
+
+func (m *mockSessionValidator) ValidateSession(_ context.Context, _ string) (*auth.User, error) {
+	if m.user != nil {
+		return m.user, nil
+	}
+	return nil, fmt.Errorf("invalid session")
+}
+
+func TestAuthMiddlewareSessionCookie(t *testing.T) {
+	keys := &mockKeyStore{valid: false}
+	sessions := &mockSessionValidator{user: &auth.User{ID: "u1", GitHubLogin: "alice"}}
+	handler := Auth(keys, sessions)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := auth.UserFromContext(r.Context())
+		if u == nil {
+			t.Fatal("expected user in context")
+		}
+		if u.GitHubLogin != "alice" {
+			t.Fatalf("expected alice, got %s", u.GitHubLogin)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.AddCookie(&http.Cookie{Name: "session", Value: "test-cookie"})
+	handler.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestAuthMiddlewareBearerTakesPrecedence(t *testing.T) {
+	keys := &mockKeyStore{valid: true}
+	sessions := &mockSessionValidator{user: nil} // would fail if reached
+	handler := Auth(keys, sessions)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Header.Set("Authorization", "Bearer valid-key")
+	r.AddCookie(&http.Cookie{Name: "session", Value: "test-cookie"})
+	handler.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }

@@ -7,6 +7,8 @@ import (
 	"sync"
 
 	"golang.org/x/time/rate"
+
+	"github.com/sentioxyz/changelogue/internal/auth"
 )
 
 type KeyStore interface {
@@ -14,22 +16,39 @@ type KeyStore interface {
 	TouchKeyUsage(ctx context.Context, rawKey string)
 }
 
-func Auth(store KeyStore) Middleware {
+// SessionValidator validates a session cookie and returns the user.
+type SessionValidator interface {
+	ValidateSession(ctx context.Context, cookie string) (*auth.User, error)
+}
+
+func Auth(store KeyStore, sessions SessionValidator) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			header := r.Header.Get("Authorization")
-			if !strings.HasPrefix(header, "Bearer ") {
-				RespondError(w, r, http.StatusUnauthorized, "unauthorized", "Missing API key")
+			// Try Bearer token first
+			if header := r.Header.Get("Authorization"); strings.HasPrefix(header, "Bearer ") {
+				rawKey := strings.TrimPrefix(header, "Bearer ")
+				valid, err := store.ValidateKey(r.Context(), rawKey)
+				if err != nil || !valid {
+					RespondError(w, r, http.StatusUnauthorized, "unauthorized", "Invalid API key")
+					return
+				}
+				go store.TouchKeyUsage(context.Background(), rawKey)
+				next.ServeHTTP(w, r)
 				return
 			}
-			rawKey := strings.TrimPrefix(header, "Bearer ")
-			valid, err := store.ValidateKey(r.Context(), rawKey)
-			if err != nil || !valid {
-				RespondError(w, r, http.StatusUnauthorized, "unauthorized", "Invalid API key")
-				return
+
+			// Try session cookie
+			if sessions != nil {
+				if c, err := r.Cookie("session"); err == nil {
+					u, err := sessions.ValidateSession(r.Context(), c.Value)
+					if err == nil {
+						next.ServeHTTP(w, r.WithContext(auth.WithUser(r.Context(), u)))
+						return
+					}
+				}
 			}
-			go store.TouchKeyUsage(context.Background(), rawKey)
-			next.ServeHTTP(w, r)
+
+			RespondError(w, r, http.StatusUnauthorized, "unauthorized", "Missing API key")
 		})
 	}
 }
