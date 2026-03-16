@@ -70,6 +70,14 @@ func main() {
 		slog.Error("ALLOWED_GITHUB_USERS or ALLOWED_GITHUB_ORGS must be set when auth is enabled")
 		os.Exit(1)
 	}
+	if !noAuth && sessionSecret == "" {
+		slog.Error("SESSION_SECRET must be set when auth is enabled")
+		os.Exit(1)
+	}
+	if !noAuth && (githubClientID == "" || githubClientSecret == "") {
+		slog.Error("GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set when auth is enabled")
+		os.Exit(1)
+	}
 
 	sessionStore := auth.NewSessionStore(pool, sessionSecret)
 	stateStore := auth.NewStateStore(1000, 10*time.Minute)

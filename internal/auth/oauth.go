@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -197,8 +198,8 @@ func exchangeCode(client *http.Client, clientID, clientSecret, code string) (str
 		"client_secret": {clientSecret},
 		"code":          {code},
 	}
-	req, _ := http.NewRequest(http.MethodPost, "https://github.com/login/oauth/access_token", nil)
-	req.URL.RawQuery = data.Encode()
+	req, _ := http.NewRequest(http.MethodPost, "https://github.com/login/oauth/access_token", strings.NewReader(data.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)

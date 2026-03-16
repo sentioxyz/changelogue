@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -38,8 +39,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
+  const didFetch = useRef(false);
 
   useEffect(() => {
+    if (didFetch.current) return;
+    didFetch.current = true;
+
     fetch("/auth/me")
       .then((res) => {
         if (res.ok) return res.json();
@@ -52,11 +57,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {
         setUser(null);
         setLoading(false);
-        if (pathname !== "/login") {
-          router.replace("/login");
-        }
       });
-  }, [pathname, router]);
+  }, []);
+
+  // Redirect to /login when not authenticated and not already on /login
+  useEffect(() => {
+    if (!loading && !user && pathname !== "/login") {
+      router.replace("/login");
+    }
+  }, [loading, user, pathname, router]);
 
   const logout = async () => {
     await fetch("/auth/logout", { method: "POST" });
