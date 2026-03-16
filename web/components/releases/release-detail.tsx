@@ -45,6 +45,8 @@ function getProviderUrl(
       return `https://gitlab.com/${repository}/-/releases/${version}`;
     case "pypi":
       return `https://pypi.org/project/${repository}/${encodeURIComponent(version)}/`;
+    case "npm":
+      return `https://www.npmjs.com/package/${repository}/v/${encodeURIComponent(version)}`;
     default:
       return null;
   }
@@ -62,6 +64,8 @@ function getProviderLabel(provider: string): string {
       return "GitLab";
     case "pypi":
       return "PyPI";
+    case "npm":
+      return "npm";
     default:
       return provider;
   }

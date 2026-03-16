@@ -26,6 +26,9 @@ export function validateRepository(provider: string, repo: string): string | nul
   if (provider === "pypi" && /^(https?:\/\/)?pypi\.org\//i.test(trimmed)) {
     return "Use package name format (e.g. requests), not a full URL";
   }
+  if (provider === "npm" && /^(https?:\/\/)?(www\.)?npmjs\.com\//i.test(trimmed)) {
+    return "Use package name format (e.g. express), not a full URL";
+  }
   if (/^https?:\/\//.test(trimmed)) {
     return "Use owner/repo format, not a full URL";
   }

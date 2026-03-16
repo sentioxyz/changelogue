@@ -122,6 +122,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
             <SelectItem value="ecr-public">ECR Public</SelectItem>
             <SelectItem value="gitlab">GitLab</SelectItem>
             <SelectItem value="pypi">PyPI</SelectItem>
+            <SelectItem value="npm">npm</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -173,7 +174,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         />
         <p className="text-xs text-muted-foreground">Hide/suppress versions matching this pattern</p>
       </div>
-      {(provider === "github" || provider === "gitlab" || provider === "pypi") && (
+      {(provider === "github" || provider === "gitlab" || provider === "pypi" || provider === "npm") && (
         <div className="flex items-center gap-3">
           <Switch checked={excludePrereleases} onCheckedChange={setExcludePrereleases} />
           <Label>Exclude Pre-Releases</Label>

@@ -97,6 +97,8 @@ func BuildSource(client *http.Client, id string, sourceType, repository string) 
 		return NewGitLabSource(client, repository, id)
 	case "pypi":
 		return NewPyPISource(client, repository, id)
+	case "npm":
+		return NewNpmSource(client, repository, id)
 	default:
 		return nil
 	}

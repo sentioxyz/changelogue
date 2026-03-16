@@ -19,6 +19,7 @@ func (h *ProvidersHandler) List(w http.ResponseWriter, r *http.Request) {
 		{"id": "ecr-public", "name": "AWS ECR Public", "type": "polling"},
 		{"id": "gitlab", "name": "GitLab", "type": "polling"},
 		{"id": "pypi", "name": "PyPI", "type": "polling"},
+		{"id": "npm", "name": "npm", "type": "polling"},
 	}
 	RespondJSON(w, r, http.StatusOK, providers)
 }

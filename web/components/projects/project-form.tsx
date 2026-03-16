@@ -141,6 +141,7 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
                     <SelectItem value="ecr-public">ECR Public</SelectItem>
                     <SelectItem value="gitlab">GitLab</SelectItem>
                     <SelectItem value="pypi">PyPI</SelectItem>
+                    <SelectItem value="npm">npm</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -187,7 +188,7 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
                 />
                 <p className="text-xs text-muted-foreground">Hide/suppress versions matching this pattern</p>
               </div>
-              {(provider === "github" || provider === "gitlab" || provider === "pypi") && (
+              {(provider === "github" || provider === "gitlab" || provider === "pypi" || provider === "npm") && (
                 <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
