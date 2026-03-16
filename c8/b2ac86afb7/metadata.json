@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "c8b2ac86afb7",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/superpowers/specs/2026-03-16-github-oauth-login-design.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/c8/b2ac86afb7/0/metadata.json",
+      "transcript": "/c8/b2ac86afb7/0/full.jsonl",
+      "context": "/c8/b2ac86afb7/0/context.md",
+      "content_hash": "/c8/b2ac86afb7/0/content_hash.txt",
+      "prompt": "/c8/b2ac86afb7/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 94819,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 571,
+    "api_call_count": 3
+  }
+}
