@@ -12,8 +12,10 @@ import {
   Megaphone,
   PanelLeftOpen,
   PanelLeftClose,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth/context";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -27,6 +29,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <aside
@@ -106,6 +109,37 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* User section */}
+      {user && (
+        <div className="border-t border-[rgba(255,255,255,0.1)] p-2">
+          <div className={cn("flex items-center gap-2", expanded ? "px-2" : "justify-center")}>
+            {user.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.github_login}
+                className="h-6 w-6 shrink-0 rounded-full"
+              />
+            ) : (
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e8601a] text-xs text-white">
+                {user.github_login[0].toUpperCase()}
+              </div>
+            )}
+            {expanded && (
+              <div className="flex flex-1 items-center justify-between">
+                <span className="truncate text-xs text-[#9ca3af]">{user.github_login}</span>
+                <button
+                  onClick={logout}
+                  title="Sign out"
+                  className="text-[#9ca3af] transition-colors hover:text-white"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
