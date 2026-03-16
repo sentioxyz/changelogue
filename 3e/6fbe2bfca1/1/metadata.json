@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "3e6fbe2bfca1",
+  "session_id": "b9dff3f8-6468-4422-b63c-e84403aff55b",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-16T15:14:25.156077Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/sources.go",
+    "internal/api/pgstore.go",
+    "internal/api/sources_test.go",
+    "internal/ingestion/source.go",
+    "internal/ingestion/github.go",
+    "internal/ingestion/dockerhub.go",
+    "internal/ingestion/pypi.go",
+    "internal/ingestion/gitlab.go",
+    "internal/ingestion/ecr_public.go",
+    "web/components/projects/project-detail.tsx",
+    "web/app/sources/page.tsx",
+    "web/app/projects/page.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "66c5ccdefeb8",
+  "token_usage": {
+    "input_tokens": 6936203,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 17785,
+    "api_call_count": 76
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-16T15:14:24.727718Z",
+    "agent_lines": 114,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 114,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/b9dff3f8-6468-4422-b63c-e84403aff55b.jsonl"
+}
