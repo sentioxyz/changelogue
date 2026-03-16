@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { FaGithub, FaDocker, FaAws, FaGitlab } from "react-icons/fa";
+import { FaGithub, FaDocker, FaAws, FaGitlab, FaPython } from "react-icons/fa";
 import type { IconType } from "react-icons";
 
 const PROVIDER_STYLES: Record<string, { bg: string; text: string; label: string; icon: IconType }> = {
@@ -7,6 +7,7 @@ const PROVIDER_STYLES: Record<string, { bg: string; text: string; label: string;
   dockerhub: { bg: "#2496ed", text: "#ffffff", label: "Docker Hub", icon: FaDocker },
   "ecr-public": { bg: "#ff9900", text: "#ffffff", label: "ECR Public", icon: FaAws },
   gitlab: { bg: "#fc6d26", text: "#ffffff", label: "GitLab", icon: FaGitlab },
+  pypi: { bg: "#006DAD", text: "#ffffff", label: "PyPI", icon: FaPython },
 };
 
 export function getProviderIcon(provider: string): IconType | undefined {

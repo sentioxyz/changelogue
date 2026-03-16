@@ -23,6 +23,9 @@ export function validateRepository(provider: string, repo: string): string | nul
   if (provider === "gitlab" && /^(https?:\/\/)?gitlab\.com\//i.test(trimmed)) {
     return "Use owner/repo format (e.g. inkscape/inkscape), not a full URL";
   }
+  if (provider === "pypi" && /^(https?:\/\/)?pypi\.org\//i.test(trimmed)) {
+    return "Use package name format (e.g. requests), not a full URL";
+  }
   if (/^https?:\/\//.test(trimmed)) {
     return "Use owner/repo format, not a full URL";
   }

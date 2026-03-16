@@ -43,6 +43,8 @@ function getProviderUrl(
       return `https://gallery.ecr.aws/${repository}`;
     case "gitlab":
       return `https://gitlab.com/${repository}/-/releases/${version}`;
+    case "pypi":
+      return `https://pypi.org/project/${repository}/${encodeURIComponent(version)}/`;
     default:
       return null;
   }
@@ -58,6 +60,8 @@ function getProviderLabel(provider: string): string {
       return "ECR Public";
     case "gitlab":
       return "GitLab";
+    case "pypi":
+      return "PyPI";
     default:
       return provider;
   }

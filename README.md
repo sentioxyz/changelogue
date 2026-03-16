@@ -7,7 +7,7 @@
 
 ## What it does
 
-- **Discovers releases** by polling Docker Hub and GitHub on configurable intervals
+- **Discovers releases** by polling Docker Hub, GitHub, ECR Public, GitLab, and PyPI on configurable intervals
 - **Routes notifications** to Slack, Discord, email, and webhooks the moment a new version lands
 - **Generates AI reports** via Google Gemini agents that research changelogs, assess risk, and summarize what changed
 - **Serves a dashboard** (Next.js) for managing projects, sources, subscriptions, and browsing releases in real time
@@ -20,7 +20,7 @@ graph LR
     B --> C["Agent<br/>(ADK-Go)"]
     C --> D["Routing<br/>(channels)"]
 
-    A -.- A1["Docker Hub<br/>GitHub"]
+    A -.- A1["Docker Hub · GitHub<br/>ECR · GitLab · PyPI"]
     B -.- B1["Transactional Outbox<br/>LISTEN/NOTIFY → SSE"]
     C -.- C1["Gemini LLM<br/>research tools"]
     D -.- D1["Slack · Discord<br/>Email · Webhooks"]
@@ -70,7 +70,7 @@ internal/
     openai/            OpenAI-compatible LLM provider
   api/                 REST API, SSE, middleware, auth
   db/                  Connection pool and migrations
-  ingestion/           Polling sources (Docker Hub, GitHub Atom)
+  ingestion/           Polling sources (Docker Hub, GitHub, ECR Public, GitLab, PyPI)
   models/              Shared domain types
   queue/               River job definitions and client
   routing/             Notification channels and delivery worker
@@ -80,7 +80,7 @@ scripts/               Integration test harness
 
 ## Extending
 
-More providers (npm, PyPI, Helm, etc.) and channels (PagerDuty, etc.) are planned. Adding one is a single-interface implementation:
+More providers (npm, Helm, etc.) and channels (PagerDuty, etc.) are planned. Adding one is a single-interface implementation:
 
 **Add a registry provider** — implement `IIngestionSource` in `internal/ingestion/source.go`:
 

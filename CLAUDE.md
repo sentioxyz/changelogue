@@ -8,7 +8,7 @@
 
 ## Project Overview
 
-**Changelogue** is an agent-driven release intelligence platform that polls upstream registries (Docker Hub, GitHub) for new releases, sends source-level notifications, and uses LLM agents (ADK-Go) to produce semantic release reports.
+**Changelogue** is an agent-driven release intelligence platform that polls upstream registries (Docker Hub, GitHub, ECR Public, GitLab, PyPI) for new releases, sends source-level notifications, and uses LLM agents (ADK-Go) to produce semantic release reports.
 
 Go module: `github.com/sentioxyz/changelogue`
 

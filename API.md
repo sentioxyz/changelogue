@@ -116,7 +116,7 @@ Subscriptions link a notification channel to either a specific source or an enti
 
 | Method | Path                 | Description                                      |
 |--------|----------------------|--------------------------------------------------|
-| `GET`  | `/api/v1/providers`  | List supported source types (`dockerhub`, `github`, etc.) |
+| `GET`  | `/api/v1/providers`  | List supported source types (`dockerhub`, `github`, `ecr-public`, `gitlab`, `pypi`) |
 
 ### System
 
@@ -211,7 +211,7 @@ The `project_id` is set from the URL path parameter. Response includes `id` (UUI
 
 The `version_filter_include` and `version_filter_exclude` are optional regex patterns applied when listing releases and sending notifications. When `version_filter_include` is set, only versions matching the pattern are shown. When `version_filter_exclude` is set, versions matching the pattern are hidden. Both use PostgreSQL regex syntax.
 
-The `exclude_prereleases` boolean (default `false`) filters out pre-release versions from listings and notifications. Currently applies to GitHub sources, where the GitHub REST API provides a `prerelease` flag on each release.
+The `exclude_prereleases` boolean (default `false`) filters out pre-release versions from listings and notifications. Applies to GitHub and GitLab sources (which have an explicit `prerelease` flag) and PyPI sources (where pre-release versions use PEP 440 suffixes like `a`, `b`, `rc`).
 
 ### Context Source (request body for POST/PUT)
 

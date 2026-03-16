@@ -179,8 +179,8 @@ func TestProvidersHandlerList(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(got.Data) != 4 {
-		t.Fatalf("expected 4 providers, got %d", len(got.Data))
+	if len(got.Data) != 5 {
+		t.Fatalf("expected 5 providers, got %d", len(got.Data))
 	}
 	if got.Data[0]["id"] != "dockerhub" {
 		t.Fatalf("expected first provider id=dockerhub, got %s", got.Data[0]["id"])
@@ -194,6 +194,9 @@ func TestProvidersHandlerList(t *testing.T) {
 	if got.Data[3]["id"] != "gitlab" {
 		t.Fatalf("expected fourth provider id=gitlab, got %s", got.Data[3]["id"])
 	}
+	if got.Data[4]["id"] != "pypi" {
+		t.Fatalf("expected fifth provider id=pypi, got %s", got.Data[4]["id"])
+	}
 	if got.Data[0]["type"] != "polling" {
 		t.Fatalf("expected dockerhub type=polling, got %s", got.Data[0]["type"])
 	}
@@ -205,6 +208,9 @@ func TestProvidersHandlerList(t *testing.T) {
 	}
 	if got.Data[3]["type"] != "polling" {
 		t.Fatalf("expected gitlab type=polling, got %s", got.Data[3]["type"])
+	}
+	if got.Data[4]["type"] != "polling" {
+		t.Fatalf("expected pypi type=polling, got %s", got.Data[4]["type"])
 	}
 }
 

@@ -2,7 +2,7 @@
 
 ## 1. System Context & Principles
 
-**Changelogue** is designed to solve the "release noise" problem by acting as an intelligent middleware between upstream software registries (Docker Hub, GitHub) and downstream operational systems (Base A Box, Ops Opsack, Slack).
+**Changelogue** is designed to solve the "release noise" problem by acting as an intelligent middleware between upstream software registries (Docker Hub, GitHub, ECR Public, GitLab, PyPI) and downstream operational systems (Base A Box, Ops Opsack, Slack).
 
 ### Core Design Principles
 
@@ -153,7 +153,7 @@ CREATE TABLE projects (
 CREATE TABLE sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    provider VARCHAR(50) NOT NULL,              -- 'dockerhub', 'github'
+    provider VARCHAR(50) NOT NULL,              -- 'dockerhub', 'github', 'ecr-public', 'gitlab', 'pypi'
     repository VARCHAR(255) NOT NULL,
     poll_interval_seconds INT DEFAULT 900,
     enabled BOOLEAN DEFAULT true,
