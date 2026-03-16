@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "17bd8fa5d90a",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/api/health_test.go",
+    "internal/api/providers.go",
+    "internal/ingestion/loader.go",
+    "internal/ingestion/npm.go",
+    "internal/ingestion/npm_test.go",
+    "web/components/projects/project-form.tsx",
+    "web/components/releases/release-detail.tsx",
+    "web/components/sources/source-form.tsx",
+    "web/components/ui/provider-badge.tsx",
+    "web/lib/format.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/17/bd8fa5d90a/0/metadata.json",
+      "transcript": "/17/bd8fa5d90a/0/full.jsonl",
+      "context": "/17/bd8fa5d90a/0/context.md",
+      "content_hash": "/17/bd8fa5d90a/0/content_hash.txt",
+      "prompt": "/17/bd8fa5d90a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 3125275,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 7208,
+    "api_call_count": 39
+  }
+}
