@@ -1,0 +1,935 @@
+ls
+
+---
+
+Let's add the login feature, firstly we can login by the github account
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.2/skills/brainstorming
+
+# Brainstorming Ideas Into Designs
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+
+<HARD-GATE>
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+</HARD-GATE>
+
+## Anti-Pattern: "This Is Too Simple To Need A Design"
+
+Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Explore project context** — check files, docs, recent commits
+2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
+3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+4. **Propose 2-3 approaches** — with trade-offs and your recommendation
+5. **Present design** — in sections scaled to their complexity, get user approval after each section
+6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
+7. **Spec review loop** — dispatch spec-document-reviewer subagent with precisely crafted review context (never your session history); fix issues and re-dispatch until approved (max 5 iterations, then surface to human)
+8. **User reviews written spec** — ask user to review the spec file before proceeding
+9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+
+## Process Flow
+
+```dot
+digraph brainstorming {
+    "Explore project context" [shape=box];
+    "Visual questions ahead?" [shape=diamond];
+    "Offer Visual Companion\n(own message, no other content)" [shape=box];
+    "Ask clarifying questions" [shape=box];
+    "Propose 2-3 approaches" [shape=box];
+    "Present design sections" [shape=box];
+    "User approves design?" [shape=diamond];
+    "Write design doc" [shape=box];
+    "Spec review loop" [shape=box];
+    "Spec review passed?" [shape=diamond];
+    "User reviews spec?" [shape=diamond];
+    "Invoke writing-plans skill" [shape=doublecircle];
+
+    "Explore project context" -> "Visual questions ahead?";
+    "Visual questions ahead?" -> "Offer Visual Companion\n(own message, no other content)" [label="yes"];
+    "Visual questions ahead?" -> "Ask clarifying questions" [label="no"];
+    "Offer Visual Companion\n(own message, no other content)" -> "Ask clarifying questions";
+    "Ask clarifying questions" -> "Propose 2-3 approaches";
+    "Propose 2-3 approaches" -> "Present design sections";
+    "Present design sections" -> "User approves design?";
+    "User approves design?" -> "Present design sections" [label="no, revise"];
+    "User approves design?" -> "Write design doc" [label="yes"];
+    "Write design doc" -> "Spec review loop";
+    "Spec review loop" -> "Spec review passed?";
+    "Spec review passed?" -> "Spec review loop" [label="issues found,\nfix and re-dispatch"];
+    "Spec review passed?" -> "User reviews spec?" [label="approved"];
+    "User reviews spec?" -> "Write design doc" [label="changes requested"];
+    "User reviews spec?" -> "Invoke writing-plans skill" [label="approved"];
+}
+```
+
+**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+
+## The Process
+
+**Understanding the idea:**
+
+- Check out the current project state first (files, docs, recent commits)
+- Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
+- If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
+- For appropriately-scoped projects, ask questions one at a time to refine the idea
+- Prefer multiple choice questions when possible, but open-ended is fine too
+- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Focus on understanding: purpose, constraints, success criteria
+
+**Exploring approaches:**
+
+- Propose 2-3 different approaches with trade-offs
+- Present options conversationally with your recommendation and reasoning
+- Lead with your recommended option and explain why
+
+**Presenting the design:**
+
+- Once you believe you understand what you're building, present the design
+- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- Ask after each section whether it looks right so far
+- Cover: architecture, components, data flow, error handling, testing
+- Be ready to go back and clarify if something doesn't make sense
+
+**Design for isolation and clarity:**
+
+- Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces, and can be understood and tested independently
+- For each unit, you should be able to answer: what does it do, how do you use it, and what does it depend on?
+- Can someone understand what a unit does without reading its internals? Can you change the internals without breaking consumers? If not, the boundaries need work.
+- Smaller, well-bounded units are also easier for you to work with - you reason better about code you can hold in context at once, and your edits are more reliable when files are focused. When a file grows large, that's often a signal that it's doing too much.
+
+**Working in existing codebases:**
+
+- Explore the current structure before proposing changes. Follow existing patterns.
+- Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
+- Don't propose unrelated refactoring. Stay focused on what serves the current goal.
+
+## After the Design
+
+**Documentation:**
+
+- Write the validated design (spec) to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+  - (User preferences for spec location override this default)
+- Use elements-of-style:writing-clearly-and-concisely skill if available
+- Commit the design document to git
+
+**Spec Review Loop:**
+After writing the spec document:
+
+1. Dispatch spec-document-reviewer subagent (see spec-document-reviewer-prompt.md)
+2. If Issues Found: fix, re-dispatch, repeat until Approved
+3. If loop exceeds 5 iterations, surface to human for guidance
+
+**User Review Gate:**
+After the spec review loop passes, ask the user to review the written spec before proceeding:
+
+> "Spec written and committed to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
+
+Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
+
+**Implementation:**
+
+- Invoke the writing-plans skill to create a detailed implementation plan
+- Do NOT invoke any other skill. writing-plans is the next step.
+
+## Key Principles
+
+- **One question at a time** - Don't overwhelm with multiple questions
+- **Multiple choice preferred** - Easier to answer than open-ended when possible
+- **YAGNI ruthlessly** - Remove unnecessary features from all designs
+- **Explore alternatives** - Always propose 2-3 approaches before settling
+- **Incremental validation** - Present design, get approval before moving on
+- **Be flexible** - Go back and clarify when something doesn't make sense
+
+## Visual Companion
+
+A browser-based companion for showing mockups, diagrams, and visual options during brainstorming. Available as a tool — not a mode. Accepting the companion means it's available for questions that benefit from visual treatment; it does NOT mean every question goes through the browser.
+
+**Offering the companion:** When you anticipate that upcoming questions will involve visual content (mockups, layouts, diagrams), offer it once for consent:
+> "Some of what we're working on might be easier to explain if I can show it to you in a web browser. I can put together mockups, diagrams, comparisons, and other visuals as we go. This feature is still new and can be token-intensive. Want to try it? (Requires opening a local URL)"
+
+**This offer MUST be its own message.** Do not combine it with clarifying questions, context summaries, or any other content. The message should contain ONLY the offer above and nothing else. Wait for the user's response before continuing. If they decline, proceed with text-only brainstorming.
+
+**Per-question decision:** Even after the user accepts, decide FOR EACH QUESTION whether to use the browser or the terminal. The test: **would the user understand this better by seeing it than reading it?**
+
+- **Use the browser** for content that IS visual — mockups, wireframes, layout comparisons, architecture diagrams, side-by-side visual designs
+- **Use the terminal** for content that is text — requirements questions, conceptual choices, tradeoff lists, A/B/C/D text options, scope decisions
+
+A question about a UI topic is not automatically a visual question. "What does personality mean in this context?" is a conceptual question — use the terminal. "Which wizard layout works better?" is a visual question — use the browser.
+
+If they agree to the companion, read the detailed guide before proceeding:
+`skills/brainstorming/visual-companion.md`
+
+---
+
+A
+
+---
+
+Ok
+
+---
+
+I'm considering extend it to a finegrained user registeration, login by email / google/ github and access control by orgnizations, can this approach be extended to that in the future?
+
+---
+
+Sure
+
+---
+
+Yes
+
+---
+
+Yes
+
+---
+
+Yes
+
+---
+
+Looks good
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.2/skills/writing-plans
+
+# Writing Plans
+
+## Overview
+
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+
+Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+
+**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+
+**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+
+**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
+- (User preferences for plan location override this default)
+
+## Scope Check
+
+If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
+
+## File Structure
+
+Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
+
+- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
+- You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
+- Files that change together should live together. Split by responsibility, not by technical layer.
+- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
+
+This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
+
+## Bite-Sized Task Granularity
+
+**Each step is one action (2-5 minutes):**
+- "Write the failing test" - step
+- "Run it to make sure it fails" - step
+- "Implement the minimal code to make the test pass" - step
+- "Run the tests and make sure they pass" - step
+- "Commit" - step
+
+## Plan Document Header
+
+**Every plan MUST start with this header:**
+
+```markdown
+# [Feature Name] Implementation Plan
+
+> **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** [One sentence describing what this builds]
+
+**Architecture:** [2-3 sentences about approach]
+
+**Tech Stack:** [Key technologies/libraries]
+
+---
+```
+
+## Task Structure
+
+````markdown
+### Task N: [Component Name]
+
+**Files:**
+- Create: `exact/path/to/file.py`
+- Modify: `exact/path/to/existing.py:123-145`
+- Test: `tests/exact/path/to/test.py`
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+def test_specific_behavior():
+    result = function(input)
+    assert result == expected
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: FAIL with "function not defined"
+
+- [ ] **Step 3: Write minimal implementation**
+
+```python
+def function(input):
+    return expected
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `pytest tests/path/test.py::test_name -v`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests/path/test.py src/path/file.py
+git commit -m "feat: add specific feature"
+```
+````
+
+## Remember
+- Exact file paths always
+- Complete code in plan (not "add validation")
+- Exact commands with expected output
+- Reference relevant skills with @ syntax
+- DRY, YAGNI, TDD, frequent commits
+
+## Plan Review Loop
+
+After completing each chunk of the plan:
+
+1. Dispatch plan-document-reviewer subagent (see plan-document-reviewer-prompt.md) with precisely crafted review context — never your session history. This keeps the reviewer focused on the plan, not your thought process.
+   - Provide: chunk content, path to spec document
+2. If ❌ Issues Found:
+   - Fix the issues in the chunk
+   - Re-dispatch reviewer for that chunk
+   - Repeat until ✅ Approved
+3. If ✅ Approved: proceed to next chunk (or execution handoff if last chunk)
+
+**Chunk boundaries:** Use `## Chunk N: <name>` headings to delimit chunks. Each chunk should be ≤1000 lines and logically self-contained.
+
+**Review loop guidance:**
+- Same agent that wrote the plan fixes it (preserves context)
+- If loop exceeds 5 iterations, surface to human for guidance
+- Reviewers are advisory - explain disagreements if you believe feedback is incorrect
+
+## Execution Handoff
+
+After saving the plan:
+
+**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Ready to execute?"**
+
+**Execution path depends on harness capabilities:**
+
+**If harness has subagents (Claude Code, etc.):**
+- **REQUIRED:** Use superpowers:subagent-driven-development
+- Do NOT offer a choice - subagent-driven is the standard approach
+- Fresh subagent per task + two-stage review
+
+**If harness does NOT have subagents:**
+- Execute plan in current session using superpowers:executing-plans
+- Batch execution with checkpoints for review
+
+---
+
+Yes
+
+---
+
+Base directory for this skill: /Users/pc/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.2/skills/subagent-driven-development
+
+# Subagent-Driven Development
+
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+
+**Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
+
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Have implementation plan?" [shape=diamond];
+    "Tasks mostly independent?" [shape=diamond];
+    "Stay in this session?" [shape=diamond];
+    "subagent-driven-development" [shape=box];
+    "executing-plans" [shape=box];
+    "Manual execution or brainstorm first" [shape=box];
+
+    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
+    "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
+    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
+    "Stay in this session?" -> "subagent-driven-development" [label="yes"];
+    "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
+}
+```
+
+**vs. Executing Plans (parallel session):**
+- Same session (no context switch)
+- Fresh subagent per task (no context pollution)
+- Two-stage review after each task: spec compliance first, then code quality
+- Faster iteration (no human-in-loop between tasks)
+
+## The Process
+
+```dot
+digraph process {
+    rankdir=TB;
+
+    subgraph cluster_per_task {
+        label="Per Task";
+        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Implementer subagent asks questions?" [shape=diamond];
+        "Answer questions, provide context" [shape=box];
+        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
+        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
+        "Implementer subagent fixes spec gaps" [shape=box];
+        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
+        "Code quality reviewer subagent approves?" [shape=diamond];
+        "Implementer subagent fixes quality issues" [shape=box];
+        "Mark task complete in TodoWrite" [shape=box];
+    }
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "More tasks remain?" [shape=diamond];
+    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
+    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
+    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+}
+```
+
+## Model Selection
+
+Use the least powerful model that can handle each role to conserve cost and increase speed.
+
+**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): use a fast, cheap model. Most implementation tasks are mechanical when the plan is well-specified.
+
+**Integration and judgment tasks** (multi-file coordination, pattern matching, debugging): use a standard model.
+
+**Architecture, design, and review tasks**: use the most capable available model.
+
+**Task complexity signals:**
+- Touches 1-2 files with a complete spec → cheap model
+- Touches multiple files with integration concerns → standard model
+- Requires design judgment or broad codebase understanding → most capable model
+
+## Handling Implementer Status
+
+Implementer subagents report one of four statuses. Handle each appropriately:
+
+**DONE:** Proceed to spec compliance review.
+
+**DONE_WITH_CONCERNS:** The implementer completed the work but flagged doubts. Read the concerns before proceeding. If the concerns are about correctness or scope, address them before review. If they're observations (e.g., "this file is getting large"), note them and proceed to review.
+
+**NEEDS_CONTEXT:** The implementer needs information that wasn't provided. Provide the missing context and re-dispatch.
+
+**BLOCKED:** The implementer cannot complete the task. Assess the blocker:
+1. If it's a context problem, provide more context and re-dispatch with the same model
+2. If the task requires more reasoning, re-dispatch with a more capable model
+3. If the task is too large, break it into smaller pieces
+4. If the plan itself is wrong, escalate to the human
+
+**Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
+
+## Prompt Templates
+
+- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+
+## Example Workflow
+
+```
+You: I'm using Subagent-Driven Development to execute this plan.
+
+[Read plan file once: docs/superpowers/plans/feature-plan.md]
+[Extract all 5 tasks with full text and context]
+[Create TodoWrite with all tasks]
+
+Task 1: Hook installation script
+
+[Get Task 1 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: "Before I begin - should the hook be installed at user or system level?"
+
+You: "User level (~/.config/superpowers/hooks/)"
+
+Implementer: "Got it. Implementing now..."
+[Later] Implementer:
+  - Implemented install-hook command
+  - Added tests, 5/5 passing
+  - Self-review: Found I missed --force flag, added it
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+
+[Get git SHAs, dispatch code quality reviewer]
+Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
+
+[Mark Task 1 complete]
+
+Task 2: Recovery modes
+
+[Get Task 2 text and context (already extracted)]
+[Dispatch implementation subagent with full task text + context]
+
+Implementer: [No questions, proceeds]
+Implementer:
+  - Added verify/repair modes
+  - 8/8 tests passing
+  - Self-review: All good
+  - Committed
+
+[Dispatch spec compliance reviewer]
+Spec reviewer: ❌ Issues:
+  - Missing: Progress reporting (spec says "report every 100 items")
+  - Extra: Added --json flag (not requested)
+
+[Implementer fixes issues]
+Implementer: Removed --json flag, added progress reporting
+
+[Spec reviewer reviews again]
+Spec reviewer: ✅ Spec compliant now
+
+[Dispatch code quality reviewer]
+Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
+
+[Implementer fixes]
+Implementer: Extracted PROGRESS_INTERVAL constant
+
+[Code reviewer reviews again]
+Code reviewer: ✅ Approved
+
+[Mark Task 2 complete]
+
+...
+
+[After all tasks]
+[Dispatch final code-reviewer]
+Final reviewer: All requirements met, ready to merge
+
+Done!
+```
+
+## Advantages
+
+**vs. Manual execution:**
+- Subagents follow TDD naturally
+- Fresh context per task (no confusion)
+- Parallel-safe (subagents don't interfere)
+- Subagent can ask questions (before AND during work)
+
+**vs. Executing Plans:**
+- Same session (no handoff)
+- Continuous progress (no waiting)
+- Review checkpoints automatic
+
+**Efficiency gains:**
+- No file reading overhead (controller provides full text)
+- Controller curates exactly what context is needed
+- Subagent gets complete information upfront
+- Questions surfaced before work begins (not after)
+
+**Quality gates:**
+- Self-review catches issues before handoff
+- Two-stage review: spec compliance, then code quality
+- Review loops ensure fixes actually work
+- Spec compliance prevents over/under-building
+- Code quality ensures implementation is well-built
+
+**Cost:**
+- More subagent invocations (implementer + 2 reviewers per task)
+- Controller does more prep work (extracting all tasks upfront)
+- Review loops add iterations
+- But catches issues early (cheaper than debugging later)
+
+## Red Flags
+
+**Never:**
+- Start implementation on main/master branch without explicit user consent
+- Skip reviews (spec compliance OR code quality)
+- Proceed with unfixed issues
+- Dispatch multiple implementation subagents in parallel (conflicts)
+- Make subagent read plan file (provide full text instead)
+- Skip scene-setting context (subagent needs to understand where task fits)
+- Ignore subagent questions (answer before letting them proceed)
+- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
+- Skip review loops (reviewer found issues = implementer fixes = review again)
+- Let implementer self-review replace actual review (both are needed)
+- **Start code quality review before spec compliance is ✅** (wrong order)
+- Move to next task while either review has open issues
+
+**If subagent asks questions:**
+- Answer clearly and completely
+- Provide additional context if needed
+- Don't rush them into implementation
+
+**If reviewer finds issues:**
+- Implementer (same subagent) fixes them
+- Reviewer reviews again
+- Repeat until approved
+- Don't skip the re-review
+
+**If subagent fails task:**
+- Dispatch fix subagent with specific instructions
+- Don't try to fix manually (context pollution)
+
+## Integration
+
+**Required workflow skills:**
+- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+
+**Subagents should use:**
+- **superpowers:test-driven-development** - Subagents follow TDD for each task
+
+**Alternative workflow:**
+- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. User starts with `ls` - exploring the project directory
+2. User requests: "Let's add the login feature, firstly we can login by the github account"
+3. I invoked the brainstorming skill and explored the project context using a subagent
+4. The exploration revealed:
+   - Go backend with API key auth (Bearer tokens, SHA-256 hashed)
+   - PostgreSQL database with River job queue
+   - Next.js static export frontend embedded in Go binary
+   - NO_AUTH=true for dev mode
+   - No user accounts, sessions, or OAuth
+
+5. Clarifying questions and user answers:
+   - Post-login access: "Restrict to specific users"
+   - Allow list definition: "Both (username + org)"
+   - Session management: "Server-side sessions (Recommended)"
+
+6. I proposed 3 approaches:
+   - A: Standard OAuth 2.0 Flow (Recommended)
+   - B: OAuth Library (goth)
+   - C: NextAuth.js on Frontend
+   User chose: "A"
+
+7. Design presented in 5 sections, each approved by user:
+   - Section 1: OAuth Flow & Backend Routes
+   - Section 2: Database Schema
+   - Section 3: Backend Auth Package
+   - Section 4: Frontend Changes
+   - Section 5: Development & NO_AUTH Compatibility
+
+8. User asked about future extensibility (email/Google/org-based access control) - I confirmed the design extends naturally
+
+9. Design spec written to `docs/superpowers/specs/2026-03-16-github-oauth-login-design.md`
+
+10. Spec review found blocking issues:
+    - Both allowlists empty permits universal access
+    - GitHub access token lifecycle not documented
+    - Auth middleware integration underspecified
+    - SESSION_SECRET purpose ambiguous
+    - Login page infinite redirect loop
+    Plus many suggestions
+
+11. Fixed all blocking issues in the spec, committed
+
+12. User approved the spec: "Looks good"
+
+13. Implementation plan written to `docs/superpowers/plans/2026-03-16-github-oauth-login.md`
+    - 14 tasks across 7 chunks
+
+14. Plan review found 2 blocking issues:
+    - Layout body structure mismatch (LayoutShell wrong DOM structure)
+    - RunCleanupLoop uses fmt.Printf instead of slog
+
+15. Fixed both blocking issues in the plan
+
+16. User approved execution: "Yes"
+
+17. Started subagent-driven development execution:
+    - Task 1-2 (DB schema + User type): DONE ✓
+    - Task 3 (Session store with HMAC): DONE ✓
+    - Task 4-5 (Allowlist + State store): DONE ✓
+    - Task 6 (OAuth handlers): DONE ✓
+    - Task 7-8 (Auth middleware + server wiring): DONE ✓
+    - Task 9-11 (Frontend: AuthProvider, login page, sidebar): DONE ✓
+    - Task 12-14 (README + verification): NOT YET DONE
+
+Current state: Tasks 9-11 just completed. Task #9 in the todo list was marked but Task #10 (README + final verification) is still pending.
+
+Let me list all the files created/modified:
+
+NEW FILES:
+- internal/auth/user.go
+- internal/auth/session.go
+- internal/auth/session_test.go
+- internal/auth/allowlist.go
+- internal/auth/allowlist_test.go
+- internal/auth/state.go
+- internal/auth/state_test.go
+- internal/auth/oauth.go
+- internal/auth/oauth_test.go
+- web/lib/auth/context.tsx
+- web/app/login/page.tsx
+- web/components/layout/layout-shell.tsx
+- docs/superpowers/specs/2026-03-16-github-oauth-login-design.md
+- docs/superpowers/plans/2026-03-16-github-oauth-login.md
+
+MODIFIED FILES:
+- internal/db/migrations.go (added users + sessions tables)
+- internal/api/auth.go (extended Auth to accept sessions)
+- internal/api/auth_test.go (added session cookie tests)
+- internal/api/server.go (added SessionValidator, RegisterAuthRoutes)
+- cmd/server/main.go (wired OAuth, session store, cleanup)
+- web/app/layout.tsx (wrapped in AuthProvider + LayoutShell)
+- web/components/layout/sidebar.tsx (added user avatar + logout)
+
+The remaining tasks are Task 12-14: verify /login route, update README, run full verification.
+
+Summary:
+1. Primary Request and Intent:
+   The user requested adding a login feature to the Changelogue application, starting with GitHub account authentication. Through a collaborative brainstorming process, the requirements were refined to:
+   - GitHub OAuth login with server-side sessions stored in PostgreSQL
+   - Access restricted to specific GitHub usernames AND/OR GitHub organization memberships (both)
+   - HttpOnly cookie-based sessions with HMAC-SHA256 signing
+   - Existing API key auth preserved for machine-to-machine access
+   - NO_AUTH dev mode compatibility
+   - Future extensibility for email/password, Google OAuth, and org-based access control
+
+2. Key Technical Concepts:
+   - GitHub OAuth 2.0 Authorization Code Flow
+   - HMAC-SHA256 session cookie signing (format: `sessionID.hmacHex`)
+   - Server-side sessions in PostgreSQL with 7-day expiry
+   - OAuth state parameter with in-memory storage (10-min TTL, max 1000 entries)
+   - Dual auth middleware (Bearer API key OR session cookie)
+   - SameSite=Lax cookies for CSRF protection
+   - React AuthProvider context pattern with redirect guard
+   - Next.js static export embedded in Go binary via go:embed
+   - Go module: `github.com/sentioxyz/changelogue`
+   - Subagent-driven development with TDD approach
+   - Startup validation (server refuses to start if both allowlists empty when auth enabled)
+
+3. Files and Code Sections:
+
+   - `docs/superpowers/specs/2026-03-16-github-oauth-login-design.md`
+     - Full design spec for the feature, reviewed and approved
+     - Covers: OAuth flow, env vars, cookie format, DB schema, backend package structure, frontend changes, NO_AUTH mode, session cleanup
+
+   - `docs/superpowers/plans/2026-03-16-github-oauth-login.md`
+     - 14-task implementation plan across 7 chunks with full code snippets, TDD steps, and commit messages
+
+   - `internal/db/migrations.go`
+     - Added `users` and `sessions` tables to the `schema` constant
+     ```sql
+     CREATE TABLE IF NOT EXISTS users (
+         id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         github_id       BIGINT NOT NULL UNIQUE,
+         github_login    VARCHAR(100) NOT NULL,
+         name            VARCHAR(200),
+         avatar_url      TEXT,
+         created_at      TIMESTAMPTZ DEFAULT NOW(),
+         updated_at      TIMESTAMPTZ DEFAULT NOW()
+     );
+     CREATE TABLE IF NOT EXISTS sessions (
+         id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+         expires_at  TIMESTAMPTZ NOT NULL,
+         created_at  TIMESTAMPTZ DEFAULT NOW()
+     );
+     CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+     CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+     ```
+
+   - `internal/auth/user.go`
+     - User struct with JSON tags, context helpers WithUser/UserFromContext
+     ```go
+     type User struct {
+         ID          string `json:"id"`
+         GitHubID    int64  `json:"github_id"`
+         GitHubLogin string `json:"github_login"`
+         Name        string `json:"name,omitempty"`
+         AvatarURL   string `json:"avatar_url,omitempty"`
+     }
+     ```
+
+   - `internal/auth/session.go`
+     - SessionStore with PostgreSQL backing, HMAC cookie signing/parsing
+     - Key functions: `SignSessionCookie`, `ParseSessionCookie`, `CreateSession`, `ValidateSession`, `DeleteSession`, `CleanupExpired`, `RunCleanupLoop`
+     - Uses `log/slog` for cleanup logging (not fmt.Printf - this was a fix from plan review)
+
+   - `internal/auth/allowlist.go`
+     - Allowlist struct with case-insensitive username/org matching
+     - Functions: `NewAllowlist`, `HasEntries`, `IsUserAllowed`
+
+   - `internal/auth/state.go`
+     - In-memory OAuth state store with TTL, size limit, lazy cleanup
+     - Functions: `NewStateStore`, `Create`, `Consume`
+
+   - `internal/auth/oauth.go`
+     - OAuthHandler struct with all GitHub OAuth flow handlers
+     - Functions: `HandleGitHubRedirect`, `HandleGitHubCallback`, `HandleMe`, `HandleLogout`, `RequireSession` middleware
+     - GitHub API helpers: `exchangeCode`, `fetchGitHubUser`, `fetchGitHubOrgs`, `callbackURL`
+     - Dev mode: `DevUser`, `HandleMeDev`, `DevSession`
+
+   - `internal/api/auth.go`
+     - Extended `Auth` function signature from `Auth(store KeyStore)` to `Auth(store KeyStore, sessions SessionValidator)`
+     - Added `SessionValidator` interface
+     - Auth checks Bearer token first, then falls back to session cookie, then returns 401
+     ```go
+     type SessionValidator interface {
+         ValidateSession(ctx context.Context, cookie string) (*auth.User, error)
+     }
+     ```
+
+   - `internal/api/auth_test.go`
+     - Updated existing tests to use `Auth(store, nil)` for backwards compatibility
+     - Added `mockSessionValidator`, `TestAuthMiddlewareSessionCookie`, `TestAuthMiddlewareBearerTakesPrecedence`
+
+   - `internal/api/server.go`
+     - Added `SessionValidator` field to `Dependencies` struct
+     - Updated Auth chain to pass `deps.SessionValidator`
+     - Added `RegisterAuthRoutes` function for `/auth/github`, `/auth/github/callback`, `/auth/me`, `/auth/logout`
+
+   - `cmd/server/main.go`
+     - Reads new env vars: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `ALLOWED_GITHUB_USERS`, `ALLOWED_GITHUB_ORGS`, `SESSION_SECRET`, `SECURE_COOKIES`
+     - Startup validation: exits if both allowlists empty when auth enabled
+     - Creates `sessionStore`, `stateStore`, `oauthHandler`
+     - Passes `SessionValidator: sessionStore` to Dependencies
+     - Calls `api.RegisterAuthRoutes(mux, oauthHandler, noAuth)`
+     - Starts `go sessionStore.RunCleanupLoop(ctx)`
+
+   - `web/lib/auth/context.tsx`
+     - AuthProvider component fetches `/auth/me`, redirects to `/login` on 401 (except when already on `/login`)
+     - useAuth hook exposing user, loading, logout
+
+   - `web/app/login/page.tsx`
+     - Login page with GitHub sign-in button, error message display from query params
+     - Wrapped in Suspense for useSearchParams
+
+   - `web/components/layout/layout-shell.tsx`
+     - Client component that skips sidebar on `/login` page
+     - Preserves exact DOM structure: `div.flex.h-screen > Sidebar + div.flex.flex-1.flex-col.overflow-hidden > main.flex-1.overflow-y-auto.p-6.fade-in`
+
+   - `web/app/layout.tsx`
+     - Removed direct Sidebar import
+     - Wrapped body in `<AuthProvider><LayoutShell>{children}</LayoutShell></AuthProvider>`
+
+   - `web/components/layout/sidebar.tsx`
+     - Added LogOut icon import, useAuth hook
+     - Added user avatar/initials + sign-out button section at bottom of sidebar
+
+   - Test files created: `session_test.go` (3 tests), `allowlist_test.go` (3 tests), `state_test.go` (3 tests), `oauth_test.go` (4 tests), updated `auth_test.go` (5 tests total)
+
+4. Errors and Fixes:
+   - **Spec review found 5 blocking issues:**
+     - Both allowlists empty would permit universal access → Added startup validation (exit if both empty)
+     - GitHub access token lifecycle undocumented → Explicitly documented as discarded after use
+     - Auth middleware integration underspecified → Documented precedence, SessionValidator interface, context key
+     - SESSION_SECRET purpose ambiguous → Clarified HMAC-signed cookie format `sessionID.hmacHex`
+     - Login page infinite redirect loop → AuthProvider skips redirect when pathname is `/login`
+   - **Plan review found 2 blocking issues:**
+     - LayoutShell had wrong DOM structure (`overflow-hidden bg-[#f8f8f6]` instead of actual layout) → Fixed to match actual `layout.tsx` structure with intermediate div and `p-6 fade-in` classes
+     - `RunCleanupLoop` used `fmt.Printf` instead of `slog` → Changed to `slog.Error`/`slog.Info` with structured logging
+
+5. Problem Solving:
+   - Solved the dual-auth middleware problem by checking Bearer token first, then session cookie, maintaining backwards compatibility with `nil` SessionValidator
+   - Solved the login redirect loop by having AuthProvider check pathname before redirecting
+   - Solved the server-component vs client-component boundary by extracting LayoutShell as a separate client component
+   - All Go tests pass (18 total across auth and api packages), go vet clean, builds succeed
+
+6. All User Messages:
+   - "ls"
+   - "Let's add the login feature, firstly we can login by the github account"
+   - Selected "Restrict to specific users" for post-login behavior
+   - Selected "Both (username + org)" for allowlist definition
+   - Selected "Server-side sessions (Recommended)" for session management
+   - "A" (chose Approach A: Standard OAuth 2.0 Flow)
+   - "Ok" (approved Design Section 1: OAuth Flow & Backend Routes)
+   - "I'm considering extend it to a finegrained user registeration, login by email / google/ github and access control by orgnizations, can this approach be extended to that in the future?"
+   - "Sure" (approved Design Section 3 after extensibility discussion)
+   - "Yes" (approved Design Section 4: Frontend Changes)
+   - "Yes" (approved Design Section 5: Development & NO_AUTH Compatibility)
+   - "Looks good" (approved the written spec)
+   - "Yes" (approved starting execution of the implementation plan)
+
+7. Pending Tasks:
+   - Task 12: Verify `/login` route works with static export (check `web/out/login.html` exists after build)
+   - Task 13: Update README.md with new auth environment variables
+   - Task 14: End-to-end verification (run all Go tests, go vet, build binary, build frontend, manual smoke test)
+   - After all tasks: Final code review of entire implementation
+   - After review: Use finishing-a-development-branch skill
+
+8. Current Work:
+   Executing the GitHub OAuth login implementation plan using subagent-driven development. Tasks 1-11 (out of 14) have been completed successfully across 6 subagent dispatches. The last completed work was Tasks 9-11 (frontend auth: AuthProvider context, login page, layout/sidebar integration), which was reported as DONE by the implementer subagent. Task #9 in the todo list was about to be marked completed and Task #10 (Tasks 12-14: README + final verification) was about to begin.
+
+9. Optional Next Step:
+   Continue executing the implementation plan with Tasks 12-14: update README with new environment variables, verify the frontend builds correctly (including `/login` route), run all Go tests, go vet, and perform end-to-end verification. This directly continues the plan execution the user approved with "Yes" when asked "Plan complete and saved to `docs/superpowers/plans/2026-03-16-github-oauth-login.md`. Ready to execute?"
+
+   The last subagent result was: "**Status: DONE** - All three tasks were implemented cleanly and committed" for Tasks 9-11. The next task in the todo list is Task #10: "Task 12-14: README + final verification".
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/cfe14e2b-44f8-4cb7-940f-de8716ee6960.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+[Request interrupted by user]
+
+---
+
+why http://localhost:3001/auth/github is empty?
+
+---
+
+[Request interrupted by user]
+
+---
+
+Then how can I test it locally?
+
+---
+
+It redirects to http://localhost:3001/auth/github
