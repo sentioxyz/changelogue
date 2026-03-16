@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "17bd8fa5d90a",
+  "session_id": "b1e342d8-cc49-4751-b241-cc9711dd5298",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-16T15:03:42.933887Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "internal/api/providers.go",
+    "internal/ingestion/npm_test.go",
+    "web/components/projects/project-form.tsx",
+    "web/components/sources/source-form.tsx",
+    "web/components/ui/provider-badge.tsx",
+    "web/lib/format.ts",
+    "internal/api/health_test.go",
+    "internal/ingestion/loader.go",
+    "internal/ingestion/npm.go",
+    "web/components/releases/release-detail.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "1e088f383a57",
+  "token_usage": {
+    "input_tokens": 1559205,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 9928,
+    "api_call_count": 24
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-16T15:03:42.737503Z",
+    "agent_lines": 247,
+    "human_added": 19,
+    "human_modified": 6,
+    "human_removed": 0,
+    "total_committed": 272,
+    "agent_percentage": 90.80882352941177
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/b1e342d8-cc49-4751-b241-cc9711dd5298.jsonl"
+}
