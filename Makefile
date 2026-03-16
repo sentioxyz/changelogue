@@ -1,4 +1,4 @@
-.PHONY: up down db-reset build run dev test vet lint \
+.PHONY: up down db-reset build run dev test vet lint coverage \
         frontend-install frontend-dev frontend-build \
         integration-test agent-dev clean
 
@@ -31,6 +31,10 @@ run: build
 
 test:
 	go test ./...
+
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out | grep total
 
 vet:
 	go vet ./...

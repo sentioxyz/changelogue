@@ -4,6 +4,7 @@
 
 ![Build](https://github.com/sentioxyz/releaseguard/actions/workflows/ci.yml/badge.svg)
 ![AI Co-Authored](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Poytr1/94cc8f0ddf90bb1d04dafbb76102786d/raw/ai-commits.json)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Poytr1/94cc8f0ddf90bb1d04dafbb76102786d/raw/coverage.json)
 
 ## What it does
 
@@ -103,6 +104,7 @@ type Sender interface {
 ```bash
 make build              # go build -o changelogue ./cmd/server
 make test               # go test ./...
+make coverage           # go test with coverage profile + print total %
 make vet                # go vet ./...
 make lint               # alias for vet
 make integration-test   # full integration test (spins up its own Postgres)
