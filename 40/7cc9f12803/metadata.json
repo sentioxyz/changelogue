@@ -3,7 +3,7 @@
   "checkpoint_id": "407cc9f12803",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": [
     "internal/api/auth.go",
     "internal/api/auth_test.go"
@@ -22,13 +22,20 @@
       "context": "/40/7cc9f12803/1/context.md",
       "content_hash": "/40/7cc9f12803/1/content_hash.txt",
       "prompt": "/40/7cc9f12803/1/prompt.txt"
+    },
+    {
+      "metadata": "/40/7cc9f12803/2/metadata.json",
+      "transcript": "/40/7cc9f12803/2/full.jsonl",
+      "context": "/40/7cc9f12803/2/context.md",
+      "content_hash": "/40/7cc9f12803/2/content_hash.txt",
+      "prompt": "/40/7cc9f12803/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3293145,
+    "input_tokens": 8978254,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 7340,
-    "api_call_count": 41
+    "output_tokens": 22953,
+    "api_call_count": 108
   }
 }
