@@ -81,3 +81,16 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at the...
 
+### Prompt 15
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. User starts with `ls` - exploring the project directory
+2. User requests: "Let's add the login feature, firstly we can login by the github account"
+3. I invoked the brainstorming skill and explored the project context using a subagent
+4. The exploration revealed:
+   - Go backend with...
+
