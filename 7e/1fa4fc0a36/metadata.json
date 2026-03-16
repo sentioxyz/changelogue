@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "7e1fa4fc0a36",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "API.md",
+    "ARCH.md",
+    "CLAUDE.md",
+    "DESIGN.md",
+    "README.md",
+    "internal/api/health_test.go",
+    "internal/api/providers.go",
+    "internal/ingestion/loader.go",
+    "internal/ingestion/pypi.go",
+    "internal/ingestion/pypi_test.go",
+    "web/components/projects/project-form.tsx",
+    "web/components/releases/release-detail.tsx",
+    "web/components/sources/source-form.tsx",
+    "web/components/ui/provider-badge.tsx",
+    "web/lib/format.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/7e/1fa4fc0a36/0/metadata.json",
+      "transcript": "/7e/1fa4fc0a36/0/full.jsonl",
+      "context": "/7e/1fa4fc0a36/0/context.md",
+      "content_hash": "/7e/1fa4fc0a36/0/content_hash.txt",
+      "prompt": "/7e/1fa4fc0a36/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2782907,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 6526,
+    "api_call_count": 34
+  }
+}
