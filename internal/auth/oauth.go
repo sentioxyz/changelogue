@@ -160,7 +160,7 @@ func (h *OAuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		Secure:   h.SecureCookie,
 		SameSite: http.SameSiteLaxMode,
 	})
-	http.Redirect(w, r, h.frontendURL("/login"), http.StatusFound)
+	w.WriteHeader(http.StatusOK)
 }
 
 // frontendURL returns a path prefixed with FrontendURL if set (for dev with separate frontend port).

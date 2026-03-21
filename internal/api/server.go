@@ -148,9 +148,30 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 // RegisterAuthRoutes registers OAuth and session endpoints on the mux.
 func RegisterAuthRoutes(mux *http.ServeMux, oauthHandler *auth.OAuthHandler, noAuth bool) {
 	if noAuth {
-		mux.HandleFunc("GET /auth/me", auth.HandleMeDev)
+		mux.HandleFunc("GET /auth/me", func(w http.ResponseWriter, r *http.Request) {
+			if c, err := r.Cookie("dev_logged_out"); err == nil && c.Value == "1" {
+				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+				return
+			}
+			auth.HandleMeDev(w, r)
+		})
 		mux.HandleFunc("POST /auth/logout", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/login", http.StatusFound)
+			http.SetCookie(w, &http.Cookie{
+				Name:  "dev_logged_out",
+				Value: "1",
+				Path:  "/",
+			})
+			w.WriteHeader(http.StatusOK)
+		})
+		mux.HandleFunc("GET /auth/github", func(w http.ResponseWriter, r *http.Request) {
+			// Clear the logout cookie so dev user is "logged in" again
+			http.SetCookie(w, &http.Cookie{
+				Name:   "dev_logged_out",
+				Value:  "",
+				Path:   "/",
+				MaxAge: -1,
+			})
+			http.Redirect(w, r, "/", http.StatusFound)
 		})
 		return
 	}
@@ -159,5 +180,5 @@ func RegisterAuthRoutes(mux *http.ServeMux, oauthHandler *auth.OAuthHandler, noA
 	mux.HandleFunc("GET /auth/github", oauthHandler.HandleGitHubRedirect)
 	mux.HandleFunc("GET /auth/github/callback", oauthHandler.HandleGitHubCallback)
 	mux.Handle("GET /auth/me", sessionMw(http.HandlerFunc(oauthHandler.HandleMe)))
-	mux.Handle("POST /auth/logout", sessionMw(http.HandlerFunc(oauthHandler.HandleLogout)))
+	mux.HandleFunc("POST /auth/logout", oauthHandler.HandleLogout)
 }
