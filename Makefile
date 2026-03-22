@@ -1,9 +1,9 @@
-.PHONY: up down db-reset build run dev test vet lint coverage \
+.PHONY: up down db-reset build run run-auth dev test vet lint coverage \
         frontend-install frontend-dev frontend-build \
         integration-test agent-dev clean
 
 # --- Configuration ---
-DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/changelogue?sslmode=disable
+DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/releaseguard?sslmode=disable
 LISTEN_ADDR  ?= :8080
 BINARY       := changelogue
 
@@ -27,7 +27,19 @@ build:
 	go build -o $(BINARY) ./cmd/server
 
 run: build
-	DATABASE_URL="$(DATABASE_URL)" LISTEN_ADDR="$(LISTEN_ADDR)" NO_AUTH=true ./$(BINARY)
+	DATABASE_URL="$(DATABASE_URL)" LISTEN_ADDR="$(LISTEN_ADDR)" FRONTEND_URL="$(FRONTEND_URL)" NO_AUTH=true ./$(BINARY)
+
+run-auth: build
+	DATABASE_URL="$(DATABASE_URL)" \
+	LISTEN_ADDR="$(LISTEN_ADDR)" \
+	SECURE_COOKIES=false \
+	GITHUB_CLIENT_ID="$(GITHUB_CLIENT_ID)" \
+	GITHUB_CLIENT_SECRET="$(GITHUB_CLIENT_SECRET)" \
+	ALLOWED_GITHUB_USERS="$(ALLOWED_GITHUB_USERS)" \
+	ALLOWED_GITHUB_ORGS="$(ALLOWED_GITHUB_ORGS)" \
+	SESSION_SECRET="$(SESSION_SECRET)" \
+	FRONTEND_URL="$(FRONTEND_URL)" \
+	./$(BINARY)
 
 test:
 	go test ./...
