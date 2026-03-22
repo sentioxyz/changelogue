@@ -3,9 +3,10 @@
         integration-test agent-dev clean
 
 # --- Configuration ---
-DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/releaseguard?sslmode=disable
-LISTEN_ADDR  ?= :8080
-BINARY       := changelogue
+DATABASE_URL  ?= postgres://postgres:postgres@localhost:5432/releaseguard?sslmode=disable
+LISTEN_ADDR   ?= :8080
+FRONTEND_URL  ?= http://localhost:3001
+BINARY        := changelogue
 
 # --- Infrastructure ---
 up:

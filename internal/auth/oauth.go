@@ -37,7 +37,7 @@ func (h *OAuthHandler) HandleGitHubRedirect(w http.ResponseWriter, r *http.Reque
 		"client_id":    {h.ClientID},
 		"state":        {state},
 		"scope":        {"read:org"},
-		"redirect_uri": {callbackURL(r)},
+		"redirect_uri": {callbackURL(r, h.FrontendURL)},
 	}
 	http.Redirect(w, r, "https://github.com/login/oauth/authorize?"+params.Encode(), http.StatusFound)
 }
@@ -276,7 +276,13 @@ func fetchGitHubOrgs(client *http.Client, token string) ([]githubOrg, error) {
 	return orgs, nil
 }
 
-func callbackURL(r *http.Request) string {
+func callbackURL(r *http.Request, frontendURL string) string {
+	// When a frontend URL is configured (dev with separate frontend port),
+	// use it so the GitHub callback goes through the frontend proxy and the
+	// session cookie is set on the correct origin.
+	if frontendURL != "" {
+		return strings.TrimRight(frontendURL, "/") + "/auth/github/callback"
+	}
 	scheme := "https"
 	if r.TLS == nil {
 		scheme = "http"
