@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sentioxyz/changelogue/internal/auth"
@@ -146,7 +147,8 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 }
 
 // RegisterAuthRoutes registers OAuth and session endpoints on the mux.
-func RegisterAuthRoutes(mux *http.ServeMux, oauthHandler *auth.OAuthHandler, noAuth bool) {
+// frontendURL is used in noAuth mode to redirect back to the frontend (may be empty).
+func RegisterAuthRoutes(mux *http.ServeMux, oauthHandler *auth.OAuthHandler, noAuth bool, frontendURL string) {
 	if noAuth {
 		mux.HandleFunc("GET /auth/me", func(w http.ResponseWriter, r *http.Request) {
 			if c, err := r.Cookie("dev_logged_out"); err == nil && c.Value == "1" {
@@ -171,7 +173,11 @@ func RegisterAuthRoutes(mux *http.ServeMux, oauthHandler *auth.OAuthHandler, noA
 				Path:   "/",
 				MaxAge: -1,
 			})
-			http.Redirect(w, r, "/", http.StatusFound)
+			target := "/"
+			if frontendURL != "" {
+				target = strings.TrimRight(frontendURL, "/") + "/"
+			}
+			http.Redirect(w, r, target, http.StatusFound)
 		})
 		return
 	}

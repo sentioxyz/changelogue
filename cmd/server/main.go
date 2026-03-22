@@ -198,7 +198,7 @@ func main() {
 		HTTPClient:            http.DefaultClient,
 	})
 
-	api.RegisterAuthRoutes(mux, oauthHandler, noAuth)
+	api.RegisterAuthRoutes(mux, oauthHandler, noAuth, os.Getenv("FRONTEND_URL"))
 
 	srv := &http.Server{Addr: addr, Handler: api.CORS(mux)}
 
