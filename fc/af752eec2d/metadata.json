@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "fcaf752eec2d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/superpowers/specs/2026-03-23-personalized-suggestions-design.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/fc/af752eec2d/0/metadata.json",
+      "transcript": "/fc/af752eec2d/0/full.jsonl",
+      "context": "/fc/af752eec2d/0/context.md",
+      "content_hash": "/fc/af752eec2d/0/content_hash.txt",
+      "prompt": "/fc/af752eec2d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2349239,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 7819,
+    "api_call_count": 47
+  }
+}
