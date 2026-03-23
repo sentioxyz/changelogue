@@ -19,10 +19,10 @@ Add a system settings feature to Changelogue that lets users switch between ligh
 ## Architecture
 
 ```
-Providers (root layout)
-├── AuthProvider (existing)
-├── ThemeProvider (next-themes)
-└── LanguageProvider (custom context)
+Providers (root layout, nesting order matters)
+ThemeProvider (outermost — sets class on <html>)
+└── LanguageProvider
+    └── AuthProvider (existing, innermost)
 
 Sidebar user menu
 └── DropdownMenu
@@ -37,9 +37,10 @@ SettingsDialog (modal)
 ## New Files
 
 ### `web/lib/i18n/context.tsx`
-- `LanguageProvider` — reads `locale` from localStorage, default `en`
+- `LanguageProvider` — reads `locale` from localStorage key `"changelogue-locale"`, default `en`
+- On locale change, updates `document.documentElement.lang` to keep `<html lang>` in sync
 - `useTranslation()` hook — returns `{ t, locale, setLocale }`
-- `t(key)` — looks up translation string from current locale's messages
+- `t(key)` — looks up translation string from current locale's messages. Falls back to English string if key missing in current locale. Returns the key itself if missing from all locales.
 
 ### `web/lib/i18n/messages/en.json`
 - Flat dot-notation keys: `"nav.dashboard": "Dashboard"`, etc.
@@ -59,11 +60,12 @@ SettingsDialog (modal)
 ## Modified Files
 
 ### `web/app/layout.tsx`
-- Wrap children with `ThemeProvider` (from next-themes) and `LanguageProvider`
-- ThemeProvider config: `attribute="class"`, `defaultTheme="system"`, `enableSystem`
+- Add `suppressHydrationWarning` to `<html>` element (required by next-themes)
+- Wrap children: `<ThemeProvider><LanguageProvider><AuthProvider>...</AuthProvider></LanguageProvider></ThemeProvider>`
+- ThemeProvider config: `attribute="class"`, `defaultTheme="system"`, `enableSystem`, `storageKey="changelogue-theme"`
 
 ### `web/app/globals.css`
-- Add `.dark` selector block with dark mode CSS variables:
+- Add `html.dark` selector block (plain CSS, not Tailwind variant) with dark mode CSS variables:
   - `--background: #0f1115`
   - `--surface: #16181c`
   - `--foreground: #e5e7eb`
@@ -77,6 +79,8 @@ SettingsDialog (modal)
 - Replace hardcoded user section with DropdownMenu
 - Menu items: "Settings" (opens SettingsDialog), "Sign out" (existing)
 - Import and render SettingsDialog
+- Refactor hardcoded inline color styles (e.g., `backgroundColor: "#16181c"`) to use CSS variables so dark mode applies correctly
+- In collapsed mode (52px), the avatar serves as the DropdownMenu trigger with `side="right"` positioning
 
 ### `web/package.json`
 - Add `next-themes` dependency
@@ -125,3 +129,6 @@ Translations cover navigation, settings UI, and page titles. All other UI text r
 - Additional languages beyond EN/ZH
 - Translating dynamic content (release notes, agent reports)
 - Per-page/component translation beyond nav, settings, and page titles
+- Refactoring all hardcoded colors across the codebase (components outside sidebar that use inline hex colors or Tailwind arbitrary values like `bg-[#f3f3f1]` will not respond to dark mode — these get fixed incrementally in follow-up work)
+- Dark mode overrides for `.release-notes-content` CSS block
+- Login/onboard page dark mode styling (these pages use hardcoded colors and will be addressed separately)
