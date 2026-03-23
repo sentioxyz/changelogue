@@ -1,0 +1,18 @@
+{
+  "nav.dashboard": "Dashboard",
+  "nav.projects": "Projects",
+  "nav.todo": "Todo",
+  "nav.releases": "Releases",
+  "nav.channels": "Channels",
+  "nav.subscriptions": "Subscriptions",
+  "settings.title": "Settings",
+  "settings.theme": "Theme",
+  "settings.theme.light": "Light",
+  "settings.theme.dark": "Dark",
+  "settings.theme.system": "System",
+  "settings.language": "Language",
+  "settings.language.en": "English",
+  "settings.language.zh": "中文",
+  "user.signout": "Sign out",
+  "user.settings": "Settings"
+}

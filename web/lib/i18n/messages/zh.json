@@ -1,0 +1,18 @@
+{
+  "nav.dashboard": "仪表盘",
+  "nav.projects": "项目",
+  "nav.todo": "待办",
+  "nav.releases": "发布",
+  "nav.channels": "频道",
+  "nav.subscriptions": "订阅",
+  "settings.title": "设置",
+  "settings.theme": "主题",
+  "settings.theme.light": "浅色",
+  "settings.theme.dark": "深色",
+  "settings.theme.system": "跟随系统",
+  "settings.language": "语言",
+  "settings.language.en": "English",
+  "settings.language.zh": "中文",
+  "user.signout": "退出登录",
+  "user.settings": "设置"
+}
