@@ -10,30 +10,50 @@ export function SuggestionsSection() {
   const [tab, setTab] = useState<Tab>("stars");
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-      <div className="flex gap-0 mb-4 border-b border-zinc-700">
+    <div
+      className="rounded-lg bg-white"
+      style={{ border: "1px solid #e8e8e5", overflow: "hidden" }}
+    >
+      <div
+        className="flex gap-0 px-5"
+        style={{ borderBottom: "1px solid #e8e8e5" }}
+      >
         <button
           onClick={() => setTab("stars")}
-          className={`px-5 py-2 text-sm font-medium transition-colors ${
-            tab === "stars"
-              ? "border-b-2 border-purple-500 text-purple-400"
-              : "text-zinc-400 hover:text-zinc-200"
-          }`}
+          style={{
+            padding: "10px 16px",
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            fontWeight: tab === "stars" ? 600 : 400,
+            color: tab === "stars" ? "#e8601a" : "#6b7280",
+            borderBottom: tab === "stars" ? "2px solid #e8601a" : "2px solid transparent",
+            background: "none",
+            cursor: "pointer",
+            transition: "color 0.15s",
+          }}
         >
-          ⭐ Your Stars
+          Your Stars
         </button>
         <button
           onClick={() => setTab("deps")}
-          className={`px-5 py-2 text-sm font-medium transition-colors ${
-            tab === "deps"
-              ? "border-b-2 border-purple-500 text-purple-400"
-              : "text-zinc-400 hover:text-zinc-200"
-          }`}
+          style={{
+            padding: "10px 16px",
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            fontWeight: tab === "deps" ? 600 : 400,
+            color: tab === "deps" ? "#e8601a" : "#6b7280",
+            borderBottom: tab === "deps" ? "2px solid #e8601a" : "2px solid transparent",
+            background: "none",
+            cursor: "pointer",
+            transition: "color 0.15s",
+          }}
         >
-          📦 Your Dependencies
+          Your Dependencies
         </button>
       </div>
-      {tab === "stars" ? <StarsTab /> : <DepsTab />}
+      <div className="px-5 py-4">
+        {tab === "stars" ? <StarsTab /> : <DepsTab />}
+      </div>
     </div>
   );
 }

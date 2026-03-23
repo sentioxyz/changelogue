@@ -2,20 +2,25 @@
 
 import { useState, useCallback } from "react";
 import useSWR, { mutate } from "swr";
+import { Star, Loader2, Check, Plus } from "lucide-react";
+import { FaGithub } from "react-icons/fa";
 import { suggestions, projects, sources } from "@/lib/api/client";
 import type { SuggestionItem } from "@/lib/api/types";
 
+const INITIAL_SHOW = 6;
+
 export function StarsTab() {
-  const [loaded, setLoaded] = useState(false);
   const [trackingIds, setTrackingIds] = useState<Set<string>>(new Set());
+  const [showAll, setShowAll] = useState(false);
 
   const { data, isLoading, error } = useSWR(
-    loaded ? "suggestions-stars" : null,
+    "suggestions-stars",
     () => suggestions.stars(),
     { revalidateOnFocus: false }
   );
 
   const items = data?.data ?? [];
+  const visible = showAll ? items : items.slice(0, INITIAL_SHOW);
 
   const handleTrack = useCallback(async (item: SuggestionItem) => {
     const key = item.full_name;
@@ -48,83 +53,187 @@ export function StarsTab() {
     }
   }, []);
 
-  if (!loaded) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <button
-          onClick={() => setLoaded(true)}
-          className="rounded-lg bg-purple-600 px-6 py-3 text-sm font-semibold text-white hover:bg-purple-700 transition-colors"
-        >
-          Load your starred repos
-        </button>
-      </div>
-    );
-  }
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-sm text-zinc-400">Loading your starred repos...</div>
+      <div className="flex items-center justify-center py-10">
+        <Loader2
+          className="h-4 w-4 animate-spin"
+          style={{ color: "#e8601a" }}
+        />
+        <span
+          className="ml-2"
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            color: "#6b7280",
+          }}
+        >
+          Loading your starred repos...
+        </span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-sm text-red-400">Failed to load stars. Try again later.</div>
+      <div className="flex items-center justify-center py-10">
+        <span
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            color: "#ef4444",
+          }}
+        >
+          Failed to load stars. Try again later.
+        </span>
       </div>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-sm text-zinc-400">
+      <div className="flex items-center justify-center py-10">
+        <span
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "13px",
+            color: "#6b7280",
+          }}
+        >
           You haven&apos;t starred any public repos on GitHub yet.
-        </div>
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
-        <div
-          key={item.full_name}
-          className={`rounded-lg border p-3 ${
-            item.tracked
-              ? "border-zinc-700 bg-zinc-800/50 opacity-60"
-              : "border-zinc-700 bg-zinc-800"
-          }`}
-        >
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <span className="text-sm font-semibold text-zinc-200 truncate">
-              {item.full_name}
-            </span>
-            {item.tracked ? (
-              <span className="shrink-0 text-xs text-green-400">✓ Tracked</span>
-            ) : (
-              <button
-                onClick={() => handleTrack(item)}
-                disabled={trackingIds.has(item.full_name)}
-                className="shrink-0 rounded bg-purple-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
-              >
-                {trackingIds.has(item.full_name) ? "Tracking..." : "Track"}
-              </button>
-            )}
-          </div>
-          {item.description && (
-            <p className="text-xs text-zinc-400 mb-2 line-clamp-2">
-              {item.description}
-            </p>
-          )}
-          <div className="flex items-center gap-3 text-xs text-zinc-500">
-            <span>⭐ {item.stars.toLocaleString()}</span>
-            {item.language && <span>● {item.language}</span>}
-          </div>
+    <div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {visible.map((item) => {
+          const tracked = item.tracked;
+          const tracking = trackingIds.has(item.full_name);
+
+          return (
+            <div
+              key={item.full_name}
+              className="rounded-lg"
+              style={{
+                border: "1px solid #e8e8e5",
+                padding: "12px",
+                backgroundColor: tracked ? "#fafaf9" : "#ffffff",
+                opacity: tracked ? 0.6 : 1,
+              }}
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <FaGithub
+                    className="h-3.5 w-3.5 flex-shrink-0"
+                    style={{ color: "#6b7280" }}
+                  />
+                  <span
+                    className="truncate"
+                    style={{
+                      fontFamily: "var(--font-dm-sans)",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: "#111113",
+                    }}
+                  >
+                    {item.full_name}
+                  </span>
+                </div>
+                {tracked ? (
+                  <span
+                    className="flex items-center gap-1 shrink-0"
+                    style={{
+                      fontFamily: "var(--font-dm-sans)",
+                      fontSize: "11px",
+                      color: "#16a34a",
+                    }}
+                  >
+                    <Check className="h-3 w-3" />
+                    Tracked
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handleTrack(item)}
+                    disabled={tracking}
+                    className="shrink-0 flex items-center gap-1 rounded-md px-2.5 py-1 text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    style={{
+                      backgroundColor: "#e8601a",
+                      fontFamily: "var(--font-dm-sans)",
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      cursor: tracking ? "wait" : "pointer",
+                    }}
+                  >
+                    {tracking ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Plus className="h-3 w-3" />
+                    )}
+                    {tracking ? "Tracking..." : "Track"}
+                  </button>
+                )}
+              </div>
+              {item.description && (
+                <p
+                  className="line-clamp-2 mb-2"
+                  style={{
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "12px",
+                    color: "#6b7280",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {item.description}
+                </p>
+              )}
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex items-center gap-1"
+                  style={{
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "11px",
+                    color: "#9ca3af",
+                  }}
+                >
+                  <Star className="h-3 w-3" style={{ color: "#e8601a" }} />
+                  {item.stars.toLocaleString()}
+                </span>
+                {item.language && (
+                  <span
+                    style={{
+                      fontFamily: "var(--font-dm-sans)",
+                      fontSize: "11px",
+                      color: "#9ca3af",
+                    }}
+                  >
+                    {item.language}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {items.length > INITIAL_SHOW && !showAll && (
+        <div className="text-center mt-3">
+          <button
+            onClick={() => setShowAll(true)}
+            style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "12px",
+              color: "#e8601a",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Show all {items.length} starred repos →
+          </button>
         </div>
-      ))}
+      )}
     </div>
   );
 }
