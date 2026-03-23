@@ -1,0 +1,139 @@
+Implement the following plan:
+
+# Fix Dark Mode & i18n Across All Pages
+
+## Context
+
+After implementing the settings dialog with theme toggle (light/dark/system) and language selector (EN/ZH), users reported:
+1. **Dark mode broken**: Cards, buttons, tables still show white/light backgrounds because components use hardcoded hex colors instead of CSS variables
+2. **i18n incomplete**: Only sidebar nav labels are translated — all page content (titles, tabs, buttons, table headers, messages) remains hardcoded English
+
+This plan systematically replaces all hardcoded colors with CSS variables and adds translation keys across all ~30 affected files.
+
+## Strategy
+
+### Colors: Hardcoded hex → CSS variable mapping
+
+| Hardcoded hex | Replace with | Notes |
+|---|---|---|
+| `#ffffff`, `bg-white` | `var(--surface)` / `bg-surface` | Card/panel backgrounds |
+| `#fafaf9` | `var(--background)` / `bg-background` | Page/section backgrounds |
+| `#f3f3f1` | `var(--mono-bg)` / `bg-mono-bg` | Code blocks, badges, muted surfaces |
+| `#111113` | `var(--foreground)` / `text-foreground` | Primary text |
+| `#374151` | `var(--secondary-foreground)` / `text-secondary-foreground` | Secondary text (darker gray) |
+| `#6b7280` | `var(--text-secondary)` / `text-text-secondary` | Secondary text |
+| `#9ca3af` | `var(--text-muted)` / `text-text-muted` | Muted/placeholder text |
+| `#b0b0a8`, `#c4c4c0` | `var(--text-muted)` | Light icons/decorative |
+| `#e8e8e5` | `var(--border)` / `border-border` | Borders |
+| `#e8601a` | `var(--beacon-accent)` | Accent (same in both themes) |
+| `#fff7ed` | `var(--beacon-accent)` with `/10` opacity | Light accent surfaces |
+| `#f8f8f6` | `var(--background)` | Auth loading background |
+| `rgba(107,114,128,0.08)` | `var(--muted)` | Subtle badges |
+
+For inline styles: use `var(--variable-name)`
+For Tailwind classes: use `bg-surface`, `text-foreground`, `border-border`, etc.
+
+### i18n: Add keys to en.json/zh.json, use `t()` in components
+
+Group translation keys by page/component. Components that need `t()` must be client components (add `"use client"` if missing, or pass translated strings as props from client parent).
+
+## Execution: Parallel subagents by file group
+
+Since the changes are mechanical (find/replace patterns), dispatch subagents in parallel by file group. Each subagent gets a batch of related files.
+
+### Batch 1: Core layout + shared components (parallel)
+
+**Agent A — Header + Auth context + shared UI components:**
+- `web/components/layout/header.tsx` — hardcoded colors + English labels
+- `web/lib/auth/context.tsx` — `bg-[#f8f8f6]` loading state
+- `web/components/ui/section-label.tsx` — `text-[#9ca3af]`
+- `web/components/ui/version-chip.tsx` — hardcoded colors
+- `web/components/ui/urgency-callout.tsx` — `text-[#374151]`
+
+**Agent B — Dashboard components (part 1):**
+- `web/app/page.tsx` — dashboard page colors + English text
+- `web/components/dashboard/stats-cards.tsx` — card borders, text colors, English labels
+- `web/components/dashboard/empty-state.tsx` — all hardcoded colors + English text
+- `web/components/dashboard/release-trend-chart.tsx` — border + English label
+- `web/components/dashboard/activity-feed.tsx` — English labels + colors
+
+**Agent C — Dashboard components (part 2):**
+- `web/components/dashboard/suggestions-section.tsx` — borders, tab text, English labels
+- `web/components/dashboard/unified-feed.tsx` — borders, icon colors
+- `web/components/dashboard/discovery-section.tsx` — extensive hardcoded colors
+
+### Batch 2: Dashboard scan/deps + onboard (parallel)
+
+**Agent D — Scan/deps tabs:**
+- `web/components/dashboard/deps-tab.tsx` — extensive hardcoded colors + English text
+- `web/components/dashboard/scan-url-tab.tsx` — same patterns
+- `web/components/dashboard/stars-tab.tsx` — loading/error messages
+- `web/components/dashboard/shared/scan-results-table.tsx` — table headers + colors
+- `web/components/dashboard/shared/ecosystem-colors.ts` — check if needs dark variants
+
+**Agent E — Onboard page:**
+- `web/app/onboard/page.tsx` — extensive hardcoded colors + English text (standalone page)
+
+### Batch 3: Full pages (parallel)
+
+**Agent F — Releases + channels pages:**
+- `web/app/releases/page.tsx` — extensive colors + English text
+- `web/app/channels/page.tsx` — borders, colors, dialog labels
+- `web/components/releases/release-detail.tsx` — hardcoded colors throughout
+
+**Agent G — Projects + subscriptions + other pages:**
+- `web/app/projects/page.tsx` — colors + dialog labels
+- `web/app/subscriptions/page.tsx` — colors + dialog labels
+- `web/app/todo/page.tsx` — tab labels + colors
+- `web/app/sources/page.tsx` — table headers + colors
+- `web/components/projects/project-detail.tsx` — extensive hardcoded colors
+
+### Batch 4: Remaining components + globals.css release-notes
+
+**Agent H — Misc components + release notes CSS:**
+- `web/components/agent/agent-page.tsx` — gray badge
+- `web/components/dashboard/activity-feed.tsx` — if not done in batch 1
+- `web/components/releases/semantic-releases-list.tsx` — bg-white
+- `web/app/globals.css` — `.release-notes-content` block dark overrides
+
+### Batch 5: i18n message files update
+
+**Agent I — Update en.json and zh.json with all new keys:**
+- Collect all translation keys from batches 1-4
+- Update `web/lib/i18n/messages/en.json` with all new keys
+- Update `web/lib/i18n/messages/zh.json` with Chinese translations
+
+Note: This must run AFTER batches 1-4 so we know the full set of keys. However, each batch agent should define what keys they need, and Agent I consolidates.
+
+Actually — **simpler approach:** Each batch agent adds their own keys to en.json/zh.json as they go. Later batches just append. No coordination needed since JSON keys don't conflict.
+
+## Key Rules for All Agents
+
+1. **Colors:** Replace hardcoded hex with CSS variables per the mapping table above
+2. **Tailwind classes:** Use semantic tokens (`bg-surface`, `text-foreground`, `border-border`, `bg-muted`, `text-muted-foreground`) instead of arbitrary values
+3. **Inline styles:** Use `var(--variable-name)` syntax
+4. **i18n:** Add translation keys to en.json/zh.json, use `t()` from `useTranslation()` hook
+5. **Client components:** If a Server Component needs `t()`, either make it a client component or pass translated strings as props
+6. **Don't break layout:** Same visual appearance in light mode, proper theming in dark mode
+7. **Commit after each batch** with descriptive message
+
+## Verification
+
+After all batches:
+1. `cd web && npx tsc --noEmit` — TypeScript compiles clean
+2. `cd web && npm run dev` — dev server starts
+3. Toggle dark mode — all pages should have dark backgrounds, light text, no white cards
+4. Switch to 中文 — all user-facing text on every page should be Chinese
+5. Switch back to English — all text reverts
+6. Check each page: Dashboard, Projects, Releases, Channels, Subscriptions, Todo, Sources, Onboard
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+
+---
+
+I see, thanks. Two things: 1. the chinese font is incosistent with english one, 2. in the projects page, if the source with error like failed to poll, the dark mode style is not right
+
+---
+
+The localization for pop up settings like source, subscription etc. still wrong
