@@ -14,13 +14,20 @@
       "context": "/fc/af752eec2d/0/context.md",
       "content_hash": "/fc/af752eec2d/0/content_hash.txt",
       "prompt": "/fc/af752eec2d/0/prompt.txt"
+    },
+    {
+      "metadata": "/fc/af752eec2d/1/metadata.json",
+      "transcript": "/fc/af752eec2d/1/full.jsonl",
+      "context": "/fc/af752eec2d/1/context.md",
+      "content_hash": "/fc/af752eec2d/1/content_hash.txt",
+      "prompt": "/fc/af752eec2d/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2349239,
+    "input_tokens": 9583257,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 7819,
-    "api_call_count": 47
+    "output_tokens": 25694,
+    "api_call_count": 125
   }
 }
