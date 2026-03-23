@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, DM_Sans } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/context";
+import { Providers } from "@/components/providers";
 import { LayoutShell } from "@/components/layout/layout-shell";
 import "./globals.css";
 
@@ -31,11 +32,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${fraunces.variable} ${dmSans.variable} antialiased`}>
-        <AuthProvider>
-          <LayoutShell>{children}</LayoutShell>
-        </AuthProvider>
+        <Providers>
+          <AuthProvider>
+            <LayoutShell>{children}</LayoutShell>
+          </AuthProvider>
+        </Providers>
       </body>
     </html>
   );
