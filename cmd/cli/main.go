@@ -7,12 +7,21 @@ import (
 
 	"github.com/sentioxyz/changelogue/internal/cli"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var version = "dev"
 
+// errAlreadyPrinted wraps an error that has already been displayed to the user.
+type errAlreadyPrinted struct{ err error }
+
+func (e errAlreadyPrinted) Error() string { return e.err.Error() }
+
 func main() {
 	if err := rootCmd.Execute(); err != nil {
+		if _, ok := err.(errAlreadyPrinted); !ok {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		os.Exit(1)
 	}
 }
@@ -81,8 +90,10 @@ func init() {
 			cmd.PrintErrln("Error:", msg)
 			cmd.PrintErrln()
 			cmd.PrintErrln("Available flags:")
-			cmd.Flags().PrintDefaults()
-			return err
+			cmd.Flags().VisitAll(func(f *pflag.Flag) {
+				cmd.PrintErrf("  --%s\t%s\n", f.Name, f.Usage)
+			})
+			return errAlreadyPrinted{err}
 		}
 		return err
 	})
