@@ -50,6 +50,8 @@ make db-reset            # Reset database
 make frontend-install    # Install frontend deps
 make frontend-dev        # Run frontend dev server
 make integration-test    # Integration tests (own Postgres on port 5433)
+make release VERSION=x   # Tag and push a release (triggers GoReleaser in CI)
+make release-dry-run     # Test GoReleaser locally without publishing
 make clean               # Cleanup everything (binary + containers + volumes)
 ```
 

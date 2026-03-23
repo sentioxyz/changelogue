@@ -145,6 +145,22 @@ type Sender interface {
 }
 ```
 
+## Releasing
+
+Releases are automated via [GoReleaser](https://goreleaser.com/) and GitHub Actions.
+
+Pushing a `v*` tag triggers the [release workflow](.github/workflows/release.yml), which cross-compiles the server and CLI for linux/darwin (amd64/arm64), creates archives with checksums, and publishes a GitHub Release.
+
+```bash
+# Tag and push — triggers the full pipeline
+make release VERSION=v0.2.0
+
+# Local dry run (requires goreleaser installed)
+make release-dry-run
+```
+
+See [CHANGELOG.md](CHANGELOG.md) for the release history.
+
 ## Useful commands
 
 ```bash
@@ -158,5 +174,7 @@ make integration-test   # full integration test (spins up its own Postgres)
 make db-reset           # drop and recreate the local database
 make frontend-build     # build Next.js static export
 make agent-dev          # run agent CLI for a specific project
+make release VERSION=x  # tag and push a release
+make release-dry-run    # test GoReleaser locally without publishing
 make clean              # remove binary, stop containers, delete volumes
 ```
