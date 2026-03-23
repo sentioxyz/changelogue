@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "1a3402aeea16",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/superpowers/plans/2026-03-23-cli-support.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/1a/3402aeea16/0/metadata.json",
+      "transcript": "/1a/3402aeea16/0/full.jsonl",
+      "context": "/1a/3402aeea16/0/context.md",
+      "content_hash": "/1a/3402aeea16/0/content_hash.txt",
+      "prompt": "/1a/3402aeea16/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 5482653,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 13594,
+    "api_call_count": 77
+  }
+}
