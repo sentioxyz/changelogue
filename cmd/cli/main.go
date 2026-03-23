@@ -66,6 +66,7 @@ func init() {
 
 	// Resource subcommands — each takes newClient so the client is built lazily.
 	rootCmd.AddCommand(cli.NewProjectsCmd(newClient, &jsonOut))
+	rootCmd.AddCommand(cli.NewSourcesCmd(newClient, &jsonOut))
 
 	// AI-friendly hints: suggest commands on typo
 	rootCmd.SuggestionsMinimumDistance = 2
