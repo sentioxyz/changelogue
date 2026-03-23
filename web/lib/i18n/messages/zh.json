@@ -104,6 +104,7 @@
   "dashboard.discovery.trackFailed": "跟踪项目失败",
 
   "dashboard.title": "仪表盘",
+  "dashboard.description": "已追踪项目、最新发布和活动概览。",
   "dashboard.loading": "加载中...",
   "dashboard.stats.trackedProjects": "已跟踪项目",
   "dashboard.stats.releasesThisWeek": "本周发布",
@@ -152,6 +153,7 @@
   "onboard.error.failedToApply": "无法应用所选内容",
 
   "releases.title": "发布列表",
+  "releases.description": "所有已追踪来源的发布记录。",
   "releases.allProjects": "全部项目",
   "releases.showExcluded": "显示已排除",
   "releases.loading": "加载中...",
@@ -190,6 +192,7 @@
   "releases.noReleaseNotes": "暂无发布说明",
 
   "channels.title": "通知频道",
+  "channels.description": "用于推送发布提醒的通知频道。",
   "channels.newChannel": "新建频道",
   "channels.loading": "加载中...",
   "channels.empty": "暂未配置通知频道",
@@ -312,6 +315,7 @@
   "projects.detail.dialogDeleteProjectDesc": "此操作将永久删除该项目，包括所有来源、发布记录和订阅。",
 
   "subscriptions.title": "订阅",
+  "subscriptions.description": "将发布事件路由到通知频道。",
   "subscriptions.newSubscription": "新建订阅",
   "subscriptions.loading": "加载中...",
   "subscriptions.empty": "暂未配置订阅",
@@ -332,6 +336,7 @@
   "subscriptions.deleteSubscriptionsDesc": "此操作将永久删除 {count} 个订阅，且无法撤销。",
 
   "todo.title": "待办",
+  "todo.description": "来自新发布和语义报告的待办事项。",
   "todo.tabPending": "待处理",
   "todo.tabAcknowledged": "已确认",
   "todo.tabResolved": "已解决",

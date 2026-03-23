@@ -172,16 +172,21 @@ function TodoPageInner() {
   return (
     <div className="space-y-6">
       {/* Page title */}
-      <h1
-        className="text-foreground"
-        style={{
-          fontFamily: "var(--font-fraunces)",
-          fontSize: "24px",
-          fontWeight: 700,
-        }}
-      >
-        {t("todo.title")}
-      </h1>
+      <div>
+        <h1
+          className="text-foreground"
+          style={{
+            fontFamily: "var(--font-fraunces)",
+            fontSize: "24px",
+            fontWeight: 700,
+          }}
+        >
+          {t("todo.title")}
+        </h1>
+        <p className="mt-1 text-[13px] text-text-secondary" style={{ fontFamily: "var(--font-dm-sans)" }}>
+          {t("todo.description")}
+        </p>
+      </div>
 
       {/* Status tabs + aggregated toggle */}
       <div className="flex items-center justify-between">

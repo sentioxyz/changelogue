@@ -83,16 +83,21 @@ export default function ChannelsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1
-          style={{
-            fontFamily: "var(--font-fraunces)",
-            fontSize: "24px",
-            fontWeight: 700,
-            color: "var(--foreground)",
-          }}
-        >
-          {t("channels.title")}
-        </h1>
+        <div>
+          <h1
+            style={{
+              fontFamily: "var(--font-fraunces)",
+              fontSize: "24px",
+              fontWeight: 700,
+              color: "var(--foreground)",
+            }}
+          >
+            {t("channels.title")}
+          </h1>
+          <p className="mt-1 text-[13px] text-text-secondary" style={{ fontFamily: "var(--font-dm-sans)" }}>
+            {t("channels.description")}
+          </p>
+        </div>
         <button
           onClick={() => setCreateOpen(true)}
           className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 transition-colors hover:opacity-90"

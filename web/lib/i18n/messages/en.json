@@ -104,6 +104,7 @@
   "dashboard.discovery.trackFailed": "Failed to track project",
 
   "dashboard.title": "Dashboard",
+  "dashboard.description": "Overview of your tracked projects, recent releases, and activity.",
   "dashboard.loading": "Loading...",
   "dashboard.stats.trackedProjects": "Projects Tracked",
   "dashboard.stats.releasesThisWeek": "Releases This Week",
@@ -152,6 +153,7 @@
   "onboard.error.failedToApply": "Failed to apply selections",
 
   "releases.title": "Releases",
+  "releases.description": "All ingested releases across your tracked sources.",
   "releases.allProjects": "All Projects",
   "releases.showExcluded": "Show excluded",
   "releases.loading": "Loading...",
@@ -190,6 +192,7 @@
   "releases.noReleaseNotes": "No release notes available",
 
   "channels.title": "Channels",
+  "channels.description": "Notification channels for delivering release alerts.",
   "channels.newChannel": "New Channel",
   "channels.loading": "Loading...",
   "channels.empty": "No notification channels configured yet",
@@ -312,6 +315,7 @@
   "projects.detail.dialogDeleteProjectDesc": "This will permanently delete this project, including all sources, releases, and subscriptions.",
 
   "subscriptions.title": "Subscriptions",
+  "subscriptions.description": "Route release events to your notification channels.",
   "subscriptions.newSubscription": "New Subscription",
   "subscriptions.loading": "Loading...",
   "subscriptions.empty": "No subscriptions configured yet",
@@ -332,6 +336,7 @@
   "subscriptions.deleteSubscriptionsDesc": "This will permanently delete {count} subscription(s). This cannot be undone.",
 
   "todo.title": "Todo",
+  "todo.description": "Action items from new releases and semantic reports.",
   "todo.tabPending": "Pending",
   "todo.tabAcknowledged": "Acknowledged",
   "todo.tabResolved": "Resolved",

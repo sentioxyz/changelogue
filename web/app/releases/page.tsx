@@ -163,16 +163,21 @@ function ReleasesPageInner() {
   return (
     <div className="space-y-6">
       {/* Page title */}
-      <h1
-        style={{
-          fontFamily: "var(--font-fraunces)",
-          fontSize: "24px",
-          fontWeight: 700,
-          color: "var(--foreground)",
-        }}
-      >
-        {t("releases.title")}
-      </h1>
+      <div>
+        <h1
+          style={{
+            fontFamily: "var(--font-fraunces)",
+            fontSize: "24px",
+            fontWeight: 700,
+            color: "var(--foreground)",
+          }}
+        >
+          {t("releases.title")}
+        </h1>
+        <p className="mt-1 text-[13px] text-text-secondary" style={{ fontFamily: "var(--font-dm-sans)" }}>
+          {t("releases.description")}
+        </p>
+      </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3">

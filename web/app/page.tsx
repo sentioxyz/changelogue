@@ -58,16 +58,21 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1
-        style={{
-          fontFamily: "var(--font-fraunces)",
-          fontSize: "24px",
-          fontWeight: 700,
-          color: "var(--foreground)",
-        }}
-      >
-        {t("dashboard.title")}
-      </h1>
+      <div>
+        <h1
+          style={{
+            fontFamily: "var(--font-fraunces)",
+            fontSize: "24px",
+            fontWeight: 700,
+            color: "var(--foreground)",
+          }}
+        >
+          {t("dashboard.title")}
+        </h1>
+        <p className="mt-1 text-[13px] text-text-secondary" style={{ fontFamily: "var(--font-dm-sans)" }}>
+          {t("dashboard.description")}
+        </p>
+      </div>
 
       {user?.github_login && user.github_login !== "dev" ? (
         <SuggestionsSection showAuthTabs />
