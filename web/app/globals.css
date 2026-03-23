@@ -15,8 +15,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
-  --color-popover: #ffffff;
-  --color-popover-foreground: #111113;
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -76,6 +76,35 @@
   --status-running: #2563eb;
   --status-pending: #d97706;
   --status-failed: #dc2626;
+}
+
+html.dark {
+  --background: #0f1115;
+  --foreground: #e5e7eb;
+  --surface: #16181c;
+  --sidebar-bg: #0a0b0e;
+  --sidebar-text: #6b7280;
+  --beacon-accent: #e8601a;
+  --border: #2a2d33;
+  --mono-bg: #1e2025;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+
+  /* shadcn variable mappings */
+  --popover: #16181c;
+  --popover-foreground: #e5e7eb;
+  --card: #16181c;
+  --card-foreground: #e5e7eb;
+  --primary: #e8601a;
+  --primary-foreground: #ffffff;
+  --secondary: #1e2025;
+  --secondary-foreground: #d1d5db;
+  --muted: #1e2025;
+  --muted-foreground: #9ca3af;
+  --accent: #1e2025;
+  --accent-foreground: #e5e7eb;
+  --input: #2a2d33;
+  --ring: #e8601a;
 }
 
 @layer base {
