@@ -135,6 +135,11 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("GET /api/v1/discover/github", publicChain(http.HandlerFunc(discover.GitHub)))
 	mux.Handle("GET /api/v1/discover/dockerhub", publicChain(http.HandlerFunc(discover.DockerHub)))
 
+	// Personalized suggestions (auth required — needs github_login from session)
+	suggestions := NewSuggestionsHandler(deps.HTTPClient, deps.SourcesStore, "", "")
+	mux.Handle("GET /api/v1/suggestions/stars", chain(http.HandlerFunc(suggestions.Stars)))
+	mux.Handle("GET /api/v1/suggestions/repos", chain(http.HandlerFunc(suggestions.Repos)))
+
 	// SSE events
 	events := NewEventsHandler(deps.Broadcaster)
 	mux.Handle("GET /api/v1/events", chain(http.HandlerFunc(events.Stream)))
