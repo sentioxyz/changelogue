@@ -5,7 +5,7 @@
 
 ## Summary
 
-Add a separate CLI binary (`changelogue-cli`) that provides CRUD management of Changelogue resources by calling the existing REST API. The CLI uses Cobra for command routing, authenticates via API key, and outputs human-readable tables by default with a `--json` flag for scripting. Mistyped commands produce fuzzy-matched suggestions.
+Add a separate CLI binary named `clog` (short for changelogue) that provides CRUD management of Changelogue resources by calling the existing REST API. The CLI uses Cobra for command routing, authenticates via API key, and outputs human-readable tables by default with a `--json` flag for scripting. Mistyped commands produce fuzzy-matched suggestions.
 
 ## Decisions
 
@@ -14,14 +14,14 @@ Add a separate CLI binary (`changelogue-cli`) that provides CRUD management of C
 | Scope | Projects, sources, releases, channels, subscriptions | Core management operations; ops triggers deferred |
 | Communication | REST API client | Decoupled from server internals, works remotely |
 | Framework | Cobra | Industry standard, built-in suggestions, completions |
-| Binary | Separate `cmd/cli/main.go` | Clean separation from server binary |
+| Binary | Separate `cmd/cli/main.go`, builds as `clog` | Clean separation from server binary, short memorable name |
 | Output | Table + `--json` flag | Human-readable default, machine-readable option |
 | Auth | API key via flag/env var | Matches existing `Authorization: Bearer` auth |
 
 ## Command Tree
 
 ```
-changelogue-cli
+clog
 ├── projects
 │   ├── list                    # GET /api/v1/projects
 │   ├── get <id>                # GET /api/v1/projects/{id}
@@ -36,8 +36,10 @@ changelogue-cli
 │   ├── update <id> ...         # PUT /api/v1/sources/{id}
 │   └── delete <id>             # DELETE /api/v1/sources/{id}
 ├── releases
-│   ├── list [--source <id>] [--project <id>]
-│   │                           # GET /api/v1/releases (or scoped variants)
+│   ├── list                    # GET /api/v1/releases (no filter)
+│   │   [--source <id>]         # GET /api/v1/sources/{id}/releases
+│   │   [--project <id>]        # GET /api/v1/projects/{id}/releases
+│   │   [--include-excluded]    # Appends ?include_excluded=true
 │   └── get <id>                # GET /api/v1/releases/{id}
 ├── channels
 │   ├── list                    # GET /api/v1/channels
@@ -49,11 +51,15 @@ changelogue-cli
 │   └── test <id>               # POST /api/v1/channels/{id}/test
 ├── subscriptions
 │   ├── list                    # GET /api/v1/subscriptions
+│   ├── get <id>                # GET /api/v1/subscriptions/{id}
 │   ├── create --channel <id> --type <t> [--source <id>] [--project <id>]
 │   │                           # POST /api/v1/subscriptions
+│   ├── update <id> ...         # PUT /api/v1/subscriptions/{id}
 │   ├── delete <id>             # DELETE /api/v1/subscriptions/{id}
-│   └── batch-create --channel <id> --type <t> --project-ids <ids...>
-│                               # POST /api/v1/subscriptions/batch
+│   ├── batch-create --channel <id> --type <t> --project-ids <ids...>
+│   │                           # POST /api/v1/subscriptions/batch
+│   └── batch-delete --ids <id1,id2,...>
+│                               # DELETE /api/v1/subscriptions/batch
 └── version                     # Print CLI version
 ```
 
@@ -64,8 +70,10 @@ changelogue-cli
 | `--server` | `CHANGELOGUE_SERVER` | `http://localhost:8080` | Server base URL |
 | `--api-key` | `CHANGELOGUE_API_KEY` | (none) | API key for authentication |
 | `--json` | — | `false` | Output raw JSON instead of table |
-| `--page` | — | `1` | Page number (list commands) |
-| `--per-page` | — | `25` | Items per page (list commands) |
+| `--page` | — | `1` | Page number (list commands only, maps to `?page=N`) |
+| `--per-page` | — | `25` | Items per page (list commands only, maps to `?per_page=N`) |
+
+Note: `--page` and `--per-page` are registered as persistent flags on each resource group command so they only appear on `list` subcommands.
 
 ## AI-Friendly Command Hints
 
@@ -75,25 +83,25 @@ When a user mistypes a command or flag, the CLI provides intelligent suggestions
 
 1. **Unknown command** — suggest closest match from valid sibling commands:
    ```
-   $ changelogue-cli projet list
+   $ clog projet list
    Error: unknown command "projet"
 
    Did you mean?
-     changelogue-cli projects list
+     clog projects list
    ```
 
 2. **Unknown subcommand** — suggest closest match within the resource group:
    ```
-   $ changelogue-cli projects lst
-   Error: unknown command "lst" for "changelogue-cli projects"
+   $ clog projects lst
+   Error: unknown command "lst" for "clog projects"
 
    Did you mean?
-     changelogue-cli projects list
+     clog projects list
    ```
 
 3. **Unknown flag** — suggest closest valid flag:
    ```
-   $ changelogue-cli sources create --project abc --repo myimage
+   $ clog sources create --project abc --repo myimage
    Error: unknown flag "--repo"
 
    Did you mean?
@@ -102,19 +110,19 @@ When a user mistypes a command or flag, the CLI provides intelligent suggestions
 
 4. **Missing required flag** — show usage with example:
    ```
-   $ changelogue-cli projects create
+   $ clog projects create
    Error: required flag "--name" not set
 
    Usage:
-     changelogue-cli projects create --name <name> [--description <desc>]
+     clog projects create --name <name> [--description <desc>]
 
    Example:
-     changelogue-cli projects create --name "My Project" --description "Tracks postgres"
+     clog projects create --name "My Project" --description "Tracks postgres"
    ```
 
 5. **Resource group with no subcommand** — list available subcommands:
    ```
-   $ changelogue-cli channels
+   $ clog channels
    Available commands:
      list      List all notification channels
      get       Get channel details by ID
@@ -191,6 +199,7 @@ type APIError struct {
         Code    string `json:"code"`
         Message string `json:"message"`
     } `json:"error"`
+    Meta Meta `json:"meta"`
 }
 ```
 
@@ -206,8 +215,9 @@ type APIError struct {
 
 Add to Makefile:
 ```makefile
+VERSION ?= dev
 cli:
-	go build -o changelogue-cli ./cmd/cli
+	go build -ldflags "-X main.version=$(VERSION)" -o clog ./cmd/cli
 ```
 
 ## Testing Strategy
@@ -219,13 +229,15 @@ cli:
 
 ## Dependencies
 
-- `github.com/spf13/cobra` — CLI framework
+- `github.com/spf13/cobra` — CLI framework (requires `go get github.com/spf13/cobra`)
 - No other new dependencies. Uses stdlib `text/tabwriter`, `net/http`, `encoding/json`.
 
 ## Out of Scope
 
 - Operational triggers (poll, agent run, scan)
 - Health/stats endpoints
+- Semantic releases, agent runs, context sources
+- Onboarding/scanning, providers, discovery, suggestions
 - Shell completions (can be added later via `cobra.GenBashCompletion`)
 - Config file (~/.changelogue/config.yaml)
 - Interactive prompts
