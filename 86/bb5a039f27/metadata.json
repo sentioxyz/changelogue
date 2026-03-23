@@ -3,7 +3,7 @@
   "checkpoint_id": "86bb5a039f27",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "docs/superpowers/specs/2026-03-23-system-settings-design.md"
   ],
@@ -14,13 +14,20 @@
       "context": "/86/bb5a039f27/0/context.md",
       "content_hash": "/86/bb5a039f27/0/content_hash.txt",
       "prompt": "/86/bb5a039f27/0/prompt.txt"
+    },
+    {
+      "metadata": "/86/bb5a039f27/1/metadata.json",
+      "transcript": "/86/bb5a039f27/1/full.jsonl",
+      "context": "/86/bb5a039f27/1/context.md",
+      "content_hash": "/86/bb5a039f27/1/content_hash.txt",
+      "prompt": "/86/bb5a039f27/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2956786,
+    "input_tokens": 5178780,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 9273,
-    "api_call_count": 56
+    "output_tokens": 26018,
+    "api_call_count": 104
   }
 }
