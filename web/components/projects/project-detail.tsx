@@ -23,16 +23,11 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { formatInterval } from "@/lib/format";
 import { getPathSegment } from "@/lib/path";
 import { Pencil, Trash2, Play, Plus, ArrowLeft } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/context";
 
 /* ---------- Tabs ---------- */
 
-const tabs = [
-  { key: "sources", label: "Sources" },
-  { key: "context", label: "Context Sources" },
-  { key: "agent", label: "Semantic Release Settings" },
-] as const;
-
-type TabKey = (typeof tabs)[number]["key"];
+type TabKey = "sources" | "context" | "agent";
 
 /* ---------- Helpers ---------- */
 
@@ -54,10 +49,17 @@ function truncate(str: string, max: number): string {
 /* ---------- Main component ---------- */
 
 export function ProjectDetail() {
+  const { t } = useTranslation();
   // Read ID from URL path — useParams() returns stale "0" in static export
   const id = getPathSegment(1); // /projects/{id}
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("sources");
+
+  const tabs = [
+    { key: "sources" as TabKey, label: t("projects.detail.tabSources") },
+    { key: "context" as TabKey, label: t("projects.detail.tabContext") },
+    { key: "agent" as TabKey, label: t("projects.detail.tabAgent") },
+  ];
 
   /* Test run state */
   const [testSourceId, setTestSourceId] = useState<string>("");
@@ -190,8 +192,8 @@ export function ProjectDetail() {
   /* Loading / not found states */
   if (isLoading) {
     return (
-      <div className="flex h-48 items-center justify-center" style={{ color: "#9ca3af" }}>
-        Loading...
+      <div className="flex h-48 items-center justify-center text-text-muted">
+        {t("projects.detail.loading")}
       </div>
     );
   }
@@ -199,8 +201,8 @@ export function ProjectDetail() {
   const project = data?.data;
   if (!project) {
     return (
-      <div className="flex h-48 items-center justify-center" style={{ color: "#6b7280" }}>
-        Project not found
+      <div className="flex h-48 items-center justify-center text-text-secondary">
+        {t("projects.detail.notFound")}
       </div>
     );
   }
@@ -217,21 +219,20 @@ export function ProjectDetail() {
     <div className="space-y-0">
       {/* ===== Header zone ===== */}
       <div
-        className="-m-6 mb-0 border-b px-6 py-5"
-        style={{ backgroundColor: "#ffffff", borderColor: "#e8e8e5" }}
+        className="-m-6 mb-0 border-b px-6 py-5 bg-surface"
+        style={{ borderColor: "var(--border)" }}
       >
         {/* Back link */}
         <Link
           href="/projects"
-          className="mb-4 inline-flex items-center gap-1.5 transition-colors hover:opacity-70"
+          className="mb-4 inline-flex items-center gap-1.5 transition-colors hover:opacity-70 text-text-secondary"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#6b7280",
           }}
         >
           <ArrowLeft size={14} />
-          Back to Projects
+          {t("projects.detail.backToProjects")}
         </Link>
         <div className="flex items-start justify-between">
           {/* Left: project info */}
@@ -248,11 +249,9 @@ export function ProjectDetail() {
                   if (e.key === "Escape") setEditingName(false);
                 }}
                 autoFocus
-                className="w-full max-w-md rounded-md border px-2 py-1 text-[28px] font-bold leading-tight focus:outline-none focus:ring-1"
+                className="w-full max-w-md rounded-md border px-2 py-1 text-[28px] font-bold leading-tight focus:outline-none focus:ring-1 border-border text-foreground"
                 style={{
                   fontFamily: "var(--font-fraunces), serif",
-                  borderColor: "#e8e8e5",
-                  color: "#111113",
                 }}
               />
             ) : (
@@ -278,34 +277,32 @@ export function ProjectDetail() {
                   if (e.key === "Escape") setEditingDesc(false);
                 }}
                 autoFocus
-                placeholder="Add a description..."
-                className="mt-1 w-full max-w-lg rounded-md border px-2 py-1 text-[14px] focus:outline-none focus:ring-1"
+                placeholder={t("projects.detail.addDescription")}
+                className="mt-1 w-full max-w-lg rounded-md border px-2 py-1 text-[14px] focus:outline-none focus:ring-1 border-border text-text-secondary"
                 style={{
                   fontFamily: "var(--font-dm-sans), sans-serif",
-                  borderColor: "#e8e8e5",
-                  color: "#6b7280",
                 }}
               />
             ) : (
               <p
-                className="group mt-1 flex cursor-pointer items-center gap-2 text-[14px]"
-                style={{ fontFamily: "var(--font-dm-sans), sans-serif", color: "#6b7280" }}
+                className="group mt-1 flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary"
+                style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}
                 onClick={() => {
                   setDescDraft(project.description ?? "");
                   setEditingDesc(true);
                 }}
               >
-                {project.description || "Add a description..."}
+                {project.description || t("projects.detail.addDescription")}
                 <Pencil className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-40" />
               </p>
             )}
             <p
-              className="mt-2 text-[12px]"
-              style={{ fontFamily: "var(--font-dm-sans), sans-serif", color: "#9ca3af" }}
+              className="mt-2 text-[12px] text-text-muted"
+              style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}
             >
-              {sourceCount !== undefined ? `${sourceCount} sources` : "-- sources"}
+              {sourceCount !== undefined ? t("projects.detail.sourcesCount").replace("{count}", String(sourceCount)) : `-- ${t("projects.detail.tabSources").toLowerCase()}`}
               {" \u00B7 "}
-              {ctxCount !== undefined ? `${ctxCount} context sources` : "-- context sources"}
+              {ctxCount !== undefined ? t("projects.detail.contextSourcesCount").replace("{count}", String(ctxCount)) : `-- ${t("projects.detail.tabContext").toLowerCase()}`}
             </p>
             </div>
           </div>
@@ -314,15 +311,15 @@ export function ProjectDetail() {
           <div className="flex shrink-0 items-center gap-2 ml-4">
             <button
               onClick={() => setDeletingProject(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-red-50"
+              className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-error-bg"
               style={{
                 fontFamily: "var(--font-dm-sans), sans-serif",
-                borderColor: "#dc2626",
-                color: "#dc2626",
+                borderColor: "var(--error-text)",
+                color: "var(--error-text)",
               }}
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Delete
+              {t("projects.detail.delete")}
             </button>
           </div>
         </div>
@@ -330,8 +327,8 @@ export function ProjectDetail() {
 
       {/* ===== Tab bar ===== */}
       <div
-        className="-mx-6 border-b px-6"
-        style={{ borderColor: "#e8e8e5", backgroundColor: "#ffffff" }}
+        className="-mx-6 border-b px-6 bg-surface"
+        style={{ borderColor: "var(--border)" }}
       >
         <div className="flex gap-0">
           {tabs.map((tab) => {
@@ -343,14 +340,13 @@ export function ProjectDetail() {
                 className="relative px-4 py-2.5 text-[13px] font-medium transition-colors"
                 style={{
                   fontFamily: "var(--font-dm-sans), sans-serif",
-                  color: isActive ? "#111113" : "#9ca3af",
+                  color: isActive ? "var(--foreground)" : "var(--text-muted)",
                 }}
               >
                 {tab.label}
                 {isActive && (
                   <span
-                    className="absolute bottom-0 left-4 right-4 h-[2px]"
-                    style={{ backgroundColor: "#e8601a" }}
+                    className="absolute bottom-0 left-4 right-4 h-[2px] bg-beacon-accent"
                   />
                 )}
               </button>
@@ -365,37 +361,35 @@ export function ProjectDetail() {
         {activeTab === "sources" && (
           <div>
             <div className="mb-4 flex items-center justify-between">
-              <SectionLabel>Sources</SectionLabel>
+              <SectionLabel>{t("projects.detail.tabSources")}</SectionLabel>
               <button
                 onClick={() => setSourceCreateOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-[#f3f3f1]"
+                className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-mono-bg border-border text-secondary-foreground"
                 style={{
                   fontFamily: "var(--font-dm-sans), sans-serif",
-                  borderColor: "#e8e8e5",
-                  color: "#374151",
                 }}
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add Source
+                {t("projects.detail.addSourceBtn")}
               </button>
             </div>
 
             {sourcesData?.data && sourcesData.data.length > 0 ? (
-              <div className="overflow-hidden rounded-md border" style={{ borderColor: "#e8e8e5" }}>
+              <div className="overflow-hidden rounded-md border" style={{ borderColor: "var(--border)" }}>
                 <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
                   <thead>
-                    <tr style={{ backgroundColor: "#fafaf9" }}>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Provider</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Repository</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Interval</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Status</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Last polled</th>
-                      <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}></th>
+                    <tr style={{ backgroundColor: "var(--background)" }}>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.provider")}</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.repository")}</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.interval")}</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.status")}</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.lastPolled")}</th>
+                      <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {sourcesData.data.map((source) => (
-                      <tr key={source.id} className="border-t" style={{ borderColor: "#e8e8e5" }}>
+                      <tr key={source.id} className="border-t" style={{ borderColor: "var(--border)" }}>
                         <td className="px-4 py-3">
                           <ProviderBadge provider={source.provider} />
                         </td>
@@ -404,7 +398,7 @@ export function ProjectDetail() {
                             {source.repository}
                           </span>
                         </td>
-                        <td className="px-4 py-3" style={{ color: "#6b7280" }}>
+                        <td className="px-4 py-3 text-text-secondary">
                           {formatInterval(source.poll_interval_seconds)}
                         </td>
                         <td className="px-4 py-3">
@@ -412,8 +406,8 @@ export function ProjectDetail() {
                             <button
                               onClick={() => handleToggleSource(source)}
                               className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
-                              style={{ backgroundColor: source.last_error ? "#dc2626" : source.enabled ? "#16a34a" : "#d1d5db" }}
-                              title={source.last_error ? `Error: ${source.last_error}` : source.enabled ? "Disable polling" : "Enable polling"}
+                              style={{ backgroundColor: source.last_error ? "var(--error-text)" : source.enabled ? "var(--status-completed)" : "var(--text-muted)" }}
+                              title={source.last_error ? `Error: ${source.last_error}` : source.enabled ? t("projects.detail.disablePolling") : t("projects.detail.enablePolling")}
                             >
                               <span
                                 className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200"
@@ -421,30 +415,30 @@ export function ProjectDetail() {
                               />
                             </button>
                             {source.last_error ? (
-                              <span className="text-[11px] text-red-600 max-w-[200px] truncate" title={source.last_error}>
+                              <span className="text-[11px] text-error-text max-w-[200px] truncate" title={source.last_error}>
                                 {source.last_error}
                               </span>
                             ) : null}
                           </div>
                         </td>
-                        <td className="px-4 py-3" style={{ color: "#9ca3af" }}>
+                        <td className="px-4 py-3 text-text-muted">
                           {source.last_polled_at
                             ? new Date(source.last_polled_at).toLocaleString()
-                            : "Never"}
+                            : t("projects.detail.never")}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => setEditingSource(source)}
-                              className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
-                              title="Edit source"
+                              className="rounded p-1 text-text-muted transition-colors hover:bg-mono-bg hover:text-foreground"
+                              title={t("projects.detail.editSource")}
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => setDeletingSourceId(source.id)}
-                              className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
-                              title="Delete source"
+                              className="rounded p-1 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600"
+                              title={t("projects.detail.deleteSource")}
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -457,10 +451,9 @@ export function ProjectDetail() {
               </div>
             ) : (
               <div
-                className="flex h-32 items-center justify-center rounded-md border text-[13px]"
-                style={{ borderColor: "#e8e8e5", color: "#9ca3af" }}
+                className="flex h-32 items-center justify-center rounded-md border text-[13px] border-border text-text-muted"
               >
-                No sources configured
+                {t("projects.detail.noSources")}
               </div>
             )}
           </div>
@@ -470,47 +463,44 @@ export function ProjectDetail() {
         {activeTab === "context" && (
           <div>
             <div className="mb-4 flex items-center justify-between">
-              <SectionLabel>Context Sources</SectionLabel>
+              <SectionLabel>{t("projects.detail.tabContext")}</SectionLabel>
               <button
                 onClick={() => setCtxCreateOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-[#f3f3f1]"
+                className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-mono-bg border-border text-secondary-foreground"
                 style={{
                   fontFamily: "var(--font-dm-sans), sans-serif",
-                  borderColor: "#e8e8e5",
-                  color: "#374151",
                 }}
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add Context Source
+                {t("projects.detail.addContextSource")}
               </button>
             </div>
 
             {ctxData?.data && ctxData.data.length > 0 ? (
-              <div className="overflow-hidden rounded-md border" style={{ borderColor: "#e8e8e5" }}>
+              <div className="overflow-hidden rounded-md border" style={{ borderColor: "var(--border)" }}>
                 <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
                   <thead>
-                    <tr style={{ backgroundColor: "#fafaf9" }}>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Type</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Name</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Config URL</th>
-                      <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}></th>
+                    <tr style={{ backgroundColor: "var(--background)" }}>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.ctxType")}</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.ctxName")}</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.ctxConfigUrl")}</th>
+                      <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {ctxData.data.map((ctx) => (
-                      <tr key={ctx.id} className="border-t" style={{ borderColor: "#e8e8e5" }}>
+                      <tr key={ctx.id} className="border-t" style={{ borderColor: "var(--border)" }}>
                         <td className="px-4 py-3">
                           <span
-                            className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-none"
-                            style={{ backgroundColor: "#f3f3f1", color: "#374151" }}
+                            className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-none bg-mono-bg text-secondary-foreground"
                           >
                             {ctx.type}
                           </span>
                         </td>
-                        <td className="px-4 py-3 font-medium" style={{ color: "#111113" }}>
+                        <td className="px-4 py-3 font-medium text-foreground">
                           {ctx.name}
                         </td>
-                        <td className="px-4 py-3" style={{ color: "#9ca3af" }}>
+                        <td className="px-4 py-3 text-text-muted">
                           <span
                             className="text-[12px]"
                             style={{ fontFamily: "'JetBrains Mono', monospace" }}
@@ -524,8 +514,8 @@ export function ProjectDetail() {
                         <td className="px-4 py-3 text-right">
                           <button
                             onClick={() => setDeletingCtxId(ctx.id)}
-                            className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
-                            title="Delete context source"
+                            className="rounded p-1 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600"
+                            title={t("projects.detail.deleteContextSource")}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -537,10 +527,9 @@ export function ProjectDetail() {
               </div>
             ) : (
               <div
-                className="flex h-32 items-center justify-center rounded-md border text-[13px]"
-                style={{ borderColor: "#e8e8e5", color: "#9ca3af" }}
+                className="flex h-32 items-center justify-center rounded-md border text-[13px] border-border text-text-muted"
               >
-                No context sources configured
+                {t("projects.detail.noContextSources")}
               </div>
             )}
           </div>
@@ -551,15 +540,15 @@ export function ProjectDetail() {
           <div className="space-y-6">
             {/* Card 1: Trigger Rules */}
             <div
-              className="rounded-lg border p-5"
-              style={{ borderColor: "#e8e8e5", backgroundColor: "#ffffff" }}
+              className="rounded-lg border p-5 bg-surface"
+              style={{ borderColor: "var(--border)" }}
             >
-              <SectionLabel className="mb-1">Trigger Rules</SectionLabel>
-              <p className="mb-4 text-[12px]" style={{ color: "#9ca3af" }}>
-                Automatically run the agent when new releases match these conditions.
+              <SectionLabel className="mb-1">{t("projects.detail.triggerRules")}</SectionLabel>
+              <p className="mb-4 text-[12px] text-text-muted">
+                {t("projects.detail.triggerRulesDesc")}
               </p>
               <div className="space-y-3">
-                <label className="flex items-center gap-2.5 text-[13px]" style={{ color: "#374151" }}>
+                <label className="flex items-center gap-2.5 text-[13px] text-secondary-foreground">
                   <input
                     type="checkbox"
                     checked={currentRules.on_major_release ?? false}
@@ -567,14 +556,14 @@ export function ProjectDetail() {
                       setRulesDraft({ ...currentRules, on_major_release: e.target.checked })
                     }
                     className="h-4 w-4 rounded border accent-[#e8601a]"
-                    style={{ borderColor: "#e8e8e5" }}
+                    style={{ borderColor: "var(--border)" }}
                   />
-                  Major release
-                  <span className="text-[11px]" style={{ color: "#9ca3af" }}>
-                    (e.g. 1.x &rarr; 2.x)
+                  {t("projects.detail.majorRelease")}
+                  <span className="text-[11px] text-text-muted">
+                    {t("projects.detail.majorReleaseHint")}
                   </span>
                 </label>
-                <label className="flex items-center gap-2.5 text-[13px]" style={{ color: "#374151" }}>
+                <label className="flex items-center gap-2.5 text-[13px] text-secondary-foreground">
                   <input
                     type="checkbox"
                     checked={currentRules.on_minor_release ?? false}
@@ -582,14 +571,14 @@ export function ProjectDetail() {
                       setRulesDraft({ ...currentRules, on_minor_release: e.target.checked })
                     }
                     className="h-4 w-4 rounded border accent-[#e8601a]"
-                    style={{ borderColor: "#e8e8e5" }}
+                    style={{ borderColor: "var(--border)" }}
                   />
-                  Minor release
-                  <span className="text-[11px]" style={{ color: "#9ca3af" }}>
-                    (e.g. 1.1 &rarr; 1.2)
+                  {t("projects.detail.minorRelease")}
+                  <span className="text-[11px] text-text-muted">
+                    {t("projects.detail.minorReleaseHint")}
                   </span>
                 </label>
-                <label className="flex items-center gap-2.5 text-[13px]" style={{ color: "#374151" }}>
+                <label className="flex items-center gap-2.5 text-[13px] text-secondary-foreground">
                   <input
                     type="checkbox"
                     checked={currentRules.on_security_patch ?? false}
@@ -597,16 +586,16 @@ export function ProjectDetail() {
                       setRulesDraft({ ...currentRules, on_security_patch: e.target.checked })
                     }
                     className="h-4 w-4 rounded border accent-[#e8601a]"
-                    style={{ borderColor: "#e8e8e5" }}
+                    style={{ borderColor: "var(--border)" }}
                   />
-                  Security patch
-                  <span className="text-[11px]" style={{ color: "#9ca3af" }}>
-                    (contains security/CVE keywords)
+                  {t("projects.detail.securityPatch")}
+                  <span className="text-[11px] text-text-muted">
+                    {t("projects.detail.securityPatchHint")}
                   </span>
                 </label>
                 <div className="pt-2">
-                  <label className="mb-1.5 block text-[13px]" style={{ color: "#374151" }}>
-                    Version pattern
+                  <label className="mb-1.5 block text-[13px] text-secondary-foreground">
+                    {t("projects.detail.versionPattern")}
                   </label>
                   <input
                     type="text"
@@ -615,16 +604,13 @@ export function ProjectDetail() {
                       setRulesDraft({ ...currentRules, version_pattern: e.target.value })
                     }
                     placeholder="e.g. ^v\\d+\\.\\d+\\.\\d+$"
-                    className="w-full max-w-md rounded-md border px-3 py-1.5 text-[13px] placeholder:text-[#9ca3af] focus:outline-none focus:ring-1"
+                    className="w-full max-w-md rounded-md border px-3 py-1.5 text-[13px] placeholder:text-text-muted focus:outline-none focus:ring-1 bg-background border-border text-foreground"
                     style={{
                       fontFamily: "'JetBrains Mono', monospace",
-                      backgroundColor: "#fafaf9",
-                      borderColor: "#e8e8e5",
-                      color: "#111113",
                     }}
                   />
-                  <p className="mt-1 text-[11px]" style={{ color: "#9ca3af" }}>
-                    Optional regex to filter which versions trigger agent runs.
+                  <p className="mt-1 text-[11px] text-text-muted">
+                    {t("projects.detail.versionPatternHint")}
                   </p>
                 </div>
               </div>
@@ -632,51 +618,47 @@ export function ProjectDetail() {
 
             {/* Card 2: Agent Prompt */}
             <div
-              className="rounded-lg border p-5"
-              style={{ borderColor: "#e8e8e5", backgroundColor: "#ffffff" }}
+              className="rounded-lg border p-5 bg-surface"
+              style={{ borderColor: "var(--border)" }}
             >
-              <SectionLabel className="mb-1">Agent Prompt</SectionLabel>
-              <p className="mb-3 text-[12px]" style={{ color: "#9ca3af" }}>
-                Custom instructions for the agent when analyzing releases.
+              <SectionLabel className="mb-1">{t("projects.detail.agentPrompt")}</SectionLabel>
+              <p className="mb-3 text-[12px] text-text-muted">
+                {t("projects.detail.agentPromptDesc")}
               </p>
               <textarea
                 value={currentPrompt}
                 onChange={(e) => setPromptDraft(e.target.value)}
                 rows={5}
-                placeholder="Using default agent prompt."
-                className="w-full resize-y rounded-md border px-3 py-2 text-[13px] placeholder:text-[#9ca3af] focus:outline-none focus:ring-1"
+                placeholder={t("projects.detail.agentPromptPlaceholder")}
+                className="w-full resize-y rounded-md border px-3 py-2 text-[13px] placeholder:text-text-muted focus:outline-none focus:ring-1 bg-background border-border text-foreground"
                 style={{
                   fontFamily: "var(--font-dm-sans), sans-serif",
-                  backgroundColor: "#fafaf9",
-                  borderColor: "#e8e8e5",
-                  color: "#111113",
                 }}
               />
               <div className="mt-3 flex justify-end">
                 <button
                   onClick={handleSaveAgentConfig}
                   disabled={saving || (promptDraft === null && rulesDraft === null)}
-                  className="rounded-md px-4 py-1.5 text-[13px] font-medium text-white transition-colors disabled:opacity-40"
-                  style={{ backgroundColor: "#e8601a" }}
+                  className="rounded-md px-4 py-1.5 text-[13px] font-medium text-white transition-colors disabled:opacity-40 bg-beacon-accent"
                 >
-                  {saving ? "Saving..." : "Save Settings"}
+                  {saving ? t("projects.detail.saving") : t("projects.detail.saveSettings")}
                 </button>
               </div>
             </div>
 
             {/* Card 3: Test Run */}
             <div
-              className="rounded-lg border p-5"
-              style={{ borderColor: "#e8e8e5", backgroundColor: "#ffffff" }}
+              className="rounded-lg border p-5 bg-surface"
+              style={{ borderColor: "var(--border)" }}
             >
-              <SectionLabel className="mb-1">Test Run</SectionLabel>
-              <p className="mb-4 text-[12px]" style={{ color: "#9ca3af" }}>
-                Trigger a one-off agent run to test your configuration against a specific release.
+              <SectionLabel className="mb-1">{t("projects.detail.testRun")}</SectionLabel>
+              <p className="mb-4 text-[12px] text-text-muted">
+                {t("projects.detail.testRunDesc")}
               </p>
               <div className="flex flex-wrap items-end gap-3">
                 <div className="min-w-[200px] flex-1">
-                  <label className="mb-1.5 block text-[13px]" style={{ color: "#374151" }}>
-                    Source
+                  <label className="mb-1.5 block text-[13px] text-secondary-foreground">
+                    {t("projects.detail.source")}
                   </label>
                   <select
                     value={testSourceId}
@@ -684,15 +666,13 @@ export function ProjectDetail() {
                       setTestSourceId(e.target.value);
                       setTestVersion("");
                     }}
-                    className="w-full rounded-md border px-3 py-1.5 text-[13px] focus:outline-none focus:ring-1"
+                    className="w-full rounded-md border px-3 py-1.5 text-[13px] focus:outline-none focus:ring-1 bg-background border-border"
                     style={{
                       fontFamily: "var(--font-dm-sans), sans-serif",
-                      backgroundColor: "#fafaf9",
-                      borderColor: "#e8e8e5",
-                      color: testSourceId ? "#111113" : "#9ca3af",
+                      color: testSourceId ? "var(--foreground)" : "var(--text-muted)",
                     }}
                   >
-                    <option value="">Select a source...</option>
+                    <option value="">{t("projects.detail.selectSource")}</option>
                     {sourcesData?.data?.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.provider}: {s.repository}
@@ -701,23 +681,21 @@ export function ProjectDetail() {
                   </select>
                 </div>
                 <div className="min-w-[200px] flex-1">
-                  <label className="mb-1.5 block text-[13px]" style={{ color: "#374151" }}>
-                    Version
+                  <label className="mb-1.5 block text-[13px] text-secondary-foreground">
+                    {t("projects.detail.version")}
                   </label>
                   <select
                     value={testVersion}
                     onChange={(e) => setTestVersion(e.target.value)}
                     disabled={!testSourceId}
-                    className="w-full rounded-md border px-3 py-1.5 text-[13px] focus:outline-none focus:ring-1 disabled:opacity-50"
+                    className="w-full rounded-md border px-3 py-1.5 text-[13px] focus:outline-none focus:ring-1 disabled:opacity-50 bg-background border-border"
                     style={{
                       fontFamily: "'JetBrains Mono', monospace",
-                      backgroundColor: "#fafaf9",
-                      borderColor: "#e8e8e5",
-                      color: testVersion ? "#111113" : "#9ca3af",
+                      color: testVersion ? "var(--foreground)" : "var(--text-muted)",
                     }}
                   >
                     <option value="">
-                      {testSourceId ? "Select a version..." : "Choose a source first"}
+                      {testSourceId ? t("projects.detail.selectVersion") : t("projects.detail.chooseSourceFirst")}
                     </option>
                     {testReleasesData?.data?.map((r) => (
                       <option key={r.id} value={r.version}>
@@ -729,61 +707,59 @@ export function ProjectDetail() {
                 <button
                   onClick={handleTestRun}
                   disabled={testRunning || !testVersion}
-                  className="inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-[13px] font-medium text-white transition-colors disabled:opacity-40"
-                  style={{ backgroundColor: "#e8601a" }}
+                  className="inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-[13px] font-medium text-white transition-colors disabled:opacity-40 bg-beacon-accent"
                 >
                   <Play className="h-3.5 w-3.5" />
-                  {testRunning ? "Running..." : "Run Test"}
+                  {testRunning ? t("projects.detail.running") : t("projects.detail.runTest")}
                 </button>
               </div>
             </div>
 
             {/* Card 4: Run History */}
             <div>
-              <SectionLabel className="mb-3">Run History</SectionLabel>
+              <SectionLabel className="mb-3">{t("projects.detail.runHistory")}</SectionLabel>
               {runsData?.data && runsData.data.length > 0 ? (
-                <div className="overflow-hidden rounded-md border" style={{ borderColor: "#e8e8e5" }}>
+                <div className="overflow-hidden rounded-md border" style={{ borderColor: "var(--border)" }}>
                   <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
                     <thead>
-                      <tr style={{ backgroundColor: "#fafaf9" }}>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Trigger</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Status</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Started</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Duration</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#9ca3af" }}>Semantic Release</th>
+                      <tr style={{ backgroundColor: "var(--background)" }}>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.trigger")}</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.status")}</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.started")}</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.duration")}</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.semanticRelease")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {runsData.data.map((run) => (
-                        <tr key={run.id} className="border-t" style={{ borderColor: "#e8e8e5" }}>
-                          <td className="px-4 py-3" style={{ color: "#374151" }}>
+                        <tr key={run.id} className="border-t" style={{ borderColor: "var(--border)" }}>
+                          <td className="px-4 py-3 text-secondary-foreground">
                             {run.trigger}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <StatusDot status={run.status} />
-                              <span style={{ color: "#6b7280" }}>{run.status}</span>
+                              <span className="text-text-secondary">{run.status}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3" style={{ color: "#9ca3af" }}>
+                          <td className="px-4 py-3 text-text-muted">
                             {run.started_at
                               ? new Date(run.started_at).toLocaleString()
-                              : "Pending"}
+                              : t("projects.detail.pending")}
                           </td>
-                          <td className="px-4 py-3" style={{ color: "#9ca3af" }}>
+                          <td className="px-4 py-3 text-text-muted">
                             {formatDuration(run.started_at, run.completed_at)}
                           </td>
                           <td className="px-4 py-3">
                             {run.semantic_release_id ? (
                               <Link
                                 href={`/projects/${id}/semantic-releases/${run.semantic_release_id}`}
-                                className="text-[13px] font-medium underline"
-                                style={{ color: "#e8601a" }}
+                                className="text-[13px] font-medium underline text-beacon-accent"
                               >
-                                View
+                                {t("projects.detail.view")}
                               </Link>
                             ) : (
-                              <span style={{ color: "#9ca3af" }}>--</span>
+                              <span className="text-text-muted">--</span>
                             )}
                           </td>
                         </tr>
@@ -793,10 +769,9 @@ export function ProjectDetail() {
                 </div>
               ) : (
                 <div
-                  className="flex h-32 items-center justify-center rounded-md border text-[13px]"
-                  style={{ borderColor: "#e8e8e5", color: "#9ca3af" }}
+                  className="flex h-32 items-center justify-center rounded-md border text-[13px] border-border text-text-muted"
                 >
-                  No agent runs yet
+                  {t("projects.detail.noRuns")}
                 </div>
               )}
             </div>
@@ -807,9 +782,9 @@ export function ProjectDetail() {
       {/* Source create dialog */}
       <Dialog open={sourceCreateOpen} onOpenChange={setSourceCreateOpen}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Add Source</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("projects.detail.dialogAddSource")}</DialogTitle></DialogHeader>
           <SourceForm
-            title="Add Source"
+            title={t("projects.detail.dialogAddSource")}
             projectId={id}
             onSubmit={async (input) => { const res = await sourcesApi.create(id, input); if (res.data?.id) sourcesApi.poll(res.data.id).catch(() => {}); }}
             onSuccess={() => { setSourceCreateOpen(false); mutateSources(); }}
@@ -821,11 +796,11 @@ export function ProjectDetail() {
       {/* Source edit dialog */}
       <Dialog open={!!editingSource} onOpenChange={(open) => { if (!open) setEditingSource(null); }}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Edit Source</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("projects.detail.dialogEditSource")}</DialogTitle></DialogHeader>
           {editingSource && (
             <SourceForm
               key={editingSource.id}
-              title="Edit Source"
+              title={t("projects.detail.dialogEditSource")}
               initial={editingSource}
               onSubmit={async (input) => { await sourcesApi.update(editingSource.id, input); }}
               onSuccess={() => { setEditingSource(null); mutateSources(); }}
@@ -839,15 +814,15 @@ export function ProjectDetail() {
       <ConfirmDialog
         open={!!deletingSourceId}
         onOpenChange={(open) => { if (!open) setDeletingSourceId(null); }}
-        title="Delete Source"
-        description="This will permanently delete this source and its releases."
+        title={t("projects.detail.dialogDeleteSource")}
+        description={t("projects.detail.dialogDeleteSourceDesc")}
         onConfirm={async () => { if (deletingSourceId) { await sourcesApi.delete(deletingSourceId); mutateSources(); } }}
       />
 
       {/* Context source create dialog */}
       <Dialog open={ctxCreateOpen} onOpenChange={setCtxCreateOpen}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Add Context Source</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("projects.detail.dialogAddContextSource")}</DialogTitle></DialogHeader>
           <NewContextSourceForm
             projectId={id}
             onSuccess={() => { setCtxCreateOpen(false); mutateCtx(); }}
@@ -860,8 +835,8 @@ export function ProjectDetail() {
       <ConfirmDialog
         open={!!deletingCtxId}
         onOpenChange={(open) => { if (!open) setDeletingCtxId(null); }}
-        title="Delete Context Source"
-        description="This will permanently delete this context source."
+        title={t("projects.detail.dialogDeleteContextSource")}
+        description={t("projects.detail.dialogDeleteContextSourceDesc")}
         onConfirm={async () => { if (deletingCtxId) { await ctxApi.delete(deletingCtxId); mutateCtx(); } }}
       />
 
@@ -869,8 +844,8 @@ export function ProjectDetail() {
       <ConfirmDialog
         open={deletingProject}
         onOpenChange={setDeletingProject}
-        title="Delete Project"
-        description="This will permanently delete this project, including all sources, releases, and subscriptions."
+        title={t("projects.detail.dialogDeleteProject")}
+        description={t("projects.detail.dialogDeleteProjectDesc")}
         onConfirm={async () => { await projectsApi.delete(id); router.push("/projects"); }}
       />
     </div>

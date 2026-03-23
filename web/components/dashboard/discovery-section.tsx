@@ -7,6 +7,7 @@ import { Star, Loader2, Check, Plus } from "lucide-react";
 import { FaGithub, FaDocker } from "react-icons/fa";
 import { discover, projects, sources } from "@/lib/api/client";
 import type { DiscoverItem } from "@/lib/api/types";
+import { useTranslation } from "@/lib/i18n/context";
 
 function formatStars(count: number): string {
   if (count >= 1000) {
@@ -19,6 +20,7 @@ function formatStars(count: number): string {
 export function DiscoverySection() {
   const [trackingIds, setTrackingIds] = useState<Set<string>>(new Set());
   const [paused, setPaused] = useState(false);
+  const { t } = useTranslation();
 
   const { data: githubData, isLoading } = useSWR(
     "discover-github",
@@ -75,7 +77,7 @@ export function DiscoverySection() {
         await mutate("projects-for-dashboard");
       } catch (err: unknown) {
         const msg =
-          err instanceof Error ? err.message : "Failed to track project";
+          err instanceof Error ? err.message : t("dashboard.discovery.trackFailed");
         alert(msg);
       } finally {
         setTrackingIds((prev) => {
@@ -85,32 +87,30 @@ export function DiscoverySection() {
         });
       }
     },
-    [],
+    [t],
   );
 
   if (isLoading) {
     return (
       <div
-        className="rounded-lg bg-white px-5 py-4"
-        style={{ border: "1px solid #e8e8e5" }}
+        className="rounded-lg bg-surface px-5 py-4 border border-border"
       >
         <div className="flex items-center gap-3">
           <span
+            className="text-foreground"
             style={{
               fontFamily: "var(--font-fraunces)",
               fontSize: "14px",
               fontWeight: 600,
-              color: "#111113",
             }}
           >
-            Trending
+            {t("dashboard.discovery.trending")}
           </span>
           <div className="flex gap-3 overflow-hidden">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="h-8 w-48 flex-shrink-0 animate-pulse rounded-full"
-                style={{ backgroundColor: "#f0f0ed" }}
+                className="h-8 w-48 flex-shrink-0 animate-pulse rounded-full bg-mono-bg"
               />
             ))}
           </div>
@@ -123,21 +123,20 @@ export function DiscoverySection() {
 
   return (
     <div
-      className="rounded-lg bg-white"
-      style={{ border: "1px solid #e8e8e5", overflow: "hidden" }}
+      className="rounded-lg bg-surface border border-border"
+      style={{ overflow: "hidden" }}
     >
       <div className="flex items-center gap-4 px-5 py-3">
         {/* Label */}
         <span
-          className="flex-shrink-0"
+          className="flex-shrink-0 text-foreground"
           style={{
             fontFamily: "var(--font-fraunces)",
             fontSize: "14px",
             fontWeight: 600,
-            color: "#111113",
           }}
         >
-          Trending
+          {t("dashboard.discovery.trending")}
         </span>
 
         {/* Marquee container */}
@@ -151,18 +150,18 @@ export function DiscoverySection() {
             className="pointer-events-none absolute left-0 top-0 z-10 h-full w-8"
             style={{
               background:
-                "linear-gradient(to right, white, transparent)",
+                "linear-gradient(to right, var(--surface), transparent)",
             }}
           />
           <div
             className="pointer-events-none absolute right-0 top-0 z-10 h-full w-8"
             style={{
               background:
-                "linear-gradient(to left, white, transparent)",
+                "linear-gradient(to left, var(--surface), transparent)",
             }}
           />
 
-          {/* Scrolling track — duplicated for seamless loop */}
+          {/* Scrolling track -- duplicated for seamless loop */}
           <div
             className="flex gap-2.5"
             style={{
@@ -232,7 +231,7 @@ function MarqueeChip({
           whiteSpace: "nowrap",
         }}
       >
-        <ProviderIcon className="h-3 w-3" style={{ color: "#6b7280" }} />
+        <ProviderIcon className="h-3 w-3 text-text-secondary" />
         {item.full_name}
         <Check className="h-3 w-3" />
       </span>
@@ -243,30 +242,27 @@ function MarqueeChip({
     <button
       onClick={() => onTrack(item)}
       disabled={tracking}
-      className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 transition-all hover:shadow-sm disabled:opacity-70"
+      className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 transition-all hover:shadow-sm disabled:opacity-70 bg-background border border-border"
       style={{
         fontFamily: "var(--font-dm-sans)",
         fontSize: "12px",
-        color: "#111113",
-        backgroundColor: "#fafaf9",
-        border: "1px solid #e8e8e5",
+        color: "var(--foreground)",
         whiteSpace: "nowrap",
         cursor: tracking ? "wait" : "pointer",
       }}
     >
-      <ProviderIcon className="h-3 w-3" style={{ color: "#6b7280" }} />
+      <ProviderIcon className="h-3 w-3 text-text-secondary" />
       <span>{item.full_name}</span>
-      <Star className="h-3 w-3" style={{ color: "#e8601a" }} />
-      <span style={{ color: "#6b7280", fontSize: "11px" }}>
+      <Star className="h-3 w-3 text-beacon-accent" />
+      <span className="text-text-secondary" style={{ fontSize: "11px" }}>
         {formatStars(item.stars)}
       </span>
       {tracking ? (
         <Loader2
-          className="h-3 w-3 animate-spin"
-          style={{ color: "#e8601a" }}
+          className="h-3 w-3 animate-spin text-beacon-accent"
         />
       ) : (
-        <Plus className="h-3 w-3" style={{ color: "#e8601a" }} />
+        <Plus className="h-3 w-3 text-beacon-accent" />
       )}
     </button>
   );

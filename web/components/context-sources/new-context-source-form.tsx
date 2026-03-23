@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTranslation } from "@/lib/i18n/context";
 
 interface NewContextSourceFormProps {
   projectId: string;
@@ -18,6 +19,7 @@ interface NewContextSourceFormProps {
 
 export function NewContextSourceForm({ projectId, onSuccess, onCancel }: NewContextSourceFormProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [type, setType] = useState("documentation");
@@ -32,7 +34,7 @@ export function NewContextSourceForm({ projectId, onSuccess, onCancel }: NewCont
     try {
       parsedConfig = JSON.parse(configJson);
     } catch {
-      setError("Config must be valid JSON");
+      setError(t("contextSourceForm.invalidJson"));
       return;
     }
 
@@ -45,7 +47,7 @@ export function NewContextSourceForm({ projectId, onSuccess, onCancel }: NewCont
         router.push(`/projects/${projectId}`);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : t("contextSourceForm.failedToSave"));
     } finally {
       setSaving(false);
     }
@@ -63,35 +65,35 @@ export function NewContextSourceForm({ projectId, onSuccess, onCancel }: NewCont
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Go Release Notes" required />
+        <Label htmlFor="name">{t("contextSourceForm.labelName")}</Label>
+        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("contextSourceForm.placeholderName")} required />
       </div>
       <div className="space-y-2">
-        <Label>Type</Label>
+        <Label>{t("contextSourceForm.labelType")}</Label>
         <Select value={type} onValueChange={setType}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="documentation">Documentation</SelectItem>
-            <SelectItem value="changelog">Changelog</SelectItem>
-            <SelectItem value="github_issues">GitHub Issues</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
+            <SelectItem value="documentation">{t("contextSourceForm.typeDocumentation")}</SelectItem>
+            <SelectItem value="changelog">{t("contextSourceForm.typeChangelog")}</SelectItem>
+            <SelectItem value="github_issues">{t("contextSourceForm.typeGithubIssues")}</SelectItem>
+            <SelectItem value="custom">{t("contextSourceForm.typeCustom")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="config">Config (JSON)</Label>
+        <Label htmlFor="config">{t("contextSourceForm.labelConfig")}</Label>
         <Textarea
           id="config"
           value={configJson}
           onChange={(e) => setConfigJson(e.target.value)}
           rows={6}
           className="font-mono text-sm"
-          placeholder='{"url": "https://..."}'
+          placeholder={t("contextSourceForm.placeholderConfig")}
         />
       </div>
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+        <Button type="button" variant="outline" onClick={handleCancel}>{t("contextSourceForm.cancel")}</Button>
+        <Button type="submit" disabled={saving}>{saving ? t("contextSourceForm.saving") : t("contextSourceForm.save")}</Button>
       </div>
     </form>
   );
@@ -102,7 +104,7 @@ export function NewContextSourceForm({ projectId, onSuccess, onCancel }: NewCont
 
   return (
     <Card className="mx-auto max-w-2xl">
-      <CardHeader><CardTitle>Add Context Source</CardTitle></CardHeader>
+      <CardHeader><CardTitle>{t("contextSourceForm.cardTitle")}</CardTitle></CardHeader>
       <CardContent>
         {formContent}
       </CardContent>

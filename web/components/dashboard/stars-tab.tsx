@@ -6,10 +6,12 @@ import { Star, Loader2, Check, Plus } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { suggestions, projects, sources } from "@/lib/api/client";
 import type { SuggestionItem } from "@/lib/api/types";
+import { useTranslation } from "@/lib/i18n/context";
 
 const INITIAL_SHOW = 6;
 
 export function StarsTab() {
+  const { t } = useTranslation();
   const [trackingIds, setTrackingIds] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
 
@@ -57,18 +59,16 @@ export function StarsTab() {
     return (
       <div className="flex items-center justify-center py-10">
         <Loader2
-          className="h-4 w-4 animate-spin"
-          style={{ color: "#e8601a" }}
+          className="h-4 w-4 animate-spin text-beacon-accent"
         />
         <span
-          className="ml-2"
+          className="ml-2 text-text-secondary"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#6b7280",
           }}
         >
-          Loading your starred repos...
+          {t("dashboard.stars.loading")}
         </span>
       </div>
     );
@@ -84,7 +84,7 @@ export function StarsTab() {
             color: "#ef4444",
           }}
         >
-          Failed to load stars. Try again later.
+          {t("dashboard.stars.loadError")}
         </span>
       </div>
     );
@@ -94,13 +94,13 @@ export function StarsTab() {
     return (
       <div className="flex items-center justify-center py-10">
         <span
+          className="text-text-secondary"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#6b7280",
           }}
         >
-          You haven&apos;t starred any public repos on GitHub yet.
+          {t("dashboard.stars.noStars")}
         </span>
       </div>
     );
@@ -116,27 +116,24 @@ export function StarsTab() {
           return (
             <div
               key={item.full_name}
-              className="rounded-lg"
+              className="rounded-lg border border-border"
               style={{
-                border: "1px solid #e8e8e5",
                 padding: "12px",
-                backgroundColor: tracked ? "#fafaf9" : "#ffffff",
+                backgroundColor: tracked ? "var(--background)" : "var(--surface)",
                 opacity: tracked ? 0.6 : 1,
               }}
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <FaGithub
-                    className="h-3.5 w-3.5 flex-shrink-0"
-                    style={{ color: "#6b7280" }}
+                    className="h-3.5 w-3.5 flex-shrink-0 text-text-secondary"
                   />
                   <span
-                    className="truncate"
+                    className="truncate text-foreground"
                     style={{
                       fontFamily: "var(--font-dm-sans)",
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#111113",
                     }}
                   >
                     {item.full_name}
@@ -152,15 +149,14 @@ export function StarsTab() {
                     }}
                   >
                     <Check className="h-3 w-3" />
-                    Tracked
+                    {t("dashboard.stars.tracked")}
                   </span>
                 ) : (
                   <button
                     onClick={() => handleTrack(item)}
                     disabled={tracking}
-                    className="shrink-0 flex items-center gap-1 rounded-md px-2.5 py-1 text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    className="shrink-0 flex items-center gap-1 rounded-md px-2.5 py-1 text-white transition-opacity hover:opacity-90 disabled:opacity-50 bg-beacon-accent"
                     style={{
-                      backgroundColor: "#e8601a",
                       fontFamily: "var(--font-dm-sans)",
                       fontSize: "11px",
                       fontWeight: 500,
@@ -172,17 +168,16 @@ export function StarsTab() {
                     ) : (
                       <Plus className="h-3 w-3" />
                     )}
-                    {tracking ? "Tracking..." : "Track"}
+                    {tracking ? t("dashboard.stars.tracking") : t("dashboard.stars.track")}
                   </button>
                 )}
               </div>
               {item.description && (
                 <p
-                  className="line-clamp-2 mb-2"
+                  className="line-clamp-2 mb-2 text-text-secondary"
                   style={{
                     fontFamily: "var(--font-dm-sans)",
                     fontSize: "12px",
-                    color: "#6b7280",
                     lineHeight: "1.4",
                   }}
                 >
@@ -191,22 +186,21 @@ export function StarsTab() {
               )}
               <div className="flex items-center gap-3">
                 <span
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 text-text-muted"
                   style={{
                     fontFamily: "var(--font-dm-sans)",
                     fontSize: "11px",
-                    color: "#9ca3af",
                   }}
                 >
-                  <Star className="h-3 w-3" style={{ color: "#e8601a" }} />
+                  <Star className="h-3 w-3 text-beacon-accent" />
                   {item.stars.toLocaleString()}
                 </span>
                 {item.language && (
                   <span
+                    className="text-text-muted"
                     style={{
                       fontFamily: "var(--font-dm-sans)",
                       fontSize: "11px",
-                      color: "#9ca3af",
                     }}
                   >
                     {item.language}
@@ -221,16 +215,16 @@ export function StarsTab() {
         <div className="text-center mt-3">
           <button
             onClick={() => setShowAll(true)}
+            className="text-beacon-accent"
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "12px",
-              color: "#e8601a",
               background: "none",
               border: "none",
               cursor: "pointer",
             }}
           >
-            Show all {items.length} starred repos →
+            {t("dashboard.stars.showAll")} {items.length} {t("dashboard.stars.starredRepos")} →
           </button>
         </div>
       )}

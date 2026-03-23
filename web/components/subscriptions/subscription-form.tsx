@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { useTranslation } from "@/lib/i18n/context";
 import { projects as projectsApi, channels as channelsApi, sources as sourcesApi } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ interface SubscriptionFormProps {
 
 export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSuccess, onCancel }: SubscriptionFormProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const isEditing = !!initial;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -135,7 +137,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
         router.push("/subscriptions");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : t("subscriptionForm.failedToSave"));
     } finally {
       setSaving(false);
     }
@@ -145,12 +147,12 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       <div className="space-y-2">
-        <Label>Subscription Type</Label>
+        <Label>{t("subscriptionForm.subscriptionType")}</Label>
         <Select value={type} onValueChange={(v) => { setType(v as "source_release" | "semantic_release"); setSelectedProjectIds([]); setSelectedSourceIds([]); }}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="semantic_release">Semantic Release</SelectItem>
-            <SelectItem value="source_release">Source Release</SelectItem>
+            <SelectItem value="semantic_release">{t("subscriptionForm.semanticRelease")}</SelectItem>
+            <SelectItem value="source_release">{t("subscriptionForm.sourceRelease")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -158,9 +160,9 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
       {/* PROJECT SELECTION */}
       {type === "semantic_release" && isEditing && (
         <div className="space-y-2">
-          <Label>Project</Label>
+          <Label>{t("subscriptionForm.project")}</Label>
           <Select value={projectId} onValueChange={setProjectId} required>
-            <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("subscriptionForm.selectProject")} /></SelectTrigger>
             <SelectContent>
               {projectsData?.data.map((p) => (
                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
@@ -172,13 +174,13 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
       {type === "semantic_release" && !isEditing && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Projects</Label>
+            <Label>{t("subscriptionForm.projects")}</Label>
             <button
               type="button"
               onClick={toggleAllProjects}
               className="text-xs text-blue-600 hover:text-blue-800"
             >
-              {selectedProjectIds.length === allProjectIds.length ? "Deselect all" : "Select all"}
+              {selectedProjectIds.length === allProjectIds.length ? t("subscriptionForm.deselectAll") : t("subscriptionForm.selectAll")}
             </button>
           </div>
           <div className="max-h-48 overflow-y-auto rounded-md border border-input p-2 space-y-1">
@@ -192,11 +194,11 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
               </label>
             ))}
             {(!projectsData?.data || projectsData.data.length === 0) && (
-              <p className="text-sm text-muted-foreground px-2 py-1">No projects found</p>
+              <p className="text-sm text-muted-foreground px-2 py-1">{t("subscriptionForm.noProjectsFound")}</p>
             )}
           </div>
           {selectedProjectIds.length > 0 && (
-            <p className="text-xs text-muted-foreground">{selectedProjectIds.length} selected</p>
+            <p className="text-xs text-muted-foreground">{selectedProjectIds.length} {t("subscriptionForm.selected")}</p>
           )}
         </div>
       )}
@@ -205,9 +207,9 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
       {type === "source_release" && isEditing && (
         <>
           <div className="space-y-2">
-            <Label>Project (to list sources)</Label>
+            <Label>{t("subscriptionForm.projectToListSources")}</Label>
             <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSourceId(""); }}>
-              <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("subscriptionForm.selectProject")} /></SelectTrigger>
               <SelectContent>
                 {projectsData?.data.map((p) => (
                   <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
@@ -216,9 +218,9 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Source</Label>
+            <Label>{t("subscriptionForm.source")}</Label>
             <Select value={sourceId} onValueChange={setSourceId} required>
-              <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("subscriptionForm.selectSource")} /></SelectTrigger>
               <SelectContent>
                 {sourcesData?.data.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.provider}: {s.repository}</SelectItem>
@@ -231,14 +233,14 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
       {type === "source_release" && !isEditing && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Sources</Label>
+            <Label>{t("subscriptionForm.sources")}</Label>
             {allSourceIds.length > 0 && (
               <button
                 type="button"
                 onClick={toggleAllSources}
                 className="text-xs text-blue-600 hover:text-blue-800"
               >
-                {selectedSourceIds.length === allSourceIds.length ? "Deselect all" : "Select all"}
+                {selectedSourceIds.length === allSourceIds.length ? t("subscriptionForm.deselectAll") : t("subscriptionForm.selectAll")}
               </button>
             )}
           </div>
@@ -260,19 +262,19 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
               </div>
             ))}
             {sourcesByProject.length === 0 && (
-              <p className="text-sm text-muted-foreground px-2 py-1">No sources found</p>
+              <p className="text-sm text-muted-foreground px-2 py-1">{t("subscriptionForm.noSourcesFound")}</p>
             )}
           </div>
           {selectedSourceIds.length > 0 && (
-            <p className="text-xs text-muted-foreground">{selectedSourceIds.length} selected</p>
+            <p className="text-xs text-muted-foreground">{selectedSourceIds.length} {t("subscriptionForm.selected")}</p>
           )}
         </div>
       )}
 
       <div className="space-y-2">
-        <Label>Notification Channel</Label>
+        <Label>{t("subscriptionForm.notificationChannel")}</Label>
         <Select value={channelId} onValueChange={setChannelId} required>
-          <SelectTrigger><SelectValue placeholder="Select channel" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder={t("subscriptionForm.selectChannel")} /></SelectTrigger>
           <SelectContent>
             {channelsData?.data.map((ch) => (
               <SelectItem key={ch.id} value={ch.id}>{ch.name} ({ch.type})</SelectItem>
@@ -281,12 +283,12 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="version_filter">Version Filter (regex, optional)</Label>
-        <Input id="version_filter" value={versionFilter} onChange={(e) => setVersionFilter(e.target.value)} placeholder='e.g. ^v\d+\.\d+\.\d+$' />
+        <Label htmlFor="version_filter">{t("subscriptionForm.versionFilter")}</Label>
+        <Input id="version_filter" value={versionFilter} onChange={(e) => setVersionFilter(e.target.value)} placeholder={t("subscriptionForm.versionFilterPlaceholder")} />
       </div>
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+        <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>{t("subscriptionForm.cancel")}</Button>
+        <Button type="submit" disabled={saving}>{saving ? t("subscriptionForm.saving") : t("subscriptionForm.save")}</Button>
       </div>
     </form>
   );

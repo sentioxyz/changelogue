@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Source, SourceInput } from "@/lib/api/types";
 import { validateRepository } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n/context";
 
 interface SourceFormProps {
   initial?: Source;
@@ -23,15 +24,15 @@ interface SourceFormProps {
 }
 
 
-const POLL_INTERVAL_OPTIONS = [
-    { label: "Hourly", value: "3600" },
-    { label: "Daily", value: "86400" },
-    { label: "Weekly", value: "604800" },
-    { label: "Monthly", value: "2592000" },
+const POLL_INTERVAL_KEYS = [
+    { labelKey: "sourceForm.intervalHourly", value: "3600" },
+    { labelKey: "sourceForm.intervalDaily", value: "86400" },
+    { labelKey: "sourceForm.intervalWeekly", value: "604800" },
+    { labelKey: "sourceForm.intervalMonthly", value: "2592000" },
   ];
 
   function nearestPollInterval(seconds: number): string {
-    const values = POLL_INTERVAL_OPTIONS.map((o) => Number(o.value));
+    const values = POLL_INTERVAL_KEYS.map((o) => Number(o.value));
     let closest = values[0];
     for (const v of values) {
       if (Math.abs(v - seconds) < Math.abs(closest - seconds)) closest = v;
@@ -42,6 +43,7 @@ const POLL_INTERVAL_OPTIONS = [
 
 export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, onCancel }: SourceFormProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [provider, setProvider] = useState(initial?.provider ?? "dockerhub");
@@ -72,7 +74,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
       try {
         parsedConfig = JSON.parse(configJson);
       } catch {
-        setError("Config must be valid JSON");
+        setError(t("sourceForm.errorInvalidJson"));
         return;
       }
     }
@@ -95,7 +97,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         router.push(redirectTo ?? "/sources");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : t("sourceForm.errorFailedToSave"));
     } finally {
       setSaving(false);
     }
@@ -113,36 +115,36 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       <div className="space-y-2">
-        <Label>Provider</Label>
+        <Label>{t("sourceForm.provider")}</Label>
         <Select value={provider} onValueChange={setProvider}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="dockerhub">Docker Hub</SelectItem>
-            <SelectItem value="github">GitHub</SelectItem>
-            <SelectItem value="ecr-public">ECR Public</SelectItem>
-            <SelectItem value="gitlab">GitLab</SelectItem>
-            <SelectItem value="pypi">PyPI</SelectItem>
-            <SelectItem value="npm">npm</SelectItem>
+            <SelectItem value="dockerhub">{t("sourceForm.providerDockerHub")}</SelectItem>
+            <SelectItem value="github">{t("sourceForm.providerGitHub")}</SelectItem>
+            <SelectItem value="ecr-public">{t("sourceForm.providerECR")}</SelectItem>
+            <SelectItem value="gitlab">{t("sourceForm.providerGitLab")}</SelectItem>
+            <SelectItem value="pypi">{t("sourceForm.providerPyPI")}</SelectItem>
+            <SelectItem value="npm">{t("sourceForm.providerNpm")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="repository">Repository</Label>
-        <Input id="repository" value={repository} onChange={(e) => setRepository(e.target.value)} placeholder="e.g. library/golang or ethereum/go-ethereum" required />
+        <Label htmlFor="repository">{t("sourceForm.repository")}</Label>
+        <Input id="repository" value={repository} onChange={(e) => setRepository(e.target.value)} placeholder={t("sourceForm.repositoryPlaceholder")} required />
       </div>
       <div className="space-y-2">
-        <Label>Poll Interval</Label>
+        <Label>{t("sourceForm.pollInterval")}</Label>
         <Select value={pollInterval} onValueChange={setPollInterval}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            {POLL_INTERVAL_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            {POLL_INTERVAL_KEYS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{t(opt.labelKey)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="config">Config (JSON, optional)</Label>
+        <Label htmlFor="config">{t("sourceForm.config")}</Label>
         <Textarea
           id="config"
           value={configJson}
@@ -153,40 +155,40 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="version_filter_include">Version Filter — Include (regex, optional)</Label>
+        <Label htmlFor="version_filter_include">{t("sourceForm.versionFilterInclude")}</Label>
         <Input
           id="version_filter_include"
           value={versionFilterInclude}
           onChange={(e) => setVersionFilterInclude(e.target.value)}
-          placeholder='e.g. ^v\d+\.\d+\.\d+$'
+          placeholder={t("sourceForm.versionFilterIncludePlaceholder")}
           className="font-mono text-sm"
         />
-        <p className="text-xs text-muted-foreground">Only show/notify versions matching this pattern</p>
+        <p className="text-xs text-muted-foreground">{t("sourceForm.versionFilterIncludeHelper")}</p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="version_filter_exclude">Version Filter — Exclude (regex, optional)</Label>
+        <Label htmlFor="version_filter_exclude">{t("sourceForm.versionFilterExclude")}</Label>
         <Input
           id="version_filter_exclude"
           value={versionFilterExclude}
           onChange={(e) => setVersionFilterExclude(e.target.value)}
-          placeholder='e.g. -(alpha|beta|rc|nightly)'
+          placeholder={t("sourceForm.versionFilterExcludePlaceholder")}
           className="font-mono text-sm"
         />
-        <p className="text-xs text-muted-foreground">Hide/suppress versions matching this pattern</p>
+        <p className="text-xs text-muted-foreground">{t("sourceForm.versionFilterExcludeHelper")}</p>
       </div>
       {(provider === "github" || provider === "gitlab" || provider === "pypi" || provider === "npm") && (
         <div className="flex items-center gap-3">
           <Switch checked={excludePrereleases} onCheckedChange={setExcludePrereleases} />
-          <Label>Exclude Pre-Releases</Label>
+          <Label>{t("sourceForm.excludePrereleases")}</Label>
         </div>
       )}
       <div className="flex items-center gap-3">
         <Switch checked={enabled} onCheckedChange={setEnabled} />
-        <Label>Enabled</Label>
+        <Label>{t("sourceForm.enabled")}</Label>
       </div>
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+        <Button type="button" variant="outline" onClick={handleCancel}>{t("sourceForm.cancel")}</Button>
+        <Button type="submit" disabled={saving}>{saving ? t("sourceForm.saving") : t("sourceForm.save")}</Button>
       </div>
     </form>
   );

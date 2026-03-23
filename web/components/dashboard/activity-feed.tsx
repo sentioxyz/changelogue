@@ -5,29 +5,36 @@ import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { SSEEvent } from "@/lib/api/types";
+import { useTranslation } from "@/lib/i18n/context";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
 const eventColors: Record<string, string> = {
-  release: "bg-green-100 text-green-800",
-  semantic_release: "bg-blue-100 text-blue-800",
+  release: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  semantic_release: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
 };
 
-function formatEvent(event: SSEEvent): string {
-  switch (event.type) {
-    case "release":
-      return `New release: ${event.data.version}`;
-    case "semantic_release":
-      return `Semantic release: ${event.data.version} (${event.data.status})`;
-    default:
-      return "Unknown event";
-  }
+function useEventFormatter() {
+  const { t } = useTranslation();
+
+  return function formatEvent(event: SSEEvent): string {
+    switch (event.type) {
+      case "release":
+        return `${t("dashboard.activity.newRelease")}: ${event.data.version}`;
+      case "semantic_release":
+        return `${t("dashboard.activity.semanticRelease")}: ${event.data.version} (${event.data.status})`;
+      default:
+        return t("dashboard.activity.unknownEvent");
+    }
+  };
 }
 
 export function ActivityFeed() {
   const [events, setEvents] = useState<SSEEvent[]>([]);
   const [connected, setConnected] = useState(false);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { t } = useTranslation();
+  const formatEvent = useEventFormatter();
 
   useEffect(() => {
     let es: EventSource | null = null;
@@ -71,7 +78,7 @@ export function ActivityFeed() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Live Activity
+          {t("dashboard.activity.title")}
           <span className="relative flex h-2 w-2">
             {connected ? (
               <>
@@ -79,7 +86,7 @@ export function ActivityFeed() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
               </>
             ) : (
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-400" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-text-muted" />
             )}
           </span>
         </CardTitle>
@@ -87,7 +94,7 @@ export function ActivityFeed() {
       <CardContent>
         {events.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            Waiting for events...
+            {t("dashboard.activity.waiting")}
           </p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">

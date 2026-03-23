@@ -27,8 +27,7 @@ function LoginContent() {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#f8f8f6" }}
+      className="flex min-h-screen items-center justify-center bg-background"
     >
       <div className="w-full max-w-sm space-y-6 text-center">
         <div className="flex items-center justify-center gap-2">
@@ -41,7 +40,7 @@ function LoginContent() {
           </span>
         </div>
 
-        <p className="text-sm text-[#6b7280]">
+        <p className="text-sm text-text-secondary">
           Sign in to access your release intelligence dashboard.
         </p>
 

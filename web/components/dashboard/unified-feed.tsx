@@ -14,6 +14,7 @@ import { getProviderIcon } from "@/components/ui/provider-badge";
 import { Sparkles } from "lucide-react";
 import type { Release, SemanticRelease, Source } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n/context";
 
 type FeedItemType =
   | { kind: "release"; data: Release; repository?: string; provider?: string; projectName?: string }
@@ -36,10 +37,12 @@ function getTimeStr(item: FeedItemType): string {
 function ProviderIcon({ provider }: { provider: string }) {
   const icon = getProviderIcon(provider);
   if (!icon) return <div className="h-3.5 w-3.5 shrink-0" />;
-  return icon({ size: 14, className: "shrink-0", style: { color: "#9ca3af" } });
+  return icon({ size: 14, className: "shrink-0 text-text-muted" });
 }
 
 export function UnifiedFeed() {
+  const { t } = useTranslation();
+
   const { data: projectsData } = useSWR("projects-for-dashboard", () =>
     projectsApi.list()
   );
@@ -124,17 +127,16 @@ export function UnifiedFeed() {
   if (isLoading) {
     return (
       <div
-        className="rounded-lg bg-white py-16 text-center"
-        style={{ border: "1px solid #e8e8e5" }}
+        className="rounded-lg bg-surface py-16 text-center border border-border"
       >
         <p
+          className="text-text-secondary"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#6b7280",
           }}
         >
-          Loading activity...
+          {t("dashboard.feed.loading")}
         </p>
       </div>
     );
@@ -146,27 +148,25 @@ export function UnifiedFeed() {
 
   return (
     <div
-      className="flex flex-col rounded-lg bg-white"
-      style={{ border: "1px solid #e8e8e5", height: "336px" }}
+      className="flex flex-col rounded-lg bg-surface border border-border"
+      style={{ height: "336px" }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-5 py-4 shrink-0"
-        style={{ borderBottom: "1px solid #e8e8e5" }}
+        className="flex items-center justify-between px-5 py-4 shrink-0 border-b border-border"
       >
         <p
-          className="text-xs uppercase tracking-[0.08em]"
+          className="text-xs uppercase tracking-[0.08em] text-text-secondary"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "12px",
-            color: "#6b7280",
           }}
         >
-          Recent Activity
+          {t("dashboard.feed.recentActivity")}
         </p>
       </div>
 
-      {/* Feed items — scrollable */}
+      {/* Feed items -- scrollable */}
       <div className="flex-1 overflow-y-auto">
         {feedItems.map((item, idx) => (
           <FeedEntry
@@ -181,6 +181,8 @@ export function UnifiedFeed() {
 }
 
 function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
+  const { t } = useTranslation();
+
   if (item.kind === "semantic") {
     const sr = item.data;
     const urgency = sr.report?.urgency?.toUpperCase();
@@ -189,25 +191,24 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
     return (
       <Link
         href={`/projects/${sr.project_id}/semantic-releases/${sr.id}`}
-        className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[#fafaf9]"
+        className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-background"
         style={{
-          borderBottom: isLast ? undefined : "1px solid #e8e8e5",
+          borderBottom: isLast ? undefined : "1px solid var(--border)",
         }}
       >
         {/* AI icon */}
-        <Sparkles className="h-3.5 w-3.5 shrink-0" style={{ color: "#9ca3af" }} />
+        <Sparkles className="h-3.5 w-3.5 shrink-0 text-text-muted" />
 
         {/* Content */}
         <div className="min-w-0 flex-1 flex items-center gap-2">
           <span
-            className="truncate"
+            className="truncate text-text-secondary"
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#6b7280",
             }}
           >
-            {item.projectName ?? "Unknown Project"}
+            {item.projectName ?? t("dashboard.feed.unknownProject")}
           </span>
           {isUrgent && (
             <span
@@ -226,11 +227,10 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
         <div className="flex items-center gap-3 shrink-0">
           <VersionChip version={sr.version} />
           <span
-            className="whitespace-nowrap"
+            className="whitespace-nowrap text-text-muted"
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "12px",
-              color: "#9ca3af",
             }}
           >
             {timeAgo(getTimeStr({ kind: "semantic", data: sr }))}
@@ -246,9 +246,9 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
   return (
     <Link
       href={`/releases/${release.id}`}
-      className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[#fafaf9]"
+      className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-background"
       style={{
-        borderBottom: isLast ? undefined : "1px solid #e8e8e5",
+        borderBottom: isLast ? undefined : "1px solid var(--border)",
       }}
     >
       {/* Provider icon */}
@@ -261,22 +261,20 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
       {/* Content */}
       <div className="min-w-0 flex-1 flex items-center gap-2">
         <span
-          className="truncate"
+          className="truncate text-text-secondary"
           style={{
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: "13px",
-            color: "#6b7280",
           }}
         >
           {item.repository ?? release.source_id.slice(0, 12)}
         </span>
         {item.projectName && (
           <span
-            className="truncate"
+            className="truncate text-text-muted"
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "12px",
-              color: "#9ca3af",
             }}
           >
             · {item.projectName}
@@ -288,11 +286,10 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
       <div className="flex items-center gap-3 shrink-0">
         <VersionChip version={release.version} />
         <span
-          className="whitespace-nowrap"
+          className="whitespace-nowrap text-text-muted"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "12px",
-            color: "#9ca3af",
           }}
         >
           {timeAgo(release.released_at ?? release.created_at)}

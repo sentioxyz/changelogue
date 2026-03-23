@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Project, ProjectInput, SourceInput } from "@/lib/api/types";
 import { validateRepository } from "@/lib/format";
 import { Plus, X } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/context";
 
 export interface ProjectFormResult {
   project: ProjectInput;
@@ -31,6 +32,7 @@ interface ProjectFormProps {
 
 export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, onCancel }: ProjectFormProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -88,7 +90,7 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
         router.push("/projects");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : t("projectForm.errorFailedToSave"));
     } finally {
       setSaving(false);
     }
@@ -98,11 +100,11 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">{t("projectForm.name")}</Label>
         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">{t("projectForm.description")}</Label>
         <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
       </div>
 
@@ -114,79 +116,79 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
               type="button"
               onClick={() => setShowSource(true)}
               className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors hover:opacity-80"
-              style={{ color: "#e8601a" }}
+              style={{ color: "var(--beacon-accent)" }}
             >
               <Plus className="h-3.5 w-3.5" />
-              Add a Source
+              {t("projectForm.addSource")}
             </button>
           ) : (
-            <div className="rounded-md border p-4 space-y-3" style={{ borderColor: "#e8e8e5" }}>
+            <div className="rounded-md border p-4 space-y-3" style={{ borderColor: "var(--border)" }}>
               <div className="flex items-center justify-between">
-                <Label className="text-[13px] font-medium">Add a Source</Label>
+                <Label className="text-[13px] font-medium">{t("projectForm.addSource")}</Label>
                 <button
                   type="button"
                   onClick={() => { setShowSource(false); setRepository(""); }}
-                  className="text-[#9ca3af] hover:text-[#6b7280]"
+                  className="text-text-muted hover:text-text-secondary"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="space-y-2">
-                <Label>Provider</Label>
+                <Label>{t("projectForm.provider")}</Label>
                 <Select value={provider} onValueChange={setProvider}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="github">GitHub</SelectItem>
-                    <SelectItem value="dockerhub">Docker Hub</SelectItem>
-                    <SelectItem value="ecr-public">ECR Public</SelectItem>
-                    <SelectItem value="gitlab">GitLab</SelectItem>
-                    <SelectItem value="pypi">PyPI</SelectItem>
-                    <SelectItem value="npm">npm</SelectItem>
+                    <SelectItem value="github">{t("projectForm.providerGitHub")}</SelectItem>
+                    <SelectItem value="dockerhub">{t("projectForm.providerDockerHub")}</SelectItem>
+                    <SelectItem value="ecr-public">{t("projectForm.providerECR")}</SelectItem>
+                    <SelectItem value="gitlab">{t("projectForm.providerGitLab")}</SelectItem>
+                    <SelectItem value="pypi">{t("projectForm.providerPyPI")}</SelectItem>
+                    <SelectItem value="npm">{t("projectForm.providerNpm")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="repository">Repository</Label>
+                <Label htmlFor="repository">{t("projectForm.repository")}</Label>
                 <Input
                   id="repository"
                   value={repository}
                   onChange={(e) => setRepository(e.target.value)}
-                  placeholder="e.g. ethereum/go-ethereum"
+                  placeholder={t("projectForm.repositoryPlaceholder")}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Poll Interval</Label>
+                <Label>{t("projectForm.pollInterval")}</Label>
                 <Select value={pollInterval} onValueChange={setPollInterval}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="3600">Hourly</SelectItem>
-                    <SelectItem value="86400">Daily</SelectItem>
-                    <SelectItem value="604800">Weekly</SelectItem>
-                    <SelectItem value="2592000">Monthly</SelectItem>
+                    <SelectItem value="3600">{t("projectForm.intervalHourly")}</SelectItem>
+                    <SelectItem value="86400">{t("projectForm.intervalDaily")}</SelectItem>
+                    <SelectItem value="604800">{t("projectForm.intervalWeekly")}</SelectItem>
+                    <SelectItem value="2592000">{t("projectForm.intervalMonthly")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="version_filter_include">Version Filter — Include (regex, optional)</Label>
+                <Label htmlFor="version_filter_include">{t("projectForm.versionFilterInclude")}</Label>
                 <Input
                   id="version_filter_include"
                   value={versionFilterInclude}
                   onChange={(e) => setVersionFilterInclude(e.target.value)}
-                  placeholder='e.g. ^v\d+\.\d+\.\d+$'
+                  placeholder={t("projectForm.versionFilterIncludePlaceholder")}
                   className="font-mono text-sm"
                 />
-                <p className="text-xs text-muted-foreground">Only show/notify versions matching this pattern</p>
+                <p className="text-xs text-muted-foreground">{t("projectForm.versionFilterIncludeHelper")}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="version_filter_exclude">Version Filter — Exclude (regex, optional)</Label>
+                <Label htmlFor="version_filter_exclude">{t("projectForm.versionFilterExclude")}</Label>
                 <Input
                   id="version_filter_exclude"
                   value={versionFilterExclude}
                   onChange={(e) => setVersionFilterExclude(e.target.value)}
-                  placeholder='e.g. -(alpha|beta|rc|nightly)'
+                  placeholder={t("projectForm.versionFilterExcludePlaceholder")}
                   className="font-mono text-sm"
                 />
-                <p className="text-xs text-muted-foreground">Hide/suppress versions matching this pattern</p>
+                <p className="text-xs text-muted-foreground">{t("projectForm.versionFilterExcludeHelper")}</p>
               </div>
               {(provider === "github" || provider === "gitlab" || provider === "pypi" || provider === "npm") && (
                 <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -196,7 +198,7 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
                     onChange={(e) => setExcludePrereleases(e.target.checked)}
                     className="rounded"
                   />
-                  Exclude pre-releases
+                  {t("projectForm.excludePrereleases")}
                 </label>
               )}
             </div>
@@ -205,8 +207,8 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
       )}
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+        <Button type="button" variant="outline" onClick={handleCancel}>{t("projectForm.cancel")}</Button>
+        <Button type="submit" disabled={saving}>{saving ? t("projectForm.saving") : t("projectForm.save")}</Button>
       </div>
     </form>
   );

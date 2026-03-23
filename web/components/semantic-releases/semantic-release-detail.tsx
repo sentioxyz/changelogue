@@ -15,6 +15,7 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
 import { getPathSegment } from "@/lib/path";
+import { useTranslation } from "@/lib/i18n/context";
 import {
   ArrowLeft,
   Check,
@@ -83,6 +84,7 @@ function getDownloadLabel(url: string): { label: string; isDirect: boolean } {
 }
 
 export function SemanticReleaseDetail() {
+  const { t } = useTranslation();
   // Read IDs from URL path — useParams() returns stale "0" in static export
   const projectId = getPathSegment(1); // /projects/{id}/semantic-releases/{srId}
   const srId = getPathSegment(3);
@@ -106,10 +108,10 @@ export function SemanticReleaseDetail() {
     return (
       <div className="flex justify-center py-20">
         <div
-          className="text-[13px] text-[#9ca3af]"
+          className="text-[13px] text-text-muted"
           style={{ fontFamily: "var(--font-dm-sans)" }}
         >
-          Loading...
+          {t("sr.detail.loading")}
         </div>
       </div>
     );
@@ -120,10 +122,10 @@ export function SemanticReleaseDetail() {
     return (
       <div className="flex justify-center py-20">
         <div
-          className="text-[13px] text-[#9ca3af]"
+          className="text-[13px] text-text-muted"
           style={{ fontFamily: "var(--font-dm-sans)" }}
         >
-          Semantic release not found
+          {t("sr.detail.notFound")}
         </div>
       </div>
     );
@@ -136,12 +138,12 @@ export function SemanticReleaseDetail() {
   const contextSourcesList = contextSourcesData?.data ?? [];
 
   const handleDelete = async () => {
-    if (!confirm("Delete this semantic release?")) return;
+    if (!confirm(t("sr.detail.deleteConfirm"))) return;
     try {
       await srApi.delete(srId);
       router.push("/releases");
     } catch {
-      alert("Failed to delete semantic release.");
+      alert(t("sr.detail.deleteFailed"));
     }
   };
 
@@ -167,17 +169,17 @@ export function SemanticReleaseDetail() {
         style={{
           fontFamily: "var(--font-dm-sans)",
           fontSize: "13px",
-          color: "#6b7280",
+          color: "var(--text-secondary)",
         }}
       >
         <ArrowLeft size={14} />
-        Back
+        {t("sr.detail.back")}
       </button>
 
       {/* 2. Project byline */}
       {project?.name && (
         <p
-          className="mb-1 text-[13px] italic text-[#9ca3af]"
+          className="mb-1 text-[13px] italic text-text-muted"
           style={{ fontFamily: "var(--font-fraunces)" }}
         >
           {project.name}
@@ -186,7 +188,7 @@ export function SemanticReleaseDetail() {
 
       {/* 3. Version heading */}
       <h1
-        className="text-[42px] font-bold tracking-tight text-[#111113] leading-[1.1]"
+        className="text-[42px] font-bold tracking-tight text-foreground leading-[1.1]"
         style={{ fontFamily: "var(--font-fraunces)" }}
       >
         {sr.version}
@@ -195,7 +197,7 @@ export function SemanticReleaseDetail() {
       {/* 4. Subject line */}
       {report?.subject && (
         <p
-          className="mt-2 text-[20px] leading-[1.4] text-[#374151]"
+          className="mt-2 text-[20px] leading-[1.4] text-secondary-foreground"
           style={{ fontFamily: "var(--font-dm-sans)" }}
         >
           {report.subject}
@@ -204,27 +206,27 @@ export function SemanticReleaseDetail() {
 
       {/* 5. Meta line */}
       <div
-        className="mt-3 flex items-center gap-2 text-[13px] text-[#6b7280]"
+        className="mt-3 flex items-center gap-2 text-[13px] text-text-secondary"
         style={{ fontFamily: "var(--font-dm-sans)" }}
       >
         <StatusDot status={sr.status} />
         <span className="flex-1">
           {sr.status}
-          {sr.completed_at && ` \u00b7 generated ${timeAgo(sr.completed_at)}`}
+          {sr.completed_at && ` \u00b7 ${t("sr.detail.generated")} ${timeAgo(sr.completed_at)}`}
         </span>
         <button
           onClick={handleDelete}
           className="rounded-md px-2.5 py-1 text-[12px] font-medium text-[#991b1b] transition-colors hover:bg-[#fef2f2]"
           style={{ fontFamily: "var(--font-dm-sans)" }}
         >
-          Delete
+          {t("sr.detail.delete")}
         </button>
       </div>
 
       {/* 6. Divider */}
       <hr
         className="my-8 border-0"
-        style={{ borderTop: "1px solid #e8e8e5" }}
+        style={{ borderTop: "1px solid var(--border)" }}
       />
 
       {/* 7. Error state */}
@@ -267,7 +269,7 @@ export function SemanticReleaseDetail() {
                           color: "#ffffff",
                         }}
                       >
-                        {riskLevel} URGENCY
+                        {riskLevel} {t("sr.detail.urgency")}
                       </span>
                     )}
                   </div>
@@ -291,7 +293,7 @@ export function SemanticReleaseDetail() {
           {hasAvailabilitySection && (
             <section>
               <SectionLabel className="mb-3">
-                Availability & Downloads
+                {t("sr.detail.availabilityDownloads")}
               </SectionLabel>
 
               {/* Status checks as green pills */}
@@ -344,9 +346,9 @@ export function SemanticReleaseDetail() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium transition-colors hover:opacity-80"
                         style={{
-                          backgroundColor: "#f3f3f1",
-                          color: "#374151",
-                          border: "1px solid #e8e8e5",
+                          backgroundColor: "var(--mono-bg)",
+                          color: "var(--secondary-foreground)",
+                          border: "1px solid var(--border)",
                           fontFamily: "var(--font-dm-sans)",
                         }}
                       >
@@ -366,20 +368,20 @@ export function SemanticReleaseDetail() {
                       key={cmd}
                       className="group flex items-center gap-2 rounded-md px-3 py-2"
                       style={{
-                        backgroundColor: "#fafaf9",
-                        border: "1px solid #e8e8e5",
+                        backgroundColor: "var(--background)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <code
-                        className="flex-1 text-[13px] text-[#111113]"
+                        className="flex-1 text-[13px] text-foreground"
                         style={{ fontFamily: "'JetBrains Mono', monospace" }}
                       >
                         {cmd}
                       </code>
                       <button
                         onClick={() => navigator.clipboard.writeText(cmd)}
-                        className="shrink-0 rounded p-1 text-[#9ca3af] opacity-0 transition-opacity group-hover:opacity-100 hover:text-[#374151]"
-                        title="Copy"
+                        className="shrink-0 rounded p-1 text-text-muted opacity-0 transition-opacity group-hover:opacity-100 hover:text-secondary-foreground"
+                        title={t("sr.detail.copy")}
                       >
                         <Copy size={14} />
                       </button>
@@ -393,16 +395,16 @@ export function SemanticReleaseDetail() {
           {/* 10. Adoption */}
           {report.adoption && (
             <section>
-              <SectionLabel className="mb-2">Adoption</SectionLabel>
+              <SectionLabel className="mb-2">{t("sr.detail.adoption")}</SectionLabel>
               <div
                 className="rounded-md p-4"
                 style={{
-                  border: "1px solid #e8e8e5",
-                  backgroundColor: "#ffffff",
+                  border: "1px solid var(--border)",
+                  backgroundColor: "var(--surface)",
                 }}
               >
                 <p
-                  className="text-[14px] leading-[1.6] text-[#111113]"
+                  className="text-[14px] leading-[1.6] text-foreground"
                   style={{ fontFamily: "var(--font-dm-sans)" }}
                 >
                   {report.adoption}
@@ -414,42 +416,42 @@ export function SemanticReleaseDetail() {
           {/* 11. Source Releases */}
           {releasesList.length > 0 && (
             <section>
-              <SectionLabel className="mb-4">Source Releases</SectionLabel>
+              <SectionLabel className="mb-4">{t("sr.detail.sourceReleases")}</SectionLabel>
               <div
                 className="overflow-hidden rounded-md"
-                style={{ border: "1px solid #e8e8e5" }}
+                style={{ border: "1px solid var(--border)" }}
               >
                 <table className="w-full text-left">
                   <thead>
                     <tr
                       style={{
-                        backgroundColor: "#fafaf9",
-                        borderBottom: "1px solid #e8e8e5",
+                        backgroundColor: "var(--background)",
+                        borderBottom: "1px solid var(--border)",
                       }}
                     >
                       <th
-                        className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9ca3af]"
+                        className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted"
                         style={{ fontFamily: "var(--font-dm-sans)" }}
                       >
-                        Provider
+                        {t("sr.detail.provider")}
                       </th>
                       <th
-                        className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9ca3af]"
+                        className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted"
                         style={{ fontFamily: "var(--font-dm-sans)" }}
                       >
-                        Repository
+                        {t("sr.detail.repository")}
                       </th>
                       <th
-                        className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9ca3af]"
+                        className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted"
                         style={{ fontFamily: "var(--font-dm-sans)" }}
                       >
-                        Version
+                        {t("sr.detail.version")}
                       </th>
                       <th
-                        className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9ca3af]"
+                        className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted"
                         style={{ fontFamily: "var(--font-dm-sans)" }}
                       >
-                        Date
+                        {t("sr.detail.date")}
                       </th>
                     </tr>
                   </thead>
@@ -468,20 +470,20 @@ export function SemanticReleaseDetail() {
                       return (
                         <tr
                           key={rel.id}
-                          className="border-b border-[#e8e8e5] last:border-b-0"
+                          className="border-b border-border last:border-b-0"
                         >
                           <td className="px-4 py-3">
                             {source ? (
                               <ProviderBadge provider={source.provider} />
                             ) : (
-                              <span className="text-[12px] text-[#9ca3af]">
+                              <span className="text-[12px] text-text-muted">
                                 {"\u2014"}
                               </span>
                             )}
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className="text-[13px] text-[#374151]"
+                              className="text-[13px] text-secondary-foreground"
                               style={{
                                 fontFamily: "'JetBrains Mono', monospace",
                               }}
@@ -500,7 +502,7 @@ export function SemanticReleaseDetail() {
                                 <VersionChip version={rel.version} />
                                 <ExternalLink
                                   size={11}
-                                  className="text-[#9ca3af]"
+                                  className="text-text-muted"
                                 />
                               </a>
                             ) : (
@@ -509,7 +511,7 @@ export function SemanticReleaseDetail() {
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className="text-[13px] text-[#6b7280]"
+                              className="text-[13px] text-text-secondary"
                               style={{ fontFamily: "var(--font-dm-sans)" }}
                             >
                               {timeAgo(rel.released_at ?? rel.created_at)}
@@ -527,7 +529,7 @@ export function SemanticReleaseDetail() {
           {/* 12. Context Sources */}
           {contextSourcesList.length > 0 && (
             <section>
-              <SectionLabel className="mb-3">Context Sources</SectionLabel>
+              <SectionLabel className="mb-3">{t("sr.detail.contextSources")}</SectionLabel>
               <div className="space-y-2">
                 {contextSourcesList.map((cs) => {
                   const url = cs.config?.url as string | undefined;
@@ -536,24 +538,24 @@ export function SemanticReleaseDetail() {
                       key={cs.id}
                       className="flex items-center gap-3 rounded-md px-4 py-3"
                       style={{
-                        border: "1px solid #e8e8e5",
-                        backgroundColor: "#ffffff",
+                        border: "1px solid var(--border)",
+                        backgroundColor: "var(--surface)",
                       }}
                     >
                       <BookOpen
                         size={16}
-                        className="shrink-0 text-[#9ca3af]"
+                        className="shrink-0 text-text-muted"
                       />
                       <div className="flex-1 min-w-0">
                         <span
-                          className="text-[14px] font-medium text-[#111113]"
+                          className="text-[14px] font-medium text-foreground"
                           style={{ fontFamily: "var(--font-dm-sans)" }}
                         >
                           {cs.name}
                         </span>
                         <span
-                          className="ml-2 rounded px-1.5 py-0.5 text-[11px] font-medium uppercase text-[#6b7280]"
-                          style={{ backgroundColor: "#f3f3f1" }}
+                          className="ml-2 rounded px-1.5 py-0.5 text-[11px] font-medium uppercase text-text-secondary"
+                          style={{ backgroundColor: "var(--mono-bg)" }}
                         >
                           {cs.type}
                         </span>
@@ -563,7 +565,7 @@ export function SemanticReleaseDetail() {
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="shrink-0 text-[#9ca3af] hover:text-[#374151] transition-colors"
+                          className="shrink-0 text-text-muted hover:text-secondary-foreground transition-colors"
                         >
                           <ExternalLink size={14} />
                         </a>
@@ -578,9 +580,9 @@ export function SemanticReleaseDetail() {
           {/* 13. Changelog Summary */}
           {report.changelog_summary && (
             <section>
-              <SectionLabel className="mb-3">Changelog Summary</SectionLabel>
+              <SectionLabel className="mb-3">{t("sr.detail.changelogSummary")}</SectionLabel>
               <p
-                className="text-[16px] leading-[1.7] text-[#111113]"
+                className="text-[16px] leading-[1.7] text-foreground"
                 style={{ fontFamily: "var(--font-dm-sans)" }}
               >
                 {report.changelog_summary}

@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ChannelForm } from "@/components/channels/channel-form";
 import { useToast, ToastContainer } from "@/components/ui/toast";
+import { useTranslation } from "@/lib/i18n/context";
 import type { NotificationChannel } from "@/lib/api/types";
 
 const TYPE_STYLES: Record<string, { bg: string; text: string; icon: IconType }> = {
@@ -44,6 +45,7 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 export default function ChannelsPage() {
+  const { t } = useTranslation();
   const { data, isLoading } = useSWR("channels", () => channelsApi.list());
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -58,16 +60,24 @@ export default function ChannelsPage() {
     setTestingId(ch.id);
     try {
       await channelsApi.test(ch.id);
-      showToast(`Test notification sent to "${ch.name}"`, "success");
+      showToast(`${t("channels.testSent")} "${ch.name}"`, "success");
     } catch (err) {
       showToast(
-        err instanceof Error ? err.message : "Failed to send test notification",
+        err instanceof Error ? err.message : t("channels.testFailed"),
         "error"
       );
     } finally {
       setTestingId(null);
     }
   };
+
+  const tableHeaders = [
+    t("channels.col.name"),
+    t("channels.col.type"),
+    t("channels.col.config"),
+    t("channels.col.created"),
+    t("channels.col.actions"),
+  ];
 
   return (
     <div className="space-y-6">
@@ -78,16 +88,16 @@ export default function ChannelsPage() {
             fontFamily: "var(--font-fraunces)",
             fontSize: "24px",
             fontWeight: 700,
-            color: "#111113",
+            color: "var(--foreground)",
           }}
         >
-          Channels
+          {t("channels.title")}
         </h1>
         <button
           onClick={() => setCreateOpen(true)}
           className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 transition-colors hover:opacity-90"
           style={{
-            backgroundColor: "#e8601a",
+            backgroundColor: "var(--beacon-accent)",
             color: "#ffffff",
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
@@ -95,14 +105,14 @@ export default function ChannelsPage() {
           }}
         >
           <Plus className="h-4 w-4" />
-          New Channel
+          {t("channels.newChannel")}
         </button>
       </div>
 
       {/* Table card */}
       <div
-        className="overflow-hidden rounded-lg bg-white"
-        style={{ border: "1px solid #e8e8e5" }}
+        className="overflow-hidden rounded-lg bg-surface"
+        style={{ border: "1px solid var(--border)" }}
       >
         {isLoading ? (
           <div
@@ -110,10 +120,10 @@ export default function ChannelsPage() {
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#6b7280",
+              color: "var(--text-secondary)",
             }}
           >
-            Loading...
+            {t("channels.loading")}
           </div>
         ) : channels.length === 0 ? (
           <div className="py-16 text-center">
@@ -122,17 +132,17 @@ export default function ChannelsPage() {
                 fontFamily: "var(--font-fraunces)",
                 fontStyle: "italic",
                 fontSize: "15px",
-                color: "#9ca3af",
+                color: "var(--text-muted)",
               }}
             >
-              No notification channels configured yet
+              {t("channels.empty")}
             </p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr style={{ backgroundColor: "#fafaf9" }}>
-                {["Name", "Type", "Config", "Created", "Actions"].map(
+              <tr style={{ backgroundColor: "var(--background)" }}>
+                {tableHeaders.map(
                   (heading) => (
                     <th
                       key={heading}
@@ -143,8 +153,8 @@ export default function ChannelsPage() {
                         fontWeight: 500,
                         textTransform: "uppercase",
                         letterSpacing: "0.08em",
-                        color: "#9ca3af",
-                        borderBottom: "1px solid #e8e8e5",
+                        color: "var(--text-muted)",
+                        borderBottom: "1px solid var(--border)",
                       }}
                     >
                       {heading}
@@ -157,8 +167,8 @@ export default function ChannelsPage() {
               {channels.map((ch) => (
                 <tr
                   key={ch.id}
-                  className="transition-colors hover:bg-[#fafaf9]"
-                  style={{ borderBottom: "1px solid #e8e8e5" }}
+                  className="transition-colors hover:bg-background"
+                  style={{ borderBottom: "1px solid var(--border)" }}
                 >
                   {/* Name */}
                   <td
@@ -167,7 +177,7 @@ export default function ChannelsPage() {
                       fontFamily: "var(--font-dm-sans)",
                       fontSize: "14px",
                       fontWeight: 500,
-                      color: "#111113",
+                      color: "var(--foreground)",
                     }}
                   >
                     {ch.name}
@@ -184,7 +194,7 @@ export default function ChannelsPage() {
                     style={{
                       fontFamily: "'JetBrains Mono', monospace",
                       fontSize: "12px",
-                      color: "#6b7280",
+                      color: "var(--text-secondary)",
                     }}
                   >
                     {Object.entries(ch.config)
@@ -198,7 +208,7 @@ export default function ChannelsPage() {
                     style={{
                       fontFamily: "var(--font-dm-sans)",
                       fontSize: "13px",
-                      color: "#6b7280",
+                      color: "var(--text-secondary)",
                     }}
                   >
                     {new Date(ch.created_at).toLocaleDateString()}
@@ -210,8 +220,8 @@ export default function ChannelsPage() {
                       <button
                         onClick={() => handleTest(ch)}
                         disabled={testingId === ch.id}
-                        className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:opacity-50"
-                        title="Send test notification"
+                        className="rounded p-1 text-text-muted transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:opacity-50"
+                        title={t("channels.sendTest")}
                       >
                         {testingId === ch.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -221,13 +231,13 @@ export default function ChannelsPage() {
                       </button>
                       <button
                         onClick={() => setEditingChannel(ch)}
-                        className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
+                        className="rounded p-1 text-text-muted transition-colors hover:bg-mono-bg hover:text-foreground"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => setDeletingId(ch.id)}
-                        className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
+                        className="rounded p-1 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -243,9 +253,9 @@ export default function ChannelsPage() {
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Add Channel</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("channels.addChannel")}</DialogTitle></DialogHeader>
           <ChannelForm
-            title="Add Channel"
+            title={t("channels.addChannel")}
             onSubmit={async (input) => { await channelsApi.create(input); }}
             onSuccess={() => { setCreateOpen(false); mutate("channels"); }}
             onCancel={() => setCreateOpen(false)}
@@ -256,11 +266,11 @@ export default function ChannelsPage() {
       {/* Edit dialog */}
       <Dialog open={!!editingChannel} onOpenChange={(open) => { if (!open) setEditingChannel(null); }}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Edit Channel</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("channels.editChannel")}</DialogTitle></DialogHeader>
           {editingChannel && (
             <ChannelForm
               key={editingChannel.id}
-              title="Edit Channel"
+              title={t("channels.editChannel")}
               initial={editingChannel}
               onSubmit={async (input) => { await channelsApi.update(editingChannel.id, input); }}
               onSuccess={() => { setEditingChannel(null); mutate("channels"); }}
@@ -274,8 +284,8 @@ export default function ChannelsPage() {
       <ConfirmDialog
         open={!!deletingId}
         onOpenChange={(open) => { if (!open) setDeletingId(null); }}
-        title="Delete Channel"
-        description="This will permanently delete this notification channel. This cannot be undone."
+        title={t("channels.deleteChannel")}
+        description={t("channels.deleteConfirm")}
         onConfirm={async () => { if (deletingId) { await channelsApi.delete(deletingId); mutate("channels"); } }}
       />
 

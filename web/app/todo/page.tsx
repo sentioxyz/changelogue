@@ -8,16 +8,11 @@ import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { Todo } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n/context";
 
 const PER_PAGE = 15;
 
 type StatusTab = "pending" | "acknowledged" | "resolved";
-
-const TABS: { key: StatusTab; label: string }[] = [
-  { key: "pending", label: "Pending" },
-  { key: "acknowledged", label: "Acknowledged" },
-  { key: "resolved", label: "Resolved" },
-];
 
 const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
   LOW: { bg: "#dcfce7", text: "#166534" },
@@ -39,6 +34,7 @@ export default function TodoPage() {
 }
 
 function TodoPageInner() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<StatusTab>("pending");
   const [page, setPage] = useState(1);
   const [aggregated, setAggregated] = useState(true);
@@ -48,6 +44,12 @@ function TodoPageInner() {
     version?: string;
     onConfirm: () => void;
   } | null>(null);
+
+  const TABS: { key: StatusTab; label: string }[] = [
+    { key: "pending", label: t("todo.tabPending") },
+    { key: "acknowledged", label: t("todo.tabAcknowledged") },
+    { key: "resolved", label: t("todo.tabResolved") },
+  ];
 
   /* Fetch todos for active tab */
   const { data, isLoading, mutate } = useSWR(
@@ -161,18 +163,24 @@ function TodoPageInner() {
     revalidateAll();
   };
 
+  const tabLabelMap: Record<StatusTab, string> = {
+    pending: t("todo.tabPending").toLowerCase(),
+    acknowledged: t("todo.tabAcknowledged").toLowerCase(),
+    resolved: t("todo.tabResolved").toLowerCase(),
+  };
+
   return (
     <div className="space-y-6">
       {/* Page title */}
       <h1
+        className="text-foreground"
         style={{
           fontFamily: "var(--font-fraunces)",
           fontSize: "24px",
           fontWeight: 700,
-          color: "#111113",
         }}
       >
-        Todo
+        {t("todo.title")}
       </h1>
 
       {/* Status tabs + aggregated toggle */}
@@ -192,9 +200,9 @@ function TodoPageInner() {
                   fontFamily: "var(--font-dm-sans)",
                   fontSize: "13px",
                   fontWeight: 500,
-                  color: isActive ? "#111113" : "#6b7280",
-                  backgroundColor: isActive ? "#f3f3f1" : "transparent",
-                  border: isActive ? "1px solid #e8e8e5" : "1px solid transparent",
+                  color: isActive ? "var(--foreground)" : "var(--text-secondary)",
+                  backgroundColor: isActive ? "var(--mono-bg)" : "transparent",
+                  border: isActive ? "1px solid var(--border)" : "1px solid transparent",
                 }}
               >
                 {tab.label}
@@ -203,8 +211,8 @@ function TodoPageInner() {
                   style={{
                     minWidth: "18px",
                     height: "18px",
-                    backgroundColor: isActive ? "#e8e8e5" : "#f3f3f1",
-                    color: isActive ? "#111113" : "#9ca3af",
+                    backgroundColor: isActive ? "var(--border)" : "var(--mono-bg)",
+                    color: isActive ? "var(--foreground)" : "var(--text-muted)",
                   }}
                 >
                   {counts[tab.key]}
@@ -224,49 +232,48 @@ function TodoPageInner() {
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
             fontWeight: 500,
-            color: aggregated ? "#111113" : "#6b7280",
-            backgroundColor: aggregated ? "#f3f3f1" : "transparent",
-            border: aggregated ? "1px solid #e8e8e5" : "1px solid transparent",
+            color: aggregated ? "var(--foreground)" : "var(--text-secondary)",
+            backgroundColor: aggregated ? "var(--mono-bg)" : "transparent",
+            border: aggregated ? "1px solid var(--border)" : "1px solid transparent",
           }}
         >
-          Latest only
+          {t("todo.latestOnly")}
         </button>
       </div>
 
       {/* Table card */}
       <div
-        className="overflow-hidden rounded-lg bg-white"
-        style={{ border: "1px solid #e8e8e5" }}
+        className="overflow-hidden rounded-lg bg-surface"
+        style={{ border: "1px solid var(--border)" }}
       >
         {isLoading ? (
           <div
-            className="py-16 text-center"
+            className="py-16 text-center text-text-secondary"
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#6b7280",
             }}
           >
-            Loading...
+            {t("todo.loading")}
           </div>
         ) : items.length === 0 ? (
           <div className="py-16 text-center">
             <p
+              className="text-text-muted"
               style={{
                 fontFamily: "var(--font-fraunces)",
                 fontStyle: "italic",
                 fontSize: "15px",
-                color: "#9ca3af",
               }}
             >
-              No {activeTab} items
+              {t("todo.noItems").replace("{status}", tabLabelMap[activeTab])}
             </p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr style={{ borderBottom: "1px solid #e8e8e5", backgroundColor: "#fafaf9" }}>
-                {["Project", "Version", "Type", "Provider", "Urgency", "Created", "Actions"].map(
+              <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--background)" }}>
+                {[t("todo.thProject"), t("todo.thVersion"), t("todo.thType"), t("todo.thProvider"), t("todo.thUrgency"), t("todo.thCreated"), t("todo.thActions")].map(
                   (col) => (
                     <th
                       key={col}
@@ -277,7 +284,7 @@ function TodoPageInner() {
                         fontWeight: 600,
                         textTransform: "uppercase" as const,
                         letterSpacing: "0.08em",
-                        color: "#9ca3af",
+                        color: "var(--text-muted)",
                       }}
                     >
                       {col}
@@ -290,16 +297,16 @@ function TodoPageInner() {
               {items.map((todo) => (
                 <tr
                   key={todo.id}
-                  className="transition-colors hover:bg-[#fafaf9]"
-                  style={{ borderBottom: "1px solid #e8e8e5" }}
+                  className="transition-colors hover:bg-background"
+                  style={{ borderBottom: "1px solid var(--border)" }}
                 >
                   {/* Project */}
                   <td className="px-4 py-3">
                     <span
+                      className="text-foreground"
                       style={{
                         fontFamily: "var(--font-dm-sans)",
                         fontSize: "13px",
-                        color: "#111113",
                         fontWeight: 500,
                       }}
                     >
@@ -323,10 +330,10 @@ function TodoPageInner() {
                       </Link>
                     ) : (
                       <span
+                        className="text-text-muted"
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "13px",
-                          color: "#9ca3af",
                         }}
                       >
                         {"\u2014"}
@@ -343,7 +350,7 @@ function TodoPageInner() {
                         color: todo.todo_type === "semantic" ? "#6d28d9" : "#0369a1",
                       }}
                     >
-                      {todo.todo_type === "semantic" ? "Semantic" : "Release"}
+                      {todo.todo_type === "semantic" ? t("todo.typeSemantic") : t("todo.typeRelease")}
                     </span>
                   </td>
 
@@ -353,10 +360,10 @@ function TodoPageInner() {
                       <ProviderBadge provider={todo.provider} />
                     ) : (
                       <span
+                        className="text-text-muted"
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "13px",
-                          color: "#9ca3af",
                         }}
                       >
                         {"\u2014"}
@@ -371,19 +378,19 @@ function TodoPageInner() {
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-none"
                         style={{
                           backgroundColor:
-                            URGENCY_COLORS[todo.urgency.toUpperCase()]?.bg ?? "#f3f3f1",
+                            URGENCY_COLORS[todo.urgency.toUpperCase()]?.bg ?? "var(--mono-bg)",
                           color:
-                            URGENCY_COLORS[todo.urgency.toUpperCase()]?.text ?? "#374151",
+                            URGENCY_COLORS[todo.urgency.toUpperCase()]?.text ?? "var(--secondary-foreground)",
                         }}
                       >
                         {todo.urgency.toUpperCase()}
                       </span>
                     ) : (
                       <span
+                        className="text-text-muted"
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "13px",
-                          color: "#9ca3af",
                         }}
                       >
                         {"\u2014"}
@@ -394,10 +401,10 @@ function TodoPageInner() {
                   {/* Created */}
                   <td className="px-4 py-3">
                     <span
+                      className="text-text-muted"
                       style={{
                         fontFamily: "var(--font-dm-sans)",
                         fontSize: "13px",
-                        color: "#9ca3af",
                       }}
                     >
                       {timeAgo(todo.created_at)}
@@ -421,27 +428,26 @@ function TodoPageInner() {
                               border: "1px solid #bbf7d0",
                             }}
                           >
-                            Acknowledge
+                            {t("todo.acknowledge")}
                           </button>
                           <button
                             onClick={() =>
                               setConfirmDialog({
-                                action: "Dismiss",
+                                action: t("todo.dismiss"),
                                 projectName: todo.project_name,
                                 version: todo.version,
                                 onConfirm: () => handleResolve(todo.id, false),
                               })
                             }
-                            className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
+                            className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80 text-text-secondary border-border"
                             style={{
                               fontFamily: "var(--font-dm-sans)",
                               fontSize: "12px",
                               fontWeight: 500,
-                              color: "#6b7280",
-                              border: "1px solid #e8e8e5",
+                              border: "1px solid var(--border)",
                             }}
                           >
-                            Dismiss
+                            {t("todo.dismiss")}
                           </button>
                         </>
                       )}
@@ -459,27 +465,26 @@ function TodoPageInner() {
                               border: "1px solid #bfdbfe",
                             }}
                           >
-                            Resolve
+                            {t("todo.resolve")}
                           </button>
                           <button
                             onClick={() =>
                               setConfirmDialog({
-                                action: "Undo acknowledge for",
+                                action: t("todo.undo"),
                                 projectName: todo.project_name,
                                 version: todo.version,
                                 onConfirm: () => handleReopen(todo.id),
                               })
                             }
-                            className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
+                            className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80 text-text-secondary"
                             style={{
                               fontFamily: "var(--font-dm-sans)",
                               fontSize: "12px",
                               fontWeight: 500,
-                              color: "#6b7280",
-                              border: "1px solid #e8e8e5",
+                              border: "1px solid var(--border)",
                             }}
                           >
-                            Undo
+                            {t("todo.undo")}
                           </button>
                         </>
                       )}
@@ -487,22 +492,21 @@ function TodoPageInner() {
                         <button
                           onClick={() =>
                             setConfirmDialog({
-                              action: "Reopen",
+                              action: t("todo.reopen"),
                               projectName: todo.project_name,
                               version: todo.version,
                               onConfirm: () => handleReopen(todo.id),
                             })
                           }
-                          className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80"
+                          className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80 text-text-secondary"
                           style={{
                             fontFamily: "var(--font-dm-sans)",
                             fontSize: "12px",
                             fontWeight: 500,
-                            color: "#6b7280",
-                            border: "1px solid #e8e8e5",
+                            border: "1px solid var(--border)",
                           }}
                         >
-                          Reopen
+                          {t("todo.reopen")}
                         </button>
                       )}
                     </div>
@@ -518,10 +522,10 @@ function TodoPageInner() {
       {total > 0 && (
         <div className="flex items-center justify-between">
           <span
+            className="text-text-muted"
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#9ca3af",
             }}
           >
             {startRow}&ndash;{endRow} of {total}
@@ -530,28 +534,26 @@ function TodoPageInner() {
             <button
               disabled={page <= 1}
               onClick={() => setPage(page - 1)}
-              className="rounded-md bg-white px-3 py-1.5 transition-colors hover:bg-[#fafaf9] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-surface px-3 py-1.5 transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-40 text-secondary-foreground border-border"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "13px",
-                color: "#374151",
-                border: "1px solid #e8e8e5",
+                border: "1px solid var(--border)",
               }}
             >
-              Previous
+              {t("todo.previous")}
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="rounded-md bg-white px-3 py-1.5 transition-colors hover:bg-[#fafaf9] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-surface px-3 py-1.5 transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-40 text-secondary-foreground border-border"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "13px",
-                color: "#374151",
-                border: "1px solid #e8e8e5",
+                border: "1px solid var(--border)",
               }}
             >
-              Next
+              {t("todo.next")}
             </button>
           </div>
         </div>
@@ -564,15 +566,15 @@ function TodoPageInner() {
           onClick={() => setConfirmDialog(null)}
         >
           <div
-            className="rounded-lg bg-white p-6 shadow-xl"
+            className="rounded-lg bg-surface p-6 shadow-xl"
             style={{ maxWidth: "360px", width: "100%" }}
             onClick={(e) => e.stopPropagation()}
           >
             <p
+              className="text-foreground"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "14px",
-                color: "#111113",
                 fontWeight: 400,
                 marginBottom: "20px",
                 lineHeight: 1.6,
@@ -583,31 +585,30 @@ function TodoPageInner() {
                 <span style={{ fontWeight: 600 }}>{confirmDialog.projectName}</span>
               )}{" "}
               <span
+                className="bg-mono-bg"
                 style={{
                   fontFamily: "var(--font-mono, ui-monospace, monospace)",
                   fontSize: "13px",
-                  backgroundColor: "#f3f3f1",
                   borderRadius: "4px",
                   padding: "1px 6px",
                   color: "#6d28d9",
                 }}
               >
-                {confirmDialog.version ?? "this item"}
+                {confirmDialog.version ?? t("todo.thisItem")}
               </span>
               ?
             </p>
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setConfirmDialog(null)}
-                className="rounded-md px-3 py-1.5 transition-colors hover:bg-[#f3f3f1]"
+                className="rounded-md px-3 py-1.5 transition-colors hover:bg-mono-bg text-text-secondary"
                 style={{
                   fontFamily: "var(--font-dm-sans)",
                   fontSize: "13px",
-                  color: "#6b7280",
-                  border: "1px solid #e8e8e5",
+                  border: "1px solid var(--border)",
                 }}
               >
-                Cancel
+                {t("todo.cancel")}
               </button>
               <button
                 onClick={() => {
@@ -624,7 +625,7 @@ function TodoPageInner() {
                   border: "1px solid #fecaca",
                 }}
               >
-                Confirm
+                {t("todo.confirm")}
               </button>
             </div>
           </div>

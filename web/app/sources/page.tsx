@@ -13,12 +13,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SourceForm } from "@/components/sources/source-form";
 import type { Source } from "@/lib/api/types";
+import { useTranslation } from "@/lib/i18n/context";
 
 interface SourceWithProject extends Source {
   projectName?: string;
 }
 
 export default function SourcesPage() {
+  const { t } = useTranslation();
   const { data: projectsData } = useSWR("projects-for-sources", () => projectsApi.list());
 
   const { data: allSources, isLoading } = useSWR(
@@ -42,37 +44,37 @@ export default function SourcesPage() {
     <div className="space-y-4">
       <div>
         <h1
+          className="text-foreground"
           style={{
             fontFamily: "var(--font-fraunces)",
             fontSize: "24px",
             fontWeight: 700,
-            color: "#111113",
           }}
         >
-          Sources
+          {t("sources.title")}
         </h1>
         <p
-          className="mt-1 text-[13px] text-[#6b7280]"
+          className="mt-1 text-[13px] text-text-secondary"
           style={{ fontFamily: "var(--font-dm-sans)" }}
         >
-          Ingestion sources across all projects. Sources are managed within their project.
+          {t("sources.description")}
         </p>
       </div>
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="py-12 text-center text-muted-foreground">Loading...</div>
+            <div className="py-12 text-center text-muted-foreground">{t("sources.loading")}</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Repository</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Poll Interval</TableHead>
-                  <TableHead>Last Polled</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>{t("sources.thRepository")}</TableHead>
+                  <TableHead>{t("sources.thProvider")}</TableHead>
+                  <TableHead>{t("sources.thProject")}</TableHead>
+                  <TableHead>{t("sources.thPollInterval")}</TableHead>
+                  <TableHead>{t("sources.thLastPolled")}</TableHead>
+                  <TableHead>{t("sources.thStatus")}</TableHead>
+                  <TableHead>{t("sources.thActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -88,25 +90,25 @@ export default function SourcesPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-sm">{formatInterval(source.poll_interval_seconds)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{source.last_polled_at ? new Date(source.last_polled_at).toLocaleString() : "Never"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{source.last_polled_at ? new Date(source.last_polled_at).toLocaleString() : t("sources.never")}</TableCell>
                     <TableCell>
                       {source.last_error ? (
                         <Badge variant="destructive" className="text-xs max-w-[250px] truncate" title={source.last_error}>{source.last_error}</Badge>
                       ) : (
-                        <Badge variant={source.enabled ? "default" : "secondary"}>{source.enabled ? "active" : "disabled"}</Badge>
+                        <Badge variant={source.enabled ? "default" : "secondary"}>{source.enabled ? t("sources.statusActive") : t("sources.statusDisabled")}</Badge>
                       )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setEditingSource(source)}
-                          className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
+                          className="rounded p-1 text-text-muted transition-colors hover:bg-mono-bg hover:text-foreground"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setDeletingId(source.id)}
-                          className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
+                          className="rounded p-1 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -123,11 +125,11 @@ export default function SourcesPage() {
       {/* Edit dialog */}
       <Dialog open={!!editingSource} onOpenChange={(open) => { if (!open) setEditingSource(null); }}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Edit Source</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("sources.editSource")}</DialogTitle></DialogHeader>
           {editingSource && (
             <SourceForm
               key={editingSource.id}
-              title="Edit Source"
+              title={t("sources.editSource")}
               initial={editingSource}
               onSubmit={async (input) => { await sourcesApi.update(editingSource.id, input); }}
               onSuccess={() => { setEditingSource(null); mutate("all-sources"); }}
@@ -141,8 +143,8 @@ export default function SourcesPage() {
       <ConfirmDialog
         open={!!deletingId}
         onOpenChange={(open) => { if (!open) setDeletingId(null); }}
-        title="Delete Source"
-        description="This will permanently delete this source. This cannot be undone."
+        title={t("sources.deleteSource")}
+        description={t("sources.deleteSourceDesc")}
         onConfirm={async () => { if (deletingId) { await sourcesApi.delete(deletingId); mutate("all-sources"); } }}
       />
     </div>

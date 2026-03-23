@@ -6,10 +6,12 @@ import { Loader2, Check, PackageSearch } from "lucide-react";
 import { suggestions, onboard, projects as projectsApi } from "@/lib/api/client";
 import type { RepoItem, OnboardScan, OnboardSelection, Project, Source } from "@/lib/api/types";
 import { ScanResultsTable } from "./shared/scan-results-table";
+import { useTranslation } from "@/lib/i18n/context";
 
 type Step = "pick" | "scanning" | "results" | "applied";
 
 export function DepsTab() {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("pick");
   const [scanId, setScanId] = useState<string | null>(null);
   const [scan, setScan] = useState<OnboardScan | null>(null);
@@ -150,12 +152,12 @@ export function DepsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-10">
-        <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#e8601a" }} />
+        <Loader2 className="h-4 w-4 animate-spin text-beacon-accent" />
         <span
-          className="ml-2"
-          style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}
+          className="ml-2 text-text-secondary"
+          style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px" }}
         >
-          Loading your repos...
+          {t("dashboard.deps.loadingRepos")}
         </span>
       </div>
     );
@@ -165,7 +167,7 @@ export function DepsTab() {
     return (
       <div className="flex items-center justify-center py-10">
         <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#ef4444" }}>
-          Failed to load repos. Try again later.
+          {t("dashboard.deps.loadError")}
         </span>
       </div>
     );
@@ -187,58 +189,46 @@ export function DepsTab() {
         </div>
       )}
 
-      {/* Step 1: Repo picker — single select */}
+      {/* Step 1: Repo picker -- single select */}
       {step === "pick" && (
         repos.length === 0 ? (
           <div className="flex items-center justify-center py-10">
-            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}>
-              No public repos found.
+            <span className="text-text-secondary" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px" }}>
+              {t("dashboard.deps.noRepos")}
             </span>
           </div>
         ) : (
           <div>
             <p
-              className="mb-3"
-              style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}
+              className="mb-3 text-text-secondary"
+              style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px" }}
             >
-              Pick a repo to scan for dependencies:
+              {t("dashboard.deps.pickRepo")}
             </p>
             <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
               {repos.map((repo) => (
                 <button
                   key={repo.full_name}
                   onClick={() => handleScanRepo(repo)}
-                  className="flex items-center gap-3 rounded-lg p-3 text-left transition-colors"
-                  style={{
-                    border: "1px solid #e8e8e5",
-                    backgroundColor: "#ffffff",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#e8601a";
-                    e.currentTarget.style.backgroundColor = "#fff7ed";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "#e8e8e5";
-                    e.currentTarget.style.backgroundColor = "#ffffff";
-                  }}
+                  className="flex items-center gap-3 rounded-lg p-3 text-left transition-colors border border-border bg-surface hover:border-beacon-accent hover:bg-beacon-accent/10"
                 >
                   <div className="flex-1 min-w-0">
                     <div
-                      className="truncate"
-                      style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", fontWeight: 600, color: "#111113" }}
+                      className="truncate text-foreground"
+                      style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", fontWeight: 600 }}
                     >
                       {repo.full_name}
                     </div>
-                    <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "#9ca3af" }}>
-                      {repo.pushed_at && `Pushed ${new Date(repo.pushed_at).toLocaleDateString()}`}
+                    <div className="text-text-muted" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px" }}>
+                      {repo.pushed_at && `${t("dashboard.deps.pushed")} ${new Date(repo.pushed_at).toLocaleDateString()}`}
                       {repo.language && ` · ${repo.language}`}
                     </div>
                   </div>
                   <span
-                    style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#e8601a", fontWeight: 500 }}
+                    className="text-beacon-accent"
+                    style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", fontWeight: 500 }}
                   >
-                    Scan →
+                    {t("dashboard.deps.scan")} →
                   </span>
                 </button>
               ))}
@@ -251,60 +241,60 @@ export function DepsTab() {
       {step === "scanning" && (
         <div className="flex flex-col items-center justify-center py-10">
           <div
-            className="flex items-center justify-center rounded-full mb-4"
-            style={{ width: 48, height: 48, backgroundColor: "#fff7ed" }}
+            className="flex items-center justify-center rounded-full mb-4 bg-beacon-accent/10"
+            style={{ width: 48, height: 48 }}
           >
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#e8601a" }} />
+            <Loader2 className="h-6 w-6 animate-spin text-beacon-accent" />
           </div>
           <p
-            className="text-[14px] font-medium"
-            style={{ color: "#111113", fontFamily: "var(--font-dm-sans)" }}
+            className="text-[14px] font-medium text-foreground"
+            style={{ fontFamily: "var(--font-dm-sans)" }}
           >
             {scan?.status === "processing"
-              ? "Analyzing dependency files..."
-              : "Waiting to start scan..."}
+              ? t("dashboard.deps.analyzingDeps")
+              : t("dashboard.deps.waitingToStart")}
           </p>
-          <p className="mt-2 text-[12px]" style={{ color: "#9ca3af" }}>
-            {elapsed > 0 && `${elapsed}s elapsed · `}
+          <p className="mt-2 text-[12px] text-text-muted">
+            {elapsed > 0 && `${elapsed}s ${t("dashboard.deps.elapsed")} · `}
             <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{scanningRepo}</span>
           </p>
         </div>
       )}
 
-      {/* Step 3: Results — empty */}
+      {/* Step 3: Results -- empty */}
       {step === "results" && deps.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10">
-          <PackageSearch className="h-8 w-8 mb-3" style={{ color: "#c4c4c0" }} />
-          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}>
-            No dependencies detected in <span style={{ fontWeight: 600, color: "#111113" }}>{scanningRepo}</span>.
+          <PackageSearch className="h-8 w-8 mb-3 text-text-muted" />
+          <p className="text-text-secondary" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px" }}>
+            {t("dashboard.deps.noDepsDetected")} <span className="text-foreground" style={{ fontWeight: 600 }}>{scanningRepo}</span>.
           </p>
           <button
             onClick={resetToPick}
-            className="mt-3"
-            style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#e8601a", background: "none", border: "none", cursor: "pointer" }}
+            className="mt-3 text-beacon-accent"
+            style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", background: "none", border: "none", cursor: "pointer" }}
           >
-            ← Pick another repo
+            ← {t("dashboard.deps.pickAnother")}
           </button>
         </div>
       )}
 
-      {/* Step 3: Results — with deps (same table as Quick Onboard) */}
+      {/* Step 3: Results -- with deps (same table as Quick Onboard) */}
       {step === "results" && deps.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-3">
-            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}>
-              Found <span style={{ color: "#111113", fontWeight: 600 }}>{deps.length}</span> dependencies in{" "}
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#111113", fontWeight: 500 }}>{scanningRepo}</span>.
-              {" "}Selected: <span style={{ color: "#111113", fontWeight: 600 }}>{selectedCount}</span>
+            <p className="text-text-secondary" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px" }}>
+              {t("dashboard.deps.foundDeps")} <span className="text-foreground" style={{ fontWeight: 600 }}>{deps.length}</span> {t("dashboard.deps.dependenciesIn")}{" "}
+              <span className="text-foreground" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>{scanningRepo}</span>.
+              {" "}{t("dashboard.deps.selected")} <span className="text-foreground" style={{ fontWeight: 600 }}>{selectedCount}</span>
             </p>
             <button
               onClick={applySelections}
               disabled={selectedCount === 0 || applying}
-              className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
+              className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed bg-beacon-accent"
+              style={{ fontFamily: "var(--font-dm-sans)" }}
             >
               {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageSearch className="h-4 w-4" />}
-              Track Selected ({selectedCount})
+              {t("dashboard.deps.trackSelected")} ({selectedCount})
             </button>
           </div>
 
@@ -320,9 +310,10 @@ export function DepsTab() {
           <div className="mt-3">
             <button
               onClick={resetToPick}
-              style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#6b7280", background: "none", border: "none", cursor: "pointer" }}
+              className="text-text-secondary"
+              style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", background: "none", border: "none", cursor: "pointer" }}
             >
-              ← Pick another repo
+              ← {t("dashboard.deps.pickAnother")}
             </button>
           </div>
         </>
@@ -342,8 +333,8 @@ export function DepsTab() {
           >
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4" />
-              Successfully created {applyResult.created_sources.length} source{applyResult.created_sources.length !== 1 ? "s" : ""}
-              {applyResult.created_projects.length > 0 && ` and ${applyResult.created_projects.length} project${applyResult.created_projects.length !== 1 ? "s" : ""}`}.
+              {t("dashboard.deps.successCreated")} {applyResult.created_sources.length} {applyResult.created_sources.length !== 1 ? t("dashboard.deps.sources") : t("dashboard.deps.source")}
+              {applyResult.created_projects.length > 0 && ` ${t("dashboard.deps.and")} ${applyResult.created_projects.length} ${applyResult.created_projects.length !== 1 ? t("dashboard.deps.projects") : t("dashboard.deps.project")}`}.
             </div>
           </div>
 
@@ -357,7 +348,7 @@ export function DepsTab() {
                 fontFamily: "var(--font-dm-sans)",
               }}
             >
-              <p className="font-medium mb-1">Skipped ({applyResult.skipped.length}):</p>
+              <p className="font-medium mb-1">{t("dashboard.deps.skipped")} ({applyResult.skipped.length}):</p>
               <ul className="list-disc pl-5 text-[12px]">
                 {applyResult.skipped.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -366,10 +357,10 @@ export function DepsTab() {
 
           <button
             onClick={resetToPick}
-            className="mt-3"
-            style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#e8601a", background: "none", border: "none", cursor: "pointer" }}
+            className="mt-3 text-beacon-accent"
+            style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", background: "none", border: "none", cursor: "pointer" }}
           >
-            Scan another repo →
+            {t("dashboard.deps.scanAnother")} →
           </button>
         </div>
       )}

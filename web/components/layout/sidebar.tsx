@@ -65,7 +65,7 @@ export function Sidebar() {
             </Link>
             <button
               onClick={() => setExpanded(false)}
-              className="ml-auto text-[#9ca3af] transition-colors hover:text-white"
+              className="ml-auto text-sidebar-text transition-colors hover:text-white"
               title="Collapse sidebar"
             >
               <PanelLeftClose className="h-4 w-4" />
@@ -74,7 +74,7 @@ export function Sidebar() {
         ) : (
           <button
             onClick={() => setExpanded(true)}
-            className="mx-auto text-[#9ca3af] transition-colors hover:text-white"
+            className="mx-auto text-sidebar-text transition-colors hover:text-white"
             title="Expand sidebar"
           >
             <PanelLeftOpen className="h-4 w-4" />
@@ -99,12 +99,12 @@ export function Sidebar() {
                 expanded ? "pl-4 pr-3" : "justify-center px-0",
                 isActive
                   ? "text-white"
-                  : "text-[#9ca3af] hover:text-white"
+                  : "text-sidebar-text hover:text-white"
               )}
               style={
                 isActive
                   ? {
-                      borderLeft: "3px solid #e8601a",
+                      borderLeft: "3px solid var(--beacon-accent)",
                       backgroundColor: "rgba(255,255,255,0.06)",
                       paddingLeft: expanded ? "13px" : undefined,
                     }
@@ -145,7 +145,7 @@ export function Sidebar() {
                   </div>
                 )}
                 {expanded && (
-                  <span className="truncate text-xs text-[#9ca3af]">
+                  <span className="truncate text-xs text-sidebar-text">
                     {user.github_login}
                   </span>
                 )}

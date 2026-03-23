@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n/context";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -26,8 +27,9 @@ export function ConfirmDialog({
   title,
   description,
   onConfirm,
-  confirmLabel = "Delete",
+  confirmLabel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
@@ -49,10 +51,10 @@ export function ConfirmDialog({
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancel
+            {t("confirmDialog.cancel")}
           </Button>
           <Button variant="destructive" onClick={handleConfirm} disabled={loading}>
-            {loading ? "Deleting..." : confirmLabel}
+            {loading ? t("confirmDialog.deleting") : (confirmLabel ?? t("confirmDialog.confirm"))}
           </Button>
         </DialogFooter>
       </DialogContent>

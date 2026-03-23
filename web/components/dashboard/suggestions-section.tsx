@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n/context";
 import { StarsTab } from "./stars-tab";
 import { DepsTab } from "./deps-tab";
 import { ScanUrlTab } from "./scan-url-tab";
@@ -13,54 +14,53 @@ interface SuggestionsSectionProps {
 
 export function SuggestionsSection({ showAuthTabs }: SuggestionsSectionProps) {
   const [tab, setTab] = useState<Tab>("scan");
+  const { t } = useTranslation();
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "scan", label: "Scan URL" },
+  const tabs: { key: Tab; labelKey: string }[] = [
+    { key: "scan", labelKey: "dashboard.suggestions.tabScanUrl" },
     ...(showAuthTabs
       ? [
-          { key: "stars" as Tab, label: "Your Stars" },
-          { key: "deps" as Tab, label: "Your Dependencies" },
+          { key: "stars" as Tab, labelKey: "dashboard.suggestions.tabYourStars" },
+          { key: "deps" as Tab, labelKey: "dashboard.suggestions.tabYourDeps" },
         ]
       : []),
   ];
 
   return (
     <div
-      className="rounded-lg bg-white"
-      style={{ border: "1px solid #e8e8e5", overflow: "hidden" }}
+      className="rounded-lg bg-surface border border-border"
+      style={{ overflow: "hidden" }}
     >
       <div
-        className="flex items-center gap-0 px-5"
-        style={{ borderBottom: "1px solid #e8e8e5" }}
+        className="flex items-center gap-0 px-5 border-b border-border"
       >
         <span
-          className="flex-shrink-0 mr-4"
+          className="flex-shrink-0 mr-4 text-foreground"
           style={{
             fontFamily: "var(--font-fraunces)",
             fontSize: "14px",
             fontWeight: 600,
-            color: "#111113",
           }}
         >
-          Quick Onboard
+          {t("dashboard.suggestions.quickOnboard")}
         </span>
-        {tabs.map((t) => (
+        {tabs.map((tabItem) => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={tabItem.key}
+            onClick={() => setTab(tabItem.key)}
             style={{
               padding: "10px 16px",
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              fontWeight: tab === t.key ? 600 : 400,
-              color: tab === t.key ? "#e8601a" : "#6b7280",
-              borderBottom: tab === t.key ? "2px solid #e8601a" : "2px solid transparent",
+              fontWeight: tab === tabItem.key ? 600 : 400,
+              color: tab === tabItem.key ? "var(--beacon-accent)" : "var(--text-secondary)",
+              borderBottom: tab === tabItem.key ? "2px solid var(--beacon-accent)" : "2px solid transparent",
               background: "none",
               cursor: "pointer",
               transition: "color 0.15s",
             }}
           >
-            {t.label}
+            {t(tabItem.labelKey)}
           </button>
         ))}
       </div>

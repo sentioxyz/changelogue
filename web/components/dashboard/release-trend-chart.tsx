@@ -14,6 +14,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { TrendBucket } from "@/lib/api/types";
+import { useTranslation } from "@/lib/i18n/context";
 
 type Granularity = "daily" | "weekly" | "monthly";
 
@@ -39,6 +40,7 @@ function formatPeriod(period: string, granularity: Granularity): string {
 export function ReleaseTrendChart() {
   const [rangeIdx, setRangeIdx] = useState(0);
   const range = RANGE_OPTIONS[rangeIdx];
+  const { t } = useTranslation();
 
   const { data, isLoading } = useSWR(
     `trend-${range.granularity}-${range.days}`,
@@ -55,19 +57,18 @@ export function ReleaseTrendChart() {
 
   return (
     <div
-      className="flex flex-col rounded-lg bg-white px-5 py-4"
-      style={{ border: "1px solid #e8e8e5", height: "336px" }}
+      className="flex flex-col rounded-lg bg-surface px-5 py-4 border border-border"
+      style={{ height: "336px" }}
     >
       <div className="flex items-center justify-between">
         <p
-          className="text-xs uppercase tracking-[0.08em]"
+          className="text-xs uppercase tracking-[0.08em] text-text-secondary"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "12px",
-            color: "#6b7280",
           }}
         >
-          Release Trend
+          {t("dashboard.trend.title")}
         </p>
         <div className="flex gap-1">
           {RANGE_OPTIONS.map((opt, idx) => (
@@ -79,12 +80,12 @@ export function ReleaseTrendChart() {
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "11px",
                 backgroundColor:
-                  rangeIdx === idx ? "#111113" : "transparent",
-                color: rangeIdx === idx ? "#ffffff" : "#6b7280",
+                  rangeIdx === idx ? "var(--foreground)" : "transparent",
+                color: rangeIdx === idx ? "var(--surface)" : "var(--text-secondary)",
                 border:
                   rangeIdx === idx
-                    ? "1px solid #111113"
-                    : "1px solid #e8e8e5",
+                    ? "1px solid var(--foreground)"
+                    : "1px solid var(--border)",
               }}
             >
               {opt.label}
@@ -96,25 +97,23 @@ export function ReleaseTrendChart() {
       <div className="relative mt-3 flex-1" style={{ minHeight: "100px" }}>
         {isLoading ? (
           <div
-            className="flex h-full items-center justify-center"
+            className="flex h-full items-center justify-center text-text-secondary"
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#6b7280",
             }}
           >
-            Loading...
+            {t("dashboard.loading")}
           </div>
         ) : chartData.length === 0 ? (
           <div
-            className="flex h-full items-center justify-center"
+            className="flex h-full items-center justify-center text-text-muted"
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#b0b0a8",
             }}
           >
-            No data yet
+            {t("dashboard.trend.noData")}
           </div>
         ) : (
           <div className="absolute inset-0">
@@ -127,18 +126,18 @@ export function ReleaseTrendChart() {
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="#f0f0ed"
+                  stroke="var(--border)"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 10, fill: "#b0b0a8" }}
+                  tick={{ fontSize: 10, fill: "var(--text-muted)" }}
                   tickLine={false}
-                  axisLine={{ stroke: "#e8e8e5" }}
+                  axisLine={{ stroke: "var(--border)" }}
                   interval="preserveStartEnd"
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: "#b0b0a8" }}
+                  tick={{ fontSize: 10, fill: "var(--text-muted)" }}
                   tickLine={false}
                   axisLine={false}
                   allowDecimals={false}
@@ -148,22 +147,23 @@ export function ReleaseTrendChart() {
                     fontFamily: "var(--font-dm-sans)",
                     fontSize: "12px",
                     borderRadius: "6px",
-                    border: "1px solid #e8e8e5",
+                    border: "1px solid var(--border)",
+                    backgroundColor: "var(--surface)",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                   }}
-                  labelStyle={{ fontWeight: 600, color: "#111113" }}
+                  labelStyle={{ fontWeight: 600, color: "var(--foreground)" }}
                   cursor={{ fill: "rgba(0,0,0,0.03)" }}
                 />
                 <Bar
                   dataKey="releases"
-                  name="Releases"
-                  fill="#e8601a"
+                  name={t("dashboard.trend.releases")}
+                  fill="var(--beacon-accent)"
                   radius={[2, 2, 0, 0]}
                   maxBarSize={20}
                 />
                 <Bar
                   dataKey="semantic_releases"
-                  name="Semantic Releases"
+                  name={t("dashboard.trend.semanticReleases")}
                   fill="#f4a261"
                   radius={[2, 2, 0, 0]}
                   maxBarSize={20}

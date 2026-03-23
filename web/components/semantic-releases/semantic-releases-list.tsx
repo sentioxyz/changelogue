@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Trash2 } from "lucide-react";
 import { timeAgo } from "@/lib/format";
 import type { Project, SemanticRelease } from "@/lib/api/types";
+import { useTranslation } from "@/lib/i18n/context";
 
 /* ---------- Urgency chip ---------- */
 
@@ -57,6 +58,7 @@ function SemanticReleasesListInner() {
   const [page, setPage] = useState(1);
   const [projectFilter, setProjectFilter] = useState<string>(initialProject);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   /* Fetch projects for the filter dropdown */
   const { data: projectsData } = useSWR("projects-for-sr-filter", () =>
@@ -97,10 +99,10 @@ function SemanticReleasesListInner() {
           fontFamily: "var(--font-fraunces)",
           fontSize: "24px",
           fontWeight: 700,
-          color: "#111113",
+          color: "var(--foreground)",
         }}
       >
-        Semantic Releases
+        {t("sr.title")}
       </h1>
 
       {/* Project filter */}
@@ -111,19 +113,19 @@ function SemanticReleasesListInner() {
             setProjectFilter(e.target.value);
             setPage(1);
           }}
-          className="appearance-none rounded-md bg-white px-3 py-2 pr-8 outline-none transition-shadow"
+          className="appearance-none rounded-md bg-surface px-3 py-2 pr-8 outline-none transition-shadow"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#111113",
-            border: "1px solid #e8e8e5",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
           }}
           onFocus={(e) =>
             (e.currentTarget.style.boxShadow = "0 0 0 2px #e8601a40")
           }
           onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
         >
-          <option value="all">All Projects</option>
+          <option value="all">{t("sr.allProjects")}</option>
           {projectsData?.data.map((p: Project) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -134,8 +136,8 @@ function SemanticReleasesListInner() {
 
       {/* Table card */}
       <div
-        className="overflow-hidden rounded-lg bg-white"
-        style={{ border: "1px solid #e8e8e5" }}
+        className="overflow-hidden rounded-lg bg-surface"
+        style={{ border: "1px solid var(--border)" }}
       >
         {isLoading ? (
           <div
@@ -143,10 +145,10 @@ function SemanticReleasesListInner() {
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#6b7280",
+              color: "var(--text-secondary)",
             }}
           >
-            Loading...
+            {t("sr.loading")}
           </div>
         ) : releases.length === 0 ? (
           <div className="py-16 text-center">
@@ -155,17 +157,17 @@ function SemanticReleasesListInner() {
                 fontFamily: "var(--font-fraunces)",
                 fontStyle: "italic",
                 fontSize: "15px",
-                color: "#9ca3af",
+                color: "var(--text-muted)",
               }}
             >
-              No semantic releases yet
+              {t("sr.noReleasesYet")}
             </p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr style={{ borderBottom: "1px solid #e8e8e5", backgroundColor: "#fafaf9" }}>
-                {["Project", "Version", "Status", "Urgency", "Age", ""].map(
+              <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--background)" }}>
+                {[t("sr.colProject"), t("sr.colVersion"), t("sr.colStatus"), t("sr.colUrgency"), t("sr.colAge"), ""].map(
                   (col) => (
                     <th
                       key={col}
@@ -176,7 +178,7 @@ function SemanticReleasesListInner() {
                         fontWeight: 600,
                         textTransform: "uppercase" as const,
                         letterSpacing: "0.08em",
-                        color: "#9ca3af",
+                        color: "var(--text-muted)",
                       }}
                     >
                       {col}
@@ -190,8 +192,8 @@ function SemanticReleasesListInner() {
                 return (
                   <tr
                     key={sr.id}
-                    className="transition-colors hover:bg-[#fafaf9]"
-                    style={{ borderBottom: "1px solid #e8e8e5" }}
+                    className="transition-colors hover:bg-background"
+                    style={{ borderBottom: "1px solid var(--border)" }}
                   >
                     {/* Project */}
                     <td className="px-4 py-3">
@@ -202,7 +204,7 @@ function SemanticReleasesListInner() {
                           style={{
                             fontFamily: "var(--font-dm-sans)",
                             fontSize: "13px",
-                            color: "#111113",
+                            color: "var(--foreground)",
                             fontWeight: 500,
                           }}
                         >
@@ -213,7 +215,7 @@ function SemanticReleasesListInner() {
                           style={{
                             fontFamily: "var(--font-dm-sans)",
                             fontSize: "13px",
-                            color: "#9ca3af",
+                            color: "var(--text-muted)",
                           }}
                         >
                           {"\u2014"}
@@ -234,7 +236,7 @@ function SemanticReleasesListInner() {
                         className="text-[13px] font-medium"
                         style={{
                           fontFamily: "var(--font-dm-sans)",
-                          color: sr.status === "completed" ? "#16a34a" : "#e8601a",
+                          color: sr.status === "completed" ? "var(--status-completed)" : "var(--beacon-accent)",
                         }}
                       >
                         {sr.status}
@@ -250,7 +252,7 @@ function SemanticReleasesListInner() {
                           style={{
                             fontFamily: "var(--font-dm-sans)",
                             fontSize: "13px",
-                            color: "#9ca3af",
+                            color: "var(--text-muted)",
                           }}
                         >
                           {"\u2014"}
@@ -264,7 +266,7 @@ function SemanticReleasesListInner() {
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "13px",
-                          color: "#9ca3af",
+                          color: "var(--text-muted)",
                         }}
                       >
                         {timeAgo(sr.completed_at ?? sr.created_at)}
@@ -275,9 +277,9 @@ function SemanticReleasesListInner() {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setDeletingId(sr.id)}
-                        className="rounded p-1 transition-colors hover:bg-red-50 hover:text-red-600"
-                        style={{ color: "#9ca3af" }}
-                        title="Delete semantic release"
+                        className="rounded p-1 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                        style={{ color: "var(--text-muted)" }}
+                        title={t("sr.deleteRelease")}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -297,7 +299,7 @@ function SemanticReleasesListInner() {
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#9ca3af",
+              color: "var(--text-muted)",
             }}
           >
             {startRow}&ndash;{endRow} of {total}
@@ -306,28 +308,28 @@ function SemanticReleasesListInner() {
             <button
               disabled={page <= 1}
               onClick={() => setPage(page - 1)}
-              className="rounded-md bg-white px-3 py-1.5 transition-colors hover:bg-[#fafaf9] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-surface px-3 py-1.5 transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-40"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "13px",
-                color: "#374151",
-                border: "1px solid #e8e8e5",
+                color: "var(--secondary-foreground)",
+                border: "1px solid var(--border)",
               }}
             >
-              Previous
+              {t("sr.previous")}
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="rounded-md bg-white px-3 py-1.5 transition-colors hover:bg-[#fafaf9] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-surface px-3 py-1.5 transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-40"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "13px",
-                color: "#374151",
-                border: "1px solid #e8e8e5",
+                color: "var(--secondary-foreground)",
+                border: "1px solid var(--border)",
               }}
             >
-              Next
+              {t("sr.next")}
             </button>
           </div>
         </div>
@@ -339,8 +341,8 @@ function SemanticReleasesListInner() {
         onOpenChange={(open) => {
           if (!open) setDeletingId(null);
         }}
-        title="Delete Semantic Release"
-        description="This will permanently delete this semantic release and its report."
+        title={t("sr.deleteTitle")}
+        description={t("sr.deleteDescription")}
         onConfirm={async () => {
           if (deletingId) {
             await srApi.delete(deletingId);

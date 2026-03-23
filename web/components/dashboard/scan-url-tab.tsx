@@ -6,10 +6,12 @@ import { Loader2, Check, Search, PackageSearch } from "lucide-react";
 import { onboard, projects as projectsApi } from "@/lib/api/client";
 import type { OnboardScan, OnboardSelection, Project, Source } from "@/lib/api/types";
 import { ScanResultsTable } from "./shared/scan-results-table";
+import { useTranslation } from "@/lib/i18n/context";
 
 type Step = "input" | "scanning" | "results" | "applied";
 
 export function ScanUrlTab() {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("input");
   const [repoUrl, setRepoUrl] = useState("");
   const [scanId, setScanId] = useState<string | null>(null);
@@ -162,30 +164,25 @@ export function ScanUrlTab() {
               type="text"
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="owner/repo or https://github.com/owner/repo"
-              className="flex-1 rounded-md border px-3 py-2 text-[13px] focus:outline-none focus:ring-2"
+              placeholder={t("dashboard.scan.placeholder")}
+              className="flex-1 rounded-md border border-border px-3 py-2 text-[13px] text-foreground bg-surface focus:outline-none focus:ring-2 focus:ring-beacon-accent"
               style={{
-                borderColor: "#e8e8e5",
-                color: "#111113",
                 fontFamily: "'JetBrains Mono', monospace",
-                backgroundColor: "#ffffff",
               }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "#e8601a"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "#e8e8e5"; }}
               onKeyDown={(e) => e.key === "Enter" && repoUrl.trim() && beginScan(repoUrl)}
             />
             <button
               onClick={() => repoUrl.trim() && beginScan(repoUrl)}
               disabled={!repoUrl.trim()}
-              className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
+              className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed bg-beacon-accent"
+              style={{ fontFamily: "var(--font-dm-sans)" }}
             >
               <Search className="h-4 w-4" />
-              Scan
+              {t("dashboard.scan.scanButton")}
             </button>
           </div>
-          <p className="mt-2 text-[12px]" style={{ color: "#9ca3af" }}>
-            We&apos;ll scan for go.mod, package.json, requirements.txt, Cargo.toml, and other dependency files.
+          <p className="mt-2 text-[12px] text-text-muted">
+            {t("dashboard.scan.description")}
           </p>
         </div>
       )}
@@ -194,59 +191,59 @@ export function ScanUrlTab() {
       {step === "scanning" && (
         <div className="flex flex-col items-center justify-center py-10">
           <div
-            className="flex items-center justify-center rounded-full mb-4"
-            style={{ width: 48, height: 48, backgroundColor: "#fff7ed" }}
+            className="flex items-center justify-center rounded-full mb-4 bg-beacon-accent/10"
+            style={{ width: 48, height: 48 }}
           >
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#e8601a" }} />
+            <Loader2 className="h-6 w-6 animate-spin text-beacon-accent" />
           </div>
           <p
-            className="text-[14px] font-medium"
-            style={{ color: "#111113", fontFamily: "var(--font-dm-sans)" }}
+            className="text-[14px] font-medium text-foreground"
+            style={{ fontFamily: "var(--font-dm-sans)" }}
           >
             {scan?.status === "processing"
-              ? "Analyzing dependency files..."
-              : "Waiting to start scan..."}
+              ? t("dashboard.scan.analyzingDeps")
+              : t("dashboard.scan.waitingToStart")}
           </p>
-          <p className="mt-2 text-[12px]" style={{ color: "#9ca3af" }}>
-            {elapsed > 0 && `${elapsed}s elapsed · `}
+          <p className="mt-2 text-[12px] text-text-muted">
+            {elapsed > 0 && `${elapsed}s ${t("dashboard.scan.elapsed")} · `}
             <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{repoUrl}</span>
           </p>
         </div>
       )}
 
-      {/* Results — empty */}
+      {/* Results -- empty */}
       {step === "results" && deps.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10">
-          <PackageSearch className="h-8 w-8 mb-3" style={{ color: "#c4c4c0" }} />
-          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}>
-            No dependencies detected in this repository.
+          <PackageSearch className="h-8 w-8 mb-3 text-text-muted" />
+          <p className="text-text-secondary" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px" }}>
+            {t("dashboard.scan.noDepsDetected")}
           </p>
           <button
             onClick={resetToInput}
-            className="mt-3"
-            style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#e8601a", background: "none", border: "none", cursor: "pointer" }}
+            className="mt-3 text-beacon-accent"
+            style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", background: "none", border: "none", cursor: "pointer" }}
           >
-            Try another repository
+            {t("dashboard.scan.tryAnother")}
           </button>
         </div>
       )}
 
-      {/* Results — with deps */}
+      {/* Results -- with deps */}
       {step === "results" && deps.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-3">
-            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}>
-              Found <span style={{ color: "#111113", fontWeight: 600 }}>{deps.length}</span> dependencies.
-              {" "}Selected: <span style={{ color: "#111113", fontWeight: 600 }}>{selectedCount}</span>
+            <p className="text-text-secondary" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px" }}>
+              {t("dashboard.scan.foundDeps")} <span className="text-foreground" style={{ fontWeight: 600 }}>{deps.length}</span> {t("dashboard.scan.dependencies")}
+              {" "}{t("dashboard.scan.selected")} <span className="text-foreground" style={{ fontWeight: 600 }}>{selectedCount}</span>
             </p>
             <button
               onClick={applySelections}
               disabled={selectedCount === 0 || applying}
-              className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
+              className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed bg-beacon-accent"
+              style={{ fontFamily: "var(--font-dm-sans)" }}
             >
               {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageSearch className="h-4 w-4" />}
-              Track Selected ({selectedCount})
+              {t("dashboard.scan.trackSelected")} ({selectedCount})
             </button>
           </div>
 
@@ -262,9 +259,10 @@ export function ScanUrlTab() {
           <div className="mt-3">
             <button
               onClick={resetToInput}
-              style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#6b7280", background: "none", border: "none", cursor: "pointer" }}
+              className="text-text-secondary"
+              style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", background: "none", border: "none", cursor: "pointer" }}
             >
-              ← Try another
+              ← {t("dashboard.scan.tryAnotherShort")}
             </button>
           </div>
         </>
@@ -284,8 +282,8 @@ export function ScanUrlTab() {
           >
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4" />
-              Successfully created {applyResult.created_sources.length} source{applyResult.created_sources.length !== 1 ? "s" : ""}
-              {applyResult.created_projects.length > 0 && ` and ${applyResult.created_projects.length} project${applyResult.created_projects.length !== 1 ? "s" : ""}`}.
+              {t("dashboard.scan.successCreated")} {applyResult.created_sources.length} {applyResult.created_sources.length !== 1 ? t("dashboard.scan.sources") : t("dashboard.scan.source")}
+              {applyResult.created_projects.length > 0 && ` ${t("dashboard.scan.and")} ${applyResult.created_projects.length} ${applyResult.created_projects.length !== 1 ? t("dashboard.scan.projects") : t("dashboard.scan.project")}`}.
             </div>
           </div>
 
@@ -299,7 +297,7 @@ export function ScanUrlTab() {
                 fontFamily: "var(--font-dm-sans)",
               }}
             >
-              <p className="font-medium mb-1">Skipped ({applyResult.skipped.length}):</p>
+              <p className="font-medium mb-1">{t("dashboard.scan.skipped")} ({applyResult.skipped.length}):</p>
               <ul className="list-disc pl-5 text-[12px]">
                 {applyResult.skipped.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -308,10 +306,10 @@ export function ScanUrlTab() {
 
           <button
             onClick={resetToInput}
-            className="mt-3"
-            style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#e8601a", background: "none", border: "none", cursor: "pointer" }}
+            className="mt-3 text-beacon-accent"
+            style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", background: "none", border: "none", cursor: "pointer" }}
           >
-            Scan another repo →
+            {t("dashboard.scan.scanAnother")} →
           </button>
         </div>
       )}

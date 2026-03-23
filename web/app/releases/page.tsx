@@ -14,6 +14,7 @@ import { VersionChip } from "@/components/ui/version-chip";
 import type { Release, Project } from "@/lib/api/types";
 import { ExternalLink, Sparkles, Loader2 } from "lucide-react";
 import { URGENCY_STYLES } from "@/components/ui/urgency-pill";
+import { useTranslation } from "@/lib/i18n/context";
 
 import { timeAgo } from "@/lib/format";
 
@@ -52,6 +53,7 @@ export default function ReleasesPage() {
 }
 
 function ReleasesPageInner() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const initialProject = searchParams.get("project") ?? "all";
   const initialShowExcluded = searchParams.get("show_excluded") !== "false";
@@ -147,6 +149,17 @@ function ReleasesPageInner() {
     }
   };
 
+  const tableHeaders = [
+    t("releases.col.project"),
+    t("releases.col.provider"),
+    t("releases.col.repository"),
+    t("releases.col.version"),
+    t("releases.col.released"),
+    t("releases.col.age"),
+    t("releases.col.report"),
+    "",
+  ];
+
   return (
     <div className="space-y-6">
       {/* Page title */}
@@ -155,10 +168,10 @@ function ReleasesPageInner() {
           fontFamily: "var(--font-fraunces)",
           fontSize: "24px",
           fontWeight: 700,
-          color: "#111113",
+          color: "var(--foreground)",
         }}
       >
-        Releases
+        {t("releases.title")}
       </h1>
 
       {/* Filters */}
@@ -175,19 +188,19 @@ function ReleasesPageInner() {
             const qs = params.toString();
             window.history.pushState({}, "", qs ? `?${qs}` : window.location.pathname);
           }}
-          className="appearance-none rounded-md bg-white px-3 py-2 pr-8 outline-none transition-shadow"
+          className="appearance-none rounded-md bg-surface px-3 py-2 pr-8 outline-none transition-shadow"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#111113",
-            border: "1px solid #e8e8e5",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
           }}
           onFocus={(e) =>
-            (e.currentTarget.style.boxShadow = "0 0 0 2px #e8601a40")
+            (e.currentTarget.style.boxShadow = "0 0 0 2px color-mix(in srgb, var(--beacon-accent) 25%, transparent)")
           }
           onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
         >
-          <option value="all">All Projects</option>
+          <option value="all">{t("releases.allProjects")}</option>
           {projectsData?.data.map((p: Project) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -199,9 +212,9 @@ function ReleasesPageInner() {
           <span style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#6b7280",
+            color: "var(--text-secondary)",
           }}>
-            Show excluded
+            {t("releases.showExcluded")}
           </span>
           <button
             role="switch"
@@ -216,7 +229,7 @@ function ReleasesPageInner() {
               window.history.replaceState({}, "", `?${params.toString()}`);
             }}
             className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-            style={{ backgroundColor: showExcluded ? "#e8601a" : "#d1d5db" }}
+            style={{ backgroundColor: showExcluded ? "var(--beacon-accent)" : "#d1d5db" }}
           >
             <span
               className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
@@ -228,8 +241,8 @@ function ReleasesPageInner() {
 
       {/* Table card */}
       <div
-        className="overflow-hidden rounded-lg bg-white"
-        style={{ border: "1px solid #e8e8e5" }}
+        className="overflow-hidden rounded-lg bg-surface"
+        style={{ border: "1px solid var(--border)" }}
       >
         {isLoading ? (
           <div
@@ -237,10 +250,10 @@ function ReleasesPageInner() {
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#6b7280",
+              color: "var(--text-secondary)",
             }}
           >
-            Loading...
+            {t("releases.loading")}
           </div>
         ) : releases.length === 0 ? (
           <div className="py-16 text-center">
@@ -249,17 +262,17 @@ function ReleasesPageInner() {
                 fontFamily: "var(--font-fraunces)",
                 fontStyle: "italic",
                 fontSize: "15px",
-                color: "#9ca3af",
+                color: "var(--text-muted)",
               }}
             >
-              No releases ingested yet
+              {t("releases.empty")}
             </p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr style={{ borderBottom: "1px solid #e8e8e5", backgroundColor: "#fafaf9" }}>
-                {["Project", "Provider", "Repository", "Version", "Released", "Age", "Report", ""].map(
+              <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--background)" }}>
+                {tableHeaders.map(
                   (col) => (
                     <th
                       key={col}
@@ -270,7 +283,7 @@ function ReleasesPageInner() {
                         fontWeight: 600,
                         textTransform: "uppercase" as const,
                         letterSpacing: "0.08em",
-                        color: "#9ca3af",
+                        color: "var(--text-muted)",
                       }}
                     >
                       {col}
@@ -283,9 +296,9 @@ function ReleasesPageInner() {
               {releases.map((release) => (
                 <tr
                   key={release.id}
-                  className={`transition-colors ${release.excluded ? '' : 'hover:bg-[#fafaf9]'}`}
+                  className={`transition-colors ${release.excluded ? '' : 'hover:bg-background'}`}
                   style={{
-                    borderBottom: "1px solid #e8e8e5",
+                    borderBottom: "1px solid var(--border)",
                     opacity: release.excluded ? 0.45 : 1,
                   }}
                 >
@@ -298,7 +311,7 @@ function ReleasesPageInner() {
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "13px",
-                          color: "#111113",
+                          color: "var(--foreground)",
                           fontWeight: 500,
                         }}
                       >
@@ -309,7 +322,7 @@ function ReleasesPageInner() {
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "13px",
-                          color: "#9ca3af",
+                          color: "var(--text-muted)",
                         }}
                       >
                         {"\u2014"}
@@ -326,7 +339,7 @@ function ReleasesPageInner() {
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "13px",
-                          color: "#9ca3af",
+                          color: "var(--text-muted)",
                         }}
                       >
                         {"\u2014"}
@@ -340,7 +353,7 @@ function ReleasesPageInner() {
                       style={{
                         fontFamily: "'JetBrains Mono', monospace",
                         fontSize: "12px",
-                        color: "#374151",
+                        color: "var(--secondary-foreground)",
                       }}
                     >
                       {release.repository ?? release.source_id}
@@ -360,7 +373,7 @@ function ReleasesPageInner() {
                       style={{
                         fontFamily: "var(--font-dm-sans)",
                         fontSize: "13px",
-                        color: "#6b7280",
+                        color: "var(--text-secondary)",
                       }}
                     >
                       {release.released_at
@@ -375,7 +388,7 @@ function ReleasesPageInner() {
                       style={{
                         fontFamily: "var(--font-dm-sans)",
                         fontSize: "13px",
-                        color: "#9ca3af",
+                        color: "var(--text-muted)",
                       }}
                     >
                       {timeAgo(release.released_at ?? release.created_at)}
@@ -393,18 +406,18 @@ function ReleasesPageInner() {
                           href={`/projects/${release.project_id}/semantic-releases/${release.semantic_release_id}`}
                           className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors"
                           style={{ backgroundColor: pill.bg, border: `1px solid ${pill.border}`, color: pill.text, fontFamily: "var(--font-dm-sans)" }}
-                          title="View report"
+                          title={t("releases.viewReport")}
                         >
                           <pill.icon size={10} /> {release.semantic_release_urgency}
                         </Link>
                       ) : (
                         <Link
                           href={`/projects/${release.project_id}/semantic-releases/${release.semantic_release_id}`}
-                          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors"
-                          style={{ backgroundColor: "rgba(107,114,128,0.08)", border: "1px solid rgba(107,114,128,0.18)", color: "#6b7280", fontFamily: "var(--font-dm-sans)" }}
-                          title="View report"
+                          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors bg-muted"
+                          style={{ border: "1px solid color-mix(in srgb, var(--text-secondary) 18%, transparent)", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}
+                          title={t("releases.viewReport")}
                         >
-                          Report
+                          {t("releases.report")}
                         </Link>
                       );
                     })() : release.semantic_release_status === "pending" || release.semantic_release_status === "processing" || triggeringVersion === release.version ? (
@@ -413,30 +426,30 @@ function ReleasesPageInner() {
                         style={{ color: "#2563eb", backgroundColor: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.18)", fontFamily: "var(--font-dm-sans)" }}
                       >
                         <Loader2 size={10} className="animate-spin" />
-                        {release.semantic_release_status || "analyzing"}
+                        {release.semantic_release_status || t("releases.analyzing")}
                       </span>
                     ) : release.project_id && !release.excluded ? (
                       <button
                         onClick={() => handleTrigger(release.project_id!, release.version)}
                         disabled={triggeringVersion === release.version}
-                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors hover:bg-[#f3f3f1] disabled:opacity-50 cursor-pointer"
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors hover:bg-mono-bg disabled:opacity-50 cursor-pointer"
                         style={{
-                          color: "#6b7280",
-                          backgroundColor: "rgba(107,114,128,0.06)",
-                          border: "1px solid rgba(107,114,128,0.18)",
+                          color: "var(--text-secondary)",
+                          backgroundColor: "color-mix(in srgb, var(--text-secondary) 6%, transparent)",
+                          border: "1px solid color-mix(in srgb, var(--text-secondary) 18%, transparent)",
                           fontFamily: "var(--font-dm-sans)",
                         }}
-                        title="Generate report"
+                        title={t("releases.generateReport")}
                       >
                         <Sparkles size={10} />
-                        Analyze
+                        {t("releases.analyze")}
                       </button>
                     ) : (
                       <span
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "13px",
-                          color: "#9ca3af",
+                          color: "var(--text-muted)",
                         }}
                       >
                         {"\u2014"}
@@ -454,8 +467,8 @@ function ReleasesPageInner() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center transition-colors hover:opacity-70"
-                          style={{ color: "#9ca3af" }}
-                          title="View on provider"
+                          style={{ color: "var(--text-muted)" }}
+                          title={t("releases.viewOnProvider")}
                         >
                           <ExternalLink size={14} />
                         </a>
@@ -476,7 +489,7 @@ function ReleasesPageInner() {
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#9ca3af",
+              color: "var(--text-muted)",
             }}
           >
             {startRow}&ndash;{endRow} of {total}
@@ -485,28 +498,28 @@ function ReleasesPageInner() {
             <button
               disabled={page <= 1}
               onClick={() => setPage(page - 1)}
-              className="rounded-md bg-white px-3 py-1.5 transition-colors hover:bg-[#fafaf9] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-surface px-3 py-1.5 transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-40"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "13px",
-                color: "#374151",
-                border: "1px solid #e8e8e5",
+                color: "var(--secondary-foreground)",
+                border: "1px solid var(--border)",
               }}
             >
-              Previous
+              {t("releases.previous")}
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="rounded-md bg-white px-3 py-1.5 transition-colors hover:bg-[#fafaf9] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-surface px-3 py-1.5 transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-40"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "13px",
-                color: "#374151",
-                border: "1px solid #e8e8e5",
+                color: "var(--secondary-foreground)",
+                border: "1px solid var(--border)",
               }}
             >
-              Next
+              {t("releases.next")}
             </button>
           </div>
         </div>

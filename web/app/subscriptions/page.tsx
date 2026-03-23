@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SubscriptionForm } from "@/components/subscriptions/subscription-form";
+import { useTranslation } from "@/lib/i18n/context";
 
 const SUB_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   source_release: { bg: "#1a1a1a", text: "#ffffff" },
@@ -40,6 +41,7 @@ function SubTypeBadge({ type }: { type: string }) {
 }
 
 export default function SubscriptionsPage() {
+  const { t } = useTranslation();
   const { data, isLoading } = useSWR("subscriptions", () => subsApi.list());
   const { data: channelsData } = useSWR("channels-for-sub-list", () =>
     channelsApi.list()
@@ -159,75 +161,75 @@ export default function SubscriptionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1
+          className="text-foreground"
           style={{
             fontFamily: "var(--font-fraunces)",
             fontSize: "24px",
             fontWeight: 700,
-            color: "#111113",
           }}
         >
-          Subscriptions
+          {t("subscriptions.title")}
         </h1>
         <button
           onClick={() => setCreateOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 transition-colors hover:opacity-90"
+          className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 transition-colors hover:opacity-90 bg-beacon-accent text-white"
           style={{
-            backgroundColor: "#e8601a",
-            color: "#ffffff",
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
             fontWeight: 500,
           }}
         >
           <Plus className="h-4 w-4" />
-          New Subscription
+          {t("subscriptions.newSubscription")}
         </button>
       </div>
 
       {isLoading ? (
         <div
-          className="overflow-hidden rounded-lg bg-white py-16 text-center"
-          style={{ border: "1px solid #e8e8e5", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}
+          className="overflow-hidden rounded-lg bg-surface py-16 text-center border-border"
+          style={{ border: "1px solid var(--border)", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "var(--text-secondary)" }}
         >
-          Loading...
+          {t("subscriptions.loading")}
         </div>
       ) : subscriptions.length === 0 ? (
         <div
-          className="overflow-hidden rounded-lg bg-white py-16 text-center"
-          style={{ border: "1px solid #e8e8e5" }}
+          className="overflow-hidden rounded-lg bg-surface py-16 text-center border-border"
+          style={{ border: "1px solid var(--border)" }}
         >
           <p
+            className="text-text-muted"
             style={{
               fontFamily: "var(--font-fraunces)",
               fontStyle: "italic",
               fontSize: "15px",
-              color: "#9ca3af",
             }}
           >
-            No subscriptions configured yet
+            {t("subscriptions.empty")}
           </p>
         </div>
       ) : (
         <>
           {/* Select all / batch bar */}
           <div
-            className="flex items-center gap-3 rounded-lg bg-white px-5 py-2.5"
-            style={{ border: "1px solid #e8e8e5" }}
+            className="flex items-center gap-3 rounded-lg bg-surface px-5 py-2.5"
+            style={{ border: "1px solid var(--border)" }}
           >
             <Checkbox
               checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
               onCheckedChange={toggleSelectAll}
             />
             <span
+              className="text-text-secondary"
               style={{
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "13px",
-                color: "#6b7280",
               }}
             >
               {selectedIds.size > 0
-                ? `${selectedIds.size} of ${subscriptions.length} selected`
-                : `${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}`}
+                ? t("subscriptions.selected").replace("{count}", String(selectedIds.size)).replace("{total}", String(subscriptions.length))
+                : subscriptions.length === 1
+                  ? t("subscriptions.countLabel").replace("{count}", String(subscriptions.length))
+                  : t("subscriptions.countLabelPlural").replace("{count}", String(subscriptions.length))}
             </span>
             {selectedIds.size > 0 && (
               <button
@@ -242,7 +244,7 @@ export default function SubscriptionsPage() {
                 }}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                Delete Selected
+                {t("subscriptions.deleteSelected")}
               </button>
             )}
           </div>
@@ -259,13 +261,13 @@ export default function SubscriptionsPage() {
               return (
                 <div
                   key={channelId}
-                  className="overflow-hidden rounded-lg bg-white"
-                  style={{ border: "1px solid #e8e8e5" }}
+                  className="overflow-hidden rounded-lg bg-surface"
+                  style={{ border: "1px solid var(--border)" }}
                 >
                   {/* Channel header */}
                   <div
-                    className="flex items-center gap-3 px-5 py-3 cursor-pointer select-none"
-                    style={{ backgroundColor: "#fafaf9", borderBottom: isCollapsed ? "none" : "1px solid #e8e8e5" }}
+                    className="flex items-center gap-3 px-5 py-3 cursor-pointer select-none bg-background"
+                    style={{ borderBottom: isCollapsed ? "none" : "1px solid var(--border)" }}
                     onClick={() => toggleChannel(channelId)}
                   >
                     <div onClick={(e) => e.stopPropagation()}>
@@ -275,45 +277,44 @@ export default function SubscriptionsPage() {
                       />
                     </div>
                     <ChevronRight
-                      className="h-4 w-4 transition-transform"
+                      className="h-4 w-4 transition-transform text-text-muted"
                       style={{
-                        color: "#9ca3af",
                         transform: isCollapsed ? "rotate(0deg)" : "rotate(90deg)",
                       }}
                     />
                     <span
+                      className="text-foreground"
                       style={{
                         fontFamily: "var(--font-dm-sans)",
                         fontSize: "14px",
                         fontWeight: 600,
-                        color: "#111113",
                       }}
                     >
                       {getChannelName(channelId)}
                     </span>
                     {channelType && (
                       <span
-                        className="rounded-full px-2 py-0.5"
+                        className="rounded-full px-2 py-0.5 text-text-secondary bg-mono-bg"
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "11px",
                           fontWeight: 500,
-                          color: "#6b7280",
-                          backgroundColor: "#f3f3f1",
                         }}
                       >
                         {channelType}
                       </span>
                     )}
                     <span
+                      className="text-text-muted"
                       style={{
                         fontFamily: "var(--font-dm-sans)",
                         fontSize: "12px",
-                        color: "#9ca3af",
                         marginLeft: "auto",
                       }}
                     >
-                      {channelSubs.length} subscription{channelSubs.length === 1 ? "" : "s"}
+                      {channelSubs.length === 1
+                        ? t("subscriptions.channelSubscription").replace("{count}", String(channelSubs.length))
+                        : t("subscriptions.channelSubscriptionPlural").replace("{count}", String(channelSubs.length))}
                     </span>
                   </div>
 
@@ -322,7 +323,7 @@ export default function SubscriptionsPage() {
                     <table className="w-full">
                       <thead>
                         <tr>
-                          {["", "Type", "Target", "Version Filter", ""].map(
+                          {["", t("subscriptions.thType"), t("subscriptions.thTarget"), t("subscriptions.thVersionFilter"), ""].map(
                             (heading, i) => (
                               <th
                                 key={i}
@@ -333,8 +334,8 @@ export default function SubscriptionsPage() {
                                   fontWeight: 500,
                                   textTransform: "uppercase",
                                   letterSpacing: "0.08em",
-                                  color: "#9ca3af",
-                                  borderBottom: "1px solid #e8e8e5",
+                                  color: "var(--text-muted)",
+                                  borderBottom: "1px solid var(--border)",
                                 }}
                               >
                                 {heading}
@@ -347,8 +348,8 @@ export default function SubscriptionsPage() {
                         {channelSubs.map((sub) => (
                           <tr
                             key={sub.id}
-                            className="transition-colors hover:bg-[#fafaf9]"
-                            style={{ borderBottom: "1px solid #e8e8e5" }}
+                            className="transition-colors hover:bg-background"
+                            style={{ borderBottom: "1px solid var(--border)" }}
                           >
                             {/* Checkbox */}
                             <td className="w-10 px-5 py-3">
@@ -365,12 +366,11 @@ export default function SubscriptionsPage() {
 
                             {/* Target */}
                             <td
-                              className="px-5 py-3"
+                              className="px-5 py-3 text-foreground"
                               style={{
                                 fontFamily: "var(--font-dm-sans)",
                                 fontSize: "14px",
                                 fontWeight: 500,
-                                color: "#111113",
                               }}
                             >
                               {sub.type === "source_release"
@@ -386,7 +386,7 @@ export default function SubscriptionsPage() {
                                   ? "'JetBrains Mono', monospace"
                                   : "var(--font-dm-sans)",
                                 fontSize: "13px",
-                                color: sub.version_filter ? "#111113" : "#9ca3af",
+                                color: sub.version_filter ? "var(--foreground)" : "var(--text-muted)",
                               }}
                             >
                               {sub.version_filter || "\u2014"}
@@ -397,13 +397,13 @@ export default function SubscriptionsPage() {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => setEditingSub(sub)}
-                                  className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-[#f3f3f1] hover:text-[#111113]"
+                                  className="rounded p-1 text-text-muted transition-colors hover:bg-mono-bg hover:text-foreground"
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => setDeletingId(sub.id)}
-                                  className="rounded p-1 text-[#9ca3af] transition-colors hover:bg-red-50 hover:text-red-600"
+                                  className="rounded p-1 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -425,10 +425,10 @@ export default function SubscriptionsPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create Subscription</DialogTitle>
+            <DialogTitle>{t("subscriptions.createSubscription")}</DialogTitle>
           </DialogHeader>
           <SubscriptionForm
-            title="Create Subscription"
+            title={t("subscriptions.createSubscription")}
             onSubmit={async (input) => {
               await subsApi.create(input);
             }}
@@ -454,12 +454,12 @@ export default function SubscriptionsPage() {
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Subscription</DialogTitle>
+            <DialogTitle>{t("subscriptions.editSubscription")}</DialogTitle>
           </DialogHeader>
           {editingSub && (
             <SubscriptionForm
               key={editingSub.id}
-              title="Edit Subscription"
+              title={t("subscriptions.editSubscription")}
               initial={editingSub}
               onSubmit={async (input) => {
                 await subsApi.update(editingSub.id, input);
@@ -481,8 +481,8 @@ export default function SubscriptionsPage() {
         onOpenChange={(open) => {
           if (!open) setDeletingId(null);
         }}
-        title="Delete Subscription"
-        description="This will permanently delete this subscription. This cannot be undone."
+        title={t("subscriptions.deleteSubscription")}
+        description={t("subscriptions.deleteSubscriptionDesc")}
         onConfirm={async () => {
           if (deletingId) {
             await subsApi.delete(deletingId);
@@ -496,8 +496,8 @@ export default function SubscriptionsPage() {
       <ConfirmDialog
         open={batchDeleteOpen}
         onOpenChange={setBatchDeleteOpen}
-        title="Delete Subscriptions"
-        description={`This will permanently delete ${selectedIds.size} subscription${selectedIds.size === 1 ? "" : "s"}. This cannot be undone.`}
+        title={t("subscriptions.deleteSubscriptions")}
+        description={t("subscriptions.deleteSubscriptionsDesc").replace("{count}", String(selectedIds.size))}
         onConfirm={async () => {
           await subsApi.batchDelete({ ids: [...selectedIds] });
           mutate("subscriptions");

@@ -11,11 +11,13 @@ import { DiscoverySection } from "@/components/dashboard/discovery-section";
 import { SuggestionsSection } from "@/components/dashboard/suggestions-section";
 import { projects as projectsApi } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth/context";
+import { useTranslation } from "@/lib/i18n/context";
 
 const SSE_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { data: projectsData, isLoading } = useSWR("projects-for-dashboard", () =>
     projectsApi.list()
   );
@@ -61,10 +63,10 @@ export default function DashboardPage() {
           fontFamily: "var(--font-fraunces)",
           fontSize: "24px",
           fontWeight: 700,
-          color: "#111113",
+          color: "var(--foreground)",
         }}
       >
-        Dashboard
+        {t("dashboard.title")}
       </h1>
 
       {user?.github_login && user.github_login !== "dev" ? (
@@ -86,14 +88,13 @@ export default function DashboardPage() {
         </>
       ) : isLoading ? (
         <div
-          className="py-16 text-center"
+          className="py-16 text-center text-text-secondary"
           style={{
             fontFamily: "var(--font-dm-sans)",
             fontSize: "13px",
-            color: "#6b7280",
           }}
         >
-          Loading...
+          {t("dashboard.loading")}
         </div>
       ) : (
         <DashboardEmptyState />

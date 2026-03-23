@@ -1,46 +1,46 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useTranslation } from "@/lib/i18n/context";
 
-const SEGMENT_LABELS: Record<string, string> = {
-  "": "Dashboard",
-  projects: "Projects",
-  releases: "Releases",
-  sources: "Sources",
-  subscriptions: "Subscriptions",
-  channels: "Channels",
-  agent: "Agent",
-  "semantic-releases": "Semantic Releases",
-  "context-sources": "Context Sources",
-  new: "New",
-  edit: "Edit",
+const SEGMENT_KEYS: Record<string, string> = {
+  "": "header.breadcrumb.dashboard",
+  projects: "header.breadcrumb.projects",
+  releases: "header.breadcrumb.releases",
+  sources: "header.breadcrumb.sources",
+  subscriptions: "header.breadcrumb.subscriptions",
+  channels: "header.breadcrumb.channels",
+  agent: "header.breadcrumb.agent",
+  "semantic-releases": "header.breadcrumb.semanticReleases",
+  "context-sources": "header.breadcrumb.contextSources",
+  new: "header.breadcrumb.new",
+  edit: "header.breadcrumb.edit",
 };
-
-function segmentLabel(seg: string): string {
-  return SEGMENT_LABELS[seg] ?? seg;
-}
 
 export function Header() {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const segments = pathname.split("/").filter(Boolean);
 
   const uuidRe = /^[0-9a-f-]{8,}$/i;
   const breadcrumbs = segments
     .filter((s) => !uuidRe.test(s))
-    .map(segmentLabel);
+    .map((seg) => {
+      const key = SEGMENT_KEYS[seg];
+      return key ? t(key) : seg;
+    });
 
   const display =
     breadcrumbs.length === 0
-      ? "Dashboard"
+      ? t("header.breadcrumb.dashboard")
       : breadcrumbs.join(" / ");
 
   return (
     <header
-      className="flex h-12 items-center px-6"
-      style={{ borderBottom: "1px solid #e8e8e5", backgroundColor: "#ffffff" }}
+      className="flex h-12 items-center border-b border-border bg-surface px-6"
     >
       <p
-        className="text-[14px] font-medium text-[#111113]"
+        className="text-[14px] font-medium text-foreground"
         style={{ fontFamily: "var(--font-dm-sans)" }}
       >
         {display}

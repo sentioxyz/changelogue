@@ -15,6 +15,7 @@ import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { SemanticRelease, Source, Project } from "@/lib/api/types";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/context";
 
 import { timeAgo } from "@/lib/format";
 import { getPathSegment } from "@/lib/path";
@@ -76,6 +77,7 @@ function getProviderLabel(provider: string): string {
 /* ------------------------------------------------------------------ */
 
 export function ReleaseDetail() {
+  const { t } = useTranslation();
   const router = useRouter();
   // Read ID from URL path — useParams() returns stale "0" in static export
   const id = getPathSegment(1); // /releases/{id}
@@ -129,10 +131,10 @@ export function ReleaseDetail() {
         style={{
           fontFamily: "var(--font-dm-sans)",
           fontSize: "13px",
-          color: "#6b7280",
+          color: "var(--text-secondary)",
         }}
       >
-        Loading...
+        {t("releases.loading")}
       </div>
     );
   }
@@ -145,10 +147,10 @@ export function ReleaseDetail() {
             fontFamily: "var(--font-fraunces)",
             fontStyle: "italic",
             fontSize: "15px",
-            color: "#9ca3af",
+            color: "var(--text-muted)",
           }}
         >
-          Release not found
+          {t("releases.notFound")}
         </p>
       </div>
     );
@@ -163,11 +165,11 @@ export function ReleaseDetail() {
         style={{
           fontFamily: "var(--font-dm-sans)",
           fontSize: "13px",
-          color: "#6b7280",
+          color: "var(--text-secondary)",
         }}
       >
         <ArrowLeft size={14} />
-        Back
+        {t("releases.back")}
       </button>
 
       {/* Header */}
@@ -177,10 +179,10 @@ export function ReleaseDetail() {
             fontFamily: "var(--font-fraunces)",
             fontSize: "24px",
             fontWeight: 700,
-            color: "#111113",
+            color: "var(--foreground)",
           }}
         >
-          Release {release.version}
+          {t("releases.releaseVersion")} {release.version}
         </h1>
         <div className="mt-2 flex items-center gap-3">
           {source && <ProviderBadge provider={source.provider} />}
@@ -189,7 +191,7 @@ export function ReleaseDetail() {
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: "12px",
-                color: "#374151",
+                color: "var(--secondary-foreground)",
               }}
             >
               {source.repository}
@@ -207,10 +209,10 @@ export function ReleaseDetail() {
                 style={{
                   fontFamily: "var(--font-dm-sans)",
                   fontSize: "12px",
-                  color: "#e8601a",
+                  color: "var(--beacon-accent)",
                 }}
               >
-                View on {getProviderLabel(source.provider)}
+                {t("releases.viewOn")} {getProviderLabel(source.provider)}
                 <ExternalLink size={12} />
               </a>
             ) : null;
@@ -222,14 +224,14 @@ export function ReleaseDetail() {
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "13px",
-              color: "#6b7280",
+              color: "var(--text-secondary)",
             }}
           >
-            Project:{" "}
+            {t("releases.project")}:{" "}
             <Link
               href={`/projects/${project.id}`}
               className="hover:underline"
-              style={{ color: "#e8601a" }}
+              style={{ color: "var(--beacon-accent)" }}
             >
               {project.name}
             </Link>
@@ -241,50 +243,50 @@ export function ReleaseDetail() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Version Details card */}
         <div
-          className="rounded-lg bg-white"
-          style={{ border: "1px solid #e8e8e5" }}
+          className="rounded-lg bg-surface"
+          style={{ border: "1px solid var(--border)" }}
         >
           <div
             className="px-5 py-4"
-            style={{ borderBottom: "1px solid #e8e8e5" }}
+            style={{ borderBottom: "1px solid var(--border)" }}
           >
             <h2
               style={{
                 fontFamily: "var(--font-fraunces)",
                 fontSize: "16px",
                 fontWeight: 600,
-                color: "#111113",
+                color: "var(--foreground)",
               }}
             >
-              Version Details
+              {t("releases.versionDetails")}
             </h2>
           </div>
           <div className="space-y-3 px-5 py-4">
-            <DetailRow label="Version" value={release.version} mono />
+            <DetailRow label={t("releases.detail.version")} value={release.version} mono />
             <DetailRow
-              label="Source ID"
+              label={t("releases.detail.sourceId")}
               value={release.source_id}
               mono
               small
             />
             {source && (
               <>
-                <DetailRow label="Provider" value={source.provider} />
-                <DetailRow label="Repository" value={source.repository} mono />
+                <DetailRow label={t("releases.detail.provider")} value={source.provider} />
+                <DetailRow label={t("releases.detail.repository")} value={source.repository} mono />
               </>
             )}
             {release.released_at && (
               <DetailRow
-                label="Released At"
+                label={t("releases.detail.releasedAt")}
                 value={new Date(release.released_at).toLocaleString()}
               />
             )}
             <DetailRow
-              label="Ingested At"
+              label={t("releases.detail.ingestedAt")}
               value={new Date(release.created_at).toLocaleString()}
             />
             <DetailRow
-              label="Age"
+              label={t("releases.detail.age")}
               value={timeAgo(release.released_at ?? release.created_at)}
             />
           </div>
@@ -292,22 +294,22 @@ export function ReleaseDetail() {
 
         {/* Linked Semantic Releases */}
         <div
-          className="rounded-lg bg-white"
-          style={{ border: "1px solid #e8e8e5" }}
+          className="rounded-lg bg-surface"
+          style={{ border: "1px solid var(--border)" }}
         >
           <div
             className="px-5 py-4"
-            style={{ borderBottom: "1px solid #e8e8e5" }}
+            style={{ borderBottom: "1px solid var(--border)" }}
           >
             <h2
               style={{
                 fontFamily: "var(--font-fraunces)",
                 fontSize: "16px",
                 fontWeight: 600,
-                color: "#111113",
+                color: "var(--foreground)",
               }}
             >
-              Semantic Releases
+              {t("releases.semanticReleases")}
             </h2>
           </div>
           <div className="px-5 py-4">
@@ -317,8 +319,8 @@ export function ReleaseDetail() {
                   <Link
                     key={sr.id}
                     href={`/projects/${sr.project_id}/semantic-releases/${sr.id}`}
-                    className="block rounded-lg px-4 py-3 transition-colors hover:bg-[#fafaf9]"
-                    style={{ border: "1px solid #e8e8e5" }}
+                    className="block rounded-lg px-4 py-3 transition-colors hover:bg-background"
+                    style={{ border: "1px solid var(--border)" }}
                   >
                     <div className="flex items-center justify-between">
                       <VersionChip version={sr.version} />
@@ -329,9 +331,9 @@ export function ReleaseDetail() {
                           fontSize: "11px",
                           fontWeight: 500,
                           color:
-                            sr.status === "completed" ? "#16a34a" : "#e8601a",
+                            sr.status === "completed" ? "#16a34a" : "var(--beacon-accent)",
                           backgroundColor:
-                            sr.status === "completed" ? "#f0fdf4" : "#fff7ed",
+                            sr.status === "completed" ? "#f0fdf4" : "color-mix(in srgb, var(--beacon-accent) 10%, transparent)",
                         }}
                       >
                         {sr.status}
@@ -344,7 +346,7 @@ export function ReleaseDetail() {
                           fontFamily: "var(--font-dm-sans)",
                           fontStyle: "italic",
                           fontSize: "13px",
-                          color: "#6b7280",
+                          color: "var(--text-secondary)",
                         }}
                       >
                         {sr.report.summary}
@@ -355,7 +357,7 @@ export function ReleaseDetail() {
                       style={{
                         fontFamily: "var(--font-dm-sans)",
                         fontSize: "12px",
-                        color: "#9ca3af",
+                        color: "var(--text-muted)",
                       }}
                     >
                       {timeAgo(sr.created_at)}
@@ -370,10 +372,10 @@ export function ReleaseDetail() {
                     fontFamily: "var(--font-fraunces)",
                     fontStyle: "italic",
                     fontSize: "14px",
-                    color: "#9ca3af",
+                    color: "var(--text-muted)",
                   }}
                 >
-                  No semantic releases linked
+                  {t("releases.noSemanticReleases")}
                 </p>
               </div>
             )}
@@ -383,22 +385,22 @@ export function ReleaseDetail() {
 
       {/* Release Notes */}
       <div
-        className="rounded-lg bg-white"
-        style={{ border: "1px solid #e8e8e5" }}
+        className="rounded-lg bg-surface"
+        style={{ border: "1px solid var(--border)" }}
       >
         <div
           className="px-5 py-4"
-          style={{ borderBottom: "1px solid #e8e8e5" }}
+          style={{ borderBottom: "1px solid var(--border)" }}
         >
           <h2
             style={{
               fontFamily: "var(--font-fraunces)",
               fontSize: "16px",
               fontWeight: 600,
-              color: "#111113",
+              color: "var(--foreground)",
             }}
           >
-            Release Notes
+            {t("releases.releaseNotes")}
           </h2>
         </div>
         <div className="px-5 py-4">
@@ -409,7 +411,7 @@ export function ReleaseDetail() {
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "13px",
                 lineHeight: 1.7,
-                color: "#374151",
+                color: "var(--secondary-foreground)",
               }}
               dangerouslySetInnerHTML={{
                 __html: changelogHtml,
@@ -421,10 +423,10 @@ export function ReleaseDetail() {
                 fontFamily: "var(--font-fraunces)",
                 fontStyle: "italic",
                 fontSize: "14px",
-                color: "#9ca3af",
+                color: "var(--text-muted)",
               }}
             >
-              No release notes available
+              {t("releases.noReleaseNotes")}
             </p>
           )}
         </div>
@@ -454,7 +456,7 @@ function DetailRow({
         style={{
           fontFamily: "var(--font-dm-sans)",
           fontSize: "13px",
-          color: "#9ca3af",
+          color: "var(--text-muted)",
         }}
       >
         {label}
@@ -464,7 +466,7 @@ function DetailRow({
         style={{
           fontFamily: mono ? "'JetBrains Mono', monospace" : "var(--font-dm-sans)",
           fontSize: small ? "11px" : "13px",
-          color: "#374151",
+          color: "var(--secondary-foreground)",
         }}
       >
         {value}
