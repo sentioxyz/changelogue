@@ -1,0 +1,64 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: changelogue
+    main: ./cmd/server
+    binary: changelogue
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+  - id: clog
+    main: ./cmd/cli
+    binary: clog
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: changelogue
+    builds:
+      - changelogue
+      - clog
+    formats:
+      - tar.gz
+    name_template: >-
+      changelogue_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^ci:"
+      - "^test:"
+      - "^Merge"
+
+release:
+  github:
+    owner: sentioxyz
+    name: changelogue
+  draft: false
+  prerelease: auto
+  name_template: "{{.Tag}}"

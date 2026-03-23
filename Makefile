@@ -1,6 +1,6 @@
 .PHONY: up down db-reset build cli run run-auth dev test vet lint coverage \
         frontend-install frontend-dev frontend-build \
-        integration-test agent-dev clean
+        integration-test agent-dev clean release release-dry-run
 
 # --- Configuration ---
 DATABASE_URL  ?= postgres://postgres:postgres@localhost:5432/releaseguard?sslmode=disable
@@ -83,3 +83,12 @@ dev: up run
 clean:
 	rm -f $(BINARY) clog
 	docker compose down -v
+
+# --- Release ---
+release:
+	@test -n "$(VERSION)" || (echo "Usage: make release VERSION=v0.2.0" && exit 1)
+	git tag -a $(VERSION) -m "$(VERSION)"
+	git push origin $(VERSION)
+
+release-dry-run:
+	goreleaser release --snapshot --clean
