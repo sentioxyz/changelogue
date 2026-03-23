@@ -1,4 +1,4 @@
-.PHONY: up down db-reset build run run-auth dev test vet lint coverage \
+.PHONY: up down db-reset build cli run run-auth dev test vet lint coverage \
         frontend-install frontend-dev frontend-build \
         integration-test agent-dev clean
 
@@ -7,6 +7,7 @@ DATABASE_URL  ?= postgres://postgres:postgres@localhost:5432/releaseguard?sslmod
 LISTEN_ADDR   ?= :8080
 FRONTEND_URL  ?= http://localhost:3001
 BINARY        := changelogue
+VERSION       ?= dev
 
 # --- Infrastructure ---
 up:
@@ -26,6 +27,9 @@ db-reset:
 # --- Backend ---
 build:
 	go build -o $(BINARY) ./cmd/server
+
+cli:
+	go build -ldflags "-X main.version=$(VERSION)" -o clog ./cmd/cli
 
 run: build
 	DATABASE_URL="$(DATABASE_URL)" LISTEN_ADDR="$(LISTEN_ADDR)" FRONTEND_URL="$(FRONTEND_URL)" NO_AUTH=true ./$(BINARY)
