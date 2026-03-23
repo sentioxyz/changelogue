@@ -1,9 +1,11 @@
 {
   "cli_version": "0.4.5",
   "checkpoint_id": "12ece179d483",
+  "session_id": "98d5c0a9-e073-43d1-9f2a-991472c2a6ae",
   "strategy": "manual-commit",
+  "created_at": "2026-03-23T08:32:05.985495Z",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 2,
   "files_touched": [
     "web/app/channels/page.tsx",
     "web/app/globals.css",
@@ -44,31 +46,25 @@
     "web/components/ui/version-chip.tsx",
     "web/lib/auth/context.tsx",
     "web/lib/i18n/messages/en.json",
-    "web/lib/i18n/messages/zh.json",
-    "web/package-lock.json",
-    "web/package.json"
+    "web/lib/i18n/messages/zh.json"
   ],
-  "sessions": [
-    {
-      "metadata": "/12/ece179d483/0/metadata.json",
-      "transcript": "/12/ece179d483/0/full.jsonl",
-      "context": "/12/ece179d483/0/context.md",
-      "content_hash": "/12/ece179d483/0/content_hash.txt",
-      "prompt": "/12/ece179d483/0/prompt.txt"
-    },
-    {
-      "metadata": "/12/ece179d483/1/metadata.json",
-      "transcript": "/12/ece179d483/1/full.jsonl",
-      "context": "/12/ece179d483/1/context.md",
-      "content_hash": "/12/ece179d483/1/content_hash.txt",
-      "prompt": "/12/ece179d483/1/prompt.txt"
-    }
-  ],
+  "agent": "Claude Code",
+  "turn_id": "d577d7d8b3df",
   "token_usage": {
-    "input_tokens": 19550519,
+    "input_tokens": 5280920,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 60422,
-    "api_call_count": 209
-  }
+    "output_tokens": 12026,
+    "api_call_count": 49
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-23T08:32:04.999142Z",
+    "agent_lines": 2361,
+    "human_added": 11,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 2372,
+    "agent_percentage": 99.53625632377741
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/98d5c0a9-e073-43d1-9f2a-991472c2a6ae.jsonl"
 }

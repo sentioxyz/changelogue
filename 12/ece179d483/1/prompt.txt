@@ -1,0 +1,348 @@
+Implement the following plan:
+
+# Fix Dark Mode & i18n Across All Pages
+
+## Context
+
+After implementing the settings dialog with theme toggle (light/dark/system) and language selector (EN/ZH), users reported:
+1. **Dark mode broken**: Cards, buttons, tables still show white/light backgrounds because components use hardcoded hex colors instead of CSS variables
+2. **i18n incomplete**: Only sidebar nav labels are translated — all page content (titles, tabs, buttons, table headers, messages) remains hardcoded English
+
+This plan systematically replaces all hardcoded colors with CSS variables and adds translation keys across all ~30 affected files.
+
+## Strategy
+
+### Colors: Hardcoded hex → CSS variable mapping
+
+| Hardcoded hex | Replace with | Notes |
+|---|---|---|
+| `#ffffff`, `bg-white` | `var(--surface)` / `bg-surface` | Card/panel backgrounds |
+| `#fafaf9` | `var(--background)` / `bg-background` | Page/section backgrounds |
+| `#f3f3f1` | `var(--mono-bg)` / `bg-mono-bg` | Code blocks, badges, muted surfaces |
+| `#111113` | `var(--foreground)` / `text-foreground` | Primary text |
+| `#374151` | `var(--secondary-foreground)` / `text-secondary-foreground` | Secondary text (darker gray) |
+| `#6b7280` | `var(--text-secondary)` / `text-text-secondary` | Secondary text |
+| `#9ca3af` | `var(--text-muted)` / `text-text-muted` | Muted/placeholder text |
+| `#b0b0a8`, `#c4c4c0` | `var(--text-muted)` | Light icons/decorative |
+| `#e8e8e5` | `var(--border)` / `border-border` | Borders |
+| `#e8601a` | `var(--beacon-accent)` | Accent (same in both themes) |
+| `#fff7ed` | `var(--beacon-accent)` with `/10` opacity | Light accent surfaces |
+| `#f8f8f6` | `var(--background)` | Auth loading background |
+| `rgba(107,114,128,0.08)` | `var(--muted)` | Subtle badges |
+
+For inline styles: use `var(--variable-name)`
+For Tailwind classes: use `bg-surface`, `text-foreground`, `border-border`, etc.
+
+### i18n: Add keys to en.json/zh.json, use `t()` in components
+
+Group translation keys by page/component. Components that need `t()` must be client components (add `"use client"` if missing, or pass translated strings as props from client parent).
+
+## Execution: Parallel subagents by file group
+
+Since the changes are mechanical (find/replace patterns), dispatch subagents in parallel by file group. Each subagent gets a batch of related files.
+
+### Batch 1: Core layout + shared components (parallel)
+
+**Agent A — Header + Auth context + shared UI components:**
+- `web/components/layout/header.tsx` — hardcoded colors + English labels
+- `web/lib/auth/context.tsx` — `bg-[#f8f8f6]` loading state
+- `web/components/ui/section-label.tsx` — `text-[#9ca3af]`
+- `web/components/ui/version-chip.tsx` — hardcoded colors
+- `web/components/ui/urgency-callout.tsx` — `text-[#374151]`
+
+**Agent B — Dashboard components (part 1):**
+- `web/app/page.tsx` — dashboard page colors + English text
+- `web/components/dashboard/stats-cards.tsx` — card borders, text colors, English labels
+- `web/components/dashboard/empty-state.tsx` — all hardcoded colors + English text
+- `web/components/dashboard/release-trend-chart.tsx` — border + English label
+- `web/components/dashboard/activity-feed.tsx` — English labels + colors
+
+**Agent C — Dashboard components (part 2):**
+- `web/components/dashboard/suggestions-section.tsx` — borders, tab text, English labels
+- `web/components/dashboard/unified-feed.tsx` — borders, icon colors
+- `web/components/dashboard/discovery-section.tsx` — extensive hardcoded colors
+
+### Batch 2: Dashboard scan/deps + onboard (parallel)
+
+**Agent D — Scan/deps tabs:**
+- `web/components/dashboard/deps-tab.tsx` — extensive hardcoded colors + English text
+- `web/components/dashboard/scan-url-tab.tsx` — same patterns
+- `web/components/dashboard/stars-tab.tsx` — loading/error messages
+- `web/components/dashboard/shared/scan-results-table.tsx` — table headers + colors
+- `web/components/dashboard/shared/ecosystem-colors.ts` — check if needs dark variants
+
+**Agent E — Onboard page:**
+- `web/app/onboard/page.tsx` — extensive hardcoded colors + English text (standalone page)
+
+### Batch 3: Full pages (parallel)
+
+**Agent F — Releases + channels pages:**
+- `web/app/releases/page.tsx` — extensive colors + English text
+- `web/app/channels/page.tsx` — borders, colors, dialog labels
+- `web/components/releases/release-detail.tsx` — hardcoded colors throughout
+
+**Agent G — Projects + subscriptions + other pages:**
+- `web/app/projects/page.tsx` — colors + dialog labels
+- `web/app/subscriptions/page.tsx` — colors + dialog labels
+- `web/app/todo/page.tsx` — tab labels + colors
+- `web/app/sources/page.tsx` — table headers + colors
+- `web/components/projects/project-detail.tsx` — extensive hardcoded colors
+
+### Batch 4: Remaining components + globals.css release-notes
+
+**Agent H — Misc components + release notes CSS:**
+- `web/components/agent/agent-page.tsx` — gray badge
+- `web/components/dashboard/activity-feed.tsx` — if not done in batch 1
+- `web/components/releases/semantic-releases-list.tsx` — bg-white
+- `web/app/globals.css` — `.release-notes-content` block dark overrides
+
+### Batch 5: i18n message files update
+
+**Agent I — Update en.json and zh.json with all new keys:**
+- Collect all translation keys from batches 1-4
+- Update `web/lib/i18n/messages/en.json` with all new keys
+- Update `web/lib/i18n/messages/zh.json` with Chinese translations
+
+Note: This must run AFTER batches 1-4 so we know the full set of keys. However, each batch agent should define what keys they need, and Agent I consolidates.
+
+Actually — **simpler approach:** Each batch agent adds their own keys to en.json/zh.json as they go. Later batches just append. No coordination needed since JSON keys don't conflict.
+
+## Key Rules for All Agents
+
+1. **Colors:** Replace hardcoded hex with CSS variables per the mapping table above
+2. **Tailwind classes:** Use semantic tokens (`bg-surface`, `text-foreground`, `border-border`, `bg-muted`, `text-muted-foreground`) instead of arbitrary values
+3. **Inline styles:** Use `var(--variable-name)` syntax
+4. **i18n:** Add translation keys to en.json/zh.json, use `t()` from `useTranslation()` hook
+5. **Client components:** If a Server Component needs `t()`, either make it a client component or pass translated strings as props
+6. **Don't break layout:** Same visual appearance in light mode, proper theming in dark mode
+7. **Commit after each batch** with descriptive message
+
+## Verification
+
+After all batches:
+1. `cd web && npx tsc --noEmit` — TypeScript compiles clean
+2. `cd web && npm run dev` — dev server starts
+3. Toggle dark mode — all pages should have dark backgrounds, light text, no white cards
+4. Switch to 中文 — all user-facing text on every page should be Chinese
+5. Switch back to English — all text reverts
+6. Check each page: Dashboard, Projects, Releases, Channels, Subscriptions, Todo, Sources, Onboard
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+
+---
+
+I see, thanks. Two things: 1. the chinese font is incosistent with english one, 2. in the projects page, if the source with error like failed to poll, the dark mode style is not right
+
+---
+
+The localization for pop up settings like source, subscription etc. still wrong
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **Initial Plan**: The user provided a detailed plan to fix dark mode and i18n across ~30+ files in a Next.js web app called ReleaseBeacon/Changelogue. The plan included:
+   - Color mapping table (hardcoded hex → CSS variables)
+   - i18n strategy (add keys to en.json/zh.json, use `t()` from `useTranslation()`)
+   - 8 batches of files to process in parallel
+   - Verification steps
+
+2. **Exploration Phase**: First explored the project setup:
+   - CSS variables in globals.css (light/dark mode)
+   - Tailwind v4 config (inline in globals.css, no separate config file)
+   - i18n setup (useTranslation hook, LanguageProvider, 17 initial keys)
+   - ThemeProvider using next-themes with class attribute
+   - Provider chain: ThemeProvider → LanguageProvider
+
+3. **Batch Execution (8 parallel agents)**:
+   - Agent A: header.tsx, auth/context.tsx, section-label.tsx, version-chip.tsx, urgency-callout.tsx
+   - Agent B: page.tsx (dashboard), stats-cards.tsx, empty-state.tsx, release-trend-chart.tsx, activity-feed.tsx
+   - Agent C: suggestions-section.tsx, unified-feed.tsx, discovery-section.tsx
+   - Agent D: deps-tab.tsx, scan-url-tab.tsx, stars-tab.tsx, scan-results-table.tsx, ecosystem-colors.ts
+   - Agent E: onboard/page.tsx
+   - Agent F: releases/page.tsx, channels/page.tsx, release-detail.tsx
+   - Agent G: projects/page.tsx, subscriptions/page.tsx, todo/page.tsx, sources/page.tsx, project-detail.tsx
+   - Agent H: agent-page.tsx, semantic-releases-list.tsx, globals.css
+
+4. **Cleanup round**: After initial batches, grep found remaining hardcoded colors in:
+   - semantic-release-detail.tsx (extensive - missed from plan)
+   - sidebar.tsx
+   - project-form.tsx
+   - login/page.tsx
+   - Two more agents fixed these
+
+5. **Verification**: TypeScript compiled clean, 409 keys matching in en.json/zh.json
+
+6. **User reported Chrome extension error**: "Origin not allowed" from a Web3 wallet extension - NOT related to the app code.
+
+7. **User reported two issues**:
+   - Chinese font inconsistent with English
+   - Projects page error states (failed to poll) dark mode broken
+
+8. **Fix for Chinese font**:
+   - Diagnosed: DM Sans is Latin-only, Chinese falls back to system-ui
+   - Installed `@fontsource-variable/noto-sans-sc`
+   - Added import to globals.css
+   - Updated font-family: `var(--font-dm-sans), "Noto Sans SC Variable", system-ui, sans-serif`
+
+9. **Fix for error states dark mode**:
+   - Added CSS variables: `--error-bg`, `--error-border`, `--error-text` with light/dark values
+   - Light: `#fef2f2`, `#fecaca`, `#dc2626`
+   - Dark: `rgba(220,38,38,0.12)`, `rgba(220,38,38,0.25)`, `#fca5a5`
+   - Fixed in projects/page.tsx and project-detail.tsx
+
+10. **User reported form dialogs still not translated**: "The localization for pop up settings like source, subscription etc. still wrong"
+
+11. **Form dialog translation (3 parallel agents)**:
+    - Agent 1: source-form.tsx + project-form.tsx (52 new keys)
+    - Agent 2: channel-form.tsx + subscription-form.tsx (48 new keys)
+    - Agent 3: new-context-source-form.tsx + confirm-dialog.tsx (19 new keys)
+
+12. **Final state**: en.json has 566 lines, all form dialogs translated. The last read of en.json confirmed all keys present from all agents.
+
+Now let me check if there's anything pending. The user's last message was requesting the summary. Before that, the last action was reading the consolidated en.json to verify all keys were present. The task of translating form dialogs appears complete. TypeScript compilation wasn't re-run after the last round of form translations.
+
+Summary:
+1. Primary Request and Intent:
+   The user requested a systematic fix of dark mode and i18n (internationalization) across the entire Next.js web application (ReleaseBeacon/Changelogue). Specifically:
+   - **Dark mode**: Replace all hardcoded hex colors in ~35 component files with CSS variable-based Tailwind classes that automatically adapt to light/dark themes
+   - **i18n**: Add translation keys for all hardcoded English strings across every page and component, supporting English and Chinese via `useTranslation()` hook
+   - The user provided a detailed execution plan with color mapping tables, file groupings, and batch strategy
+   - After initial completion, the user reported three follow-up issues: (1) Chinese font inconsistency, (2) dark mode broken for error states on projects page, (3) form/dialog popups still showing hardcoded English
+
+2. Key Technical Concepts:
+   - **Next.js 14+** with App Router
+   - **Tailwind CSS v4** with inline theme configuration in globals.css (no separate tailwind.config file)
+   - **CSS Custom Properties** for theming: `:root` for light mode, `html.dark` for dark mode
+   - **next-themes** library with `class` attribute strategy (`html.dark` class)
+   - **Custom i18n system**: `LanguageProvider` + `useTranslation()` hook from `@/lib/i18n/context`
+   - **shadcn/ui** component library integration
+   - **Tailwind v4 `@theme inline`** block for mapping CSS vars to Tailwind color utilities (e.g., `--color-surface: var(--surface)` enables `bg-surface` class)
+   - **Noto Sans SC Variable** font for Chinese character support
+   - **Semantic error tokens**: `--error-bg`, `--error-border`, `--error-text` CSS variables with light/dark variants
+
+3. Files and Code Sections:
+
+   - **`web/app/globals.css`** — Central theme file with all CSS variables and Tailwind config
+     - Added Noto Sans SC font import
+     - Added error state CSS variables to `@theme inline`, `:root`, and `html.dark`
+     - Updated body font-family to include Chinese font
+     - Replaced all hardcoded hex in `.release-notes-content` with CSS vars
+     - Added dark mode link color overrides
+     ```css
+     @import "@fontsource-variable/noto-sans-sc";
+     
+     /* In @theme inline block: */
+     --color-error-bg: var(--error-bg);
+     --color-error-border: var(--error-border);
+     --color-error-text: var(--error-text);
+     
+     /* In :root: */
+     --error-bg: #fef2f2;
+     --error-border: #fecaca;
+     --error-text: #dc2626;
+     
+     /* In html.dark: */
+     --error-bg: rgba(220, 38, 38, 0.12);
+     --error-border: rgba(220, 38, 38, 0.25);
+     --error-text: #fca5a5;
+     
+     /* Body font: */
+     font-family: var(--font-dm-sans), "Noto Sans SC Variable", system-ui, sans-serif;
+     ```
+
+   - **`web/lib/i18n/messages/en.json`** and **`web/lib/i18n/messages/zh.json`** — Translation files
+     - Grew from 17 keys to 566 lines (~500+ keys)
+     - Keys organized by namespace: `nav.*`, `settings.*`, `header.*`, `dashboard.*`, `onboard.*`, `releases.*`, `channels.*`, `projects.*`, `subscriptions.*`, `todo.*`, `sources.*`, `agent.*`, `sr.*`, `sourceForm.*`, `projectForm.*`, `channelForm.*`, `subscriptionForm.*`, `contextSourceForm.*`, `confirmDialog.*`
+
+   - **`web/lib/i18n/context.tsx`** — i18n hook implementation
+     - Provides `useTranslation()` returning `{ t, locale, setLocale }`
+     - Fallback chain: `messages[locale]?.[key] ?? messages.en?.[key] ?? key`
+
+   - **`web/app/layout.tsx`** — Root layout with font loading
+     - Loads Fraunces (display) and DM Sans (body) via next/font/google
+     - Both Latin-only subsets
+
+   - **`web/app/projects/page.tsx`** — Projects list page
+     - Fixed error state colors for source chips with last_error
+     ```tsx
+     style={{
+       backgroundColor: source.last_error ? "var(--error-bg)" : "var(--background)",
+       border: `1px solid ${source.last_error ? "var(--error-border)" : "var(--border)"}`,
+     }}
+     ```
+     ```tsx
+     style={{ backgroundColor: source.last_error ? "var(--error-text)" : source.enabled ? "var(--status-completed)" : "var(--text-muted)" }}
+     ```
+
+   - **`web/components/projects/project-detail.tsx`** — Project detail page
+     - Fixed delete button: `hover:bg-red-50` → `hover:bg-error-bg`, `#dc2626` → `var(--error-text)`
+     - Fixed source toggle error color and error text: `text-red-600` → `text-error-text`
+
+   - **Batch 1A files** (header.tsx, auth/context.tsx, section-label.tsx, version-chip.tsx, urgency-callout.tsx) — All hardcoded colors replaced, header breadcrumb labels translated
+
+   - **Dashboard components** (page.tsx, stats-cards.tsx, empty-state.tsx, release-trend-chart.tsx, activity-feed.tsx, suggestions-section.tsx, unified-feed.tsx, discovery-section.tsx) — All colors + English text replaced
+
+   - **Scan/deps tabs** (deps-tab.tsx, scan-url-tab.tsx, stars-tab.tsx, scan-results-table.tsx) — Extensive color + i18n changes
+
+   - **`web/app/onboard/page.tsx`** — Standalone onboarding page, ~25 strings translated, all colors replaced
+
+   - **Full pages** (releases/page.tsx, channels/page.tsx, subscriptions/page.tsx, todo/page.tsx, sources/page.tsx) — All colors + text translated
+
+   - **Detail components** (release-detail.tsx, semantic-release-detail.tsx, semantic-releases-list.tsx) — All colors + text translated
+
+   - **Misc** (agent-page.tsx, sidebar.tsx, login/page.tsx, project-form.tsx) — Colors fixed
+
+   - **Form dialogs** (source-form.tsx, project-form.tsx, channel-form.tsx, subscription-form.tsx, new-context-source-form.tsx, confirm-dialog.tsx) — All English strings translated with `t()` calls
+
+4. Errors and Fixes:
+   - **Browser extension error** ("Origin not allowed" from chrome-extension): Diagnosed as unrelated Web3 wallet extension issue, not app code. User confirmed understanding.
+   - **Chinese font inconsistency**: DM Sans is Latin-only. Fixed by installing `@fontsource-variable/noto-sans-sc` and adding it to the font-family stack.
+   - **Dark mode error states broken**: Hardcoded light colors (`#fef2f2`, `#fecaca`, `text-red-600`) invisible on dark backgrounds. Fixed by creating theme-aware CSS variables (`--error-bg`, `--error-border`, `--error-text`) with appropriate dark mode values.
+   - **Form dialogs not translated**: User explicitly reported "The localization for pop up settings like source, subscription etc. still wrong". Fixed by adding `useTranslation()` to all 6 form/dialog components and translating ~119 new keys.
+   - **Parallel agent JSON conflicts**: Multiple agents wrote to en.json/zh.json simultaneously. The last agent to write would include keys from when it read the file. Verified final state has all keys via `node -e` script showing 409 keys matching (before form dialog round).
+
+5. Problem Solving:
+   - Used parallel subagent dispatch (8 agents simultaneously) for the initial batch, significantly speeding up the mechanical find/replace work
+   - Post-completion grep audit caught 4 additional files missed from the original plan (semantic-release-detail.tsx, sidebar.tsx, login/page.tsx, project-form.tsx)
+   - Created semantic error CSS variables to properly handle error states in both light and dark themes
+   - Installed dedicated CJK font package rather than relying on system fallback for consistent Chinese rendering
+   - Channel form required structural refactoring: `channelFields` object changed from `label`/`placeholder` strings to `labelKey`/`placeholderKey`/`configKey` to avoid coupling API config keys to translated text
+
+6. All User Messages:
+   - **Message 1**: Provided the full plan titled "Fix Dark Mode & i18n Across All Pages" with detailed color mapping tables, file lists, batch strategy, and verification steps. Referenced a transcript file for additional context.
+   - **Message 2**: "Sometimes I see this error but refresh fix it Runtime Error - Origin not allowed - Call Stack from chrome-extension://cadiboklkpojfamcoggejbbdjcoiljjk/inpage.js"
+   - **Message 3**: "I see, thanks. Two things: 1. the chinese font is incosistent with english one, 2. in the projects page, if the source with error like failed to poll, the dark mode style is not right"
+   - **Message 4**: "The localization for pop up settings like source, subscription etc. still wrong"
+
+7. Pending Tasks:
+   - Run `npx tsc --noEmit` after the form dialog translation round to verify TypeScript compilation
+   - Final verification of zh.json having all keys matching en.json after the last round of changes (the form dialog agents each wrote to both files)
+   - Visual verification: toggle dark mode across all pages, switch to Chinese and verify all popup forms/dialogs show translated text
+
+8. Current Work:
+   The most recent work was translating the 6 form/dialog popup components that the user reported were "still wrong" for localization. Three parallel agents completed:
+   - Agent 1: source-form.tsx + project-form.tsx (52 new keys)
+   - Agent 2: channel-form.tsx + subscription-form.tsx (48 new keys)  
+   - Agent 3: new-context-source-form.tsx + confirm-dialog.tsx (19 new keys)
+   
+   The final en.json was read and confirmed to contain all keys (566 lines). The zh.json was not re-read after all three agents completed, and TypeScript compilation was not re-verified.
+
+9. Optional Next Step:
+   Verify the final state after the form dialog translation round:
+   1. Run `npx tsc --noEmit` to confirm TypeScript still compiles clean
+   2. Run the key parity check: `node -e` script to verify en.json and zh.json have matching keys
+   3. Read zh.json to confirm all form dialog keys have Chinese translations
+   
+   This directly follows from the user's last explicit request: "The localization for pop up settings like source, subscription etc. still wrong" — the fix was applied but final verification was interrupted by the summary request.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+cool, commit and push
