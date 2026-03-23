@@ -307,3 +307,24 @@ export interface OnboardApplyResult {
   created_sources: Source[];
   skipped: string[];
 }
+
+export interface SuggestionItem {
+  name: string;
+  full_name: string;
+  description: string;
+  stars: number;
+  language?: string;
+  url: string;
+  avatar_url?: string;
+  provider: string;
+  tracked: boolean;
+}
+
+export interface RepoItem {
+  name: string;
+  full_name: string;
+  description: string;
+  language?: string;
+  url: string;
+  pushed_at: string;
+}

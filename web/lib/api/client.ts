@@ -24,6 +24,8 @@ import type {
   OnboardScan,
   OnboardSelection,
   OnboardApplyResult,
+  SuggestionItem,
+  RepoItem,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -250,6 +252,15 @@ export const discover = {
     const qs = search.toString();
     return request<ApiResponse<DiscoverItem[]>>(`/discover/dockerhub${qs ? `?${qs}` : ""}`);
   },
+};
+
+// --- Suggestions ---
+
+export const suggestions = {
+  stars: () =>
+    request<ApiResponse<SuggestionItem[]>>("/suggestions/stars"),
+  repos: () =>
+    request<ApiResponse<RepoItem[]>>("/suggestions/repos"),
 };
 
 // --- Onboarding ---
