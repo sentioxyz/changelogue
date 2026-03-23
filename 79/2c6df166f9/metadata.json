@@ -3,7 +3,7 @@
   "checkpoint_id": "792c6df166f9",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "docs/superpowers/specs/2026-03-23-release-gate-design.md"
   ],
@@ -14,13 +14,20 @@
       "context": "/79/2c6df166f9/0/context.md",
       "content_hash": "/79/2c6df166f9/0/content_hash.txt",
       "prompt": "/79/2c6df166f9/0/prompt.txt"
+    },
+    {
+      "metadata": "/79/2c6df166f9/1/metadata.json",
+      "transcript": "/79/2c6df166f9/1/full.jsonl",
+      "context": "/79/2c6df166f9/1/context.md",
+      "content_hash": "/79/2c6df166f9/1/content_hash.txt",
+      "prompt": "/79/2c6df166f9/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 14816171,
+    "input_tokens": 15152232,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 49221,
-    "api_call_count": 166
+    "output_tokens": 49867,
+    "api_call_count": 171
   }
 }
