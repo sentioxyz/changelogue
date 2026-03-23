@@ -1,0 +1,99 @@
+Implement the following plan:
+
+# Unified Quick Onboard Card — Implementation Plan
+
+## Context
+
+The dashboard currently has three separate "add repos" sections: Quick Onboard (URL input that navigates to `/onboard`), Your Stars tab, and Your Dependencies tab. The user wants these merged into a single tabbed card. Authenticated users get 3 tabs (Scan URL, Your Stars, Your Dependencies). Unauthenticated users get just the Scan URL tab. The Trending/DiscoverySection stays as a separate section for unauthenticated users.
+
+## Files
+
+| File | Action |
+|------|--------|
+| `web/components/dashboard/shared/ecosystem-colors.ts` | CREATE — shared constant |
+| `web/components/dashboard/shared/scan-results-table.tsx` | CREATE — shared results table |
+| `web/components/dashboard/scan-url-tab.tsx` | CREATE — inline scan flow tab |
+| `web/components/dashboard/suggestions-section.tsx` | MODIFY — 3-tab container with `showAuthTabs` prop |
+| `web/components/dashboard/deps-tab.tsx` | MODIFY — use shared table + colors |
+| `web/app/onboard/page.tsx` | MODIFY — use shared table + colors |
+| `web/app/page.tsx` | MODIFY — remove Quick Onboard inline, restructure layout |
+
+## Steps
+
+### 1. Extract `ecosystemColors` into shared module
+
+Create `web/components/dashboard/shared/ecosystem-colors.ts` with the color map currently duplicated in `deps-tab.tsx:11-21` and `onboard/page.tsx:12-22`.
+
+### 2. Extract `ScanResultsTable` shared component
+
+Create `web/components/dashboard/shared/scan-results-table.tsx` — a controlled table component that renders the dependency selection table (checkbox, dep name in monospace, version badge, ecosystem pill, source URL, project dropdown). Props:
+
+```typescript
+interface ScanResultsTableProps {
+  deps: ScannedDependency[];
+  selections: Record<number, boolean>;
+  onSelectionsChange: (s: Record<number, boolean>) => void;
+  projectAssignments: Record<number, { mode: "new" | "existing"; projectId?: string; newName?: string }>;
+  onProjectAssignmentsChange: (a: Record<number, ...>) => void;
+  existingProjects: Project[];
+}
+```
+
+No "Track Selected" button — that stays in the parent since post-apply behavior differs per context.
+
+### 3. Create `ScanUrlTab` component
+
+Create `web/components/dashboard/scan-url-tab.tsx` — inline scan flow with state machine: `"input" | "scanning" | "results" | "applied"`.
+
+- **Input**: compact URL input + Scan button (same placeholder as onboard page)
+- **Scanning**: spinner with elapsed timer (matches DepsTab pattern)
+- **Results**: uses `ScanResultsTable` + "Track Selected (N)" button + "Try another" link
+- **Applied**: success/skipped banners + "Scan another repo" link
+- After apply: `mutate("projects-for-dashboard")` and `mutate("projects-list")`
+
+### 4. Update `suggestions-section.tsx` — add 3rd tab
+
+Add `showAuthTabs?: boolean` prop. Tab type becomes `"scan" | "stars" | "deps"`, default `"scan"`. Render "Your Stars" and "Your Dependencies" tabs only when `showAuthTabs` is true. Section title changes to "Quick Onboard".
+
+### 5. Update `deps-tab.tsx` — use shared imports
+
+Remove inline `ecosystemColors`. Replace inline results table JSX with `<ScanResultsTable>`. Add `mutate("projects-for-dashboard")` after apply.
+
+### 6. Update `onboard/page.tsx` — use shared imports
+
+Remove inline `ecosystemColors`. Replace inline results table JSX with `<ScanResultsTable>`. The page continues to work standalone with `ScanStep`/`StepConnector` progress UI and `?repo=` auto-start.
+
+### 7. Update `page.tsx` — restructure layout
+
+Remove the Quick Onboard inline block (lines 80-136). Remove `repoUrl` state, `router`, `Search` import. New layout:
+
+```tsx
+{user?.github_login && user.github_login !== "dev" ? (
+  <SuggestionsSection showAuthTabs />
+) : (
+  <>
+    <DiscoverySection />
+    <SuggestionsSection />
+  </>
+)}
+```
+
+## Verification
+
+1. `npx tsc --noEmit` — no type errors
+2. `npx next build` — builds clean
+3. Manual check: unauthenticated user sees Trending marquee + single "Scan URL" tab
+4. Manual check: authenticated user sees 3-tab card (Scan URL default, Your Stars, Your Dependencies)
+5. Manual check: inline scan flow works end-to-end (enter URL → scan → results table → apply)
+6. Manual check: `/onboard` page still works standalone
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/3c36d092-c18e-4c3d-bb0d-f49679c1ce69.jsonl
+
+---
+
+Then should we still call the default page `dashboard`? Or do you have any recommendations?
+
+---
+
+no, thanks, commit and push changes
