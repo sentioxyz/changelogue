@@ -9,13 +9,16 @@ import { ReleaseTrendChart } from "@/components/dashboard/release-trend-chart";
 import { UnifiedFeed } from "@/components/dashboard/unified-feed";
 import { DashboardEmptyState } from "@/components/dashboard/empty-state";
 import { DiscoverySection } from "@/components/dashboard/discovery-section";
+import { SuggestionsSection } from "@/components/dashboard/suggestions-section";
 import { projects as projectsApi } from "@/lib/api/client";
+import { useAuth } from "@/lib/auth/context";
 import { Search } from "lucide-react";
 
 const SSE_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [repoUrl, setRepoUrl] = useState("");
   const { data: projectsData, isLoading } = useSWR("projects-for-dashboard", () =>
     projectsApi.list()
@@ -68,7 +71,11 @@ export default function DashboardPage() {
         Dashboard
       </h1>
 
-      <DiscoverySection />
+      {user?.github_login && user.github_login !== "dev" ? (
+        <SuggestionsSection />
+      ) : (
+        <DiscoverySection />
+      )}
 
       {/* Quick Onboard inline */}
       <div
