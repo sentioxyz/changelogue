@@ -49,3 +49,24 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at the...
 
+### Prompt 7
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me go through the conversation chronologically to capture all important details:
+
+1. **Initial Request**: User asked to "add CLI support for core functionalities of changelogue"
+
+2. **Brainstorming Phase**: Used the brainstorming skill to explore the project and design the CLI.
+   - Explored the Changelogue project at /Users/pc/web...
+
+### Prompt 8
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me go through the conversation chronologically to capture all important details:
+
+1. **Context from previous session (summary)**: The user asked to "add CLI support for core functionalities of changelogue". Through a brainstorming phase, they designed a CLI called `clog` for the Changelogue project (a Go release intelligence platfo...
+
