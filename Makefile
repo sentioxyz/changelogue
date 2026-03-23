@@ -81,5 +81,5 @@ integration-test:
 dev: up run
 
 clean:
-	rm -f $(BINARY)
+	rm -f $(BINARY) clog
 	docker compose down -v

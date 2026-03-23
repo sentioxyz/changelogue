@@ -46,6 +46,43 @@ make frontend-dev
 
 The API runs on `localhost:8080`, the dashboard on `localhost:3000`.
 
+## CLI
+
+The `clog` CLI manages Changelogue resources from the command line.
+
+### Install
+
+```bash
+make cli    # builds ./clog binary
+```
+
+### Configuration
+
+```bash
+export CHANGELOGUE_SERVER=http://localhost:8080    # server URL
+export CHANGELOGUE_API_KEY=rg_live_abc123...       # API key
+```
+
+Or pass per-command:
+
+```bash
+clog --server http://myserver:8080 --api-key rg_live_... projects list
+```
+
+### Commands
+
+```
+clog projects list|get|create|update|delete      Manage projects
+clog sources list|get|create|update|delete        Manage ingestion sources
+clog releases list|get                            Browse releases
+clog channels list|get|create|update|delete|test  Manage notification channels
+clog subscriptions list|get|create|update|delete  Manage subscriptions
+clog subscriptions batch-create|batch-delete      Batch operations
+clog version                                      Print CLI version
+```
+
+Use `--json` on any command for machine-readable output. Use `--help` on any command for detailed usage and examples.
+
 ## Environment variables
 
 | Variable | Default | Purpose |
@@ -73,6 +110,7 @@ At least one of `ALLOWED_GITHUB_USERS` or `ALLOWED_GITHUB_ORGS` must be set when
 ```
 cmd/
   server/              Entry point — wires all layers together
+  cli/                 CLI binary (clog) — REST API client
   agent/               Agent CLI — run agent analysis for a project
 internal/
   agent/               ADK-Go agent orchestrator, tools, and worker
@@ -111,6 +149,7 @@ type Sender interface {
 
 ```bash
 make build              # go build -o changelogue ./cmd/server
+make cli                # build clog CLI binary
 make test               # go test ./...
 make coverage           # go test with coverage profile + print total %
 make vet                # go vet ./...
