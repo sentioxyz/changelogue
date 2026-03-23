@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   type ReactNode,
 } from "react";
@@ -25,17 +24,18 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 
 const STORAGE_KEY = "changelogue-locale";
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("en");
+function getInitialLocale(): Locale {
+  if (typeof window === "undefined") return "en";
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === "en" || stored === "zh") {
+    document.documentElement.lang = stored;
+    return stored;
+  }
+  return "en";
+}
 
-  // Read from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "en" || stored === "zh") {
-      setLocaleState(stored);
-      document.documentElement.lang = stored;
-    }
-  }, []);
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [locale, setLocaleState] = useState<Locale>(getInitialLocale);
 
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);
