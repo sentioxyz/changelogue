@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/sentioxyz/changelogue/internal/models"
@@ -30,7 +31,7 @@ func ListSubscriptions(c *Client, page, perPage int) ([]models.Subscription, Met
 
 // GetSubscription fetches a single subscription by ID.
 func GetSubscription(c *Client, id string) (*models.Subscription, error) {
-	resp, err := c.Get("/api/v1/subscriptions/" + id)
+	resp, err := c.Get("/api/v1/subscriptions/" + url.PathEscape(id))
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +65,7 @@ func CreateSubscription(c *Client, body map[string]any) (*models.Subscription, e
 
 // UpdateSubscription updates an existing subscription with the given fields.
 func UpdateSubscription(c *Client, id string, fields map[string]any) (*models.Subscription, error) {
-	resp, err := c.Put("/api/v1/subscriptions/"+id, fields)
+	resp, err := c.Put("/api/v1/subscriptions/"+url.PathEscape(id), fields)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +82,7 @@ func UpdateSubscription(c *Client, id string, fields map[string]any) (*models.Su
 
 // DeleteSubscription deletes a subscription by ID.
 func DeleteSubscription(c *Client, id string) error {
-	resp, err := c.Delete("/api/v1/subscriptions/" + id)
+	resp, err := c.Delete("/api/v1/subscriptions/" + url.PathEscape(id))
 	if err != nil {
 		return err
 	}

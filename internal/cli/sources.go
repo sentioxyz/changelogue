@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/sentioxyz/changelogue/internal/models"
 	"github.com/spf13/cobra"
@@ -11,7 +12,7 @@ import (
 
 // ListSources fetches a paginated list of sources for a project.
 func ListSources(c *Client, projectID string, page, perPage int) ([]models.Source, Meta, error) {
-	path := fmt.Sprintf("/api/v1/projects/%s/sources?page=%d&per_page=%d", projectID, page, perPage)
+	path := fmt.Sprintf("/api/v1/projects/%s/sources?page=%d&per_page=%d", url.PathEscape(projectID), page, perPage)
 	resp, err := c.Get(path)
 	if err != nil {
 		return nil, Meta{}, err
@@ -29,7 +30,7 @@ func ListSources(c *Client, projectID string, page, perPage int) ([]models.Sourc
 
 // GetSource fetches a single source by ID.
 func GetSource(c *Client, id string) (*models.Source, error) {
-	resp, err := c.Get("/api/v1/sources/" + id)
+	resp, err := c.Get("/api/v1/sources/" + url.PathEscape(id))
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +47,7 @@ func GetSource(c *Client, id string) (*models.Source, error) {
 
 // CreateSource creates a new source under the given project.
 func CreateSource(c *Client, projectID string, body map[string]any) (*models.Source, error) {
-	resp, err := c.Post("/api/v1/projects/"+projectID+"/sources", body)
+	resp, err := c.Post("/api/v1/projects/"+url.PathEscape(projectID)+"/sources", body)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func CreateSource(c *Client, projectID string, body map[string]any) (*models.Sou
 
 // UpdateSource updates an existing source with the given fields.
 func UpdateSource(c *Client, id string, fields map[string]any) (*models.Source, error) {
-	resp, err := c.Put("/api/v1/sources/"+id, fields)
+	resp, err := c.Put("/api/v1/sources/"+url.PathEscape(id), fields)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +81,7 @@ func UpdateSource(c *Client, id string, fields map[string]any) (*models.Source, 
 
 // DeleteSource deletes a source by ID.
 func DeleteSource(c *Client, id string) error {
-	resp, err := c.Delete("/api/v1/sources/" + id)
+	resp, err := c.Delete("/api/v1/sources/" + url.PathEscape(id))
 	if err != nil {
 		return err
 	}
@@ -228,6 +229,9 @@ func NewSourcesCmd(clientFn func() *Client, jsonFlag *bool) *cobra.Command {
 				fields["poll_interval_seconds"] = updatePollInterval
 			}
 			if cmd.Flags().Changed("enabled") {
+				if updateEnabled != "true" && updateEnabled != "false" {
+					return fmt.Errorf("--enabled must be 'true' or 'false'")
+				}
 				fields["enabled"] = updateEnabled == "true"
 			}
 			if cmd.Flags().Changed("filter-include") {
@@ -237,6 +241,9 @@ func NewSourcesCmd(clientFn func() *Client, jsonFlag *bool) *cobra.Command {
 				fields["version_filter_exclude"] = updateFilterExclude
 			}
 			if cmd.Flags().Changed("exclude-prereleases") {
+				if updateExcludePrerelease != "true" && updateExcludePrerelease != "false" {
+					return fmt.Errorf("--exclude-prereleases must be 'true' or 'false'")
+				}
 				fields["exclude_prereleases"] = updateExcludePrerelease == "true"
 			}
 			if len(fields) == 0 {

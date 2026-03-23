@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/sentioxyz/changelogue/internal/models"
 	"github.com/spf13/cobra"
@@ -30,7 +31,7 @@ func ListChannels(c *Client, page, perPage int) ([]models.NotificationChannel, M
 
 // GetChannel fetches a single notification channel by ID.
 func GetChannel(c *Client, id string) (*models.NotificationChannel, error) {
-	resp, err := c.Get("/api/v1/channels/" + id)
+	resp, err := c.Get("/api/v1/channels/" + url.PathEscape(id))
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func CreateChannel(c *Client, name, chType string, config json.RawMessage) (*mod
 
 // UpdateChannel updates an existing notification channel with the given fields.
 func UpdateChannel(c *Client, id string, fields map[string]any) (*models.NotificationChannel, error) {
-	resp, err := c.Put("/api/v1/channels/"+id, fields)
+	resp, err := c.Put("/api/v1/channels/"+url.PathEscape(id), fields)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +83,7 @@ func UpdateChannel(c *Client, id string, fields map[string]any) (*models.Notific
 
 // DeleteChannel deletes a notification channel by ID.
 func DeleteChannel(c *Client, id string) error {
-	resp, err := c.Delete("/api/v1/channels/" + id)
+	resp, err := c.Delete("/api/v1/channels/" + url.PathEscape(id))
 	if err != nil {
 		return err
 	}
@@ -92,7 +93,7 @@ func DeleteChannel(c *Client, id string) error {
 
 // TestChannel sends a test notification to a channel.
 func TestChannel(c *Client, id string) error {
-	resp, err := c.Post("/api/v1/channels/"+id+"/test", nil)
+	resp, err := c.Post("/api/v1/channels/"+url.PathEscape(id)+"/test", nil)
 	if err != nil {
 		return err
 	}

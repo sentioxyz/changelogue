@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/sentioxyz/changelogue/internal/models"
 	"github.com/spf13/cobra"
@@ -16,9 +17,9 @@ func ListReleases(c *Client, sourceID, projectID string, includeExcluded bool, p
 	var path string
 	switch {
 	case sourceID != "":
-		path = fmt.Sprintf("/api/v1/sources/%s/releases", sourceID)
+		path = fmt.Sprintf("/api/v1/sources/%s/releases", url.PathEscape(sourceID))
 	case projectID != "":
-		path = fmt.Sprintf("/api/v1/projects/%s/releases", projectID)
+		path = fmt.Sprintf("/api/v1/projects/%s/releases", url.PathEscape(projectID))
 	default:
 		path = "/api/v1/releases"
 	}
@@ -43,7 +44,7 @@ func ListReleases(c *Client, sourceID, projectID string, includeExcluded bool, p
 
 // GetRelease fetches a single release by ID.
 func GetRelease(c *Client, id string) (*models.Release, error) {
-	resp, err := c.Get("/api/v1/releases/" + id)
+	resp, err := c.Get("/api/v1/releases/" + url.PathEscape(id))
 	if err != nil {
 		return nil, err
 	}

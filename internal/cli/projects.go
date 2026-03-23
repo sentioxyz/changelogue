@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/sentioxyz/changelogue/internal/models"
 	"github.com/spf13/cobra"
@@ -29,7 +30,7 @@ func ListProjects(c *Client, page, perPage int) ([]models.Project, Meta, error) 
 
 // GetProject fetches a single project by ID.
 func GetProject(c *Client, id string) (*models.Project, error) {
-	resp, err := c.Get("/api/v1/projects/" + id)
+	resp, err := c.Get("/api/v1/projects/" + url.PathEscape(id))
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func CreateProject(c *Client, name, description, agentPrompt string) (*models.Pr
 
 // UpdateProject updates an existing project with the given fields.
 func UpdateProject(c *Client, id string, fields map[string]any) (*models.Project, error) {
-	resp, err := c.Put("/api/v1/projects/"+id, fields)
+	resp, err := c.Put("/api/v1/projects/"+url.PathEscape(id), fields)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +88,7 @@ func UpdateProject(c *Client, id string, fields map[string]any) (*models.Project
 
 // DeleteProject deletes a project by ID.
 func DeleteProject(c *Client, id string) error {
-	resp, err := c.Delete("/api/v1/projects/" + id)
+	resp, err := c.Delete("/api/v1/projects/" + url.PathEscape(id))
 	if err != nil {
 		return err
 	}
