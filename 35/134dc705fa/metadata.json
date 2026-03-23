@@ -3,7 +3,7 @@
   "checkpoint_id": "35134dc705fa",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 4,
   "files_touched": [
     "docs/superpowers/specs/2026-03-23-cli-support-design.md"
   ],
@@ -21,13 +21,20 @@
       "context": "/35/134dc705fa/1/context.md",
       "content_hash": "/35/134dc705fa/1/content_hash.txt",
       "prompt": "/35/134dc705fa/1/prompt.txt"
+    },
+    {
+      "metadata": "/35/134dc705fa/2/metadata.json",
+      "transcript": "/35/134dc705fa/2/full.jsonl",
+      "context": "/35/134dc705fa/2/context.md",
+      "content_hash": "/35/134dc705fa/2/content_hash.txt",
+      "prompt": "/35/134dc705fa/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 12837568,
+    "input_tokens": 14936213,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 25959,
-    "api_call_count": 170
+    "output_tokens": 40905,
+    "api_call_count": 216
   }
 }
