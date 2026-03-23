@@ -18,6 +18,7 @@ type SourcesStore interface {
 	UpdateSource(ctx context.Context, id string, src *models.Source) error
 	DeleteSource(ctx context.Context, id string) error
 	UpdateSourcePollStatus(ctx context.Context, id string, pollErr error) error
+	ListAllSourceRepos(ctx context.Context) ([]models.SourceRepo, error)
 }
 
 // SourcesHandler implements HTTP handlers for the /sources resource.

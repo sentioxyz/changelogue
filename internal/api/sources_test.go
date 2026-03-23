@@ -93,6 +93,10 @@ func (m *mockSourcesStore) UpdateSourcePollStatus(_ context.Context, id string, 
 	return nil
 }
 
+func (m *mockSourcesStore) ListAllSourceRepos(_ context.Context) ([]models.SourceRepo, error) {
+	return nil, nil
+}
+
 func setupSourcesMux(store SourcesStore) *http.ServeMux {
 	h := NewSourcesHandler(store, nil, nil)
 	mux := http.NewServeMux()

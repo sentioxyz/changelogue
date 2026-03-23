@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+type SourceRepo struct {
+	Provider   string `json:"provider"`
+	Repository string `json:"repository"`
+}
+
 type Source struct {
 	ID                  string          `json:"id"`
 	ProjectID           string          `json:"project_id"`

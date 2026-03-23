@@ -215,6 +215,23 @@ func (s *PgStore) UpdateSourcePollStatus(ctx context.Context, id string, pollErr
 	return err
 }
 
+func (s *PgStore) ListAllSourceRepos(ctx context.Context) ([]models.SourceRepo, error) {
+	rows, err := s.pool.Query(ctx, `SELECT DISTINCT provider, repository FROM sources WHERE enabled = true`)
+	if err != nil {
+		return nil, fmt.Errorf("list all source repos: %w", err)
+	}
+	defer rows.Close()
+	var repos []models.SourceRepo
+	for rows.Next() {
+		var r models.SourceRepo
+		if err := rows.Scan(&r.Provider, &r.Repository); err != nil {
+			return nil, fmt.Errorf("scan source repo: %w", err)
+		}
+		repos = append(repos, r)
+	}
+	return repos, rows.Err()
+}
+
 // --- ReleasesStore ---
 
 func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
