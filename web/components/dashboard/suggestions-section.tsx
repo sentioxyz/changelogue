@@ -3,11 +3,26 @@
 import { useState } from "react";
 import { StarsTab } from "./stars-tab";
 import { DepsTab } from "./deps-tab";
+import { ScanUrlTab } from "./scan-url-tab";
 
-type Tab = "stars" | "deps";
+type Tab = "scan" | "stars" | "deps";
 
-export function SuggestionsSection() {
-  const [tab, setTab] = useState<Tab>("stars");
+interface SuggestionsSectionProps {
+  showAuthTabs?: boolean;
+}
+
+export function SuggestionsSection({ showAuthTabs }: SuggestionsSectionProps) {
+  const [tab, setTab] = useState<Tab>("scan");
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "scan", label: "Scan URL" },
+    ...(showAuthTabs
+      ? [
+          { key: "stars" as Tab, label: "Your Stars" },
+          { key: "deps" as Tab, label: "Your Dependencies" },
+        ]
+      : []),
+  ];
 
   return (
     <div
@@ -15,44 +30,44 @@ export function SuggestionsSection() {
       style={{ border: "1px solid #e8e8e5", overflow: "hidden" }}
     >
       <div
-        className="flex gap-0 px-5"
+        className="flex items-center gap-0 px-5"
         style={{ borderBottom: "1px solid #e8e8e5" }}
       >
-        <button
-          onClick={() => setTab("stars")}
+        <span
+          className="flex-shrink-0 mr-4"
           style={{
-            padding: "10px 16px",
-            fontFamily: "var(--font-dm-sans)",
-            fontSize: "13px",
-            fontWeight: tab === "stars" ? 600 : 400,
-            color: tab === "stars" ? "#e8601a" : "#6b7280",
-            borderBottom: tab === "stars" ? "2px solid #e8601a" : "2px solid transparent",
-            background: "none",
-            cursor: "pointer",
-            transition: "color 0.15s",
+            fontFamily: "var(--font-fraunces)",
+            fontSize: "14px",
+            fontWeight: 600,
+            color: "#111113",
           }}
         >
-          Your Stars
-        </button>
-        <button
-          onClick={() => setTab("deps")}
-          style={{
-            padding: "10px 16px",
-            fontFamily: "var(--font-dm-sans)",
-            fontSize: "13px",
-            fontWeight: tab === "deps" ? 600 : 400,
-            color: tab === "deps" ? "#e8601a" : "#6b7280",
-            borderBottom: tab === "deps" ? "2px solid #e8601a" : "2px solid transparent",
-            background: "none",
-            cursor: "pointer",
-            transition: "color 0.15s",
-          }}
-        >
-          Your Dependencies
-        </button>
+          Quick Onboard
+        </span>
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            style={{
+              padding: "10px 16px",
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "13px",
+              fontWeight: tab === t.key ? 600 : 400,
+              color: tab === t.key ? "#e8601a" : "#6b7280",
+              borderBottom: tab === t.key ? "2px solid #e8601a" : "2px solid transparent",
+              background: "none",
+              cursor: "pointer",
+              transition: "color 0.15s",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
       <div className="px-5 py-4">
-        {tab === "stars" ? <StarsTab /> : <DepsTab />}
+        {tab === "scan" && <ScanUrlTab />}
+        {tab === "stars" && <StarsTab />}
+        {tab === "deps" && <DepsTab />}
       </div>
     </div>
   );

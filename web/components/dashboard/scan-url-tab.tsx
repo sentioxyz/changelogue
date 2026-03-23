@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import useSWR, { mutate } from "swr";
-import { Loader2, Check, PackageSearch } from "lucide-react";
-import { suggestions, onboard, projects as projectsApi } from "@/lib/api/client";
-import type { RepoItem, OnboardScan, OnboardSelection, Project, Source } from "@/lib/api/types";
+import { Loader2, Check, Search, PackageSearch } from "lucide-react";
+import { onboard, projects as projectsApi } from "@/lib/api/client";
+import type { OnboardScan, OnboardSelection, Project, Source } from "@/lib/api/types";
 import { ScanResultsTable } from "./shared/scan-results-table";
 
-type Step = "pick" | "scanning" | "results" | "applied";
+type Step = "input" | "scanning" | "results" | "applied";
 
-export function DepsTab() {
-  const [step, setStep] = useState<Step>("pick");
+export function ScanUrlTab() {
+  const [step, setStep] = useState<Step>("input");
+  const [repoUrl, setRepoUrl] = useState("");
   const [scanId, setScanId] = useState<string | null>(null);
   const [scan, setScan] = useState<OnboardScan | null>(null);
   const [selections, setSelections] = useState<Record<number, boolean>>({});
@@ -18,19 +19,10 @@ export function DepsTab() {
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<{ created_projects: Project[]; created_sources: Source[]; skipped: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [scanningRepo, setScanningRepo] = useState<string>("");
   const [elapsed, setElapsed] = useState(0);
-
-  const { data, isLoading, error: fetchError } = useSWR(
-    "suggestions-repos",
-    () => suggestions.repos(),
-    { revalidateOnFocus: false }
-  );
 
   const { data: projectsResp } = useSWR("projects-all", () => projectsApi.list(1, 200));
   const existingProjects = projectsResp?.data ?? [];
-
-  const repos = data?.data ?? [];
 
   // Poll scan status
   useEffect(() => {
@@ -53,7 +45,7 @@ export function DepsTab() {
           clearInterval(interval);
         } else if (resp.data.status === "failed") {
           setError(resp.data.error || "Scan failed");
-          setStep("pick");
+          setStep("input");
           clearInterval(interval);
         }
       } catch {
@@ -71,12 +63,10 @@ export function DepsTab() {
     return () => clearInterval(timer);
   }, [step]);
 
-  const handleScanRepo = useCallback(async (repo: RepoItem) => {
+  const beginScan = useCallback(async (url: string) => {
     setError(null);
-    setScanningRepo(repo.full_name);
     try {
-      const repoUrl = `https://github.com/${repo.full_name}`;
-      const resp = await onboard.scan(repoUrl);
+      const resp = await onboard.scan(url);
       const scanData = resp.data;
       setScanId(scanData.id);
       setScan(scanData);
@@ -94,6 +84,7 @@ export function DepsTab() {
         setStep("results");
       } else if (scanData.status === "failed") {
         setError(scanData.error || "Scan failed");
+        setStep("input");
       } else {
         setStep("scanning");
       }
@@ -133,43 +124,19 @@ export function DepsTab() {
     }
   }, [scan, scanId, selections, projectAssignments]);
 
-  const resetToPick = () => {
-    setStep("pick");
+  const resetToInput = () => {
+    setStep("input");
+    setRepoUrl("");
     setScanId(null);
     setScan(null);
     setSelections({});
     setProjectAssignments({});
     setApplyResult(null);
     setError(null);
-    setScanningRepo("");
   };
 
   const deps = scan?.results ?? [];
   const selectedCount = Object.values(selections).filter(Boolean).length;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-10">
-        <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#e8601a" }} />
-        <span
-          className="ml-2"
-          style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}
-        >
-          Loading your repos...
-        </span>
-      </div>
-    );
-  }
-
-  if (fetchError) {
-    return (
-      <div className="flex items-center justify-center py-10">
-        <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#ef4444" }}>
-          Failed to load repos. Try again later.
-        </span>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -187,67 +154,43 @@ export function DepsTab() {
         </div>
       )}
 
-      {/* Step 1: Repo picker — single select */}
-      {step === "pick" && (
-        repos.length === 0 ? (
-          <div className="flex items-center justify-center py-10">
-            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}>
-              No public repos found.
-            </span>
-          </div>
-        ) : (
-          <div>
-            <p
-              className="mb-3"
-              style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}
+      {/* Input */}
+      {step === "input" && (
+        <div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              placeholder="owner/repo or https://github.com/owner/repo"
+              className="flex-1 rounded-md border px-3 py-2 text-[13px] focus:outline-none focus:ring-2"
+              style={{
+                borderColor: "#e8e8e5",
+                color: "#111113",
+                fontFamily: "'JetBrains Mono', monospace",
+                backgroundColor: "#ffffff",
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#e8601a"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#e8e8e5"; }}
+              onKeyDown={(e) => e.key === "Enter" && repoUrl.trim() && beginScan(repoUrl)}
+            />
+            <button
+              onClick={() => repoUrl.trim() && beginScan(repoUrl)}
+              disabled={!repoUrl.trim()}
+              className="flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ backgroundColor: "#e8601a", fontFamily: "var(--font-dm-sans)" }}
             >
-              Pick a repo to scan for dependencies:
-            </p>
-            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
-              {repos.map((repo) => (
-                <button
-                  key={repo.full_name}
-                  onClick={() => handleScanRepo(repo)}
-                  className="flex items-center gap-3 rounded-lg p-3 text-left transition-colors"
-                  style={{
-                    border: "1px solid #e8e8e5",
-                    backgroundColor: "#ffffff",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#e8601a";
-                    e.currentTarget.style.backgroundColor = "#fff7ed";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "#e8e8e5";
-                    e.currentTarget.style.backgroundColor = "#ffffff";
-                  }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className="truncate"
-                      style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", fontWeight: 600, color: "#111113" }}
-                    >
-                      {repo.full_name}
-                    </div>
-                    <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "#9ca3af" }}>
-                      {repo.pushed_at && `Pushed ${new Date(repo.pushed_at).toLocaleDateString()}`}
-                      {repo.language && ` · ${repo.language}`}
-                    </div>
-                  </div>
-                  <span
-                    style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#e8601a", fontWeight: 500 }}
-                  >
-                    Scan →
-                  </span>
-                </button>
-              ))}
-            </div>
+              <Search className="h-4 w-4" />
+              Scan
+            </button>
           </div>
-        )
+          <p className="mt-2 text-[12px]" style={{ color: "#9ca3af" }}>
+            We&apos;ll scan for go.mod, package.json, requirements.txt, Cargo.toml, and other dependency files.
+          </p>
+        </div>
       )}
 
-      {/* Step 2: Scanning */}
+      {/* Scanning */}
       {step === "scanning" && (
         <div className="flex flex-col items-center justify-center py-10">
           <div
@@ -266,35 +209,34 @@ export function DepsTab() {
           </p>
           <p className="mt-2 text-[12px]" style={{ color: "#9ca3af" }}>
             {elapsed > 0 && `${elapsed}s elapsed · `}
-            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{scanningRepo}</span>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{repoUrl}</span>
           </p>
         </div>
       )}
 
-      {/* Step 3: Results — empty */}
+      {/* Results — empty */}
       {step === "results" && deps.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10">
           <PackageSearch className="h-8 w-8 mb-3" style={{ color: "#c4c4c0" }} />
           <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}>
-            No dependencies detected in <span style={{ fontWeight: 600, color: "#111113" }}>{scanningRepo}</span>.
+            No dependencies detected in this repository.
           </p>
           <button
-            onClick={resetToPick}
+            onClick={resetToInput}
             className="mt-3"
             style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#e8601a", background: "none", border: "none", cursor: "pointer" }}
           >
-            ← Pick another repo
+            Try another repository
           </button>
         </div>
       )}
 
-      {/* Step 3: Results — with deps (same table as Quick Onboard) */}
+      {/* Results — with deps */}
       {step === "results" && deps.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-3">
             <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "#6b7280" }}>
-              Found <span style={{ color: "#111113", fontWeight: 600 }}>{deps.length}</span> dependencies in{" "}
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#111113", fontWeight: 500 }}>{scanningRepo}</span>.
+              Found <span style={{ color: "#111113", fontWeight: 600 }}>{deps.length}</span> dependencies.
               {" "}Selected: <span style={{ color: "#111113", fontWeight: 600 }}>{selectedCount}</span>
             </p>
             <button
@@ -319,16 +261,16 @@ export function DepsTab() {
 
           <div className="mt-3">
             <button
-              onClick={resetToPick}
+              onClick={resetToInput}
               style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#6b7280", background: "none", border: "none", cursor: "pointer" }}
             >
-              ← Pick another repo
+              ← Try another
             </button>
           </div>
         </>
       )}
 
-      {/* Step 4: Applied */}
+      {/* Applied */}
       {step === "applied" && applyResult && (
         <div>
           <div
@@ -365,7 +307,7 @@ export function DepsTab() {
           )}
 
           <button
-            onClick={resetToPick}
+            onClick={resetToInput}
             className="mt-3"
             style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "#e8601a", background: "none", border: "none", cursor: "pointer" }}
           >
