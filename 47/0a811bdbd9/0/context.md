@@ -61,3 +61,12 @@ Let me go through the conversation chronologically to capture all important deta
 2. **Brainstorming Phase**: Used the brainstorming skill to explore the project and design the CLI.
    - Explored the Changelogue project at /Users/pc/web...
 
+### Prompt 8
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me go through the conversation chronologically to capture all important details:
+
+1. **Context from previous session (summary)**: The user asked to "add CLI support for core functionalities of changelogue". Through a brainstorming phase, they designed a CLI called `clog` for the Changelogue project (a Go release intelligence platfo...
+
