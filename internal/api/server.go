@@ -23,6 +23,7 @@ type Dependencies struct {
 	AgentStore            AgentStore
 	TodosStore            TodosStore
 	OnboardStore          OnboardStore
+	GatesStore            GatesStore
 	PublicURL             string
 	KeyStore              KeyStore
 	SessionValidator      SessionValidator
@@ -125,6 +126,16 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("POST /api/v1/onboard/scan", chain(http.HandlerFunc(ob.Scan)))
 	mux.Handle("GET /api/v1/onboard/scans/{id}", chain(http.HandlerFunc(ob.GetScan)))
 	mux.Handle("POST /api/v1/onboard/scans/{id}/apply", chain(http.HandlerFunc(ob.Apply)))
+
+	// Release Gates
+	gates := NewGatesHandler(deps.GatesStore)
+	mux.Handle("GET /api/v1/projects/{id}/release-gate", chain(http.HandlerFunc(gates.GetGate)))
+	mux.Handle("PUT /api/v1/projects/{id}/release-gate", chain(http.HandlerFunc(gates.UpsertGate)))
+	mux.Handle("DELETE /api/v1/projects/{id}/release-gate", chain(http.HandlerFunc(gates.DeleteGate)))
+	mux.Handle("GET /api/v1/projects/{id}/version-readiness", chain(http.HandlerFunc(gates.ListReadiness)))
+	mux.Handle("GET /api/v1/projects/{id}/version-readiness/{version}", chain(http.HandlerFunc(gates.GetReadiness)))
+	mux.Handle("GET /api/v1/projects/{id}/version-readiness/{version}/events", chain(http.HandlerFunc(gates.ListEventsByVersion)))
+	mux.Handle("GET /api/v1/projects/{id}/gate-events", chain(http.HandlerFunc(gates.ListEvents)))
 
 	// Providers (metadata — static, no store needed)
 	providers := NewProvidersHandler()

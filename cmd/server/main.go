@@ -188,6 +188,7 @@ func main() {
 		AgentStore:            pgStore,
 		TodosStore:            pgStore,
 		OnboardStore:          pgStore,
+		GatesStore:            pgStore,
 		PublicURL:             os.Getenv("PUBLIC_URL"),
 		KeyStore:              pgStore,
 		SessionValidator:      sessionStore,
