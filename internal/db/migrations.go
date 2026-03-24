@@ -299,5 +299,17 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	`); err != nil {
 		return fmt.Errorf("source exclude_prereleases migration: %w", err)
 	}
+
+	// Auto-create release_gates for projects with WaitForAllSources enabled.
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO release_gates (project_id, timeout_hours, enabled)
+		SELECT p.id, 168, true
+		FROM projects p
+		WHERE p.agent_rules->>'wait_for_all_sources' = 'true'
+		ON CONFLICT (project_id) DO NOTHING
+	`); err != nil {
+		return fmt.Errorf("wait_for_all_sources migration: %w", err)
+	}
+
 	return nil
 }
