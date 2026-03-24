@@ -225,14 +225,14 @@ CREATE TABLE notification_channels (
 CREATE TABLE subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id UUID NOT NULL REFERENCES notification_channels(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('source', 'project')),
+    type VARCHAR(50) NOT NULL CHECK (type IN ('source_release', 'semantic_release')),
     source_id UUID REFERENCES sources(id) ON DELETE CASCADE,
     project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
     version_filter TEXT,                        -- regex: only notify for matching versions
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CHECK (
-        (type = 'source'  AND source_id  IS NOT NULL AND project_id IS NULL) OR
-        (type = 'project' AND project_id IS NOT NULL AND source_id  IS NULL)
+        (type = 'source_release'  AND source_id  IS NOT NULL AND project_id IS NULL) OR
+        (type = 'semantic_release' AND project_id IS NOT NULL AND source_id  IS NULL)
     )
 );
 
@@ -276,7 +276,7 @@ Two PostgreSQL triggers publish real-time events via `pg_notify` on the `release
 * **Release provenance:** Releases reference `source_id` (not raw strings), so you always know which source detected a release. The unique constraint `UNIQUE(source_id, version)` allows the same version to exist from different sources (e.g., Go 1.21.0 from GitHub and Docker Hub are separate release records).
 * **Semantic releases:** The `semantic_releases` table captures AI-generated, project-level analysis. An agent correlates one or more source-level releases (via the `semantic_release_sources` join table) into a single semantic release with a structured report. This replaces the old `pipeline_jobs` table — instead of tracking node-by-node pipeline progress, the system tracks agent-driven analysis runs.
 * **Agent runs:** The `agent_runs` table provides observability into agent executions. Each run is scoped to a project and optionally linked to a semantic release. The `trigger` field records what initiated the run, and `prompt_used` captures the exact prompt for debugging and auditability.
-* **Subscription routing:** Subscriptions now support two granularity levels via a `type` check constraint: `'source'` subscriptions (linked to a specific source via `source_id`) notify on raw releases, while `'project'` subscriptions (linked via `project_id`) notify on semantic releases. This replaces the old project-only subscription model.
+* **Subscription routing:** Subscriptions now support two granularity levels via a `type` check constraint: `'source_release'` subscriptions (linked to a specific source via `source_id`) notify on raw releases, while `'semantic_release'` subscriptions (linked via `project_id`) notify on semantic releases. This replaces the old project-only subscription model.
 * **Notification channels:** Separating channel registration from subscription routing allows multiple subscriptions to reference the same Slack channel or PagerDuty service. The `config` JSONB column stores provider-specific credentials (webhook URLs, routing keys).
 
 ## 4. Notification Routing
@@ -422,3 +422,47 @@ The worker is registered conditionally in `main.go` — only when `GOOGLE_API_KE
 * **Agent Observability:** Each agent run tracks its status (`pending`, `running`, `completed`, `failed`), the prompt used, and any error encountered. If an agent run fails, the exact failure context is preserved in the `agent_runs` table for debugging.
 * **Agent Fallback:** If the SRE Agent sandbox deployment fails due to infrastructure timeout (unrelated to the software release itself), the agent safely aborts the validation phase, flags the release event as "Unverified," and routes it to a human reviewer rather than dropping the notification.
 * **Notification Digest Fallback:** If a digest batch fails to send (e.g., Slack API outage), the batch is retried on the next interval. Individual items within the batch are not lost — they remain queued until the channel recovers.
+
+## 7. Release Gates
+
+### 7.1 Overview
+
+Release gates are a per-project configuration that delays agent analysis until all required sources have reported a version (and optional NL-based readiness rules pass). This prevents premature semantic analysis when a project is assembled from multiple registries (e.g., GitHub tag + Docker Hub image) that publish at slightly different times.
+
+### 7.2 Tables
+
+| Table | Purpose |
+|---|---|
+| `release_gates` | Per-project gate config: required sources, NL rules, timeout duration |
+| `version_readiness` | Per-version state: which sources have reported, gate status, partial flag |
+| `gate_events` | Append-only audit log of gate state transitions |
+
+### 7.3 Flow
+
+```
+Release ingested (source_id, version)
+  → GateCheckWorker evaluates version_readiness for the project
+      → record source arrival in version_readiness
+      → if all required sources have reported:
+          → GateNLEvalWorker evaluates NL rules (if configured)
+              → if rules pass (or none configured):
+                  → gate opens → AgentJobArgs enqueued
+      → if timeout exceeded (GateTimeoutWorker periodic sweep):
+          → gate opens with partial=true → AgentJobArgs enqueued (agent receives partial flag)
+```
+
+### 7.4 Workers
+
+| Worker | Trigger | Responsibility |
+|---|---|---|
+| `GateCheckWorker` | Per-release River job | Records source arrival; opens gate when all sources met and NL rules pass |
+| `GateTimeoutWorker` | Periodic sweep (15 min) | Finds gates past timeout threshold; forces open with `partial=true` |
+| `GateNLEvalWorker` | Enqueued by GateCheckWorker | Evaluates natural-language readiness rules via LLM; responds with pass/fail |
+
+### 7.5 Version Mapping
+
+Each source entry in a `release_gates` config can define a per-source regex/template for normalizing versions across registries. For example, a GitHub source may tag `v1.21.0` while a Docker Hub source publishes `1.21.0`. The version mapping normalizes both to a canonical form (`1.21.0`) before comparing across sources.
+
+### 7.6 Integration with NotifyWorker
+
+When a project has an active release gate, `NotifyWorker` skips the agent rule checking step (i.e., it does not enqueue an `AgentJobArgs` directly). The gate is responsible for determining when agent analysis should be triggered. Source-level `source_release` subscriptions still fire immediately; only the agent trigger is gated.
