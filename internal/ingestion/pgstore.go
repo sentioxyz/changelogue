@@ -61,6 +61,15 @@ func (s *PgStore) IngestRelease(ctx context.Context, sourceID string, result *In
 		return fmt.Errorf("enqueue job: %w", err)
 	}
 
+	_, err = s.river.InsertTx(ctx, tx, queue.GateCheckJobArgs{
+		SourceID:  sourceID,
+		ReleaseID: releaseID,
+		Version:   result.RawVersion,
+	}, nil)
+	if err != nil {
+		return fmt.Errorf("enqueue gate check: %w", err)
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}
