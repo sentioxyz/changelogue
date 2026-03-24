@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "812b5b29a6ba",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/superpowers/plans/2026-03-23-release-gate.md",
+    "docs/superpowers/specs/2026-03-23-release-gate-design.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/81/2b5b29a6ba/0/metadata.json",
+      "transcript": "/81/2b5b29a6ba/0/full.jsonl",
+      "context": "/81/2b5b29a6ba/0/context.md",
+      "content_hash": "/81/2b5b29a6ba/0/content_hash.txt",
+      "prompt": "/81/2b5b29a6ba/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 14816171,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 49221,
+    "api_call_count": 166
+  }
+}
