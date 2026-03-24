@@ -13,6 +13,7 @@ import (
 	"github.com/sentioxyz/changelogue/internal/api"
 	"github.com/sentioxyz/changelogue/internal/auth"
 	"github.com/sentioxyz/changelogue/internal/db"
+	gatepkg "github.com/sentioxyz/changelogue/internal/gate"
 	"github.com/sentioxyz/changelogue/internal/ingestion"
 	"github.com/sentioxyz/changelogue/internal/onboard"
 	"github.com/sentioxyz/changelogue/internal/queue"
@@ -143,7 +144,28 @@ func main() {
 	river.AddWorker(workers, scanWorker)
 	slog.Info("scan worker registered")
 
-	riverClient, err := queue.NewRiverClient(pool, workers)
+	// Gate workers
+	gateCheckWorker := gatepkg.NewGateCheckWorker(pgStore, nil) // river client set later
+	river.AddWorker(workers, gateCheckWorker)
+
+	gateTimeoutWorker := gatepkg.NewGateTimeoutWorker(pgStore)
+	river.AddWorker(workers, gateTimeoutWorker)
+
+	// NL eval worker (stub evaluator for now — replace with LLM evaluator when ready)
+	if agentOrchestrator != nil {
+		gateNLWorker := gatepkg.NewGateNLEvalWorker(pgStore, nil)
+		river.AddWorker(workers, gateNLWorker)
+	}
+	slog.Info("gate workers registered")
+
+	timeoutPeriodic := river.NewPeriodicJob(
+		river.PeriodicInterval(15*time.Minute),
+		func() (river.JobArgs, *river.InsertOpts) {
+			return queue.GateTimeoutJobArgs{}, nil
+		},
+		&river.PeriodicJobOpts{RunOnStart: true},
+	)
+	riverClient, err := queue.NewRiverClient(pool, workers, timeoutPeriodic)
 	if err != nil {
 		slog.Error("river client failed", "err", err)
 		os.Exit(1)
@@ -152,6 +174,7 @@ func main() {
 	// Now that the river client exists, set it on the existing pgStore so that
 	// all holders (including NotifyWorker) can enqueue agent jobs.
 	pgStore.SetRiverClient(riverClient)
+	gateCheckWorker.SetRiverClient(riverClient)
 
 	if err := riverClient.Start(ctx); err != nil {
 		slog.Error("river start failed", "err", err)
