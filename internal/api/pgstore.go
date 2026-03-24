@@ -1638,3 +1638,407 @@ func (s *PgStore) ApplyOnboardScan(ctx context.Context, scanID string, selection
 	}
 	return result, nil
 }
+
+// --- Release Gate Operations ---
+
+// GetReleaseGateBySource loads the release gate config for the project that
+// owns the given source. Returns nil, nil if no gate exists.
+func (s *PgStore) GetReleaseGateBySource(ctx context.Context, sourceID string) (*models.ReleaseGate, error) {
+	var g models.ReleaseGate
+	var requiredSources, versionMapping json.RawMessage
+	err := s.pool.QueryRow(ctx, `
+		SELECT rg.id, rg.project_id, rg.required_sources, rg.timeout_hours,
+		       rg.version_mapping, rg.nl_rule, rg.enabled, rg.created_at, rg.updated_at
+		FROM release_gates rg
+		JOIN sources s ON s.project_id = rg.project_id
+		WHERE s.id = $1
+	`, sourceID).Scan(
+		&g.ID, &g.ProjectID, &requiredSources, &g.TimeoutHours,
+		&versionMapping, &g.NLRule, &g.Enabled, &g.CreatedAt, &g.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if len(requiredSources) > 0 {
+		_ = json.Unmarshal(requiredSources, &g.RequiredSources)
+	}
+	if len(versionMapping) > 0 {
+		_ = json.Unmarshal(versionMapping, &g.VersionMapping)
+	}
+	return &g, nil
+}
+
+// GetReleaseGate loads a release gate by project ID. Returns nil, nil if none.
+func (s *PgStore) GetReleaseGate(ctx context.Context, projectID string) (*models.ReleaseGate, error) {
+	var g models.ReleaseGate
+	var requiredSources, versionMapping json.RawMessage
+	err := s.pool.QueryRow(ctx, `
+		SELECT id, project_id, required_sources, timeout_hours,
+		       version_mapping, nl_rule, enabled, created_at, updated_at
+		FROM release_gates
+		WHERE project_id = $1
+	`, projectID).Scan(
+		&g.ID, &g.ProjectID, &requiredSources, &g.TimeoutHours,
+		&versionMapping, &g.NLRule, &g.Enabled, &g.CreatedAt, &g.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if len(requiredSources) > 0 {
+		_ = json.Unmarshal(requiredSources, &g.RequiredSources)
+	}
+	if len(versionMapping) > 0 {
+		_ = json.Unmarshal(versionMapping, &g.VersionMapping)
+	}
+	return &g, nil
+}
+
+// UpsertVersionReadiness atomically adds a source to sources_met for the
+// given project+version. Returns the updated row and whether the gate just
+// became ready (all sources met). Only updates rows with status='pending'.
+func (s *PgStore) UpsertVersionReadiness(ctx context.Context, projectID, version, sourceID string, requiredSources []string, timeoutHours int) (*models.VersionReadiness, bool, error) {
+	reqJSON, _ := json.Marshal(requiredSources)
+	srcJSON, _ := json.Marshal([]string{sourceID})
+
+	// Compute initial missing = required - {sourceID}
+	missing := make([]string, 0, len(requiredSources))
+	for _, r := range requiredSources {
+		if r != sourceID {
+			missing = append(missing, r)
+		}
+	}
+	missingJSON, _ := json.Marshal(missing)
+
+	var vr models.VersionReadiness
+	var sourcesMet, sourcesMissing json.RawMessage
+
+	err := s.pool.QueryRow(ctx, `
+		INSERT INTO version_readiness (project_id, version, sources_met, sources_missing, timeout_at)
+		VALUES ($1, $2, $3, $4, NOW() + make_interval(hours => $5))
+		ON CONFLICT (project_id, version) DO UPDATE SET
+			sources_met = CASE
+				WHEN version_readiness.status = 'pending' AND NOT version_readiness.sources_met @> $6::jsonb
+				THEN version_readiness.sources_met || $6::jsonb
+				ELSE version_readiness.sources_met
+			END,
+			sources_missing = CASE
+				WHEN version_readiness.status = 'pending' AND NOT version_readiness.sources_met @> $6::jsonb
+				THEN (
+					SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+					FROM jsonb_array_elements_text($7::jsonb) AS elem
+					WHERE elem NOT IN (
+						SELECT jsonb_array_elements_text(
+							CASE WHEN NOT version_readiness.sources_met @> $6::jsonb
+							     THEN version_readiness.sources_met || $6::jsonb
+							     ELSE version_readiness.sources_met
+							END
+						)
+					)
+				)
+				ELSE version_readiness.sources_missing
+			END,
+			updated_at = NOW()
+		RETURNING id, project_id, version, status, sources_met, sources_missing,
+		          nl_rule_passed, timeout_at, opened_at, agent_triggered, created_at, updated_at
+	`, projectID, version, srcJSON, missingJSON, timeoutHours, srcJSON, reqJSON).Scan(
+		&vr.ID, &vr.ProjectID, &vr.Version, &vr.Status, &sourcesMet, &sourcesMissing,
+		&vr.NLRulePassed, &vr.TimeoutAt, &vr.OpenedAt, &vr.AgentTriggered, &vr.CreatedAt, &vr.UpdatedAt,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+	_ = json.Unmarshal(sourcesMet, &vr.SourcesMet)
+	_ = json.Unmarshal(sourcesMissing, &vr.SourcesMissing)
+
+	allMet := len(vr.SourcesMissing) == 0
+	return &vr, allMet, nil
+}
+
+// OpenGate sets a version_readiness row's status to the given value (ready
+// or timed_out). Only transitions from 'pending'. Returns false if already
+// transitioned.
+func (s *PgStore) OpenGate(ctx context.Context, readinessID, status string) (bool, error) {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE version_readiness
+		SET status = $2, opened_at = NOW(), updated_at = NOW()
+		WHERE id = $1 AND status = 'pending'
+	`, readinessID, status)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
+// MarkAgentTriggered sets agent_triggered=true on the readiness row.
+func (s *PgStore) MarkAgentTriggered(ctx context.Context, readinessID string) error {
+	_, err := s.pool.Exec(ctx, `
+		UPDATE version_readiness SET agent_triggered = true, updated_at = NOW()
+		WHERE id = $1
+	`, readinessID)
+	return err
+}
+
+// RecordGateEvent inserts a gate_events row.
+func (s *PgStore) RecordGateEvent(ctx context.Context, readinessID, projectID, version, eventType string, sourceID *string, details json.RawMessage) error {
+	_, err := s.pool.Exec(ctx, `
+		INSERT INTO gate_events (version_readiness_id, project_id, version, event_type, source_id, details)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, readinessID, projectID, version, eventType, sourceID, details)
+	return err
+}
+
+// ListExpiredGates returns version_readiness rows where status='pending'
+// and timeout_at < now(), locked with FOR UPDATE SKIP LOCKED, up to limit.
+func (s *PgStore) ListExpiredGates(ctx context.Context, limit int) ([]models.VersionReadiness, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT id, project_id, version, status, sources_met, sources_missing,
+		       nl_rule_passed, timeout_at, opened_at, agent_triggered, created_at, updated_at
+		FROM version_readiness
+		WHERE status = 'pending' AND timeout_at < NOW()
+		ORDER BY timeout_at ASC
+		FOR UPDATE SKIP LOCKED
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list expired gates: %w", err)
+	}
+	defer rows.Close()
+	var results []models.VersionReadiness
+	for rows.Next() {
+		var vr models.VersionReadiness
+		var sourcesMet, sourcesMissing json.RawMessage
+		if err := rows.Scan(
+			&vr.ID, &vr.ProjectID, &vr.Version, &vr.Status, &sourcesMet, &sourcesMissing,
+			&vr.NLRulePassed, &vr.TimeoutAt, &vr.OpenedAt, &vr.AgentTriggered, &vr.CreatedAt, &vr.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan expired gate: %w", err)
+		}
+		_ = json.Unmarshal(sourcesMet, &vr.SourcesMet)
+		_ = json.Unmarshal(sourcesMissing, &vr.SourcesMissing)
+		results = append(results, vr)
+	}
+	return results, rows.Err()
+}
+
+// GetVersionReadiness loads a version_readiness row by ID. Returns nil, nil if none.
+func (s *PgStore) GetVersionReadiness(ctx context.Context, id string) (*models.VersionReadiness, error) {
+	var vr models.VersionReadiness
+	var sourcesMet, sourcesMissing json.RawMessage
+	err := s.pool.QueryRow(ctx, `
+		SELECT id, project_id, version, status, sources_met, sources_missing,
+		       nl_rule_passed, timeout_at, opened_at, agent_triggered, created_at, updated_at
+		FROM version_readiness
+		WHERE id = $1
+	`, id).Scan(
+		&vr.ID, &vr.ProjectID, &vr.Version, &vr.Status, &sourcesMet, &sourcesMissing,
+		&vr.NLRulePassed, &vr.TimeoutAt, &vr.OpenedAt, &vr.AgentTriggered, &vr.CreatedAt, &vr.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	_ = json.Unmarshal(sourcesMet, &vr.SourcesMet)
+	_ = json.Unmarshal(sourcesMissing, &vr.SourcesMissing)
+	return &vr, nil
+}
+
+// UpdateNLRulePassed sets nl_rule_passed on a version_readiness row.
+func (s *PgStore) UpdateNLRulePassed(ctx context.Context, readinessID string, passed bool) error {
+	_, err := s.pool.Exec(ctx, `
+		UPDATE version_readiness SET nl_rule_passed = $2, updated_at = NOW()
+		WHERE id = $1
+	`, readinessID, passed)
+	return err
+}
+
+// HasReleaseGate returns true if an enabled release gate exists for the project.
+func (s *PgStore) HasReleaseGate(ctx context.Context, projectID string) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM release_gates WHERE project_id = $1 AND enabled = true)
+	`, projectID).Scan(&exists)
+	return exists, err
+}
+
+// --- Release Gate API CRUD ---
+
+// CreateReleaseGate inserts a new release gate for a project.
+func (s *PgStore) CreateReleaseGate(ctx context.Context, g *models.ReleaseGate) error {
+	reqJSON, _ := json.Marshal(g.RequiredSources)
+	vmJSON, _ := json.Marshal(g.VersionMapping)
+	return s.pool.QueryRow(ctx, `
+		INSERT INTO release_gates (project_id, required_sources, timeout_hours, version_mapping, nl_rule, enabled)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, created_at, updated_at
+	`, g.ProjectID, reqJSON, g.TimeoutHours, vmJSON, g.NLRule, g.Enabled,
+	).Scan(&g.ID, &g.CreatedAt, &g.UpdatedAt)
+}
+
+// UpdateReleaseGate updates an existing release gate for a project.
+func (s *PgStore) UpdateReleaseGate(ctx context.Context, g *models.ReleaseGate) error {
+	reqJSON, _ := json.Marshal(g.RequiredSources)
+	vmJSON, _ := json.Marshal(g.VersionMapping)
+	return s.pool.QueryRow(ctx, `
+		UPDATE release_gates
+		SET required_sources = $2, timeout_hours = $3, version_mapping = $4,
+		    nl_rule = $5, enabled = $6, updated_at = NOW()
+		WHERE project_id = $1
+		RETURNING id, created_at, updated_at
+	`, g.ProjectID, reqJSON, g.TimeoutHours, vmJSON, g.NLRule, g.Enabled,
+	).Scan(&g.ID, &g.CreatedAt, &g.UpdatedAt)
+}
+
+// DeleteReleaseGate removes the release gate for a project.
+func (s *PgStore) DeleteReleaseGate(ctx context.Context, projectID string) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM release_gates WHERE project_id = $1`, projectID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("not found")
+	}
+	return nil
+}
+
+// ListVersionReadiness returns paginated version_readiness rows for a project.
+func (s *PgStore) ListVersionReadiness(ctx context.Context, projectID string, page, perPage int) ([]models.VersionReadiness, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM version_readiness WHERE project_id = $1`, projectID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count version readiness: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx, `
+		SELECT id, project_id, version, status, sources_met, sources_missing,
+		       nl_rule_passed, timeout_at, opened_at, agent_triggered, created_at, updated_at
+		FROM version_readiness
+		WHERE project_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`, projectID, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list version readiness: %w", err)
+	}
+	defer rows.Close()
+	var results []models.VersionReadiness
+	for rows.Next() {
+		var vr models.VersionReadiness
+		var sourcesMet, sourcesMissing json.RawMessage
+		if err := rows.Scan(
+			&vr.ID, &vr.ProjectID, &vr.Version, &vr.Status, &sourcesMet, &sourcesMissing,
+			&vr.NLRulePassed, &vr.TimeoutAt, &vr.OpenedAt, &vr.AgentTriggered, &vr.CreatedAt, &vr.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan version readiness: %w", err)
+		}
+		_ = json.Unmarshal(sourcesMet, &vr.SourcesMet)
+		_ = json.Unmarshal(sourcesMissing, &vr.SourcesMissing)
+		results = append(results, vr)
+	}
+	return results, total, nil
+}
+
+// GetVersionReadinessByVersion loads a version_readiness row by project+version.
+// Returns nil, nil if none.
+func (s *PgStore) GetVersionReadinessByVersion(ctx context.Context, projectID, version string) (*models.VersionReadiness, error) {
+	var vr models.VersionReadiness
+	var sourcesMet, sourcesMissing json.RawMessage
+	err := s.pool.QueryRow(ctx, `
+		SELECT id, project_id, version, status, sources_met, sources_missing,
+		       nl_rule_passed, timeout_at, opened_at, agent_triggered, created_at, updated_at
+		FROM version_readiness
+		WHERE project_id = $1 AND version = $2
+	`, projectID, version).Scan(
+		&vr.ID, &vr.ProjectID, &vr.Version, &vr.Status, &sourcesMet, &sourcesMissing,
+		&vr.NLRulePassed, &vr.TimeoutAt, &vr.OpenedAt, &vr.AgentTriggered, &vr.CreatedAt, &vr.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	_ = json.Unmarshal(sourcesMet, &vr.SourcesMet)
+	_ = json.Unmarshal(sourcesMissing, &vr.SourcesMissing)
+	return &vr, nil
+}
+
+// ListGateEvents returns paginated gate_events for a project.
+func (s *PgStore) ListGateEvents(ctx context.Context, projectID string, page, perPage int) ([]models.GateEvent, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM gate_events WHERE project_id = $1`, projectID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count gate events: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx, `
+		SELECT id, version_readiness_id, project_id, version, event_type, source_id, details, created_at
+		FROM gate_events
+		WHERE project_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`, projectID, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list gate events: %w", err)
+	}
+	defer rows.Close()
+	var events []models.GateEvent
+	for rows.Next() {
+		var ev models.GateEvent
+		if err := rows.Scan(
+			&ev.ID, &ev.VersionReadinessID, &ev.ProjectID, &ev.Version,
+			&ev.EventType, &ev.SourceID, &ev.Details, &ev.CreatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan gate event: %w", err)
+		}
+		events = append(events, ev)
+	}
+	return events, total, nil
+}
+
+// ListGateEventsByVersion returns paginated gate_events for a project+version,
+// joining on version_readiness to filter by version.
+func (s *PgStore) ListGateEventsByVersion(ctx context.Context, projectID, version string, page, perPage int) ([]models.GateEvent, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM gate_events ge
+		JOIN version_readiness vr ON ge.version_readiness_id = vr.id
+		WHERE ge.project_id = $1 AND vr.version = $2
+	`, projectID, version).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count gate events by version: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx, `
+		SELECT ge.id, ge.version_readiness_id, ge.project_id, ge.version,
+		       ge.event_type, ge.source_id, ge.details, ge.created_at
+		FROM gate_events ge
+		JOIN version_readiness vr ON ge.version_readiness_id = vr.id
+		WHERE ge.project_id = $1 AND vr.version = $2
+		ORDER BY ge.created_at DESC
+		LIMIT $3 OFFSET $4
+	`, projectID, version, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list gate events by version: %w", err)
+	}
+	defer rows.Close()
+	var events []models.GateEvent
+	for rows.Next() {
+		var ev models.GateEvent
+		if err := rows.Scan(
+			&ev.ID, &ev.VersionReadinessID, &ev.ProjectID, &ev.Version,
+			&ev.EventType, &ev.SourceID, &ev.Details, &ev.CreatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan gate event: %w", err)
+		}
+		events = append(events, ev)
+	}
+	return events, total, nil
+}
