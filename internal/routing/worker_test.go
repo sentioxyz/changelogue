@@ -116,6 +116,10 @@ func (m *mockNotifyStore) CreateReleaseTodo(_ context.Context, releaseID string)
 	return "todo-" + releaseID, nil
 }
 
+func (m *mockNotifyStore) HasReleaseGate(_ context.Context, _ string) (bool, error) {
+	return false, nil
+}
+
 func (m *mockNotifyStore) agentRunCallCount() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()

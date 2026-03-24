@@ -25,6 +25,7 @@ type NotifyStore interface {
 	GetPreviousRelease(ctx context.Context, sourceID string, beforeVersion string) (*models.Release, error)
 	EnqueueAgentRun(ctx context.Context, projectID, trigger, version string) error
 	CreateReleaseTodo(ctx context.Context, releaseID string) (string, error)
+	HasReleaseGate(ctx context.Context, projectID string) (bool, error)
 }
 
 // NotifyWorker is a River worker that processes NotifyJobArgs.
@@ -173,6 +174,18 @@ func (w *NotifyWorker) checkAgentRules(ctx context.Context, release *models.Rele
 	project, err := w.store.GetProject(ctx, source.ProjectID)
 	if err != nil {
 		slog.Error("get project for agent rules", "project_id", source.ProjectID, "err", err)
+		return
+	}
+
+	// If the project has an active release gate, skip agent rule checking here.
+	// The gate worker handles agent triggering.
+	hasGate, err := w.store.HasReleaseGate(ctx, source.ProjectID)
+	if err != nil {
+		slog.Error("check release gate", "project_id", source.ProjectID, "err", err)
+		return
+	}
+	if hasGate {
+		slog.Debug("agent rules skipped — project has release gate", "project_id", source.ProjectID)
 		return
 	}
 
