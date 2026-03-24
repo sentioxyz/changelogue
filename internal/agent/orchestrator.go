@@ -40,6 +40,7 @@ type OrchestratorStore interface {
 	GetChannel(ctx context.Context, id string) (*models.NotificationChannel, error)
 	HasReleaseForVersion(ctx context.Context, sourceID, version string) (bool, error)
 	CreateSemanticReleaseTodo(ctx context.Context, semanticReleaseID string) (string, error)
+	GetVersionReadinessByVersion(ctx context.Context, projectID, version string) (*models.VersionReadiness, error)
 }
 
 const DefaultInstruction = `You are a release intelligence agent analyzing version {{VERSION}} of a software project.
@@ -193,6 +194,42 @@ func (o *Orchestrator) checkAllSourcesReady(ctx context.Context, projectID, vers
 		}
 	}
 	return true, nil
+}
+
+// buildSourceStatusLines returns a summary line like
+// "Sources: github/foo ✓, dockerhub/bar ✗ (not yet available)"
+// for inclusion in semantic release notifications. Returns "" if no gate data
+// is available so callers can skip enrichment gracefully.
+func (o *Orchestrator) buildSourceStatusLines(ctx context.Context, projectID, version string) string {
+	vr, err := o.store.GetVersionReadinessByVersion(ctx, projectID, version)
+	if err != nil || vr == nil {
+		return "" // no gate data — skip enrichment
+	}
+
+	sources, _, _ := o.store.ListSourcesByProject(ctx, projectID, 1, 1000)
+	sourceNames := make(map[string]string) // id → "Provider/Repo"
+	for _, s := range sources {
+		sourceNames[s.ID] = fmt.Sprintf("%s/%s", s.Provider, s.Repository)
+	}
+
+	metSet := make(map[string]bool)
+	for _, id := range vr.SourcesMet {
+		metSet[id] = true
+	}
+
+	var parts []string
+	for _, s := range sources {
+		name := sourceNames[s.ID]
+		if metSet[s.ID] {
+			parts = append(parts, name+" ✓")
+		} else {
+			parts = append(parts, name+" ✗ (not yet available)")
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return "Sources: " + strings.Join(parts, ", ")
 }
 
 // Orchestrator manages the lifecycle of an agent run: loading project config,
@@ -474,9 +511,15 @@ func (o *Orchestrator) sendProjectNotifications(ctx context.Context, run *models
 			"semantic_release_id", result.semanticReleaseID, "err", todoErr)
 	}
 
+	// Enrich the notification body with source availability status if available.
+	notifBody := result.reportText
+	if statusLine := o.buildSourceStatusLines(ctx, run.ProjectID, result.version); statusLine != "" {
+		notifBody = notifBody + "\n\n" + statusLine
+	}
+
 	msg := routing.Notification{
 		Title:       fmt.Sprintf("Semantic Release Report: %s %s", result.projectName, result.version),
-		Body:        result.reportText,
+		Body:        notifBody,
 		Version:     result.version,
 		ProjectName: result.projectName,
 	}
