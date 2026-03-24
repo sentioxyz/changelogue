@@ -47,6 +47,9 @@ func (m *mockGateStore) UpsertVersionReadiness(_ context.Context, _, _, _ string
 
 func (m *mockGateStore) OpenGate(_ context.Context, _, _ string) (bool, error) {
 	m.openGateCalled = true
+	if m.openResult {
+		m.gateOpened = true
+	}
 	return m.openResult, nil
 }
 
