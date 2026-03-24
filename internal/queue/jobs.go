@@ -34,3 +34,34 @@ type ScanDependenciesJobArgs struct {
 func (ScanDependenciesJobArgs) Kind() string { return "scan_dependencies" }
 
 var _ river.JobArgs = ScanDependenciesJobArgs{}
+
+// GateCheckJobArgs is enqueued when a release is ingested for any project.
+// The worker checks if a release gate exists and evaluates readiness.
+type GateCheckJobArgs struct {
+	SourceID  string `json:"source_id"`
+	ReleaseID string `json:"release_id"`
+	Version   string `json:"version"` // raw version from source
+}
+
+func (GateCheckJobArgs) Kind() string { return "gate_check" }
+
+var _ river.JobArgs = GateCheckJobArgs{}
+
+// GateNLEvalJobArgs is enqueued when structured gate rules pass and an NL rule
+// needs LLM evaluation.
+type GateNLEvalJobArgs struct {
+	VersionReadinessID string `json:"version_readiness_id"`
+	ProjectID          string `json:"project_id"`
+	Version            string `json:"version"`
+}
+
+func (GateNLEvalJobArgs) Kind() string { return "gate_nl_eval" }
+
+var _ river.JobArgs = GateNLEvalJobArgs{}
+
+// GateTimeoutJobArgs is a periodic job that sweeps expired pending gates.
+type GateTimeoutJobArgs struct{}
+
+func (GateTimeoutJobArgs) Kind() string { return "gate_timeout" }
+
+var _ river.JobArgs = GateTimeoutJobArgs{}
