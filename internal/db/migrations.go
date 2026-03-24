@@ -207,6 +207,53 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+
+-- Release gates (per-project gate configuration)
+CREATE TABLE IF NOT EXISTS release_gates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL UNIQUE REFERENCES projects(id) ON DELETE CASCADE,
+    required_sources JSONB,
+    timeout_hours INT NOT NULL DEFAULT 168,
+    version_mapping JSONB,
+    nl_rule TEXT,
+    enabled BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Version readiness (per-version gate state tracking)
+CREATE TABLE IF NOT EXISTS version_readiness (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    version VARCHAR(100) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'ready', 'timed_out')),
+    sources_met JSONB NOT NULL DEFAULT '[]',
+    sources_missing JSONB NOT NULL DEFAULT '[]',
+    nl_rule_passed BOOLEAN,
+    timeout_at TIMESTAMPTZ NOT NULL,
+    opened_at TIMESTAMPTZ,
+    agent_triggered BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(project_id, version)
+);
+CREATE INDEX IF NOT EXISTS idx_version_readiness_timeout
+    ON version_readiness(timeout_at) WHERE status = 'pending';
+
+-- Gate events (audit log for gate lifecycle)
+CREATE TABLE IF NOT EXISTS gate_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    version_readiness_id UUID NOT NULL REFERENCES version_readiness(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    version VARCHAR(100) NOT NULL,
+    event_type VARCHAR(30) NOT NULL,
+    source_id UUID,
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_gate_events_readiness ON gate_events(version_readiness_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_gate_events_project ON gate_events(project_id, created_at);
 `
 
 // RunMigrations applies River's schema and the application schema. Idempotent — safe to call on every startup.
