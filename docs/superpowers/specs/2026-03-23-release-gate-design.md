@@ -255,17 +255,16 @@ type GateTimeoutJobArgs struct{}
 // Kind() = "gate_timeout"
 ```
 
-**Registration:** Uses River's `PeriodicJob` API:
+**Registration:** Uses River's `NewPeriodicJob` API:
 
 ```go
-river.PeriodicJob{
-    ScheduleFunc: river.PeriodicScheduleFunc(func(time.Time) time.Time {
-        return time.Now().Add(15 * time.Minute)
-    }),
-    ConstructorFunc: func() (river.JobArgs, *river.InsertOpts) {
+river.NewPeriodicJob(
+    river.PeriodicInterval(15 * time.Minute),
+    func() (river.JobArgs, *river.InsertOpts) {
         return GateTimeoutJobArgs{}, nil
     },
-}
+    &river.PeriodicJobOpts{RunOnStart: true},
+)
 ```
 
 **Sweep mechanics:**
