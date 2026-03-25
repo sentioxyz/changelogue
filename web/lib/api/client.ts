@@ -26,6 +26,10 @@ import type {
   OnboardApplyResult,
   SuggestionItem,
   RepoItem,
+  ReleaseGate,
+  ReleaseGateInput,
+  VersionReadiness,
+  GateEvent,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -289,4 +293,47 @@ export const onboard = {
       method: "POST",
       body: JSON.stringify({ selections }),
     }),
+};
+
+// --- Release Gates ---
+
+export const gates = {
+  get: async (projectId: string): Promise<ApiResponse<ReleaseGate | null>> => {
+    const res = await fetch(`${BASE}/projects/${projectId}/release-gate`, {
+      headers: { "Content-Type": "application/json" },
+    });
+    if (res.status === 404) {
+      return { data: null };
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error?.message ?? `Request failed: ${res.status}`);
+    }
+    return res.json();
+  },
+  upsert: (projectId: string, input: ReleaseGateInput) =>
+    request<ApiResponse<ReleaseGate>>(`/projects/${projectId}/release-gate`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }),
+  delete: (projectId: string) =>
+    request<ApiResponse<null>>(`/projects/${projectId}/release-gate`, {
+      method: "DELETE",
+    }),
+  listReadiness: (projectId: string, page = 1, perPage = 25) =>
+    request<ApiResponse<VersionReadiness[]>>(
+      `/projects/${projectId}/version-readiness?page=${page}&per_page=${perPage}`
+    ),
+  getReadiness: (projectId: string, version: string) =>
+    request<ApiResponse<VersionReadiness>>(
+      `/projects/${projectId}/version-readiness/${encodeURIComponent(version)}`
+    ),
+  listEvents: (projectId: string, page = 1, perPage = 25) =>
+    request<ApiResponse<GateEvent[]>>(
+      `/projects/${projectId}/gate-events?page=${page}&per_page=${perPage}`
+    ),
+  listEventsByVersion: (projectId: string, version: string, page = 1, perPage = 25) =>
+    request<ApiResponse<GateEvent[]>>(
+      `/projects/${projectId}/version-readiness/${encodeURIComponent(version)}/events?page=${page}&per_page=${perPage}`
+    ),
 };
