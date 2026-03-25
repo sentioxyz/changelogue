@@ -328,3 +328,56 @@ export interface RepoItem {
   url: string;
   pushed_at: string;
 }
+
+// --- Release Gate Types ---
+
+export interface VersionMapping {
+  pattern: string;
+  template: string;
+}
+
+export interface ReleaseGate {
+  id: string;
+  project_id: string;
+  required_sources?: string[];
+  timeout_hours: number;
+  version_mapping?: Record<string, VersionMapping>;
+  nl_rule?: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReleaseGateInput {
+  required_sources?: string[];
+  timeout_hours: number;
+  version_mapping?: Record<string, VersionMapping>;
+  nl_rule?: string;
+  enabled: boolean;
+}
+
+export interface VersionReadiness {
+  id: string;
+  project_id: string;
+  version: string;
+  status: "pending" | "ready" | "timed_out";
+  sources_met: string[];
+  sources_missing: string[];
+  nl_rule_passed?: boolean;
+  timeout_at: string;
+  opened_at?: string;
+  agent_triggered: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GateEvent {
+  id: string;
+  version_readiness_id: string;
+  project_id: string;
+  version: string;
+  event_type: string;
+  source_id?: string;
+  details?: Record<string, unknown>;
+  created_at: string;
+}
