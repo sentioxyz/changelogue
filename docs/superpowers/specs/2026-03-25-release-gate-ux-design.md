@@ -93,8 +93,16 @@ Add to `web/lib/api/client.ts`:
 
 ```typescript
 export const gates = {
-  get: (projectId: string) =>
-    request<ApiResponse<ReleaseGate>>(`/projects/${projectId}/release-gate`),
+  get: async (projectId: string) => {
+    try {
+      return await request<ApiResponse<ReleaseGate>>(`/projects/${projectId}/release-gate`);
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        return { data: null as unknown as ReleaseGate };
+      }
+      throw e;
+    }
+  },
   upsert: (projectId: string, input: ReleaseGateInput) =>
     request<ApiResponse<ReleaseGate>>(`/projects/${projectId}/release-gate`, {
       method: "PUT",
@@ -146,7 +154,7 @@ A `rounded-lg border p-5 bg-surface` card containing:
 
 1. **Header row**: "Gate Configuration" title + description on the left, `<Switch>` toggle (enabled/disabled) on the right
 2. **Required Sources**: Checkbox list showing each of the project's sources. Each checkbox shows `{provider}/{repository}`. Empty selection means "all sources required". Helper text explains this.
-3. **Timeout (hours)**: `<Input type="number">` with label. Default: 24.
+3. **Timeout (hours)**: `<Input type="number">` with label. Default: 168 (7 days), matching the database default.
 4. **NL Rule**: `<Textarea>` with label and helper text. Optional.
 5. **Version Mapping**: A table (header row + data rows) with columns:
    - Source (display name from sources list)
@@ -156,7 +164,7 @@ A `rounded-lg border p-5 bg-surface` card containing:
    Only shows rows for sources that have custom mappings. An "Add mapping" button below lets the user pick a source (from a dropdown of unmapped sources) and add a row.
 6. **Action buttons**: "Delete Gate" (destructive outline) and "Save Configuration" (primary). Delete shows a `<ConfirmDialog>`.
 
-**Data fetching**: `useSWR` with key `project-${projectId}-gate` calling `gates.get(projectId)`. The SWR hook should not throw on 404 (no gate exists yet) — treat 404 as null (no gate configured).
+**Data fetching**: `useSWR` with key `project-${projectId}-gate` calling `gates.get(projectId)`. The standard `request()` function throws on 404. To handle the "no gate" case, the `gates.get` method must catch 404 errors and return `null` instead of throwing. Implement this by wrapping the `request` call in a try/catch that checks for "404" in the error message and returns `{ data: null }` on 404. The SWR data will then be `null` when no gate exists.
 
 **Save behavior**: Calls `gates.upsert(projectId, input)` then mutates the SWR cache. If no gate exists, this creates one. If one exists, this updates it.
 
@@ -187,7 +195,15 @@ A card with a `<Table>` showing paginated version readiness entries. Columns:
 
 A card showing a chronological list of gate events. Each event rendered as:
 
-- **Colored dot** on the left (green for `gate_ready`, blue for `source_release`, amber for `timeout`, gray for other)
+- **Colored dot** on the left — color mapped by backend `event_type` values:
+  - `gate_opened` → green dot (gate ready, all sources met)
+  - `source_met` → blue dot (a source released its version)
+  - `gate_timed_out` → amber dot (gate timed out waiting)
+  - `nl_eval_passed` → green dot
+  - `nl_eval_failed` → red dot
+  - `nl_eval_started` → gray dot
+  - `agent_triggered` → blue dot
+  - Any other `event_type` → gray dot
 - **Event description**: Bold version + human-readable description derived from `event_type` and `source_id`
 - **Metadata line**: Event type string + relative timestamp
 
@@ -268,11 +284,13 @@ No new SWR hooks in the parent — all gate data fetching happens inside `<Relea
 "projects.detail.gateEvents": "Gate Events",
 "projects.detail.gateEventsDesc": "Audit log of gate activity across all versions.",
 "projects.detail.gateEventsEmpty": "No gate events yet.",
-"projects.detail.gateEventReady": "Gate opened: all sources ready",
-"projects.detail.gateEventSourceRelease": "Source released: {source}",
-"projects.detail.gateEventTimeout": "Gate timed out",
-"projects.detail.gateEventNLPass": "NL rule passed",
-"projects.detail.gateEventNLFail": "NL rule failed"
+"projects.detail.gateEventGateOpened": "Gate opened: all sources ready",
+"projects.detail.gateEventSourceMet": "Source released: {source}",
+"projects.detail.gateEventTimedOut": "Gate timed out",
+"projects.detail.gateEventNLStarted": "NL rule evaluation started",
+"projects.detail.gateEventNLPassed": "NL rule passed",
+"projects.detail.gateEventNLFailed": "NL rule failed",
+"projects.detail.gateEventAgentTriggered": "Agent analysis triggered"
 ```
 
 ### Chinese (`zh.json`)
@@ -281,7 +299,7 @@ Corresponding translations for all keys above. Follow the existing translation s
 
 ## Error Handling
 
-- **404 on GET gate**: Treat as "no gate configured" — show empty config form with defaults (enabled=false, timeout=24, empty sources).
+- **404 on GET gate**: Treat as "no gate configured" — show empty config form with defaults (enabled=false, timeout=168, empty sources). The `gates.get` method handles this by catching 404 and returning null data.
 - **Save failure**: Show error toast/inline error message.
 - **Delete failure**: Show error in ConfirmDialog.
 - **Readiness/Events fetch failure**: Show error state in the respective card.
