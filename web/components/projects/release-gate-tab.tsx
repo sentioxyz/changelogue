@@ -471,7 +471,6 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
               <Button
                 variant="outline"
                 onClick={() => setDeleteOpen(true)}
-                className="text-destructive hover:text-destructive"
               >
                 {t("projects.detail.gateDelete")}
               </Button>
