@@ -362,6 +362,7 @@
   "projects.detail.gateEventNLFailed": "自然语言规则未通过",
   "projects.detail.gateEventAgentTriggered": "代理分析已触发",
   "projects.detail.gateDeleted": "（已删除）",
+  "projects.detail.gateEventsFiltered": "已筛选：{version}",
   "projects.detail.loadMore": "加载更多",
 
   "subscriptions.title": "订阅",

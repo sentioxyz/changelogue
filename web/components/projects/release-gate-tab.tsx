@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X, Plus } from "lucide-react";
+import { timeAgo } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n/context";
 
 interface ReleaseGateTabProps {
@@ -288,18 +289,6 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
       default:
         return event.event_type;
     }
-  };
-
-  // Relative timestamp
-  const relativeTime = (iso: string): string => {
-    const diff = Date.now() - new Date(iso).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
   };
 
   if (gateLoading) {
@@ -587,7 +576,7 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
           <div className="flex flex-col">
             {eventsVersionFilter && (
               <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
-                <span>Filtered: {eventsVersionFilter}</span>
+                <span>{t("projects.detail.gateEventsFiltered").replace("{version}", eventsVersionFilter)}</span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -613,7 +602,7 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
                     {eventDescription(ev)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {ev.event_type} • {relativeTime(ev.created_at)}
+                    {ev.event_type} • {timeAgo(ev.created_at)}
                   </div>
                 </div>
               </div>

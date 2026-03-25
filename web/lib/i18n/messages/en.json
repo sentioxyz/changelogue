@@ -362,6 +362,7 @@
   "projects.detail.gateEventNLFailed": "NL rule failed",
   "projects.detail.gateEventAgentTriggered": "Agent analysis triggered",
   "projects.detail.gateDeleted": "(deleted)",
+  "projects.detail.gateEventsFiltered": "Filtered: {version}",
   "projects.detail.loadMore": "Load more",
 
   "subscriptions.title": "Subscriptions",
