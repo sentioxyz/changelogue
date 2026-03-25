@@ -3,7 +3,7 @@
   "checkpoint_id": "9734b9750efe",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "web/components/projects/release-gate-tab.tsx"
   ],
@@ -21,13 +21,20 @@
       "context": "/97/34b9750efe/1/context.md",
       "content_hash": "/97/34b9750efe/1/content_hash.txt",
       "prompt": "/97/34b9750efe/1/prompt.txt"
+    },
+    {
+      "metadata": "/97/34b9750efe/2/metadata.json",
+      "transcript": "/97/34b9750efe/2/full.jsonl",
+      "context": "/97/34b9750efe/2/context.md",
+      "content_hash": "/97/34b9750efe/2/content_hash.txt",
+      "prompt": "/97/34b9750efe/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 16417185,
+    "input_tokens": 52234429,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 53665,
-    "api_call_count": 196
+    "output_tokens": 105763,
+    "api_call_count": 541
   }
 }
