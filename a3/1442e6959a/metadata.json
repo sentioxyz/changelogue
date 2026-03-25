@@ -3,7 +3,7 @@
   "checkpoint_id": "a31442e6959a",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "docs/superpowers/specs/2026-03-25-release-gate-ux-design.md"
   ],
@@ -21,13 +21,20 @@
       "context": "/a3/1442e6959a/1/context.md",
       "content_hash": "/a3/1442e6959a/1/content_hash.txt",
       "prompt": "/a3/1442e6959a/1/prompt.txt"
+    },
+    {
+      "metadata": "/a3/1442e6959a/2/metadata.json",
+      "transcript": "/a3/1442e6959a/2/full.jsonl",
+      "context": "/a3/1442e6959a/2/context.md",
+      "content_hash": "/a3/1442e6959a/2/content_hash.txt",
+      "prompt": "/a3/1442e6959a/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 16417185,
+    "input_tokens": 39408317,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 53665,
-    "api_call_count": 196
+    "output_tokens": 88347,
+    "api_call_count": 426
   }
 }
