@@ -708,26 +708,52 @@ git commit -m "feat(web): add ReleaseGateTab component with gate config card"
 
 - [ ] **Step 1: Add the version readiness table section**
 
-In `web/components/projects/release-gate-tab.tsx`, add the following import at the top (alongside existing imports):
+In `web/components/projects/release-gate-tab.tsx`, add `VersionReadiness` to the existing type import from `"@/lib/api/types"` (merge into the block added in Task 4):
 
 ```tsx
-import type { VersionReadiness } from "@/lib/api/types";
+import type {
+  Source,
+  ReleaseGate,
+  ReleaseGateInput,
+  VersionMapping,
+  VersionReadiness,
+} from "@/lib/api/types";
 ```
 
 Add this state and SWR hook inside the component function, after the existing `mutateGate` hook:
 
 ```tsx
-  // --- Version readiness data (with pagination) ---
+  // --- Version readiness data (with Load More accumulation) ---
   const [readinessPage, setReadinessPage] = useState(1);
+  const [allReadiness, setAllReadiness] = useState<VersionReadiness[]>([]);
   const {
     data: readinessData,
-    mutate: mutateReadiness,
   } = useSWR(
     gate?.enabled ? `project-${projectId}-readiness-${readinessPage}` : null,
     () => gatesApi.listReadiness(projectId, readinessPage)
   );
-  const readinessItems = readinessData?.data ?? [];
-  const hasMoreReadiness = readinessItems.length === 25; // perPage default
+
+  // Accumulate pages
+  useEffect(() => {
+    if (readinessData?.data) {
+      setAllReadiness((prev) =>
+        readinessPage === 1 ? readinessData.data! : [...prev, ...readinessData.data!]
+      );
+    }
+  }, [readinessData, readinessPage]);
+
+  // Reset on gate toggle
+  useEffect(() => {
+    if (!gate?.enabled) {
+      setAllReadiness([]);
+      setReadinessPage(1);
+    }
+  }, [gate?.enabled]);
+
+  const hasMoreReadiness = (readinessData?.data?.length ?? 0) === 25;
+
+  // --- Events version filter (set by readiness table "Events" button) ---
+  const [eventsVersionFilter, setEventsVersionFilter] = useState<string | null>(null);
 ```
 
 Add this helper function inside the component, after the existing handler functions:
@@ -784,23 +810,24 @@ Replace the `{/* Sections 2 & 3 will be added in Tasks 5 and 6 */}` comment with
           <p className="text-sm text-muted-foreground italic">
             {t("projects.detail.gateDisabled")}
           </p>
-        ) : readinessItems.length === 0 ? (
+        ) : allReadiness.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">
             {t("projects.detail.vrEmpty")}
           </p>
         ) : (
           <div className="rounded-md border overflow-hidden">
-            <div className="grid grid-cols-[1.5fr_1fr_2fr_2fr_1.5fr] gap-2 px-3 py-2 text-xs text-muted-foreground bg-muted/30 border-b">
+            <div className="grid grid-cols-[1.5fr_1fr_2fr_2fr_1fr_0.5fr] gap-2 px-3 py-2 text-xs text-muted-foreground bg-muted/30 border-b">
               <div>{t("projects.detail.vrVersion")}</div>
               <div>{t("projects.detail.vrStatus")}</div>
               <div>{t("projects.detail.vrSourcesMet")}</div>
               <div>{t("projects.detail.vrSourcesMissing")}</div>
               <div>{t("projects.detail.vrTimeout")}</div>
+              <div />
             </div>
-            {readinessItems.map((vr) => (
+            {allReadiness.map((vr) => (
               <div
                 key={vr.id}
-                className="grid grid-cols-[1.5fr_1fr_2fr_2fr_1.5fr] gap-2 px-3 py-2 items-center border-b last:border-b-0 text-sm"
+                className="grid grid-cols-[1.5fr_1fr_2fr_2fr_1fr_0.5fr] gap-2 px-3 py-2 items-center border-b last:border-b-0 text-sm"
               >
                 <div className="font-medium">{vr.version}</div>
                 <div>{statusBadge(vr.status)}</div>
@@ -812,6 +839,18 @@ Replace the `{/* Sections 2 & 3 will be added in Tasks 5 and 6 */}` comment with
                 </div>
                 <div className="text-xs">
                   {formatTimeRemaining(vr.timeout_at, vr.status)}
+                </div>
+                <div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => {
+                      setEventsVersionFilter(vr.version);
+                    }}
+                  >
+                    {t("projects.detail.vrEvents")}
+                  </Button>
                 </div>
               </div>
             ))}
@@ -855,23 +894,53 @@ git commit -m "feat(web): add version readiness table to ReleaseGateTab"
 
 - [ ] **Step 1: Add gate events timeline section**
 
-Add this import at the top (alongside existing imports):
+Add `GateEvent` to the existing type import from `"@/lib/api/types"` (merge into the block, which now includes `VersionReadiness` from Task 5):
 
 ```tsx
-import type { GateEvent } from "@/lib/api/types";
+import type {
+  Source,
+  ReleaseGate,
+  ReleaseGateInput,
+  VersionMapping,
+  VersionReadiness,
+  GateEvent,
+} from "@/lib/api/types";
 ```
 
-Add this SWR hook with pagination state inside the component function, after the readiness hook:
+Add this SWR hook with pagination accumulation inside the component function, after the readiness hook:
 
 ```tsx
-  // --- Gate events data (with pagination) ---
+  // --- Gate events data (with Load More accumulation) ---
   const [eventsPage, setEventsPage] = useState(1);
+  const [allEvents, setAllEvents] = useState<GateEvent[]>([]);
   const { data: eventsData } = useSWR(
-    gate ? `project-${projectId}-gate-events-${eventsPage}` : null,
-    () => gatesApi.listEvents(projectId, eventsPage)
+    gate
+      ? eventsVersionFilter
+        ? `project-${projectId}-gate-events-v-${eventsVersionFilter}-${eventsPage}`
+        : `project-${projectId}-gate-events-${eventsPage}`
+      : null,
+    () =>
+      eventsVersionFilter
+        ? gatesApi.listEventsByVersion(projectId, eventsVersionFilter, eventsPage)
+        : gatesApi.listEvents(projectId, eventsPage)
   );
-  const eventItems = eventsData?.data ?? [];
-  const hasMoreEvents = eventItems.length === 25; // perPage default
+
+  // Accumulate event pages
+  useEffect(() => {
+    if (eventsData?.data) {
+      setAllEvents((prev) =>
+        eventsPage === 1 ? eventsData.data! : [...prev, ...eventsData.data!]
+      );
+    }
+  }, [eventsData, eventsPage]);
+
+  // Reset events when filter changes
+  useEffect(() => {
+    setAllEvents([]);
+    setEventsPage(1);
+  }, [eventsVersionFilter]);
+
+  const hasMoreEvents = (eventsData?.data?.length ?? 0) === 25;
 ```
 
 Add this helper function inside the component:
@@ -947,13 +1016,26 @@ Replace the `{/* Section 3 placeholder — will be added in Task 6 */}` comment 
           <p className="text-sm text-muted-foreground italic">
             {t("projects.detail.gateNoConfig")}
           </p>
-        ) : eventItems.length === 0 ? (
+        ) : allEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">
             {t("projects.detail.gateEventsEmpty")}
           </p>
         ) : (
           <div className="flex flex-col">
-            {eventItems.map((ev) => (
+            {eventsVersionFilter && (
+              <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                <span>Filtered: {eventsVersionFilter}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-1"
+                  onClick={() => setEventsVersionFilter(null)}
+                >
+                  <X className="size-3" />
+                </Button>
+              </div>
+            )}
+            {allEvents.map((ev) => (
               <div
                 key={ev.id}
                 className="flex gap-3 py-2.5 border-b last:border-b-0 items-start"
