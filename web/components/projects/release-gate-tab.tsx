@@ -147,6 +147,25 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
   }, [gate]);
 
   // --- Handlers ---
+  const handleToggleEnabled = async (checked: boolean) => {
+    setEnabled(checked);
+    if (!gate) return; // no gate yet — will be saved with "Save Configuration"
+    try {
+      const input: ReleaseGateInput = {
+        enabled: checked,
+        required_sources: requiredSources.length > 0 ? requiredSources : undefined,
+        timeout_hours: timeoutHours,
+        version_mapping:
+          Object.keys(versionMapping).length > 0 ? versionMapping : undefined,
+        nl_rule: nlRule || undefined,
+      };
+      await gatesApi.upsert(projectId, input);
+      mutateGate();
+    } catch {
+      setEnabled(!checked); // revert on failure
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -460,7 +479,7 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
             <Switch
               id="gate-enabled"
               checked={enabled}
-              onCheckedChange={setEnabled}
+              onCheckedChange={handleToggleEnabled}
             />
             <label htmlFor="gate-enabled" className="text-[13px] text-secondary-foreground">
               {t("projects.detail.gateEnabled")}
