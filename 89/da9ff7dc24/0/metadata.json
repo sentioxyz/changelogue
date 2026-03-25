@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "89da9ff7dc24",
+  "session_id": "5f082a78-acec-4886-b77e-e1870966b8d8",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-25T01:54:22.579312Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".gitignore",
+    "docs/superpowers/specs/2026-03-25-release-gate-ux-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "9b8c2e55ab52",
+  "token_usage": {
+    "input_tokens": 14816171,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 49221,
+    "api_call_count": 166
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-25T01:54:18.672544Z",
+    "agent_lines": 1,
+    "human_added": 314,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 315,
+    "agent_percentage": 0.31746031746031744
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/5f082a78-acec-4886-b77e-e1870966b8d8.jsonl"
+}
