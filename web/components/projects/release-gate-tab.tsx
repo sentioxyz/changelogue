@@ -324,9 +324,9 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
 
         {/* Required Sources */}
         <div className="mb-4">
-          <Label className="text-sm font-medium">
+          <label className="mb-1 block text-[13px] text-secondary-foreground">
             {t("projects.detail.gateRequiredSources")}
-          </Label>
+          </label>
           <p className="text-xs text-muted-foreground mt-1 mb-2">
             {t("projects.detail.gateRequiredSourcesHint")}
           </p>
@@ -354,9 +354,9 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
 
         {/* Timeout Hours */}
         <div className="mb-4">
-          <Label htmlFor="gate-timeout" className="text-sm font-medium">
+          <label htmlFor="gate-timeout" className="mb-1 block text-[13px] text-secondary-foreground">
             {t("projects.detail.gateTimeoutHours")}
-          </Label>
+          </label>
           <p className="text-xs text-muted-foreground mt-1 mb-2">
             {t("projects.detail.gateTimeoutHoursHint")}
           </p>
@@ -372,12 +372,12 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
 
         {/* NL Rule */}
         <div className="mb-4">
-          <Label htmlFor="gate-nl-rule" className="text-sm font-medium">
+          <label htmlFor="gate-nl-rule" className="mb-1 block text-[13px] text-secondary-foreground">
             {t("projects.detail.gateNLRule")}{" "}
-            <span className="text-muted-foreground font-normal">
+            <span className="text-[11px] text-text-muted">
               {t("projects.detail.gateNLRuleOptional")}
             </span>
-          </Label>
+          </label>
           <p className="text-xs text-muted-foreground mt-1 mb-2">
             {t("projects.detail.gateNLRuleHint")}
           </p>
@@ -391,9 +391,9 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
 
         {/* Version Mapping */}
         <div className="mb-4">
-          <Label className="text-sm font-medium">
+          <label className="mb-1 block text-[13px] text-secondary-foreground">
             {t("projects.detail.gateVersionMapping")}
-          </Label>
+          </label>
           <p className="text-xs text-muted-foreground mt-1 mb-2">
             {t("projects.detail.gateVersionMappingHint")}
           </p>
