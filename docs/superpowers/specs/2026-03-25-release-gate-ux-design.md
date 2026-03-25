@@ -93,15 +93,18 @@ Add to `web/lib/api/client.ts`:
 
 ```typescript
 export const gates = {
-  get: async (projectId: string) => {
-    try {
-      return await request<ApiResponse<ReleaseGate>>(`/projects/${projectId}/release-gate`);
-    } catch (e) {
-      if (e instanceof Error && e.message.includes("404")) {
-        return { data: null as unknown as ReleaseGate };
-      }
-      throw e;
+  get: async (projectId: string): Promise<ApiResponse<ReleaseGate | null>> => {
+    const res = await fetch(`${BASE}/projects/${projectId}/release-gate`, {
+      headers: { "Content-Type": "application/json" },
+    });
+    if (res.status === 404) {
+      return { data: null };
     }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error?.message ?? `Request failed: ${res.status}`);
+    }
+    return res.json();
   },
   upsert: (projectId: string, input: ReleaseGateInput) =>
     request<ApiResponse<ReleaseGate>>(`/projects/${projectId}/release-gate`, {
@@ -164,7 +167,7 @@ A `rounded-lg border p-5 bg-surface` card containing:
    Only shows rows for sources that have custom mappings. An "Add mapping" button below lets the user pick a source (from a dropdown of unmapped sources) and add a row.
 6. **Action buttons**: "Delete Gate" (destructive outline) and "Save Configuration" (primary). Delete shows a `<ConfirmDialog>`.
 
-**Data fetching**: `useSWR` with key `project-${projectId}-gate` calling `gates.get(projectId)`. The standard `request()` function throws on 404. To handle the "no gate" case, the `gates.get` method must catch 404 errors and return `null` instead of throwing. Implement this by wrapping the `request` call in a try/catch that checks for "404" in the error message and returns `{ data: null }` on 404. The SWR data will then be `null` when no gate exists.
+**Data fetching**: `useSWR` with key `project-${projectId}-gate` calling `gates.get(projectId)`. The `gates.get` method uses `fetch` directly (not the shared `request()` helper) to check `res.status === 404` and return `{ data: null }` instead of throwing. This way SWR receives null data when no gate exists, rather than an error.
 
 **Save behavior**: Calls `gates.upsert(projectId, input)` then mutates the SWR cache. If no gate exists, this creates one. If one exists, this updates it.
 
