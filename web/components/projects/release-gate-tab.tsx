@@ -8,6 +8,7 @@ import type {
   ReleaseGateInput,
   VersionMapping,
   VersionReadiness,
+  GateEvent,
 } from "@/lib/api/types";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -84,6 +85,38 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
 
   // --- Events version filter (set by readiness table "Events" button) ---
   const [eventsVersionFilter, setEventsVersionFilter] = useState<string | null>(null);
+
+  // --- Gate events data (with Load More accumulation) ---
+  const [eventsPage, setEventsPage] = useState(1);
+  const [allEvents, setAllEvents] = useState<GateEvent[]>([]);
+  const { data: eventsData } = useSWR(
+    gate
+      ? eventsVersionFilter
+        ? `project-${projectId}-gate-events-v-${eventsVersionFilter}-${eventsPage}`
+        : `project-${projectId}-gate-events-${eventsPage}`
+      : null,
+    () =>
+      eventsVersionFilter
+        ? gatesApi.listEventsByVersion(projectId, eventsVersionFilter, eventsPage)
+        : gatesApi.listEvents(projectId, eventsPage)
+  );
+
+  // Accumulate event pages
+  useEffect(() => {
+    if (eventsData?.data) {
+      setAllEvents((prev) =>
+        eventsPage === 1 ? eventsData.data! : [...prev, ...eventsData.data!]
+      );
+    }
+  }, [eventsData, eventsPage]);
+
+  // Reset events when filter changes
+  useEffect(() => {
+    setAllEvents([]);
+    setEventsPage(1);
+  }, [eventsVersionFilter]);
+
+  const hasMoreEvents = (eventsData?.data?.length ?? 0) === 25;
 
   // --- Form state ---
   const [enabled, setEnabled] = useState(false);
@@ -212,6 +245,61 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
           </span>
         );
     }
+  };
+
+  // Event dot color mapping
+  const eventDotColor = (eventType: string): string => {
+    switch (eventType) {
+      case "gate_opened":
+      case "nl_eval_passed":
+        return "bg-green-500";
+      case "source_met":
+      case "agent_triggered":
+        return "bg-blue-500";
+      case "gate_timed_out":
+        return "bg-amber-500";
+      case "nl_eval_failed":
+        return "bg-red-500";
+      default:
+        return "bg-muted-foreground";
+    }
+  };
+
+  // Event description from event_type
+  const eventDescription = (event: GateEvent): string => {
+    switch (event.event_type) {
+      case "gate_opened":
+        return t("projects.detail.gateEventGateOpened");
+      case "source_met":
+        return t("projects.detail.gateEventSourceMet").replace(
+          "{source}",
+          event.source_id ? (sourceNames[event.source_id] ?? event.source_id.slice(0, 8)) : "unknown"
+        );
+      case "gate_timed_out":
+        return t("projects.detail.gateEventTimedOut");
+      case "nl_eval_started":
+        return t("projects.detail.gateEventNLStarted");
+      case "nl_eval_passed":
+        return t("projects.detail.gateEventNLPassed");
+      case "nl_eval_failed":
+        return t("projects.detail.gateEventNLFailed");
+      case "agent_triggered":
+        return t("projects.detail.gateEventAgentTriggered");
+      default:
+        return event.event_type;
+    }
+  };
+
+  // Relative timestamp
+  const relativeTime = (iso: string): string => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   };
 
   if (gateLoading) {
@@ -480,7 +568,71 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
         )}
       </div>
 
-      {/* Section 3 placeholder — will be added in Task 6 */}
+      {/* Section 3: Gate Events */}
+      <div className="rounded-lg border p-5 bg-surface">
+        <SectionLabel>{t("projects.detail.gateEvents")}</SectionLabel>
+        <p className="text-sm text-muted-foreground mt-1 mb-4">
+          {t("projects.detail.gateEventsDesc")}
+        </p>
+
+        {!gate ? (
+          <p className="text-sm text-muted-foreground italic">
+            {t("projects.detail.gateNoConfig")}
+          </p>
+        ) : allEvents.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">
+            {t("projects.detail.gateEventsEmpty")}
+          </p>
+        ) : (
+          <div className="flex flex-col">
+            {eventsVersionFilter && (
+              <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                <span>Filtered: {eventsVersionFilter}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-1"
+                  onClick={() => setEventsVersionFilter(null)}
+                >
+                  <X className="size-3" />
+                </Button>
+              </div>
+            )}
+            {allEvents.map((ev) => (
+              <div
+                key={ev.id}
+                className="flex gap-3 py-2.5 border-b last:border-b-0 items-start"
+              >
+                <div
+                  className={`size-2 rounded-full mt-1.5 shrink-0 ${eventDotColor(ev.event_type)}`}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm">
+                    <span className="font-medium">{ev.version}</span>
+                    {" — "}
+                    {eventDescription(ev)}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {ev.event_type} • {relativeTime(ev.created_at)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {hasMoreEvents && (
+          <div className="mt-3 text-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEventsPage((p) => p + 1)}
+            >
+              {t("projects.detail.loadMore")}
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Delete Confirm Dialog */}
       <ConfirmDialog
