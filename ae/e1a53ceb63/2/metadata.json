@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "aee1a53ceb63",
+  "session_id": "715f7ef1-de72-45f6-b6e0-8faf65c34d31",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-25T13:44:45.527757Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "web/components/projects/release-gate-tab.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "ef8e68c9497c",
+  "transcript_identifier_at_start": "c968fbde-22d3-4858-988b-f9454889841b",
+  "token_usage": {
+    "input_tokens": 30671680,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 45487,
+    "api_call_count": 296
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-25T13:44:41.891295Z",
+    "agent_lines": 0,
+    "human_added": 152,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 152,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/715f7ef1-de72-45f6-b6e0-8faf65c34d31.jsonl"
+}
