@@ -7,6 +7,7 @@ import type {
   Source,
   ReleaseGateInput,
   VersionMapping,
+  VersionReadiness,
 } from "@/lib/api/types";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,6 +52,38 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
   } = useSWR(`project-${projectId}-gate`, () => gatesApi.get(projectId));
 
   const gate = gateData?.data ?? null;
+
+  // --- Version readiness data (with Load More accumulation) ---
+  const [readinessPage, setReadinessPage] = useState(1);
+  const [allReadiness, setAllReadiness] = useState<VersionReadiness[]>([]);
+  const {
+    data: readinessData,
+  } = useSWR(
+    gate?.enabled ? `project-${projectId}-readiness-${readinessPage}` : null,
+    () => gatesApi.listReadiness(projectId, readinessPage)
+  );
+
+  // Accumulate pages
+  useEffect(() => {
+    if (readinessData?.data) {
+      setAllReadiness((prev) =>
+        readinessPage === 1 ? readinessData.data! : [...prev, ...readinessData.data!]
+      );
+    }
+  }, [readinessData, readinessPage]);
+
+  // Reset on gate toggle
+  useEffect(() => {
+    if (!gate?.enabled) {
+      setAllReadiness([]);
+      setReadinessPage(1);
+    }
+  }, [gate?.enabled]);
+
+  const hasMoreReadiness = (readinessData?.data?.length ?? 0) === 25;
+
+  // --- Events version filter (set by readiness table "Events" button) ---
+  const [eventsVersionFilter, setEventsVersionFilter] = useState<string | null>(null);
 
   // --- Form state ---
   const [enabled, setEnabled] = useState(false);
@@ -143,6 +176,42 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
       ...prev,
       [sourceId]: { ...prev[sourceId], [field]: value },
     }));
+  };
+
+  // Relative time formatter for timeout countdown
+  const formatTimeRemaining = (timeoutAt: string, status: string): string => {
+    if (status === "ready") return "—";
+    if (status === "timed_out") return t("projects.detail.vrExpired");
+    const diff = new Date(timeoutAt).getTime() - Date.now();
+    if (diff <= 0) return t("projects.detail.vrExpired");
+    const hours = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    if (hours > 24) return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+  };
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case "ready":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-green-500/10 text-green-500">
+            {t("projects.detail.vrReady")}
+          </span>
+        );
+      case "timed_out":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-red-500/10 text-red-500">
+            {t("projects.detail.vrTimedOut")}
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-500/10 text-amber-500">
+            {t("projects.detail.vrPending")}
+          </span>
+        );
+    }
   };
 
   if (gateLoading) {
@@ -340,7 +409,78 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
         </div>
       </div>
 
-      {/* Sections 2 & 3 will be added in Tasks 5 and 6 */}
+      {/* Section 2: Version Readiness */}
+      <div className="rounded-lg border p-5 bg-surface">
+        <SectionLabel>{t("projects.detail.versionReadiness")}</SectionLabel>
+        <p className="text-sm text-muted-foreground mt-1 mb-4">
+          {t("projects.detail.versionReadinessDesc")}
+        </p>
+
+        {!gate?.enabled ? (
+          <p className="text-sm text-muted-foreground italic">
+            {t("projects.detail.gateDisabled")}
+          </p>
+        ) : allReadiness.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">
+            {t("projects.detail.vrEmpty")}
+          </p>
+        ) : (
+          <div className="rounded-md border overflow-hidden">
+            <div className="grid grid-cols-[1.5fr_1fr_2fr_2fr_1fr_0.5fr] gap-2 px-3 py-2 text-xs text-muted-foreground bg-muted/30 border-b">
+              <div>{t("projects.detail.vrVersion")}</div>
+              <div>{t("projects.detail.vrStatus")}</div>
+              <div>{t("projects.detail.vrSourcesMet")}</div>
+              <div>{t("projects.detail.vrSourcesMissing")}</div>
+              <div>{t("projects.detail.vrTimeout")}</div>
+              <div />
+            </div>
+            {allReadiness.map((vr) => (
+              <div
+                key={vr.id}
+                className="grid grid-cols-[1.5fr_1fr_2fr_2fr_1fr_0.5fr] gap-2 px-3 py-2 items-center border-b last:border-b-0 text-sm"
+              >
+                <div className="font-medium">{vr.version}</div>
+                <div>{statusBadge(vr.status)}</div>
+                <div className="text-xs truncate">
+                  {vr.sources_met.map((id) => sourceNames[id] ?? id.slice(0, 8)).join(", ") || "—"}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {vr.sources_missing.map((id) => sourceNames[id] ?? id.slice(0, 8)).join(", ") || "—"}
+                </div>
+                <div className="text-xs">
+                  {formatTimeRemaining(vr.timeout_at, vr.status)}
+                </div>
+                <div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => {
+                      setEventsVersionFilter(vr.version);
+                    }}
+                  >
+                    {t("projects.detail.vrEvents")}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {hasMoreReadiness && (
+          <div className="mt-3 text-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setReadinessPage((p) => p + 1)}
+            >
+              {t("projects.detail.loadMore")}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Section 3 placeholder — will be added in Task 6 */}
 
       {/* Delete Confirm Dialog */}
       <ConfirmDialog
