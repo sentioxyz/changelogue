@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SourceForm } from "@/components/sources/source-form";
 import { NewContextSourceForm } from "@/components/context-sources/new-context-source-form";
+import { ReleaseGateTab } from "./release-gate-tab";
 import { ProjectLogo } from "@/components/ui/project-logo";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { StatusDot } from "@/components/ui/status-dot";
@@ -27,7 +28,7 @@ import { useTranslation } from "@/lib/i18n/context";
 
 /* ---------- Tabs ---------- */
 
-type TabKey = "sources" | "context" | "agent";
+type TabKey = "sources" | "context" | "agent" | "gates";
 
 /* ---------- Helpers ---------- */
 
@@ -59,6 +60,7 @@ export function ProjectDetail() {
     { key: "sources" as TabKey, label: t("projects.detail.tabSources") },
     { key: "context" as TabKey, label: t("projects.detail.tabContext") },
     { key: "agent" as TabKey, label: t("projects.detail.tabAgent") },
+    { key: "gates" as TabKey, label: t("projects.detail.tabGates") },
   ];
 
   /* Test run state */
@@ -776,6 +778,13 @@ export function ProjectDetail() {
               )}
             </div>
           </div>
+        )}
+
+        {activeTab === "gates" && (
+          <ReleaseGateTab
+            projectId={id}
+            sources={sourcesData?.data ?? []}
+          />
         )}
       </div>
 
