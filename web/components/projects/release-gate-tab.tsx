@@ -13,7 +13,6 @@ import type {
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -303,23 +302,11 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
     <div className="space-y-6">
       {/* Section 1: Gate Configuration */}
       <div className="rounded-lg border p-5 bg-surface">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <SectionLabel>{t("projects.detail.gateConfig")}</SectionLabel>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t("projects.detail.gateConfigDesc")}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="gate-enabled" className="text-sm text-muted-foreground">
-              {t("projects.detail.gateEnabled")}
-            </Label>
-            <Switch
-              id="gate-enabled"
-              checked={enabled}
-              onCheckedChange={setEnabled}
-            />
-          </div>
+        <div className="mb-4">
+          <SectionLabel>{t("projects.detail.gateConfig")}</SectionLabel>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t("projects.detail.gateConfigDesc")}
+          </p>
         </div>
 
         {/* Required Sources */}
@@ -468,21 +455,33 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-2 pt-2 border-t">
-          {gate && (
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpen(true)}
-              className="text-destructive hover:text-destructive"
-            >
-              {t("projects.detail.gateDelete")}
+        <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="gate-enabled"
+              checked={enabled}
+              onCheckedChange={setEnabled}
+            />
+            <label htmlFor="gate-enabled" className="text-[13px] text-secondary-foreground">
+              {t("projects.detail.gateEnabled")}
+            </label>
+          </div>
+          <div className="flex items-center gap-2">
+            {gate && (
+              <Button
+                variant="outline"
+                onClick={() => setDeleteOpen(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                {t("projects.detail.gateDelete")}
+              </Button>
+            )}
+            <Button onClick={handleSave} disabled={saving}>
+              {saving
+                ? t("projects.detail.gateSaving")
+                : t("projects.detail.gateSave")}
             </Button>
-          )}
-          <Button onClick={handleSave} disabled={saving}>
-            {saving
-              ? t("projects.detail.gateSaving")
-              : t("projects.detail.gateSave")}
-          </Button>
+          </div>
         </div>
       </div>
 
