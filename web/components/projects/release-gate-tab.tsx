@@ -5,7 +5,6 @@ import useSWR from "swr";
 import { gates as gatesApi } from "@/lib/api/client";
 import type {
   Source,
-  ReleaseGate,
   ReleaseGateInput,
   VersionMapping,
 } from "@/lib/api/types";
@@ -102,7 +101,7 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
 
   const handleDelete = async () => {
     await gatesApi.delete(projectId);
-    mutateGate({ data: null } as ReturnType<typeof gatesApi.get> extends Promise<infer R> ? R : never, false);
+    mutateGate();
   };
 
   const toggleSource = (sourceId: string) => {
