@@ -37,6 +37,7 @@ node_modules/
 .entire/
 .worktrees/
 .playwright-mcp/
+.superpowers/
 
 # Screenshots / images (design references)
 *.png
