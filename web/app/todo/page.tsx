@@ -37,7 +37,8 @@ export default function TodoPage() {
 function TodoPageInner() {
   const { t } = useTranslation();
 
-  const { filters, setFilters, page, setPage } = useFilterParams({ status: "pending" });
+  const FILTER_KEYS = ["status", "project", "provider", "urgency", "date", "aggregated"];
+  const { filters, setFilters, page, setPage } = useFilterParams(FILTER_KEYS, { status: "pending", aggregated: "true" });
 
   const [confirmDialog, setConfirmDialog] = useState<{
     action: string;

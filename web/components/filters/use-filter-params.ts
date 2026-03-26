@@ -2,7 +2,12 @@
 
 import { useState, useCallback, useEffect } from "react";
 
+/**
+ * useFilterParams syncs a Record<string, string> of filter values with URL query params.
+ * Only reads/writes params whose keys are in `allowedKeys` to prevent cross-page leakage.
+ */
 export function useFilterParams(
+  allowedKeys: string[],
   defaults?: Record<string, string>
 ): {
   filters: Record<string, string>;
@@ -14,8 +19,9 @@ export function useFilterParams(
     if (typeof window === "undefined") return defaults ?? {};
     const params = new URLSearchParams(window.location.search);
     const parsed: Record<string, string> = { ...(defaults ?? {}) };
+    const allowed = new Set(allowedKeys);
     params.forEach((value, key) => {
-      if (key !== "page") {
+      if (key !== "page" && allowed.has(key)) {
         parsed[key] = value;
       }
     });

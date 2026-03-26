@@ -56,7 +56,8 @@ export default function ReleasesPage() {
 
 function ReleasesPageInner() {
   const { t } = useTranslation();
-  const { filters, setFilters, page, setPage } = useFilterParams();
+  const FILTER_KEYS = ["project", "provider", "urgency", "date", "excluded"];
+  const { filters, setFilters, page, setPage } = useFilterParams(FILTER_KEYS, { excluded: "true" });
   const [triggeringVersion, setTriggeringVersion] = useState<string | null>(null);
 
   /* Fetch projects for the filter dropdown */
