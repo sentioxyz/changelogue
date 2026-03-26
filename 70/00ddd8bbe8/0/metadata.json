@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "7000ddd8bbe8",
+  "session_id": "56ddcead-2769-4031-8fca-2fae39686aa3",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-26T13:35:58.574185Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "web/lib/api/client.ts",
+    "web/lib/i18n/messages/en.json",
+    "web/lib/i18n/messages/zh.json",
+    "internal/cli/gates.go",
+    "internal/cli/gates_test.go",
+    "web/components/projects/release-gate-tab.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "0626b870c35f",
+  "transcript_identifier_at_start": "5332e07d-b515-4622-b487-2a8f9e8cea6a",
+  "token_usage": {
+    "input_tokens": 3956471,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 8182,
+    "api_call_count": 55
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-26T13:35:58.075239Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 1,
+    "human_removed": 92,
+    "total_committed": 0,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/56ddcead-2769-4031-8fca-2fae39686aa3.jsonl"
+}

@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "7000ddd8bbe8",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "internal/cli/gates.go",
+    "internal/cli/gates_test.go",
+    "web/components/projects/release-gate-tab.tsx",
+    "web/lib/api/client.ts",
+    "web/lib/i18n/messages/en.json",
+    "web/lib/i18n/messages/zh.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/70/00ddd8bbe8/0/metadata.json",
+      "transcript": "/70/00ddd8bbe8/0/full.jsonl",
+      "context": "/70/00ddd8bbe8/0/context.md",
+      "content_hash": "/70/00ddd8bbe8/0/content_hash.txt",
+      "prompt": "/70/00ddd8bbe8/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 3956471,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 8182,
+    "api_call_count": 55
+  }
+}
