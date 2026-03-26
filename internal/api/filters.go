@@ -3,24 +3,15 @@ package api
 import (
 	"net/http"
 	"time"
+
+	"github.com/sentioxyz/changelogue/internal/models"
 )
 
-// ReleaseFilter holds optional filter parameters for release listing endpoints.
-type ReleaseFilter struct {
-	Provider string
-	Urgency  string
-	DateFrom *time.Time
-	DateTo   *time.Time
-}
+// ReleaseFilter is an alias for models.ReleaseFilter.
+type ReleaseFilter = models.ReleaseFilter
 
-// TodoFilter holds optional filter parameters for the todo listing endpoint.
-type TodoFilter struct {
-	ProjectID string
-	Provider  string
-	Urgency   string
-	DateFrom  *time.Time
-	DateTo    *time.Time
-}
+// TodoFilter is an alias for models.TodoFilter.
+type TodoFilter = models.TodoFilter
 
 // ParseReleaseFilters extracts release filter params from the request query string.
 func ParseReleaseFilters(r *http.Request) ReleaseFilter {

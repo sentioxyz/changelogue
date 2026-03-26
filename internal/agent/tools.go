@@ -13,7 +13,7 @@ import (
 // AgentDataStore defines the data access methods that agent tools use to
 // research releases and context sources for a given project.
 type AgentDataStore interface {
-	ListReleasesByProject(ctx context.Context, projectID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error)
+	ListReleasesByProject(ctx context.Context, projectID string, page, perPage int, includeExcluded bool, filter models.ReleaseFilter) ([]models.Release, int, error)
 	GetRelease(ctx context.Context, id string) (*models.Release, error)
 	ListContextSources(ctx context.Context, projectID string, page, perPage int) ([]models.ContextSource, int, error)
 	ListSourcesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Source, int, error)
@@ -133,7 +133,7 @@ func (f *toolFactory) getReleases(ctx tool.Context, input GetReleasesInput) (Get
 		perPage = 20
 	}
 
-	releases, total, err := f.store.ListReleasesByProject(ctx, f.projectID, page, perPage, false)
+	releases, total, err := f.store.ListReleasesByProject(ctx, f.projectID, page, perPage, false, models.ReleaseFilter{})
 	if err != nil {
 		return GetReleasesOutput{}, fmt.Errorf("list releases: %w", err)
 	}
