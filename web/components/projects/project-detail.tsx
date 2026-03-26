@@ -3,7 +3,7 @@
 import useSWR from "swr";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   projects as projectsApi,
   sources as sourcesApi,
@@ -54,7 +54,24 @@ export function ProjectDetail() {
   // Read ID from URL path — useParams() returns stale "0" in static export
   const id = getPathSegment(1); // /projects/{id}
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabKey>("sources");
+  const searchParams = useSearchParams();
+
+  const validTabs: TabKey[] = ["sources", "context", "agent", "gates"];
+  const tabParam = searchParams.get("tab") as TabKey | null;
+  const [activeTab, setActiveTabState] = useState<TabKey>(
+    tabParam && validTabs.includes(tabParam) ? tabParam : "sources"
+  );
+
+  const setActiveTab = (tab: TabKey) => {
+    setActiveTabState(tab);
+    const url = new URL(window.location.href);
+    if (tab === "sources") {
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.set("tab", tab);
+    }
+    window.history.replaceState({}, "", url.toString());
+  };
 
   const tabs = [
     { key: "sources" as TabKey, label: t("projects.detail.tabSources") },
