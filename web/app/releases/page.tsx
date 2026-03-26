@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import Link from "next/link";
 import {
@@ -9,12 +8,15 @@ import {
   projects as projectsApi,
   agent,
 } from "@/lib/api/client";
+import type { ReleaseFilters } from "@/lib/api/client";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
-import type { Release, Project } from "@/lib/api/types";
+import type { Release } from "@/lib/api/types";
 import { ExternalLink, Sparkles, Loader2 } from "lucide-react";
 import { URGENCY_STYLES } from "@/components/ui/urgency-pill";
 import { useTranslation } from "@/lib/i18n/context";
+import { FilterBar, FilterConfig, expandDatePreset } from "@/components/filters/filter-bar";
+import { useFilterParams } from "@/components/filters/use-filter-params";
 
 import { timeAgo } from "@/lib/format";
 
@@ -54,12 +56,7 @@ export default function ReleasesPage() {
 
 function ReleasesPageInner() {
   const { t } = useTranslation();
-  const searchParams = useSearchParams();
-  const initialProject = searchParams.get("project") ?? "all";
-  const initialShowExcluded = searchParams.get("show_excluded") !== "false";
-  const [page, setPage] = useState(1);
-  const [projectFilter, setProjectFilter] = useState<string>(initialProject);
-  const [showExcluded, setShowExcluded] = useState(initialShowExcluded);
+  const { filters, setFilters, page, setPage } = useFilterParams();
   const [triggeringVersion, setTriggeringVersion] = useState<string | null>(null);
 
   /* Fetch projects for the filter dropdown */
@@ -68,28 +65,71 @@ function ReleasesPageInner() {
     return firstPage;
   });
 
+  /* Build filter config */
+  const filterConfig: FilterConfig[] = [
+    {
+      key: "project",
+      label: "Project",
+      type: "select",
+      options: (projectsData?.data ?? []).map((p) => ({ value: p.id, label: p.name })),
+    },
+    {
+      key: "provider",
+      label: "Provider",
+      type: "select",
+      options: [
+        { value: "github", label: "GitHub" },
+        { value: "dockerhub", label: "Docker Hub" },
+        { value: "ecr-public", label: "ECR Public" },
+        { value: "gitlab", label: "GitLab" },
+        { value: "pypi", label: "PyPI" },
+        { value: "npm", label: "npm" },
+      ],
+    },
+    {
+      key: "urgency",
+      label: "Urgency",
+      type: "select",
+      options: [
+        { value: "critical", label: "Critical" },
+        { value: "high", label: "High" },
+        { value: "medium", label: "Medium" },
+        { value: "low", label: "Low" },
+      ],
+    },
+    { key: "date", label: "Date", type: "date-range" },
+    { key: "excluded", label: "Show excluded", type: "boolean" },
+  ];
+
+  /* Convert filters to API params */
+  const apiFilters: ReleaseFilters = {
+    include_excluded: filters.excluded === "true",
+    provider: filters.provider,
+    urgency: filters.urgency,
+  };
+  if (filters.date) {
+    const expanded = expandDatePreset(filters.date);
+    apiFilters.date_from = expanded.date_from;
+    apiFilters.date_to = expanded.date_to;
+  }
+
   /* Fetch releases — scoped by project or all */
-  const { data: scopedData, isLoading: scopedLoading } = useSWR(
-    projectFilter !== "all" ? ["releases", page, projectFilter, showExcluded] : null,
-    () => releasesApi.listByProject(projectFilter, page, PER_PAGE, { include_excluded: showExcluded })
+  const { data, isLoading } = useSWR(
+    filters.project
+      ? ["releases", page, JSON.stringify(filters)]
+      : ["all-releases", page, JSON.stringify(filters)],
+    () =>
+      filters.project
+        ? releasesApi.listByProject(filters.project, page, PER_PAGE, apiFilters)
+        : releasesApi.list(page, PER_PAGE, apiFilters),
+    { refreshInterval: 30_000 }
   );
-
-  const { data: allReleasesData, isLoading: allLoading } = useSWR(
-    projectFilter === "all" ? ["all-releases", page, showExcluded] : null,
-    () => releasesApi.list(page, PER_PAGE, { include_excluded: showExcluded })
-  );
-
-  const isLoading = projectFilter !== "all" ? scopedLoading : allLoading;
 
   /* Releases come pre-enriched with project/source metadata from the backend */
-  const releases: Release[] =
-    projectFilter !== "all"
-      ? scopedData?.data ?? []
-      : allReleasesData?.data ?? [];
+  const releases: Release[] = data?.data ?? [];
 
   /* Pagination math */
-  const activeData = projectFilter !== "all" ? scopedData : allReleasesData;
-  const total = activeData?.meta?.total ?? 0;
+  const total = data?.meta?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
   const startRow = (page - 1) * PER_PAGE + 1;
   const endRow = Math.min(page * PER_PAGE, total);
@@ -180,69 +220,7 @@ function ReleasesPageInner() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
-        <select
-          value={projectFilter}
-          onChange={(e) => {
-            const val = e.target.value;
-            setProjectFilter(val);
-            setPage(1);
-            const params = new URLSearchParams(window.location.search);
-            if (val === "all") params.delete("project");
-            else params.set("project", val);
-            const qs = params.toString();
-            window.history.pushState({}, "", qs ? `?${qs}` : window.location.pathname);
-          }}
-          className="appearance-none rounded-md bg-surface px-3 py-2 pr-8 outline-none transition-shadow"
-          style={{
-            fontFamily: "var(--font-dm-sans)",
-            fontSize: "13px",
-            color: "var(--foreground)",
-            border: "1px solid var(--border)",
-          }}
-          onFocus={(e) =>
-            (e.currentTarget.style.boxShadow = "0 0 0 2px color-mix(in srgb, var(--beacon-accent) 25%, transparent)")
-          }
-          onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
-        >
-          <option value="all">{t("releases.allProjects")}</option>
-          {projectsData?.data.map((p: Project) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-
-        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-          <span style={{
-            fontFamily: "var(--font-dm-sans)",
-            fontSize: "13px",
-            color: "var(--text-secondary)",
-          }}>
-            {t("releases.showExcluded")}
-          </span>
-          <button
-            role="switch"
-            aria-checked={showExcluded}
-            onClick={() => {
-              const next = !showExcluded;
-              setShowExcluded(next);
-              setPage(1);
-              const params = new URLSearchParams(window.location.search);
-              if (next) params.delete("show_excluded");
-              else params.set("show_excluded", "false");
-              window.history.replaceState({}, "", `?${params.toString()}`);
-            }}
-            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-            style={{ backgroundColor: showExcluded ? "var(--beacon-accent)" : "#d1d5db" }}
-          >
-            <span
-              className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
-              style={{ transform: showExcluded ? "translateX(18px)" : "translateX(3px)" }}
-            />
-          </button>
-        </label>
-      </div>
+      <FilterBar filters={filterConfig} value={filters} onChange={setFilters} />
 
       {/* Table card */}
       <div
