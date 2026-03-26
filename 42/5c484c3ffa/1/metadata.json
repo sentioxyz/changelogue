@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "425c484c3ffa",
+  "session_id": "715f7ef1-de72-45f6-b6e0-8faf65c34d31",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-26T13:41:37.645672Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/superpowers/specs/2026-03-26-global-advanced-filter-design.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "0386aef8787c",
+  "transcript_identifier_at_start": "c968fbde-22d3-4858-988b-f9454889841b",
+  "token_usage": {
+    "input_tokens": 46858634,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 72872,
+    "api_call_count": 437
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-26T13:41:33.199842Z",
+    "agent_lines": 0,
+    "human_added": 1,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/715f7ef1-de72-45f6-b6e0-8faf65c34d31.jsonl"
+}
