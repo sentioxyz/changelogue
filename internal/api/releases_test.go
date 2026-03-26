@@ -22,21 +22,21 @@ type mockReleasesStore struct {
 	getErr          error
 }
 
-func (m *mockReleasesStore) ListAllReleases(_ context.Context, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
+func (m *mockReleasesStore) ListAllReleases(_ context.Context, page, perPage int, includeExcluded bool, filter ReleaseFilter) ([]models.Release, int, error) {
 	if m.listErr != nil {
 		return nil, 0, m.listErr
 	}
 	return m.allReleases, len(m.allReleases), nil
 }
 
-func (m *mockReleasesStore) ListReleasesBySource(_ context.Context, sourceID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
+func (m *mockReleasesStore) ListReleasesBySource(_ context.Context, sourceID string, page, perPage int, includeExcluded bool, filter ReleaseFilter) ([]models.Release, int, error) {
 	if m.listErr != nil {
 		return nil, 0, m.listErr
 	}
 	return m.sourceReleases, len(m.sourceReleases), nil
 }
 
-func (m *mockReleasesStore) ListReleasesByProject(_ context.Context, projectID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
+func (m *mockReleasesStore) ListReleasesByProject(_ context.Context, projectID string, page, perPage int, includeExcluded bool, filter ReleaseFilter) ([]models.Release, int, error) {
 	if m.listErr != nil {
 		return nil, 0, m.listErr
 	}
