@@ -88,6 +88,10 @@ make clean               # Cleanup everything (binary + containers + volumes)
 - After ANY correction: update `docs/plans/lessons.md` with the pattern
 - Review lessons at session start
 
+### API Changes
+- When adding or modifying REST API endpoints, also update the CLI (`internal/cli/`) to support the new or changed endpoints
+- The CLI mirrors the API surface — every user-facing API resource should have corresponding CLI commands
+
 ### Bug Fixing
 - When given a bug report: just fix it autonomously
 - Point at logs, errors, failing tests — then resolve them
