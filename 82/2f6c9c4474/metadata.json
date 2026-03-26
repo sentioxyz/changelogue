@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "822f6c9c4474",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/superpowers/specs/2026-03-26-global-advanced-filter-design.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/82/2f6c9c4474/0/metadata.json",
+      "transcript": "/82/2f6c9c4474/0/full.jsonl",
+      "context": "/82/2f6c9c4474/0/context.md",
+      "content_hash": "/82/2f6c9c4474/0/content_hash.txt",
+      "prompt": "/82/2f6c9c4474/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 4621692,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 9467,
+    "api_call_count": 62
+  }
+}
