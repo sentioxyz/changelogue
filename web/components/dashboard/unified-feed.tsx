@@ -4,15 +4,13 @@
 import useSWR from "swr";
 import Link from "next/link";
 import {
-  projects as projectsApi,
   releases as releasesApi,
-  sources as sourcesApi,
   semanticReleases as srApi,
 } from "@/lib/api/client";
 import { VersionChip } from "@/components/ui/version-chip";
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { Sparkles } from "lucide-react";
-import type { Release, SemanticRelease, Source } from "@/lib/api/types";
+import type { Release, SemanticRelease } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n/context";
 
@@ -43,81 +41,40 @@ function ProviderIcon({ provider }: { provider: string }) {
 export function UnifiedFeed() {
   const { t } = useTranslation();
 
-  const { data: projectsData } = useSWR("projects-for-dashboard", () =>
-    projectsApi.list()
-  );
-
   const { data: feedItems, isLoading } = useSWR(
-    projectsData ? "unified-feed" : null,
+    "unified-feed",
     async () => {
-      if (!projectsData?.data?.length) return [];
-
-      const projectMap = new Map(
-        projectsData.data.map((p) => [p.id, p.name])
-      );
-      const projectSlice = projectsData.data.slice(0, 10);
-
-      // Fetch releases, sources, and semantic releases in parallel
-      const [releaseResults, sourceResults, srResults] = await Promise.all([
-        Promise.all(
-          projectSlice.map((p) =>
-            releasesApi.listByProject(p.id, 1).catch(() => null)
-          )
-        ),
-        Promise.all(
-          projectSlice.map((p) =>
-            sourcesApi.listByProject(p.id, 1).catch(() => null)
-          )
-        ),
-        Promise.all(
-          projectSlice.map((p) =>
-            srApi.list(p.id, 1).catch(() => null)
-          )
-        ),
+      // Fetch recent releases and semantic releases globally (server sorts by recency)
+      const [releasesRes, srRes] = await Promise.all([
+        releasesApi.list(1, 15).catch(() => null),
+        srApi.listAll(1, 15).catch(() => null),
       ]);
 
-      // Build source lookup maps
-      const sourceMap = new Map<string, string>();
-      const providerMap = new Map<string, string>();
-      const sourceProjectMap = new Map<string, string>();
-      sourceResults
-        .filter((r): r is NonNullable<typeof r> => r !== null)
-        .flatMap((r) => r.data)
-        .forEach((s: Source) => {
-          sourceMap.set(s.id, s.repository);
-          providerMap.set(s.id, s.provider);
-          sourceProjectMap.set(s.id, s.project_id);
-        });
-
-      // Build feed items
       const items: FeedItemType[] = [];
 
-      releaseResults
-        .filter((r): r is NonNullable<typeof r> => r !== null)
-        .flatMap((r) => r.data)
-        .forEach((rel) => {
-          const projectId = sourceProjectMap.get(rel.source_id);
+      if (releasesRes?.data) {
+        for (const rel of releasesRes.data) {
           items.push({
             kind: "release",
             data: rel,
-            repository: sourceMap.get(rel.source_id),
-            provider: providerMap.get(rel.source_id),
-            projectName: projectId ? projectMap.get(projectId) : undefined,
+            repository: rel.repository,
+            provider: rel.provider,
+            projectName: rel.project_name,
           });
-        });
+        }
+      }
 
-      srResults
-        .filter((r): r is NonNullable<typeof r> => r !== null)
-        .flatMap((r) => r.data)
-        .forEach((sr) => {
+      if (srRes?.data) {
+        for (const sr of srRes.data) {
           items.push({
             kind: "semantic",
             data: sr,
-            projectName: projectMap.get(sr.project_id),
+            projectName: sr.project_name,
           });
-        });
+        }
+      }
 
-      // Sort by timestamp descending, take first 15
+      // Merge and sort by timestamp descending, take first 15
       items.sort((a, b) => getTimestamp(b) - getTimestamp(a));
       return items.slice(0, 15);
     },
