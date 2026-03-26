@@ -153,6 +153,7 @@ todos.list(page, perPage, filters: TodoFilters)
 - `web/app/releases/page.tsx` — replace inline filters with `<FilterBar>`
 - `web/app/todo/page.tsx` — replace inline tabs/toggles with `<FilterBar>`
 - `web/lib/api/client.ts` — update `releases.list()` and `todos.list()` signatures
+- `web/components/dashboard/unified-feed.tsx` — update `releases.list()` call to match new signature
 - `internal/api/releases.go` — parse new query params, pass to store
 - `internal/api/todos.go` — parse new query params, pass to store
 - `internal/api/pgstore.go` — extend queries with dynamic WHERE clauses
