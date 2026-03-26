@@ -54,21 +54,21 @@ function TodoPageInner() {
   /* Fetch todos for active tab */
   const { data, isLoading, mutate } = useSWR(
     ["todos", activeTab, page, aggregated],
-    () => todosApi.list(activeTab, page, PER_PAGE, aggregated)
+    () => todosApi.list(page, PER_PAGE, { status: activeTab, aggregated })
   );
 
   /* Fetch counts for all three tabs */
   const { data: pendingData, mutate: mutatePending } = useSWR(
     ["todos-count", "pending", aggregated],
-    () => todosApi.list("pending", 1, 1, aggregated)
+    () => todosApi.list(1, 1, { status: "pending", aggregated })
   );
   const { data: ackedData, mutate: mutateAcked } = useSWR(
     ["todos-count", "acknowledged", aggregated],
-    () => todosApi.list("acknowledged", 1, 1, aggregated)
+    () => todosApi.list(1, 1, { status: "acknowledged", aggregated })
   );
   const { data: resolvedData, mutate: mutateResolved } = useSWR(
     ["todos-count", "resolved", aggregated],
-    () => todosApi.list("resolved", 1, 1, aggregated)
+    () => todosApi.list(1, 1, { status: "resolved", aggregated })
   );
 
   const counts: Record<StatusTab, number> = {

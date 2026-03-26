@@ -196,7 +196,7 @@ function ProjectFlowCard({ project }: { project: Project }) {
   );
   const { data: relData } = useSWR(
     `project-${project.id}-card-releases`,
-    () => releasesApi.listByProject(project.id, 1, 25, true),
+    () => releasesApi.listByProject(project.id, 1, 25, { include_excluded: true }),
   );
   const { data: srData } = useSWR(
     `project-${project.id}-card-sr`,
@@ -419,7 +419,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: relData } = useSWR(`project-${project.id}-card-releases`, () =>
-    releasesApi.listByProject(project.id, 1, 5, true)
+    releasesApi.listByProject(project.id, 1, 5, { include_excluded: true })
   );
   const { data: srcData } = useSWR(`project-${project.id}-card-sources`, () =>
     sourcesApi.listByProject(project.id)

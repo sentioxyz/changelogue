@@ -93,17 +93,31 @@ export const sources = {
     }),
 };
 
+export interface ReleaseFilters {
+  provider?: string;
+  urgency?: string;
+  date_from?: string;
+  date_to?: string;
+  include_excluded?: boolean;
+}
+
+function buildReleaseParams(page: number, perPage: number, filters?: ReleaseFilters): string {
+  const p = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+  if (filters?.include_excluded) p.set("include_excluded", "true");
+  if (filters?.provider) p.set("provider", filters.provider);
+  if (filters?.urgency) p.set("urgency", filters.urgency);
+  if (filters?.date_from) p.set("date_from", filters.date_from);
+  if (filters?.date_to) p.set("date_to", filters.date_to);
+  return p.toString();
+}
+
 export const releases = {
-  list: (page = 1, perPage = 25, includeExcluded = false) =>
-    request<ApiResponse<Release[]>>(
-      `/releases?page=${page}&per_page=${perPage}${includeExcluded ? '&include_excluded=true' : ''}`
-    ),
-  listBySource: (sourceId: string, page = 1) =>
-    request<ApiResponse<Release[]>>(`/sources/${sourceId}/releases?page=${page}`),
-  listByProject: (projectId: string, page = 1, perPage = 25, includeExcluded = false) =>
-    request<ApiResponse<Release[]>>(
-      `/projects/${projectId}/releases?page=${page}&per_page=${perPage}${includeExcluded ? '&include_excluded=true' : ''}`
-    ),
+  list: (page = 1, perPage = 25, filters?: ReleaseFilters) =>
+    request<ApiResponse<Release[]>>(`/releases?${buildReleaseParams(page, perPage, filters)}`),
+  listBySource: (sourceId: string, page = 1, perPage = 25, filters?: ReleaseFilters) =>
+    request<ApiResponse<Release[]>>(`/sources/${sourceId}/releases?${buildReleaseParams(page, perPage, filters)}`),
+  listByProject: (projectId: string, page = 1, perPage = 25, filters?: ReleaseFilters) =>
+    request<ApiResponse<Release[]>>(`/projects/${projectId}/releases?${buildReleaseParams(page, perPage, filters)}`),
   get: (id: string) =>
     request<ApiResponse<Release>>(`/releases/${id}`),
 };
@@ -214,11 +228,26 @@ export const channels = {
 
 // --- Todos ---
 
+export interface TodoFilters {
+  status?: string;
+  project?: string;
+  provider?: string;
+  urgency?: string;
+  date_from?: string;
+  date_to?: string;
+  aggregated?: boolean;
+}
+
 export const todos = {
-  list: (status?: string, page = 1, perPage = 25, aggregated = false) => {
+  list: (page = 1, perPage = 25, filters?: TodoFilters) => {
     const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
-    if (status) params.set("status", status);
-    if (aggregated) params.set("aggregated", "true");
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.aggregated) params.set("aggregated", "true");
+    if (filters?.project) params.set("project", filters.project);
+    if (filters?.provider) params.set("provider", filters.provider);
+    if (filters?.urgency) params.set("urgency", filters.urgency);
+    if (filters?.date_from) params.set("date_from", filters.date_from);
+    if (filters?.date_to) params.set("date_to", filters.date_to);
     return request<ApiResponse<Todo[]>>(`/todos?${params}`);
   },
   get: (id: string) =>

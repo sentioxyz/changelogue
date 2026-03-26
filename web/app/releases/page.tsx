@@ -71,12 +71,12 @@ function ReleasesPageInner() {
   /* Fetch releases — scoped by project or all */
   const { data: scopedData, isLoading: scopedLoading } = useSWR(
     projectFilter !== "all" ? ["releases", page, projectFilter, showExcluded] : null,
-    () => releasesApi.listByProject(projectFilter, page, PER_PAGE, showExcluded)
+    () => releasesApi.listByProject(projectFilter, page, PER_PAGE, { include_excluded: showExcluded })
   );
 
   const { data: allReleasesData, isLoading: allLoading } = useSWR(
     projectFilter === "all" ? ["all-releases", page, showExcluded] : null,
-    () => releasesApi.list(page, PER_PAGE, showExcluded)
+    () => releasesApi.list(page, PER_PAGE, { include_excluded: showExcluded })
   );
 
   const isLoading = projectFilter !== "all" ? scopedLoading : allLoading;
