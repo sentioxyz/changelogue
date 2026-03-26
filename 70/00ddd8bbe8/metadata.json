@@ -3,7 +3,7 @@
   "checkpoint_id": "7000ddd8bbe8",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 5,
   "files_touched": [
     "internal/cli/gates.go",
     "internal/cli/gates_test.go",
@@ -19,13 +19,20 @@
       "context": "/70/00ddd8bbe8/0/context.md",
       "content_hash": "/70/00ddd8bbe8/0/content_hash.txt",
       "prompt": "/70/00ddd8bbe8/0/prompt.txt"
+    },
+    {
+      "metadata": "/70/00ddd8bbe8/1/metadata.json",
+      "transcript": "/70/00ddd8bbe8/1/full.jsonl",
+      "context": "/70/00ddd8bbe8/1/context.md",
+      "content_hash": "/70/00ddd8bbe8/1/content_hash.txt",
+      "prompt": "/70/00ddd8bbe8/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3956471,
+    "input_tokens": 50203652,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 8182,
-    "api_call_count": 55
+    "output_tokens": 80753,
+    "api_call_count": 488
   }
 }
