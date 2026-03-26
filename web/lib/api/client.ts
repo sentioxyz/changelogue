@@ -316,10 +316,6 @@ export const gates = {
       method: "PUT",
       body: JSON.stringify(input),
     }),
-  delete: (projectId: string) =>
-    request<ApiResponse<null>>(`/projects/${projectId}/release-gate`, {
-      method: "DELETE",
-    }),
   listReadiness: (projectId: string, page = 1, perPage = 25) =>
     request<ApiResponse<VersionReadiness[]>>(
       `/projects/${projectId}/version-readiness?page=${page}&per_page=${perPage}`

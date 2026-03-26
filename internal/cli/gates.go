@@ -45,16 +45,6 @@ func UpsertGate(c *Client, projectID string, body map[string]any) (*models.Relea
 	return &result.Data, nil
 }
 
-// DeleteGate removes the release gate configuration for a project.
-func DeleteGate(c *Client, projectID string) error {
-	resp, err := c.Delete(fmt.Sprintf("/api/v1/projects/%s/release-gate", url.PathEscape(projectID)))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	return CheckResponse(resp)
-}
-
 // ListReadiness fetches paginated version readiness entries for a project.
 func ListReadiness(c *Client, projectID string, page, perPage int) ([]models.VersionReadiness, Meta, error) {
 	path := fmt.Sprintf("/api/v1/projects/%s/version-readiness?page=%d&per_page=%d",
@@ -126,7 +116,6 @@ Release gates delay agent analysis until all required sources release the same v
 Examples:
   clog gates get <project-id>
   clog gates set <project-id> --enabled --timeout 168
-  clog gates delete <project-id>
   clog gates enable <project-id>
   clog gates disable <project-id>
   clog gates readiness <project-id>
@@ -225,21 +214,6 @@ Examples:
 	setCmd.Flags().StringVar(&setRequiredSources, "required-sources", "", "Comma-separated source IDs (empty = all)")
 	setCmd.Flags().StringVar(&setNLRule, "nl-rule", "", "Natural language rule")
 	setCmd.MarkFlagsMutuallyExclusive("enabled", "disabled")
-
-	// --- delete ---
-	deleteCmd := &cobra.Command{
-		Use:     "delete <project-id>",
-		Short:   "Delete release gate configuration",
-		Args:    cobra.ExactArgs(1),
-		Example: "  clog gates delete abc-123",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := DeleteGate(clientFn(), args[0]); err != nil {
-				return err
-			}
-			fmt.Printf("Release gate deleted for project %s\n", args[0])
-			return nil
-		},
-	}
 
 	// --- enable ---
 	enableCmd := &cobra.Command{
@@ -369,6 +343,6 @@ Examples:
 	eventsCmd.Flags().IntVar(&evtPerPage, "per-page", 25, "Items per page")
 	eventsCmd.Flags().StringVar(&evtVersion, "version", "", "Filter events by version")
 
-	cmd.AddCommand(getCmd, setCmd, deleteCmd, enableCmd, disableCmd, readinessCmd, eventsCmd)
+	cmd.AddCommand(getCmd, setCmd, enableCmd, disableCmd, readinessCmd, eventsCmd)
 	return cmd
 }

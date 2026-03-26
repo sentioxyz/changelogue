@@ -78,25 +78,6 @@ func TestUpsertGate(t *testing.T) {
 	}
 }
 
-func TestDeleteGate(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			t.Errorf("expected DELETE, got %s", r.Method)
-		}
-		if r.URL.Path != "/api/v1/projects/p1/release-gate" {
-			t.Errorf("expected /api/v1/projects/p1/release-gate, got %s", r.URL.Path)
-		}
-		w.WriteHeader(http.StatusNoContent)
-	}))
-	defer srv.Close()
-
-	c := NewClient(srv.URL, "key")
-	err := DeleteGate(c, "p1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
 func TestListReadiness(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/v1/projects/p1/version-readiness" {

@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SectionLabel } from "@/components/ui/section-label";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Select,
   SelectContent,
@@ -127,7 +126,6 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
     Record<string, VersionMapping>
   >({});
   const [saving, setSaving] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Sync form state from SWR data
   useEffect(() => {
@@ -182,11 +180,6 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleDelete = async () => {
-    await gatesApi.delete(projectId);
-    mutateGate();
   };
 
   const toggleSource = (sourceId: string) => {
@@ -486,14 +479,6 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
             </label>
           </div>
           <div className="flex items-center gap-2">
-            {gate && (
-              <Button
-                variant="outline"
-                onClick={() => setDeleteOpen(true)}
-              >
-                {t("projects.detail.gateDelete")}
-              </Button>
-            )}
             <Button onClick={handleSave} disabled={saving}>
               {saving
                 ? t("projects.detail.gateSaving")
@@ -641,13 +626,6 @@ export function ReleaseGateTab({ projectId, sources }: ReleaseGateTabProps) {
       </div>
 
       {/* Delete Confirm Dialog */}
-      <ConfirmDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title={t("projects.detail.gateDeleteConfirm")}
-        description={t("projects.detail.gateDeleteConfirmDesc")}
-        onConfirm={handleDelete}
-      />
     </div>
   );
 }
