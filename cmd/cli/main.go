@@ -79,6 +79,7 @@ func init() {
 	rootCmd.AddCommand(cli.NewReleasesCmd(newClient, &jsonOut))
 	rootCmd.AddCommand(cli.NewChannelsCmd(newClient, &jsonOut))
 	rootCmd.AddCommand(cli.NewSubscriptionsCmd(newClient, &jsonOut))
+	rootCmd.AddCommand(cli.NewGatesCmd(newClient, &jsonOut))
 
 	// AI-friendly hints: suggest commands on typo
 	rootCmd.SuggestionsMinimumDistance = 2
