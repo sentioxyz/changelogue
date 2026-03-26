@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { Fraunces, DM_Sans } from "next/font/google";
+import { DM_Sans, Raleway } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/context";
 import { Providers } from "@/components/providers";
 import { LayoutShell } from "@/components/layout/layout-shell";
 import "./globals.css";
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const raleway = Raleway({
+  variable: "--font-raleway",
   subsets: ["latin"],
-  axes: ["SOFT", "WONK"],
   display: "swap",
 });
 
@@ -33,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fraunces.variable} ${dmSans.variable} antialiased`}>
+      <body className={`${raleway.variable} ${dmSans.variable} antialiased`}>
         <Providers>
           <AuthProvider>
             <LayoutShell>{children}</LayoutShell>

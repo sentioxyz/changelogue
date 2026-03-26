@@ -226,7 +226,7 @@ function ProjectFlowCard({ project }: { project: Project }) {
             <Link
               href={`/projects/${project.id}`}
               className="group inline-flex items-center gap-1.5 text-[16px] font-bold transition-colors text-beacon-accent"
-              style={{ fontFamily: "var(--font-fraunces)" }}
+              style={{ fontFamily: "var(--font-raleway)" }}
             >
               {project.name}
               <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
@@ -456,7 +456,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
       {/* Project name */}
       <span
         className="flex items-center gap-2 text-[14px] font-bold shrink-0 text-beacon-accent"
-        style={{ fontFamily: "var(--font-fraunces)", minWidth: "160px" }}
+        style={{ fontFamily: "var(--font-raleway)", minWidth: "160px" }}
       >
         <ProjectLogo name={project.name} sources={sources} size={24} />
         {project.name}
@@ -590,7 +590,7 @@ export default function ProjectsPage() {
           <h1
             className="text-foreground"
             style={{
-              fontFamily: "var(--font-fraunces)",
+              fontFamily: "var(--font-raleway)",
               fontSize: "24px",
               fontWeight: 700,
             }}
@@ -668,7 +668,7 @@ export default function ProjectsPage() {
       {isLoading ? (
         <p
           className="px-4 py-8 text-center text-[14px] italic text-text-muted"
-          style={{ fontFamily: "var(--font-fraunces)" }}
+          style={{ fontFamily: "var(--font-raleway)" }}
         >
           {t("projects.loading")}
         </p>
@@ -678,7 +678,7 @@ export default function ProjectsPage() {
         >
           <p
             className="text-[14px] italic text-text-muted"
-            style={{ fontFamily: "var(--font-fraunces)" }}
+            style={{ fontFamily: "var(--font-raleway)" }}
           >
             {t("projects.empty")}
           </p>
@@ -694,7 +694,7 @@ export default function ProjectsPage() {
       ) : filtered.length === 0 ? (
         <p
           className="px-4 py-8 text-center text-[14px] italic text-text-muted"
-          style={{ fontFamily: "var(--font-fraunces)" }}
+          style={{ fontFamily: "var(--font-raleway)" }}
         >
           {t("projects.noMatch").replace("{search}", search)}
         </p>

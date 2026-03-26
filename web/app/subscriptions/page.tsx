@@ -164,7 +164,7 @@ export default function SubscriptionsPage() {
           <h1
             className="text-foreground"
             style={{
-              fontFamily: "var(--font-fraunces)",
+              fontFamily: "var(--font-raleway)",
               fontSize: "24px",
               fontWeight: 700,
             }}
@@ -204,7 +204,7 @@ export default function SubscriptionsPage() {
           <p
             className="text-text-muted"
             style={{
-              fontFamily: "var(--font-fraunces)",
+              fontFamily: "var(--font-raleway)",
               fontStyle: "italic",
               fontSize: "15px",
             }}

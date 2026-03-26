@@ -99,7 +99,7 @@ export function DiscoverySection() {
           <span
             className="text-foreground"
             style={{
-              fontFamily: "var(--font-fraunces)",
+              fontFamily: "var(--font-raleway)",
               fontSize: "14px",
               fontWeight: 600,
             }}
@@ -131,7 +131,7 @@ export function DiscoverySection() {
         <span
           className="flex-shrink-0 text-foreground"
           style={{
-            fontFamily: "var(--font-fraunces)",
+            fontFamily: "var(--font-raleway)",
             fontSize: "14px",
             fontWeight: 600,
           }}

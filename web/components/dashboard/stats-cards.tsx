@@ -48,7 +48,7 @@ export function StatsCards() {
           <p
             className="mt-1 font-bold text-foreground"
             style={{
-              fontFamily: "var(--font-fraunces)",
+              fontFamily: "var(--font-raleway)",
               fontSize: "32px",
               lineHeight: 1.1,
             }}

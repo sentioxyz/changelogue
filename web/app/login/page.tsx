@@ -33,8 +33,8 @@ function LoginContent() {
         <div className="flex items-center justify-center gap-2">
           <img src="/logo.svg" alt="" className="h-8 w-8" />
           <span
-            className="text-xl italic text-[#16181c]"
-            style={{ fontFamily: "var(--font-fraunces)" }}
+            className="text-xl font-semibold text-[#16181c]"
+            style={{ fontFamily: "var(--font-raleway)" }}
           >
             Changelogue
           </span>

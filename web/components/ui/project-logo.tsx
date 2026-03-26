@@ -121,7 +121,7 @@ export function ProjectLogo({ name, sources = [], size = 40 }: ProjectLogoProps)
         height: size,
         backgroundColor: color,
         fontSize,
-        fontFamily: "var(--font-fraunces), serif",
+        fontFamily: "var(--font-raleway), sans-serif",
         fontWeight: 700,
         color: "#ffffff",
       }}

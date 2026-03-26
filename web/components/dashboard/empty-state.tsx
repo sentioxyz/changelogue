@@ -16,7 +16,7 @@ export function DashboardEmptyState() {
       <h2
         className="mt-4 text-foreground"
         style={{
-          fontFamily: "var(--font-fraunces)",
+          fontFamily: "var(--font-raleway)",
           fontSize: "18px",
           fontWeight: 600,
         }}

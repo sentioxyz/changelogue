@@ -96,7 +96,7 @@ function SemanticReleasesListInner() {
       {/* Page title */}
       <h1
         style={{
-          fontFamily: "var(--font-fraunces)",
+          fontFamily: "var(--font-raleway)",
           fontSize: "24px",
           fontWeight: 700,
           color: "var(--foreground)",
@@ -154,7 +154,7 @@ function SemanticReleasesListInner() {
           <div className="py-16 text-center">
             <p
               style={{
-                fontFamily: "var(--font-fraunces)",
+                fontFamily: "var(--font-raleway)",
                 fontStyle: "italic",
                 fontSize: "15px",
                 color: "var(--text-muted)",

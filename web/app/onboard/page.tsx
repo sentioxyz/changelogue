@@ -160,7 +160,7 @@ function OnboardPageInner() {
       <div>
         <h1
           style={{
-            fontFamily: "var(--font-fraunces)",
+            fontFamily: "var(--font-raleway)",
             fontSize: "24px",
             fontWeight: 700,
             color: "var(--foreground)",

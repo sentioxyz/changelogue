@@ -270,13 +270,13 @@ export function ProjectDetail() {
                 autoFocus
                 className="w-full max-w-md rounded-md border px-2 py-1 text-[28px] font-bold leading-tight focus:outline-none focus:ring-1 border-border text-foreground"
                 style={{
-                  fontFamily: "var(--font-fraunces), serif",
+                  fontFamily: "var(--font-raleway), sans-serif",
                 }}
               />
             ) : (
               <h1
                 className="group flex cursor-pointer items-center gap-2 text-[28px] font-bold leading-tight"
-                style={{ fontFamily: "var(--font-fraunces), serif" }}
+                style={{ fontFamily: "var(--font-raleway), serif" }}
                 onClick={() => {
                   setNameDraft(project.name);
                   setEditingName(true);

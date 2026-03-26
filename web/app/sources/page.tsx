@@ -46,7 +46,7 @@ export default function SourcesPage() {
         <h1
           className="text-foreground"
           style={{
-            fontFamily: "var(--font-fraunces)",
+            fontFamily: "var(--font-raleway)",
             fontSize: "24px",
             fontWeight: 700,
           }}

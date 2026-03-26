@@ -166,7 +166,7 @@ function ReleasesPageInner() {
       <div>
         <h1
           style={{
-            fontFamily: "var(--font-fraunces)",
+            fontFamily: "var(--font-raleway)",
             fontSize: "24px",
             fontWeight: 700,
             color: "var(--foreground)",
@@ -264,7 +264,7 @@ function ReleasesPageInner() {
           <div className="py-16 text-center">
             <p
               style={{
-                fontFamily: "var(--font-fraunces)",
+                fontFamily: "var(--font-raleway)",
                 fontStyle: "italic",
                 fontSize: "15px",
                 color: "var(--text-muted)",

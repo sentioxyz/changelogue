@@ -37,7 +37,7 @@ export function SuggestionsSection({ showAuthTabs }: SuggestionsSectionProps) {
         <span
           className="flex-shrink-0 mr-4 text-foreground"
           style={{
-            fontFamily: "var(--font-fraunces)",
+            fontFamily: "var(--font-raleway)",
             fontSize: "14px",
             fontWeight: 600,
           }}

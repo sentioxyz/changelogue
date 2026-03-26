@@ -144,7 +144,7 @@ export function ReleaseDetail() {
       <div className="py-16 text-center">
         <p
           style={{
-            fontFamily: "var(--font-fraunces)",
+            fontFamily: "var(--font-raleway)",
             fontStyle: "italic",
             fontSize: "15px",
             color: "var(--text-muted)",
@@ -176,7 +176,7 @@ export function ReleaseDetail() {
       <div>
         <h1
           style={{
-            fontFamily: "var(--font-fraunces)",
+            fontFamily: "var(--font-raleway)",
             fontSize: "24px",
             fontWeight: 700,
             color: "var(--foreground)",
@@ -252,7 +252,7 @@ export function ReleaseDetail() {
           >
             <h2
               style={{
-                fontFamily: "var(--font-fraunces)",
+                fontFamily: "var(--font-raleway)",
                 fontSize: "16px",
                 fontWeight: 600,
                 color: "var(--foreground)",
@@ -303,7 +303,7 @@ export function ReleaseDetail() {
           >
             <h2
               style={{
-                fontFamily: "var(--font-fraunces)",
+                fontFamily: "var(--font-raleway)",
                 fontSize: "16px",
                 fontWeight: 600,
                 color: "var(--foreground)",
@@ -369,7 +369,7 @@ export function ReleaseDetail() {
               <div className="py-6 text-center">
                 <p
                   style={{
-                    fontFamily: "var(--font-fraunces)",
+                    fontFamily: "var(--font-raleway)",
                     fontStyle: "italic",
                     fontSize: "14px",
                     color: "var(--text-muted)",
@@ -394,7 +394,7 @@ export function ReleaseDetail() {
         >
           <h2
             style={{
-              fontFamily: "var(--font-fraunces)",
+              fontFamily: "var(--font-raleway)",
               fontSize: "16px",
               fontWeight: 600,
               color: "var(--foreground)",
@@ -420,7 +420,7 @@ export function ReleaseDetail() {
           ) : (
             <p
               style={{
-                fontFamily: "var(--font-fraunces)",
+                fontFamily: "var(--font-raleway)",
                 fontStyle: "italic",
                 fontSize: "14px",
                 color: "var(--text-muted)",

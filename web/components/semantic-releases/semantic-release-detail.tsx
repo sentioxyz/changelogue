@@ -180,7 +180,7 @@ export function SemanticReleaseDetail() {
       {project?.name && (
         <p
           className="mb-1 text-[13px] italic text-text-muted"
-          style={{ fontFamily: "var(--font-fraunces)" }}
+          style={{ fontFamily: "var(--font-raleway)" }}
         >
           {project.name}
         </p>
@@ -189,7 +189,7 @@ export function SemanticReleaseDetail() {
       {/* 3. Version heading */}
       <h1
         className="text-[42px] font-bold tracking-tight text-foreground leading-[1.1]"
-        style={{ fontFamily: "var(--font-fraunces)" }}
+        style={{ fontFamily: "var(--font-raleway)" }}
       >
         {sr.version}
       </h1>

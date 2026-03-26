@@ -58,8 +58,8 @@ export function Sidebar() {
             <img src="/logo.svg" alt="" className="h-7 w-7 shrink-0" />
             <Link
               href="/"
-              className="ml-2 text-[16px] italic text-white"
-              style={{ fontFamily: "var(--font-fraunces)" }}
+              className="ml-2 text-[16px] font-semibold text-white"
+              style={{ fontFamily: "var(--font-raleway)" }}
             >
               Changelogue
             </Link>
