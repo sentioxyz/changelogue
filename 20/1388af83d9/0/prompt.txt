@@ -1,0 +1,5 @@
+Why the `Recent Activity` doesn't have the up-to-dated releases? https://changelogue-app.azurewebsites.net/
+
+---
+
+Cool, commit and push
