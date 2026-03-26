@@ -234,83 +234,120 @@ func (s *PgStore) ListAllSourceRepos(ctx context.Context) ([]models.SourceRepo, 
 
 // --- ReleasesStore ---
 
-func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
-	var total int
-	if includeExcluded {
-		err := s.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM releases r
-			 LEFT JOIN sources s ON r.source_id = s.id`).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("count releases: %w", err)
-		}
-	} else {
-		err := s.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM releases r
-			 LEFT JOIN sources s ON r.source_id = s.id
-			 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("count releases: %w", err)
-		}
+func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includeExcluded bool, filter ReleaseFilter) ([]models.Release, int, error) {
+	// Build dynamic WHERE clauses for count query (no LATERAL join, so skip urgency).
+	countClauses := []string{}
+	countArgs := []any{}
+	countIdx := 1
+	if !includeExcluded {
+		countClauses = append(countClauses,
+			`(s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)`,
+			`(s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`,
+			`(s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
+		)
 	}
-	offset := (page - 1) * perPage
-	var rows pgx.Rows
-	var err error
+	if filter.Provider != "" {
+		countClauses = append(countClauses, fmt.Sprintf("COALESCE(s.provider,'') = $%d", countIdx))
+		countArgs = append(countArgs, filter.Provider)
+		countIdx++
+	}
+	if filter.DateFrom != nil {
+		countClauses = append(countClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) >= $%d", countIdx))
+		countArgs = append(countArgs, *filter.DateFrom)
+		countIdx++
+	}
+	if filter.DateTo != nil {
+		countClauses = append(countClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) <= $%d", countIdx))
+		countArgs = append(countArgs, *filter.DateTo)
+		countIdx++
+	}
+
+	countWhere := ""
+	if len(countClauses) > 0 {
+		countWhere = " WHERE " + strings.Join(countClauses, " AND ")
+	}
+
+	var total int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM releases r
+		 LEFT JOIN sources s ON r.source_id = s.id`+countWhere, countArgs...).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count releases: %w", err)
+	}
+
+	// Build dynamic WHERE clauses for data query (includes LATERAL join, so urgency is available).
+	dataClauses := []string{}
+	dataArgs := []any{}
+	dataIdx := 1
+	if !includeExcluded {
+		dataClauses = append(dataClauses,
+			`(s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)`,
+			`(s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`,
+			`(s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
+		)
+	}
+	if filter.Provider != "" {
+		dataClauses = append(dataClauses, fmt.Sprintf("COALESCE(s.provider,'') = $%d", dataIdx))
+		dataArgs = append(dataArgs, filter.Provider)
+		dataIdx++
+	}
+	if filter.Urgency != "" {
+		dataClauses = append(dataClauses, fmt.Sprintf("sr_info.urgency ILIKE $%d", dataIdx))
+		dataArgs = append(dataArgs, filter.Urgency)
+		dataIdx++
+	}
+	if filter.DateFrom != nil {
+		dataClauses = append(dataClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) >= $%d", dataIdx))
+		dataArgs = append(dataArgs, *filter.DateFrom)
+		dataIdx++
+	}
+	if filter.DateTo != nil {
+		dataClauses = append(dataClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) <= $%d", dataIdx))
+		dataArgs = append(dataArgs, *filter.DateTo)
+		dataIdx++
+	}
+
+	dataWhere := ""
+	if len(dataClauses) > 0 {
+		dataWhere = " WHERE " + strings.Join(dataClauses, " AND ")
+	}
+
+	// Excluded expression: when includeExcluded, compute the CASE; otherwise hardcode false.
+	excludedExpr := "false"
 	if includeExcluded {
-		rows, err = s.pool.Query(ctx,
-			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
-			        CASE WHEN
+		excludedExpr = `CASE WHEN
 			          (s.version_filter_include IS NOT NULL AND r.version !~ s.version_filter_include)
 			          OR (s.version_filter_exclude IS NOT NULL AND r.version ~ s.version_filter_exclude)
 			          OR (s.exclude_prereleases = true AND r.raw_data->>'prerelease' = 'true')
-			        THEN true ELSE false END,
-			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
-			 FROM releases r
-			 LEFT JOIN sources s ON r.source_id = s.id
-			 LEFT JOIN projects p ON s.project_id = p.id
-			 LEFT JOIN LATERAL (
-			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
-			      FROM semantic_releases sr
-			      WHERE sr.project_id = p.id AND sr.version = r.version
-			      ORDER BY sr.created_at DESC LIMIT 1)
-			     UNION ALL
-			     (SELECT NULL::uuid, 'processing', '', 1
-			      FROM agent_runs ar
-			      WHERE ar.project_id = p.id AND ar.version = r.version
-			        AND ar.status IN ('pending', 'running')
-			      LIMIT 1)
-			     ORDER BY priority LIMIT 1
-			 ) sr_info ON true
-			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $1 OFFSET $2`, perPage, offset)
-	} else {
-		rows, err = s.pool.Query(ctx,
-			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
-			        false,
-			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
-			 FROM releases r
-			 LEFT JOIN sources s ON r.source_id = s.id
-			 LEFT JOIN projects p ON s.project_id = p.id
-			 LEFT JOIN LATERAL (
-			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
-			      FROM semantic_releases sr
-			      WHERE sr.project_id = p.id AND sr.version = r.version
-			      ORDER BY sr.created_at DESC LIMIT 1)
-			     UNION ALL
-			     (SELECT NULL::uuid, 'processing', '', 1
-			      FROM agent_runs ar
-			      WHERE ar.project_id = p.id AND ar.version = r.version
-			        AND ar.status IN ('pending', 'running')
-			      LIMIT 1)
-			     ORDER BY priority LIMIT 1
-			 ) sr_info ON true
-			 WHERE (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
-			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $1 OFFSET $2`, perPage, offset)
+			        THEN true ELSE false END`
 	}
+
+	offset := (page - 1) * perPage
+	dataArgs = append(dataArgs, perPage, offset)
+	limitClause := fmt.Sprintf(" LIMIT $%d OFFSET $%d", dataIdx, dataIdx+1)
+
+	rows, err := s.pool.Query(ctx,
+		`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+		        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
+		        `+excludedExpr+`,
+		        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
+		 FROM releases r
+		 LEFT JOIN sources s ON r.source_id = s.id
+		 LEFT JOIN projects p ON s.project_id = p.id
+		 LEFT JOIN LATERAL (
+		     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+		      FROM semantic_releases sr
+		      WHERE sr.project_id = p.id AND sr.version = r.version
+		      ORDER BY sr.created_at DESC LIMIT 1)
+		     UNION ALL
+		     (SELECT NULL::uuid, 'processing', '', 1
+		      FROM agent_runs ar
+		      WHERE ar.project_id = p.id AND ar.version = r.version
+		        AND ar.status IN ('pending', 'running')
+		      LIMIT 1)
+		     ORDER BY priority LIMIT 1
+		 ) sr_info ON true`+dataWhere+`
+		 ORDER BY COALESCE(r.released_at, r.created_at) DESC`+limitClause, dataArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list all releases: %w", err)
 	}
@@ -328,87 +365,113 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includ
 	return releases, total, nil
 }
 
-func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
-	var total int
-	if includeExcluded {
-		err := s.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM releases r
-			 JOIN sources s ON r.source_id = s.id
-			 WHERE r.source_id = $1`, sourceID).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("count releases: %w", err)
-		}
-	} else {
-		err := s.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM releases r
-			 JOIN sources s ON r.source_id = s.id
-			 WHERE r.source_id = $1
-			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`, sourceID).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("count releases: %w", err)
-		}
+func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, page, perPage int, includeExcluded bool, filter ReleaseFilter) ([]models.Release, int, error) {
+	// Build dynamic WHERE clauses for count query.
+	countClauses := []string{"r.source_id = $1"}
+	countArgs := []any{sourceID}
+	countIdx := 2
+	if !includeExcluded {
+		countClauses = append(countClauses,
+			`(s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)`,
+			`(s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`,
+			`(s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
+		)
 	}
-	offset := (page - 1) * perPage
-	var rows pgx.Rows
-	var err error
+	if filter.Provider != "" {
+		countClauses = append(countClauses, fmt.Sprintf("COALESCE(s.provider,'') = $%d", countIdx))
+		countArgs = append(countArgs, filter.Provider)
+		countIdx++
+	}
+	if filter.DateFrom != nil {
+		countClauses = append(countClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) >= $%d", countIdx))
+		countArgs = append(countArgs, *filter.DateFrom)
+		countIdx++
+	}
+	if filter.DateTo != nil {
+		countClauses = append(countClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) <= $%d", countIdx))
+		countArgs = append(countArgs, *filter.DateTo)
+		countIdx++
+	}
+
+	countWhere := " WHERE " + strings.Join(countClauses, " AND ")
+
+	var total int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM releases r
+		 JOIN sources s ON r.source_id = s.id`+countWhere, countArgs...).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count releases: %w", err)
+	}
+
+	// Build dynamic WHERE clauses for data query.
+	dataClauses := []string{"r.source_id = $1"}
+	dataArgs := []any{sourceID}
+	dataIdx := 2
+	if !includeExcluded {
+		dataClauses = append(dataClauses,
+			`(s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)`,
+			`(s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`,
+			`(s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
+		)
+	}
+	if filter.Provider != "" {
+		dataClauses = append(dataClauses, fmt.Sprintf("COALESCE(s.provider,'') = $%d", dataIdx))
+		dataArgs = append(dataArgs, filter.Provider)
+		dataIdx++
+	}
+	if filter.Urgency != "" {
+		dataClauses = append(dataClauses, fmt.Sprintf("sr_info.urgency ILIKE $%d", dataIdx))
+		dataArgs = append(dataArgs, filter.Urgency)
+		dataIdx++
+	}
+	if filter.DateFrom != nil {
+		dataClauses = append(dataClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) >= $%d", dataIdx))
+		dataArgs = append(dataArgs, *filter.DateFrom)
+		dataIdx++
+	}
+	if filter.DateTo != nil {
+		dataClauses = append(dataClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) <= $%d", dataIdx))
+		dataArgs = append(dataArgs, *filter.DateTo)
+		dataIdx++
+	}
+
+	dataWhere := " WHERE " + strings.Join(dataClauses, " AND ")
+
+	excludedExpr := "false"
 	if includeExcluded {
-		rows, err = s.pool.Query(ctx,
-			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
-			        CASE WHEN
+		excludedExpr = `CASE WHEN
 			          (s.version_filter_include IS NOT NULL AND r.version !~ s.version_filter_include)
 			          OR (s.version_filter_exclude IS NOT NULL AND r.version ~ s.version_filter_exclude)
 			          OR (s.exclude_prereleases = true AND r.raw_data->>'prerelease' = 'true')
-			        THEN true ELSE false END,
-			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
-			 FROM releases r
-			 LEFT JOIN sources s ON r.source_id = s.id
-			 LEFT JOIN projects p ON s.project_id = p.id
-			 LEFT JOIN LATERAL (
-			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
-			      FROM semantic_releases sr
-			      WHERE sr.project_id = p.id AND sr.version = r.version
-			      ORDER BY sr.created_at DESC LIMIT 1)
-			     UNION ALL
-			     (SELECT NULL::uuid, 'processing', '', 1
-			      FROM agent_runs ar
-			      WHERE ar.project_id = p.id AND ar.version = r.version
-			        AND ar.status IN ('pending', 'running')
-			      LIMIT 1)
-			     ORDER BY priority LIMIT 1
-			 ) sr_info ON true
-			 WHERE r.source_id = $1
-			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
-	} else {
-		rows, err = s.pool.Query(ctx,
-			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-			        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
-			        false,
-			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
-			 FROM releases r
-			 LEFT JOIN sources s ON r.source_id = s.id
-			 LEFT JOIN projects p ON s.project_id = p.id
-			 LEFT JOIN LATERAL (
-			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
-			      FROM semantic_releases sr
-			      WHERE sr.project_id = p.id AND sr.version = r.version
-			      ORDER BY sr.created_at DESC LIMIT 1)
-			     UNION ALL
-			     (SELECT NULL::uuid, 'processing', '', 1
-			      FROM agent_runs ar
-			      WHERE ar.project_id = p.id AND ar.version = r.version
-			        AND ar.status IN ('pending', 'running')
-			      LIMIT 1)
-			     ORDER BY priority LIMIT 1
-			 ) sr_info ON true
-			 WHERE r.source_id = $1
-			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
-			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, sourceID, perPage, offset)
+			        THEN true ELSE false END`
 	}
+
+	offset := (page - 1) * perPage
+	dataArgs = append(dataArgs, perPage, offset)
+	limitClause := fmt.Sprintf(" LIMIT $%d OFFSET $%d", dataIdx, dataIdx+1)
+
+	rows, err := s.pool.Query(ctx,
+		`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+		        COALESCE(p.id::text,''), COALESCE(p.name,''), COALESCE(s.provider,''), COALESCE(s.repository,''),
+		        `+excludedExpr+`,
+		        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
+		 FROM releases r
+		 LEFT JOIN sources s ON r.source_id = s.id
+		 LEFT JOIN projects p ON s.project_id = p.id
+		 LEFT JOIN LATERAL (
+		     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+		      FROM semantic_releases sr
+		      WHERE sr.project_id = p.id AND sr.version = r.version
+		      ORDER BY sr.created_at DESC LIMIT 1)
+		     UNION ALL
+		     (SELECT NULL::uuid, 'processing', '', 1
+		      FROM agent_runs ar
+		      WHERE ar.project_id = p.id AND ar.version = r.version
+		        AND ar.status IN ('pending', 'running')
+		      LIMIT 1)
+		     ORDER BY priority LIMIT 1
+		 ) sr_info ON true`+dataWhere+`
+		 ORDER BY COALESCE(r.released_at, r.created_at) DESC`+limitClause, dataArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by source: %w", err)
 	}
@@ -426,85 +489,112 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 	return releases, total, nil
 }
 
-func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, page, perPage int, includeExcluded bool) ([]models.Release, int, error) {
-	var total int
-	if includeExcluded {
-		err := s.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id WHERE s.project_id = $1`,
-			projectID).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("count releases: %w", err)
-		}
-	} else {
-		err := s.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id WHERE s.project_id = $1
-			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
-			projectID).Scan(&total)
-		if err != nil {
-			return nil, 0, fmt.Errorf("count releases: %w", err)
-		}
+func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, page, perPage int, includeExcluded bool, filter ReleaseFilter) ([]models.Release, int, error) {
+	// Build dynamic WHERE clauses for count query.
+	countClauses := []string{"s.project_id = $1"}
+	countArgs := []any{projectID}
+	countIdx := 2
+	if !includeExcluded {
+		countClauses = append(countClauses,
+			`(s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)`,
+			`(s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`,
+			`(s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
+		)
 	}
-	offset := (page - 1) * perPage
-	var rows pgx.Rows
-	var err error
+	if filter.Provider != "" {
+		countClauses = append(countClauses, fmt.Sprintf("COALESCE(s.provider,'') = $%d", countIdx))
+		countArgs = append(countArgs, filter.Provider)
+		countIdx++
+	}
+	if filter.DateFrom != nil {
+		countClauses = append(countClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) >= $%d", countIdx))
+		countArgs = append(countArgs, *filter.DateFrom)
+		countIdx++
+	}
+	if filter.DateTo != nil {
+		countClauses = append(countClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) <= $%d", countIdx))
+		countArgs = append(countArgs, *filter.DateTo)
+		countIdx++
+	}
+
+	countWhere := " WHERE " + strings.Join(countClauses, " AND ")
+
+	var total int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM releases r JOIN sources s ON r.source_id = s.id`+countWhere, countArgs...).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count releases: %w", err)
+	}
+
+	// Build dynamic WHERE clauses for data query.
+	dataClauses := []string{"s.project_id = $1"}
+	dataArgs := []any{projectID}
+	dataIdx := 2
+	if !includeExcluded {
+		dataClauses = append(dataClauses,
+			`(s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)`,
+			`(s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)`,
+			`(s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')`,
+		)
+	}
+	if filter.Provider != "" {
+		dataClauses = append(dataClauses, fmt.Sprintf("COALESCE(s.provider,'') = $%d", dataIdx))
+		dataArgs = append(dataArgs, filter.Provider)
+		dataIdx++
+	}
+	if filter.Urgency != "" {
+		dataClauses = append(dataClauses, fmt.Sprintf("sr_info.urgency ILIKE $%d", dataIdx))
+		dataArgs = append(dataArgs, filter.Urgency)
+		dataIdx++
+	}
+	if filter.DateFrom != nil {
+		dataClauses = append(dataClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) >= $%d", dataIdx))
+		dataArgs = append(dataArgs, *filter.DateFrom)
+		dataIdx++
+	}
+	if filter.DateTo != nil {
+		dataClauses = append(dataClauses, fmt.Sprintf("COALESCE(r.released_at, r.created_at) <= $%d", dataIdx))
+		dataArgs = append(dataArgs, *filter.DateTo)
+		dataIdx++
+	}
+
+	dataWhere := " WHERE " + strings.Join(dataClauses, " AND ")
+
+	excludedExpr := "false"
 	if includeExcluded {
-		rows, err = s.pool.Query(ctx,
-			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-			        p.id, p.name, s.provider, s.repository,
-			        CASE WHEN
+		excludedExpr = `CASE WHEN
 			          (s.version_filter_include IS NOT NULL AND r.version !~ s.version_filter_include)
 			          OR (s.version_filter_exclude IS NOT NULL AND r.version ~ s.version_filter_exclude)
 			          OR (s.exclude_prereleases = true AND r.raw_data->>'prerelease' = 'true')
-			        THEN true ELSE false END,
-			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
-			 FROM releases r
-			 JOIN sources s ON r.source_id = s.id
-			 JOIN projects p ON s.project_id = p.id
-			 LEFT JOIN LATERAL (
-			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
-			      FROM semantic_releases sr
-			      WHERE sr.project_id = p.id AND sr.version = r.version
-			      ORDER BY sr.created_at DESC LIMIT 1)
-			     UNION ALL
-			     (SELECT NULL::uuid, 'processing', '', 1
-			      FROM agent_runs ar
-			      WHERE ar.project_id = p.id AND ar.version = r.version
-			        AND ar.status IN ('pending', 'running')
-			      LIMIT 1)
-			     ORDER BY priority LIMIT 1
-			 ) sr_info ON true
-			 WHERE s.project_id = $1
-			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
-	} else {
-		rows, err = s.pool.Query(ctx,
-			`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
-			        p.id, p.name, s.provider, s.repository,
-			        false,
-			        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
-			 FROM releases r
-			 JOIN sources s ON r.source_id = s.id
-			 JOIN projects p ON s.project_id = p.id
-			 LEFT JOIN LATERAL (
-			     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
-			      FROM semantic_releases sr
-			      WHERE sr.project_id = p.id AND sr.version = r.version
-			      ORDER BY sr.created_at DESC LIMIT 1)
-			     UNION ALL
-			     (SELECT NULL::uuid, 'processing', '', 1
-			      FROM agent_runs ar
-			      WHERE ar.project_id = p.id AND ar.version = r.version
-			        AND ar.status IN ('pending', 'running')
-			      LIMIT 1)
-			     ORDER BY priority LIMIT 1
-			 ) sr_info ON true
-			 WHERE s.project_id = $1
-			   AND (s.version_filter_include IS NULL OR r.version ~ s.version_filter_include)
-			   AND (s.version_filter_exclude IS NULL OR r.version !~ s.version_filter_exclude)
-			   AND (s.exclude_prereleases = false OR r.raw_data->>'prerelease' IS NULL OR r.raw_data->>'prerelease' != 'true')
-			 ORDER BY COALESCE(r.released_at, r.created_at) DESC LIMIT $2 OFFSET $3`, projectID, perPage, offset)
+			        THEN true ELSE false END`
 	}
+
+	offset := (page - 1) * perPage
+	dataArgs = append(dataArgs, perPage, offset)
+	limitClause := fmt.Sprintf(" LIMIT $%d OFFSET $%d", dataIdx, dataIdx+1)
+
+	rows, err := s.pool.Query(ctx,
+		`SELECT r.id, r.source_id, r.version, COALESCE(r.raw_data,'{}'), r.released_at, r.created_at,
+		        p.id, p.name, s.provider, s.repository,
+		        `+excludedExpr+`,
+		        COALESCE(sr_info.id::text,''), COALESCE(sr_info.status,''), COALESCE(sr_info.urgency,'')
+		 FROM releases r
+		 JOIN sources s ON r.source_id = s.id
+		 JOIN projects p ON s.project_id = p.id
+		 LEFT JOIN LATERAL (
+		     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
+		      FROM semantic_releases sr
+		      WHERE sr.project_id = p.id AND sr.version = r.version
+		      ORDER BY sr.created_at DESC LIMIT 1)
+		     UNION ALL
+		     (SELECT NULL::uuid, 'processing', '', 1
+		      FROM agent_runs ar
+		      WHERE ar.project_id = p.id AND ar.version = r.version
+		        AND ar.status IN ('pending', 'running')
+		      LIMIT 1)
+		     ORDER BY priority LIMIT 1
+		 ) sr_info ON true`+dataWhere+`
+		 ORDER BY COALESCE(r.released_at, r.created_at) DESC`+limitClause, dataArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list releases by project: %w", err)
 	}
@@ -1276,13 +1366,49 @@ func (s *PgStore) GetTrend(ctx context.Context, granularity string, start, end t
 
 // --- TodosStore ---
 
-func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage int, aggregated bool) ([]models.Todo, int, error) {
+func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage int, aggregated bool, filter TodoFilter) ([]models.Todo, int, error) {
 	// Base WHERE clause
 	whereClause := ""
 	countArgs := []any{}
 	if status != "" {
 		whereClause = ` WHERE t.status = $1`
 		countArgs = append(countArgs, status)
+	}
+
+	// Append dynamic filter conditions.
+	filterClauses := []string{}
+	nextIdx := len(countArgs) + 1
+	if filter.ProjectID != "" {
+		filterClauses = append(filterClauses, fmt.Sprintf("COALESCE(p1.id, p2.id)::text = $%d", nextIdx))
+		countArgs = append(countArgs, filter.ProjectID)
+		nextIdx++
+	}
+	if filter.Provider != "" {
+		filterClauses = append(filterClauses, fmt.Sprintf("COALESCE(src.provider, '') = $%d", nextIdx))
+		countArgs = append(countArgs, filter.Provider)
+		nextIdx++
+	}
+	if filter.Urgency != "" {
+		filterClauses = append(filterClauses, fmt.Sprintf("COALESCE(sr.report->>'urgency', '') ILIKE $%d", nextIdx))
+		countArgs = append(countArgs, filter.Urgency)
+		nextIdx++
+	}
+	if filter.DateFrom != nil {
+		filterClauses = append(filterClauses, fmt.Sprintf("t.created_at >= $%d", nextIdx))
+		countArgs = append(countArgs, *filter.DateFrom)
+		nextIdx++
+	}
+	if filter.DateTo != nil {
+		filterClauses = append(filterClauses, fmt.Sprintf("t.created_at <= $%d", nextIdx))
+		countArgs = append(countArgs, *filter.DateTo)
+		nextIdx++
+	}
+	if len(filterClauses) > 0 {
+		if whereClause == "" {
+			whereClause = " WHERE " + strings.Join(filterClauses, " AND ")
+		} else {
+			whereClause += " AND " + strings.Join(filterClauses, " AND ")
+		}
 	}
 
 	// Shared FROM/JOIN clause.
