@@ -8,9 +8,13 @@
 
 ## What it does
 
-- **Discovers releases** by polling Docker Hub, GitHub, ECR Public, GitLab, and PyPI on configurable intervals
+- **Discovers releases** by polling Docker Hub, GitHub, ECR Public, GitLab, PyPI, and npm on configurable intervals
 - **Routes notifications** to Slack, Discord, email, and webhooks the moment a new version lands
-- **Generates AI reports** via Google Gemini agents that research changelogs, assess risk, and summarize what changed
+- **Generates AI reports** via LLM agents (Gemini / OpenAI) that research changelogs, assess risk, and summarize what changed
+- **Release gates** delay agent analysis until all required sources report a version
+- **Onboarding** scans GitHub repos to auto-detect dependencies and suggest sources
+- **TODO tracking** for operator acknowledgment and resolution of releases
+- **Discovery & suggestions** search public registries and recommend sources from your GitHub activity
 - **Serves a dashboard** (Next.js) for managing projects, sources, subscriptions, and browsing releases in real time
 
 ## Architecture
@@ -21,9 +25,9 @@ graph LR
     B --> C["Agent<br/>(ADK-Go)"]
     C --> D["Routing<br/>(channels)"]
 
-    A -.- A1["Docker Hub · GitHub<br/>ECR · GitLab · PyPI"]
+    A -.- A1["Docker Hub · GitHub<br/>ECR · GitLab · PyPI · npm"]
     B -.- B1["Transactional Outbox<br/>LISTEN/NOTIFY → SSE"]
-    C -.- C1["Gemini LLM<br/>research tools"]
+    C -.- C1["Gemini / OpenAI LLM<br/>research tools"]
     D -.- D1["Slack · Discord<br/>Email · Webhooks"]
 ```
 
@@ -102,6 +106,10 @@ Use `--json` on any command for machine-readable output. Use `--help` on any com
 | `ALLOWED_GITHUB_ORGS` | _(empty)_ | Comma-separated GitHub org logins allowed to log in |
 | `SESSION_SECRET` | _(required in prod)_ | Secret key for HMAC-signing session cookies |
 | `SECURE_COOKIES` | `true` | Set `false` for local HTTP dev |
+| `PUBLIC_URL` | _(empty)_ | Base URL for constructing notification action links |
+| `FRONTEND_URL` | _(empty)_ | Frontend URL for OAuth redirects (if separate from server) |
+| `GITHUB_TOKEN` | _(empty)_ | GitHub PAT for increased API limits (ingestion, onboarding, suggestions) |
+| `GITLAB_TOKEN` | _(empty)_ | GitLab PAT for GitLab provider authentication |
 
 At least one of `ALLOWED_GITHUB_USERS` or `ALLOWED_GITHUB_ORGS` must be set when `NO_AUTH` is not `true`.
 
@@ -116,9 +124,12 @@ internal/
   agent/               ADK-Go agent orchestrator, tools, and worker
     openai/            OpenAI-compatible LLM provider
   api/                 REST API, SSE, middleware, auth
+  auth/                GitHub OAuth 2.0, sessions, user allowlisting
   db/                  Connection pool and migrations
-  ingestion/           Polling sources (Docker Hub, GitHub, ECR Public, GitLab, PyPI)
+  gate/                Release gate system (check, NL eval, timeout workers)
+  ingestion/           Polling sources (Docker Hub, GitHub, ECR Public, GitLab, PyPI, npm)
   models/              Shared domain types
+  onboard/             GitHub repo scanning and dependency extraction
   queue/               River job definitions and client
   routing/             Notification channels and delivery worker
 web/                   Next.js dashboard (React + Tailwind + shadcn)
@@ -127,7 +138,7 @@ scripts/               Integration test harness
 
 ## Extending
 
-More providers (npm, Helm, etc.) and channels (PagerDuty, etc.) are planned. Adding one is a single-interface implementation:
+More providers (Helm, etc.) and channels (PagerDuty, etc.) are planned. Adding one is a single-interface implementation:
 
 **Add a registry provider** — implement `IIngestionSource` in `internal/ingestion/source.go`:
 
@@ -166,6 +177,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the release history.
 ```bash
 make build              # go build -o changelogue ./cmd/server
 make cli                # build clog CLI binary
+make run-auth           # build and run server with GitHub OAuth enabled
 make test               # go test ./...
 make coverage           # go test with coverage profile + print total %
 make vet                # go vet ./...

@@ -8,7 +8,7 @@
 
 ## Project Overview
 
-**Changelogue** is an agent-driven release intelligence platform that polls upstream registries (Docker Hub, GitHub, ECR Public, GitLab, PyPI) for new releases, sends source-level notifications, and uses LLM agents (ADK-Go) to produce semantic release reports.
+**Changelogue** is an agent-driven release intelligence platform that polls upstream registries (Docker Hub, GitHub, ECR Public, GitLab, PyPI, npm) for new releases, sends source-level notifications, and uses LLM agents (ADK-Go) to produce semantic release reports.
 
 Go module: `github.com/sentioxyz/changelogue`
 
@@ -17,7 +17,7 @@ Go module: `github.com/sentioxyz/changelogue`
 - **Backend:** Go 1.25 — polling engine, notification routing, API server
 - **Database/Queue/PubSub:** PostgreSQL + [River](https://github.com/riverqueue/river) v0.31.0 for job queue, native `LISTEN`/`NOTIFY` for real-time events
 - **Frontend:** Next.js (React) + Tailwind CSS — dashboard (`web/`)
-- **Agent Intelligence:** [Google ADK-Go](https://google.github.io/adk-go/) v0.5.0 — Gemini-powered semantic release analysis
+- **Agent Intelligence:** [Google ADK-Go](https://google.github.io/adk-go/) v0.5.0 — Gemini/OpenAI-powered semantic release analysis
 - **Deployment:** Single binary — Go `//go:embed` serves Next.js static export
 
 ## Build & Test Commands
@@ -45,8 +45,11 @@ bash scripts/integration-test.sh
 ```bash
 make up                  # Start Postgres (docker-compose)
 make run                 # Run server (builds + starts with NO_AUTH, requires Postgres)
+make run-auth            # Run server with GitHub OAuth enabled
 make dev                 # One command: start Postgres + run server
 make db-reset            # Reset database
+make cli                 # Build CLI binary (clog)
+make agent-dev           # Run agent CLI for a specific project
 make frontend-install    # Install frontend deps
 make frontend-dev        # Run frontend dev server
 make integration-test    # Integration tests (own Postgres on port 5433)

@@ -19,12 +19,17 @@ Changelogue is an event-driven, hybrid-architecture system designed to centraliz
 
 ## 2. System Design & Abstractions
 
-The system is decoupled into four primary layers communicating entirely through PostgreSQL using the Transactional Outbox pattern:
+The system is decoupled into several layers communicating entirely through PostgreSQL using the Transactional Outbox pattern:
 
 1. **Ingestion Layer** — Polling workers and webhook handlers discover new releases from upstream registries.
 2. **Notification Routing** — River workers send immediate notifications to source-level subscribers on new releases.
 3. **Agent Layer** — ADK-Go agents research releases, consult context sources, and produce semantic release reports.
-4. **Routing & Output** — Notification channels (Slack, Discord, email, webhooks) deliver alerts via `Sender`.
+4. **Release Gates** — Per-project gates that delay agent analysis until all required sources report a version (with optional NL-based readiness rules).
+5. **TODO Tracking** — Release-level action items (acknowledge/resolve) linked to source or semantic releases, with notification action links.
+6. **Onboarding** — GitHub repo scanning with LLM-based dependency extraction to auto-detect and suggest sources.
+7. **Discovery & Suggestions** — Public search for GitHub repos and Docker Hub images, plus personalized suggestions from a user's starred/authored repos.
+8. **Auth Layer** — GitHub OAuth 2.0 login with server-side sessions, user allowlisting, and API key authentication.
+9. **Routing & Output** — Notification channels (Slack, Discord, email, webhooks) deliver alerts via `Sender`.
 
 A **Project** is the central domain entity — it groups multiple ingestion sources, context sources, and notification subscriptions under a single tracked piece of software.
 
@@ -34,11 +39,13 @@ graph LR
     subgraph Dashboard [API & Dashboard]
         API[REST API] --> |CRUD| PG
         API --> |SSE| Browser[Next.js Dashboard]
+        Auth[GitHub OAuth] --> |sessions| API
     end
 
     subgraph Ingestion [Ingestion Layer]
         I_Hub(Docker Hub Poller) --> |IIngestionSource| Engine
         I_Git(GitHub Atom Feed) --> |IIngestionSource| Engine
+        I_Npm(npm Poller) --> |IIngestionSource| Engine
     end
 
     subgraph Core [Event Bus & Queue - PostgreSQL]
@@ -51,6 +58,13 @@ graph LR
         NotifyWorker --> |Sender| O_Discord(Discord)
         NotifyWorker --> |Sender| O_Email(Email)
         NotifyWorker --> |Sender| O_Hook(Webhooks)
+    end
+
+    subgraph GateLayer [Release Gates]
+        PG --> |SKIP LOCKED\nRiver gate_check| GateWorker[Gate Check Worker]
+        GateWorker --> |all sources met| GateNL[NL Eval Worker]
+        GateNL --> |pass| AgentTrigger[Enqueue Agent Run]
+        GateTimeout[Timeout Worker\n15 min sweep] --> |expired| AgentTrigger
     end
 
     subgraph AgentLayer [Agent Layer]
@@ -70,12 +84,17 @@ erDiagram
     projects ||--o{ context_sources : "has many"
     projects ||--o{ semantic_releases : "has many"
     projects ||--o{ agent_runs : "has many"
+    projects ||--o| release_gates : "has one"
+    projects ||--o{ version_readiness : "tracks"
     sources ||--o{ releases : "produces"
+    releases ||--o| release_todos : "has todo"
+    semantic_releases ||--o| release_todos : "has todo"
     subscriptions }o--|| notification_channels : "routes to"
     subscriptions }o--o| sources : "source-level"
     subscriptions }o--o| projects : "project-level"
     semantic_releases ||--o{ semantic_release_sources : "composed of"
     releases ||--o{ semantic_release_sources : "contributes to"
+    users ||--o{ sessions : "has many"
 
     projects {
         uuid id PK
@@ -110,6 +129,33 @@ erDiagram
         string trigger
         string status
     }
+    release_gates {
+        uuid id PK
+        uuid project_id FK
+        jsonb required_sources
+        int timeout_hours
+        text nl_rule
+        boolean enabled
+    }
+    version_readiness {
+        uuid id PK
+        uuid project_id FK
+        string version
+        string status
+        jsonb sources_met
+    }
+    release_todos {
+        uuid id PK
+        uuid release_id FK
+        uuid semantic_release_id FK
+        string status
+    }
+    users {
+        uuid id PK
+        bigint github_id UK
+        string github_login
+        string name
+    }
     subscriptions {
         uuid id PK
         uuid channel_id FK
@@ -138,7 +184,7 @@ Components do not call each other synchronously. Instead, they rely on PostgreSQ
 
 All external integrations are abstracted behind strict Go interfaces.
 
-* `IIngestionSource`: Standardizes how polling workers fetch data. Adding a new registry (like npm or NuGet) only requires implementing this interface. Each implementation maps to a `source_type` in the database. Current implementations: Docker Hub, GitHub, ECR Public, GitLab, PyPI.
+* `IIngestionSource`: Standardizes how polling workers fetch data. Adding a new registry (like npm or NuGet) only requires implementing this interface. Each implementation maps to a `source_type` in the database. Current implementations: Docker Hub, GitHub, ECR Public, GitLab, PyPI, npm.
 * `Sender`: Standardizes output routing. Each implementation maps to a `type` in the `notification_channels` table (Slack, Discord, email, webhooks).
 
 ### 2.3 REST API & Dashboard
@@ -150,6 +196,7 @@ The Go server exposes a RESTful API (`/api/v1`) serving the Next.js dashboard an
 * **Source Operations:** Manual poll trigger (`POST /sources/{id}/poll`) and channel test notifications (`POST /channels/{id}/test`).
 * **SSE Real-Time Events:** `GET /api/v1/events` streams server-sent events backed by PostgreSQL `LISTEN/NOTIFY`, pushing release and semantic release updates to connected dashboard clients.
 * **API Key Auth:** Bearer token authentication with hashed key storage. `NO_AUTH=true` disables auth for development.
+* **GitHub OAuth:** GitHub OAuth 2.0 login with server-side sessions, user allowlisting by username or org membership. Session cookies are HMAC-signed and HttpOnly.
 * **Rate Limiting:** Per-key token bucket (10 rps, 20 burst) with standard `X-Ratelimit-*` response headers.
 * **Stats & Trends:** Dashboard stats and time-bucketed release count trends via `/stats` and `/stats/trend`.
 
@@ -187,7 +234,33 @@ The agent supports multiple LLM backends via the `LLM_PROVIDER` environment vari
 * **`worker.go`** — `AgentWorker` implements `river.Worker[queue.AgentJobArgs]`, loading the agent run from the store and delegating to `Orchestrator.RunAgent()`.
 * **Graceful degradation** — If no LLM API key is set, the orchestrator is not created, the worker is not registered, and a warning is logged. The rest of the system continues to function. Agent jobs remain in the River queue until the key is configured.
 
-### 2.6 Agentic Tooling (Planned: SRE Validation)
+### 2.6 Release Gates
+
+Release gates are per-project configurations that delay agent analysis until all required sources have reported a version. This prevents premature semantic analysis when a project is assembled from multiple registries (e.g., GitHub tag + Docker Hub image) that publish at slightly different times.
+
+**Components:**
+* `GateCheckWorker` — Triggered per-release via River. Records source arrival in `version_readiness` and opens the gate when all required sources are met.
+* `GateNLEvalWorker` — Evaluates optional natural-language readiness rules via LLM when structured conditions pass.
+* `GateTimeoutWorker` — Periodic sweep (every 15 min). Forces open gates past their timeout threshold with `partial=true`.
+
+**Version mapping** normalizes version strings across registries (e.g., GitHub's `v1.21.0` → Docker Hub's `1.21.0`) using per-source regex/template rules.
+
+When a project has an active gate, `NotifyWorker` skips agent rule checking — only the gate controls when agent analysis triggers. Source-level notifications still fire immediately.
+
+### 2.7 TODO Tracking
+
+Release-level action items (acknowledge/resolve) linked to source releases or semantic releases. TODOs are created by the notification worker and provide one-click action links in Slack/Discord notifications. Statuses flow: `pending` → `acknowledged` → `resolved`, with reopen support.
+
+### 2.8 Onboarding (Dependency Scanning)
+
+GitHub repository scanning with LLM-based dependency extraction. A user submits a repo URL; the scanner fetches dependency manifests (go.mod, package.json, requirements.txt, Dockerfile, etc.), the LLM extracts package names and maps them to providers, and the user can apply recommendations to auto-create sources.
+
+### 2.9 Discovery & Suggestions
+
+* **Discovery** (public, no auth) — Search GitHub repos and Docker Hub images by keyword.
+* **Suggestions** (auth required) — Personalized recommendations from the authenticated user's GitHub starred repos and authored repos, with a `tracked` flag indicating whether each is already a source.
+
+### 2.10 Agentic Tooling (Planned: SRE Validation)
 
 For deep validation, Changelogue will utilize SRE agents with a suite of abstracted tools:
 
@@ -199,10 +272,11 @@ This will allow the agent to autonomously deploy a sandbox, verify that the depl
 ## 3. Data Flow: Lifecycle of a Release Event
 
 1. **Discovery:** A Go worker polling Docker Hub detects a new base image tag for a configured source (e.g., the "Docker Hub" source under the "Go Runtime" project). Source-level exclusion filters (`exclude_version_regexp`, `exclude_prereleases`) are applied — filtered versions are discarded immediately.
-2. **Ingestion & Transaction:** The worker stores the raw upstream payload and executes a single database transaction to insert the record into `releases` (linked to its `source_id`) and enqueue a `notify_release` River job.
-3. **Notification (Source-Level):** A River worker picks up the `notify_release` job, resolves source-level subscriptions, and sends alerts to configured notification channels (Slack, Discord, email, webhooks).
-4. **Agent Rule Check:** The same notification worker evaluates the project's `agent_rules` against the new release version. If criteria match (major bump, security patch, version pattern), it enqueues an `agent_run` River job.
-5. **Agent Analysis (Project-Level):** A River worker picks up the `agent_run` job. The ADK-Go agent gathers recent releases, consults context sources, and produces a `SemanticRelease` with a structured report (subject, risk level, changelog summary, status checks, urgency, recommendation).
+2. **Ingestion & Transaction:** The worker stores the raw upstream payload and executes a single database transaction to insert the record into `releases` (linked to its `source_id`), create a `release_todo`, and enqueue a `notify_release` River job. If the project has a release gate, a `gate_check` job is also enqueued.
+3. **Notification (Source-Level):** A River worker picks up the `notify_release` job, resolves source-level subscriptions, and sends alerts to configured notification channels (Slack, Discord, email, webhooks). Notifications include action links for acknowledging/resolving the TODO.
+4. **Agent Rule Check:** If no release gate is configured, the notification worker evaluates the project's `agent_rules` against the new release version. If criteria match (major bump, security patch, version pattern), it enqueues an `agent_run` River job.
+5. **Gate Evaluation (if configured):** The `GateCheckWorker` records the source arrival in `version_readiness`. When all required sources have reported, it enqueues NL evaluation (if configured) or directly triggers agent analysis. If the gate times out, the agent is triggered with a `partial` flag.
+6. **Agent Analysis (Project-Level):** A River worker picks up the `agent_run` job. The ADK-Go agent gathers recent releases, consults context sources, and produces a `SemanticRelease` with a structured report (subject, risk level, changelog summary, status checks, urgency, recommendation).
 6. **Broadcast:** PostgreSQL triggers fire `NOTIFY` payloads on release insert and semantic release completion, pushing SSE events to connected dashboard clients.
 7. **Project-Level Notification:** When a semantic release is completed, project-level subscribers are notified with the AI-generated report.
 
@@ -212,16 +286,21 @@ This will allow the agent to autonomously deploy a sandbox, verify that the depl
 /changelogue
 ├── cmd/
 │   ├── server/          # Main Go application entry point
+│   ├── cli/             # CLI binary (clog) — REST API client
 │   └── agent/           # Agent CLI — run agent analysis for a project
 ├── internal/
 │   ├── api/             # REST API handlers, middleware, SSE broadcaster
-│   ├── ingestion/       # Polling workers (IIngestionSource: Docker Hub, GitHub, ECR Public, GitLab, PyPI)
+│   ├── auth/            # GitHub OAuth 2.0, server-side sessions, user allowlisting
+│   ├── ingestion/       # Polling workers (IIngestionSource: Docker Hub, GitHub, ECR Public, GitLab, PyPI, npm)
 │   ├── agent/           # ADK-Go agent for semantic release analysis
 │   │   └── openai/      # OpenAI-compatible LLM provider adapter
+│   ├── gate/            # Release gate system (gate check, NL eval, timeout workers)
+│   ├── onboard/         # GitHub repo scanning and LLM-based dependency extraction
 │   ├── routing/         # Notification routing worker and channel implementations (Sender)
-│   ├── queue/           # River queue job definitions (NotifyJobArgs, AgentJobArgs)
+│   ├── queue/           # River queue job definitions (notify, agent, gate, scan)
 │   ├── db/              # Connection pool and schema migrations
-│   └── models/          # Shared domain structs (Release, Project, SemanticRelease, etc.)
+│   ├── cli/             # CLI client code and commands
+│   └── models/          # Shared domain structs (Release, Project, SemanticRelease, Todo, Gate, etc.)
 ├── web/                 # Next.js frontend application
 │   ├── app/             # App Router pages (dashboard, projects, releases, channels, etc.)
 │   ├── components/      # React components organized by domain

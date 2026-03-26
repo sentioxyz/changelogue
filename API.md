@@ -3,13 +3,14 @@
 RESTful HTTP API serving the Next.js dashboard, agent orchestration, and external integrations. Pure Go stdlib `net/http` with Go 1.22+ enhanced `ServeMux` — zero routing dependencies.
 
 **Key decisions:**
-- API key authentication (bearer token), `NO_AUTH=true` for development
+- Dual authentication: API key (bearer token) and GitHub OAuth (session cookie), `NO_AUTH=true` for development
 - SSE real-time events backed by PostgreSQL LISTEN/NOTIFY
 - Versioned prefix: `/api/v1`
 - All entity IDs are UUIDs (string type)
 - Sources and context sources are nested under projects
 - Two subscription types: `source_release` (per-source) and `semantic_release` (covers all sources)
 - Agent runs are triggered via API and processed asynchronously
+- Release gates, TODOs, onboarding, discovery, and suggestions extend the core API
 
 ---
 
@@ -116,7 +117,7 @@ Subscriptions link a notification channel to either a specific source or an enti
 
 | Method | Path                 | Description                                      |
 |--------|----------------------|--------------------------------------------------|
-| `GET`  | `/api/v1/providers`  | List supported source types (`dockerhub`, `github`, `ecr-public`, `gitlab`, `pypi`) |
+| `GET`  | `/api/v1/providers`  | List supported source types (`dockerhub`, `github`, `ecr-public`, `gitlab`, `pypi`, `npm`) |
 
 ### System
 
@@ -125,6 +126,77 @@ Subscriptions link a notification channel to either a specific source or an enti
 | `GET`  | `/api/v1/health`        | Health check (DB connectivity) — **public**              |
 | `GET`  | `/api/v1/stats`         | Dashboard stats (total releases, active sources, projects, pending agent runs) |
 | `GET`  | `/api/v1/stats/trend`   | Time-bucketed release counts (configurable granularity)  |
+
+### TODOs (release action tracking)
+
+TODOs track operator acknowledgment and resolution of releases. Each TODO is linked to either a source release or a semantic release.
+
+| Method  | Path                                    | Description                                    |
+|---------|-----------------------------------------|------------------------------------------------|
+| `GET`   | `/api/v1/todos`                         | List TODOs (filterable by status, paginated)   |
+| `GET`   | `/api/v1/todos/{id}`                    | Get TODO details                               |
+| `PATCH` | `/api/v1/todos/{id}/acknowledge`        | Mark TODO as acknowledged                      |
+| `PATCH` | `/api/v1/todos/{id}/resolve`            | Mark TODO as resolved                          |
+| `PATCH` | `/api/v1/todos/{id}/reopen`             | Reopen a resolved/acknowledged TODO            |
+| `GET`   | `/api/v1/todos/{id}/acknowledge`        | One-click acknowledge (notification link)      |
+| `GET`   | `/api/v1/todos/{id}/resolve`            | One-click resolve (notification link)          |
+
+The GET variants of acknowledge/resolve support `?redirect=true` to redirect the user to the frontend TODO page after clicking from a notification.
+
+### Onboarding (dependency scanning)
+
+Scan a GitHub repository to auto-detect dependencies and suggest sources.
+
+| Method | Path                                    | Description                                    |
+|--------|-----------------------------------------|------------------------------------------------|
+| `POST` | `/api/v1/onboard/scan`                  | Start a new dependency scan                    |
+| `GET`  | `/api/v1/onboard/scans/{id}`            | Get scan status and results                    |
+| `POST` | `/api/v1/onboard/scans/{id}/apply`      | Apply scan results (auto-create sources)       |
+
+### Release Gates (version readiness)
+
+Per-project gates that delay agent analysis until all required sources report a version.
+
+| Method   | Path                                                           | Description                                    |
+|----------|----------------------------------------------------------------|------------------------------------------------|
+| `GET`    | `/api/v1/projects/{id}/release-gate`                           | Get gate configuration                         |
+| `PUT`    | `/api/v1/projects/{id}/release-gate`                           | Create or update gate configuration            |
+| `DELETE` | `/api/v1/projects/{id}/release-gate`                           | Delete gate configuration                      |
+| `GET`    | `/api/v1/projects/{id}/version-readiness`                      | List all version readiness states              |
+| `GET`    | `/api/v1/projects/{id}/version-readiness/{version}`            | Get readiness for a specific version           |
+| `GET`    | `/api/v1/projects/{id}/version-readiness/{version}/events`     | Get gate events for a specific version         |
+| `GET`    | `/api/v1/projects/{id}/gate-events`                            | List all gate events for project               |
+
+### Discovery (public, no auth)
+
+Search public registries for packages and repositories.
+
+| Method | Path                             | Description                                    |
+|--------|----------------------------------|------------------------------------------------|
+| `GET`  | `/api/v1/discover/github`        | Search GitHub repositories (`?q=...&limit=N`)  |
+| `GET`  | `/api/v1/discover/dockerhub`     | Search Docker Hub images (`?q=...&limit=N`)    |
+
+### Suggestions (personalized, auth required)
+
+Personalized source recommendations based on the authenticated user's GitHub activity.
+
+| Method | Path                             | Description                                    |
+|--------|----------------------------------|------------------------------------------------|
+| `GET`  | `/api/v1/suggestions/stars`      | Repos starred by the authenticated user        |
+| `GET`  | `/api/v1/suggestions/repos`      | Repos authored by the authenticated user       |
+
+Both return items with a `tracked` boolean indicating whether the repo is already a configured source.
+
+### Authentication
+
+GitHub OAuth 2.0 login flow. These endpoints are **not** under the `/api/v1` prefix.
+
+| Method | Path                        | Description                                    |
+|--------|-----------------------------|------------------------------------------------|
+| `GET`  | `/auth/github`              | Redirect to GitHub OAuth authorization         |
+| `GET`  | `/auth/github/callback`     | Handle OAuth callback                          |
+| `GET`  | `/auth/me`                  | Get authenticated user info                    |
+| `POST` | `/auth/logout`              | Logout (clears session cookie)                 |
 
 ---
 
@@ -414,6 +486,81 @@ Response includes `id` (UUID), `created_at`, `updated_at` fields. The `config` o
 }
 ```
 
+### TODO (response)
+
+```json
+{
+  "id": "aa0e8400-e29b-41d4-a716-446655440010",
+  "release_id": "550e8400-e29b-41d4-a716-446655440000",
+  "semantic_release_id": null,
+  "status": "pending",
+  "acknowledged_at": null,
+  "resolved_at": null,
+  "created_at": "2026-02-24T10:30:00Z"
+}
+```
+
+A TODO is linked to either `release_id` (source-level) or `semantic_release_id` (project-level), never both.
+
+### Release Gate (request body for PUT)
+
+```json
+{
+  "required_sources": ["660e8400-e29b-41d4-a716-446655440001", "770e8400-e29b-41d4-a716-446655440002"],
+  "timeout_hours": 168,
+  "version_mapping": {
+    "660e8400-e29b-41d4-a716-446655440001": {
+      "regex": "^v(.*)$",
+      "template": "$1"
+    }
+  },
+  "nl_rule": "All Docker images must have verified signatures",
+  "enabled": true
+}
+```
+
+Response includes `id` (UUID), `project_id`, `created_at`, `updated_at` fields.
+
+### Version Readiness (response)
+
+```json
+{
+  "id": "bb0e8400-e29b-41d4-a716-446655440011",
+  "project_id": "880e8400-e29b-41d4-a716-446655440003",
+  "version": "1.21.0",
+  "status": "pending",
+  "sources_met": ["660e8400-e29b-41d4-a716-446655440001"],
+  "sources_missing": ["770e8400-e29b-41d4-a716-446655440002"],
+  "nl_rule_passed": null,
+  "timeout_at": "2026-03-03T10:30:00Z",
+  "opened_at": null,
+  "agent_triggered": false,
+  "created_at": "2026-02-24T10:30:00Z"
+}
+```
+
+### Onboard Scan (response)
+
+```json
+{
+  "id": "cc0e8400-e29b-41d4-a716-446655440012",
+  "repo_url": "https://github.com/ethereum/go-ethereum",
+  "status": "completed",
+  "results": [
+    {
+      "name": "golang",
+      "version": "1.21",
+      "provider": "dockerhub",
+      "repository": "library/golang"
+    }
+  ],
+  "error": "",
+  "started_at": "2026-02-24T10:30:00Z",
+  "completed_at": "2026-02-24T10:30:05Z",
+  "created_at": "2026-02-24T10:30:00Z"
+}
+```
+
 ---
 
 ## 4. SSE Real-Time Events
@@ -459,6 +606,18 @@ Authorization: Bearer rg_live_abc123def456
 - `/api/v1/health` is public (no auth required) for load balancer health checks
 - Set `NO_AUTH=true` to disable authentication entirely (development mode)
 
+### GitHub OAuth
+
+Browser-based authentication via GitHub OAuth 2.0:
+
+1. Frontend redirects to `GET /auth/github`
+2. User authorizes → GitHub redirects to `GET /auth/github/callback`
+3. Server validates user against allowlist (`ALLOWED_GITHUB_USERS` / `ALLOWED_GITHUB_ORGS`)
+4. Session cookie set (HMAC-signed, HttpOnly, configurable Secure flag)
+5. Subsequent API requests authenticated via session cookie
+
+`GET /auth/me` returns the authenticated user's profile. `POST /auth/logout` clears the session.
+
 ---
 
 ## 6. Middleware Stack
@@ -471,7 +630,7 @@ Applied in order to every `/api/v1/*` request:
 | 2     | Logger       | Structured JSON log: request ID, method, path, duration, status code  |
 | 3     | Recovery     | Catch panics, return 500 with request ID                              |
 | 4     | Rate Limit   | Token bucket per API key (10 rps, 20 burst); returns `Retry-After` header |
-| 5     | Auth         | Validate API key, reject 401 if missing/invalid (skip for `/health`, skip entirely when `NO_AUTH=true`) |
+| 5     | Auth         | Validate API key or session cookie, reject 401 if missing/invalid (skip for `/health`, skip entirely when `NO_AUTH=true`) |
 
 All middleware uses the stdlib `func(http.Handler) http.Handler` pattern. Rate limiting uses Go's `golang.org/x/time/rate` — in-process token bucket keyed by API key, no external dependencies. CORS is applied at the server level.
 
