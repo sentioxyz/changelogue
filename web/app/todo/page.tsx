@@ -3,16 +3,17 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { todos as todosApi } from "@/lib/api/client";
+import { todos as todosApi, projects as projectsApi } from "@/lib/api/client";
+import type { TodoFilters } from "@/lib/api/client";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { Todo } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n/context";
+import { FilterBar, FilterConfig, expandDatePreset } from "@/components/filters/filter-bar";
+import { useFilterParams } from "@/components/filters/use-filter-params";
 
 const PER_PAGE = 15;
-
-type StatusTab = "pending" | "acknowledged" | "resolved";
 
 const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
   LOW: { bg: "#dcfce7", text: "#166534" },
@@ -35,9 +36,9 @@ export default function TodoPage() {
 
 function TodoPageInner() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<StatusTab>("pending");
-  const [page, setPage] = useState(1);
-  const [aggregated, setAggregated] = useState(true);
+
+  const { filters, setFilters, page, setPage } = useFilterParams({ status: "pending" });
+
   const [confirmDialog, setConfirmDialog] = useState<{
     action: string;
     projectName?: string;
@@ -45,45 +46,82 @@ function TodoPageInner() {
     onConfirm: () => void;
   } | null>(null);
 
-  const TABS: { key: StatusTab; label: string }[] = [
-    { key: "pending", label: t("todo.tabPending") },
-    { key: "acknowledged", label: t("todo.tabAcknowledged") },
-    { key: "resolved", label: t("todo.tabResolved") },
+  /* Fetch projects for the Project filter dropdown */
+  const { data: projectsData } = useSWR("projects-for-todo-filters", () =>
+    projectsApi.list(1, 100)
+  );
+
+  /* Build filter config */
+  const filterConfig: FilterConfig[] = [
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      options: [
+        { value: "pending", label: "Pending" },
+        { value: "acknowledged", label: "Acknowledged" },
+        { value: "resolved", label: "Resolved" },
+      ],
+    },
+    {
+      key: "project",
+      label: "Project",
+      type: "select",
+      options: (projectsData?.data ?? []).map((p) => ({ value: p.id, label: p.name })),
+    },
+    {
+      key: "provider",
+      label: "Provider",
+      type: "select",
+      options: [
+        { value: "github", label: "GitHub" },
+        { value: "dockerhub", label: "Docker Hub" },
+        { value: "ecr-public", label: "ECR Public" },
+        { value: "gitlab", label: "GitLab" },
+        { value: "pypi", label: "PyPI" },
+        { value: "npm", label: "npm" },
+      ],
+    },
+    {
+      key: "urgency",
+      label: "Urgency",
+      type: "select",
+      options: [
+        { value: "critical", label: "Critical" },
+        { value: "high", label: "High" },
+        { value: "medium", label: "Medium" },
+        { value: "low", label: "Low" },
+      ],
+    },
+    { key: "date", label: "Date", type: "date-range" },
+    { key: "aggregated", label: "Latest Only", type: "boolean" },
   ];
 
-  /* Fetch todos for active tab */
-  const { data, isLoading, mutate } = useSWR(
-    ["todos", activeTab, page, aggregated],
-    () => todosApi.list(page, PER_PAGE, { status: activeTab, aggregated })
-  );
-
-  /* Fetch counts for all three tabs */
-  const { data: pendingData, mutate: mutatePending } = useSWR(
-    ["todos-count", "pending", aggregated],
-    () => todosApi.list(1, 1, { status: "pending", aggregated })
-  );
-  const { data: ackedData, mutate: mutateAcked } = useSWR(
-    ["todos-count", "acknowledged", aggregated],
-    () => todosApi.list(1, 1, { status: "acknowledged", aggregated })
-  );
-  const { data: resolvedData, mutate: mutateResolved } = useSWR(
-    ["todos-count", "resolved", aggregated],
-    () => todosApi.list(1, 1, { status: "resolved", aggregated })
-  );
-
-  const counts: Record<StatusTab, number> = {
-    pending: pendingData?.meta?.total ?? 0,
-    acknowledged: ackedData?.meta?.total ?? 0,
-    resolved: resolvedData?.meta?.total ?? 0,
+  /* Convert filters to API params */
+  const apiFilters: TodoFilters = {
+    status: filters.status,
+    aggregated: filters.aggregated === "true",
+    project: filters.project,
+    provider: filters.provider,
+    urgency: filters.urgency,
   };
+  if (filters.date) {
+    const expanded = expandDatePreset(filters.date);
+    apiFilters.date_from = expanded.date_from;
+    apiFilters.date_to = expanded.date_to;
+  }
+
+  /* Fetch todos */
+  const { data, isLoading, mutate } = useSWR(
+    ["todos", page, JSON.stringify(filters)],
+    () => todosApi.list(page, PER_PAGE, apiFilters),
+    { refreshInterval: 30_000 }
+  );
 
   /* SSE revalidation */
   const revalidateAll = useCallback(() => {
     mutate();
-    mutatePending();
-    mutateAcked();
-    mutateResolved();
-  }, [mutate, mutatePending, mutateAcked, mutateResolved]);
+  }, [mutate]);
 
   useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -101,9 +139,11 @@ function TodoPageInner() {
   const startRow = (page - 1) * PER_PAGE + 1;
   const endRow = Math.min(page * PER_PAGE, total);
 
+  /* Active status for action buttons */
+  const activeStatus = filters.status ?? "pending";
+
   /* Action handlers with optimistic updates */
   const handleAcknowledge = async (id: string) => {
-    /* Optimistic: remove from current list */
     mutate(
       (prev) => {
         if (!prev) return prev;
@@ -163,12 +203,6 @@ function TodoPageInner() {
     revalidateAll();
   };
 
-  const tabLabelMap: Record<StatusTab, string> = {
-    pending: t("todo.tabPending").toLowerCase(),
-    acknowledged: t("todo.tabAcknowledged").toLowerCase(),
-    resolved: t("todo.tabResolved").toLowerCase(),
-  };
-
   return (
     <div className="space-y-6">
       {/* Page title */}
@@ -188,63 +222,8 @@ function TodoPageInner() {
         </p>
       </div>
 
-      {/* Status tabs + aggregated toggle */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => {
-                  setActiveTab(tab.key);
-                  setPage(1);
-                }}
-                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors"
-                style={{
-                  fontFamily: "var(--font-dm-sans)",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  color: isActive ? "var(--foreground)" : "var(--text-secondary)",
-                  backgroundColor: isActive ? "var(--mono-bg)" : "transparent",
-                  border: isActive ? "1px solid var(--border)" : "1px solid transparent",
-                }}
-              >
-                {tab.label}
-                <span
-                  className="inline-flex items-center justify-center rounded-full px-1.5 text-[11px] font-medium leading-none"
-                  style={{
-                    minWidth: "18px",
-                    height: "18px",
-                    backgroundColor: isActive ? "var(--border)" : "var(--mono-bg)",
-                    color: isActive ? "var(--foreground)" : "var(--text-muted)",
-                  }}
-                >
-                  {counts[tab.key]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <button
-          onClick={() => {
-            setAggregated((v) => !v);
-            setPage(1);
-          }}
-          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors"
-          style={{
-            fontFamily: "var(--font-dm-sans)",
-            fontSize: "13px",
-            fontWeight: 500,
-            color: aggregated ? "var(--foreground)" : "var(--text-secondary)",
-            backgroundColor: aggregated ? "var(--mono-bg)" : "transparent",
-            border: aggregated ? "1px solid var(--border)" : "1px solid transparent",
-          }}
-        >
-          {t("todo.latestOnly")}
-        </button>
-      </div>
+      {/* Filter bar */}
+      <FilterBar filters={filterConfig} value={filters} onChange={setFilters} />
 
       {/* Table card */}
       <div
@@ -271,7 +250,7 @@ function TodoPageInner() {
                 fontSize: "15px",
               }}
             >
-              {t("todo.noItems").replace("{status}", tabLabelMap[activeTab])}
+              {t("todo.noItems").replace("{status}", activeStatus)}
             </p>
           </div>
         ) : (
@@ -419,7 +398,7 @@ function TodoPageInner() {
                   {/* Actions */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      {activeTab === "pending" && (
+                      {activeStatus === "pending" && (
                         <>
                           <button
                             onClick={() => handleAcknowledge(todo.id)}
@@ -456,7 +435,7 @@ function TodoPageInner() {
                           </button>
                         </>
                       )}
-                      {activeTab === "acknowledged" && (
+                      {activeStatus === "acknowledged" && (
                         <>
                           <button
                             onClick={() => handleResolve(todo.id)}
@@ -493,7 +472,7 @@ function TodoPageInner() {
                           </button>
                         </>
                       )}
-                      {activeTab === "resolved" && (
+                      {activeStatus === "resolved" && (
                         <button
                           onClick={() =>
                             setConfirmDialog({
@@ -563,6 +542,7 @@ function TodoPageInner() {
           </div>
         </div>
       )}
+
       {/* Confirmation dialog */}
       {confirmDialog && (
         <div
