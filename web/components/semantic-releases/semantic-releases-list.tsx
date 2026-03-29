@@ -14,29 +14,7 @@ import { Trash2 } from "lucide-react";
 import { timeAgo } from "@/lib/format";
 import type { Project, SemanticRelease } from "@/lib/api/types";
 import { useTranslation } from "@/lib/i18n/context";
-
-/* ---------- Urgency chip ---------- */
-
-const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
-  critical: { bg: "#dc2626", text: "#ffffff" },
-  high: { bg: "#f97316", text: "#ffffff" },
-  medium: { bg: "#f59e0b", text: "#ffffff" },
-  low: { bg: "#6b7280", text: "#ffffff" },
-};
-
-function UrgencyChip({ urgency }: { urgency: string }) {
-  const u = urgency.toLowerCase();
-  const style = URGENCY_COLORS[u];
-  if (!style) return null;
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-none"
-      style={{ backgroundColor: style.bg, color: style.text }}
-    >
-      {urgency}
-    </span>
-  );
-}
+import { UrgencyPill } from "@/components/ui/urgency-pill";
 
 /* ---------- Helpers ---------- */
 
@@ -246,7 +224,7 @@ function SemanticReleasesListInner() {
                     {/* Urgency */}
                     <td className="px-4 py-3">
                       {sr.report?.urgency ? (
-                        <UrgencyChip urgency={sr.report.urgency} />
+                        <UrgencyPill urgency={sr.report.urgency} variant="text" />
                       ) : (
                         <span
                           style={{

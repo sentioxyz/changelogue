@@ -18,6 +18,9 @@
  *
  * - **labeled**: Icon + text label in a rounded pill. Best for table rows
  *   (releases page) where there's dedicated column space.
+ *
+ * - **text**: Text-only pill without icon. Best for table cells and compact
+ *   lists where space is tight but the label should be visible.
  */
 import { AlertOctagon, AlertTriangle, Circle, CheckCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -36,18 +39,10 @@ export const URGENCY_STYLES: Record<string, UrgencyStyle> = {
   low:      { icon: CheckCircle,   bg: "rgba(34,197,94,0.08)",  border: "rgba(34,197,94,0.18)",  text: "#16a34a" },
 };
 
-/** Solid-background urgency colors (used for compact badges in the sidebar/feed). */
-export const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
-  critical: { bg: "#dc2626", text: "#ffffff" },
-  high:     { bg: "#f97316", text: "#ffffff" },
-  medium:   { bg: "#f59e0b", text: "#ffffff" },
-  low:      { bg: "#6b7280", text: "#ffffff" },
-};
-
 interface UrgencyPillProps {
   urgency: string;
-  /** "icon-only" = compact circle, "labeled" = icon + text pill */
-  variant?: "icon-only" | "labeled";
+  /** "icon-only" = compact circle, "labeled" = icon + text pill, "text" = text-only pill */
+  variant?: "icon-only" | "labeled" | "text";
   className?: string;
 }
 
@@ -65,6 +60,18 @@ export function UrgencyPill({ urgency, variant = "icon-only", className }: Urgen
         title={urgency}
       >
         <Icon size={10} />
+      </span>
+    );
+  }
+
+  if (variant === "text") {
+    return (
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-none ${className ?? ""}`}
+        style={{ backgroundColor: style.bg, border: `1px solid ${style.border}`, color: style.text, fontFamily: "var(--font-dm-sans)" }}
+        title={urgency}
+      >
+        {urgency}
       </span>
     );
   }

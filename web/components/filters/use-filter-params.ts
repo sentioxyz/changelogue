@@ -30,8 +30,16 @@ export function useFilterParams(
 
   const [page, setPageState] = useState<number>(() => {
     if (typeof window === "undefined") return 1;
-    const p = new URLSearchParams(window.location.search).get("page");
-    return p ? Math.max(1, parseInt(p, 10) || 1) : 1;
+    const params = new URLSearchParams(window.location.search);
+    const p = params.get("page");
+    if (!p) return 1;
+    // If URL contains params not in this page's allowed set, it's a
+    // cross-page navigation (e.g. releases?excluded=true&page=3 -> /todo)
+    // — reset page to 1 to avoid carrying stale pagination.
+    const allowed = new Set([...allowedKeys, "page"]);
+    const hasStaleParams = Array.from(params.keys()).some((k) => !allowed.has(k));
+    if (hasStaleParams) return 1;
+    return Math.max(1, parseInt(p, 10) || 1);
   });
 
   useEffect(() => {

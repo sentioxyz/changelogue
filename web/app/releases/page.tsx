@@ -13,7 +13,7 @@ import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { Release } from "@/lib/api/types";
 import { ExternalLink, Sparkles, Loader2 } from "lucide-react";
-import { URGENCY_STYLES } from "@/components/ui/urgency-pill";
+import { UrgencyPill } from "@/components/ui/urgency-pill";
 import { useTranslation } from "@/lib/i18n/context";
 import { FilterBar, FilterConfig, expandDatePreset } from "@/components/filters/filter-bar";
 import { useFilterParams } from "@/components/filters/use-filter-params";
@@ -382,17 +382,13 @@ function ReleasesPageInner() {
                   {/* Report */}
                   <td className="px-4 py-3">
                     {release.semantic_release_status === "completed" && release.semantic_release_id && release.project_id ? (() => {
-                      const pill = release.semantic_release_urgency
-                        ? URGENCY_STYLES[release.semantic_release_urgency.toLowerCase()]
-                        : undefined;
-                      return pill ? (
+                      return release.semantic_release_urgency ? (
                         <Link
                           href={`/projects/${release.project_id}/semantic-releases/${release.semantic_release_id}`}
-                          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors"
-                          style={{ backgroundColor: pill.bg, border: `1px solid ${pill.border}`, color: pill.text, fontFamily: "var(--font-dm-sans)" }}
+                          className="transition-colors"
                           title={t("releases.viewReport")}
                         >
-                          <pill.icon size={10} /> {release.semantic_release_urgency}
+                          <UrgencyPill urgency={release.semantic_release_urgency} variant="labeled" />
                         </Link>
                       ) : (
                         <Link

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ScannedDependency, Project } from "@/lib/api/types";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ecosystemColors } from "./ecosystem-colors";
 import { useTranslation } from "@/lib/i18n/context";
 
@@ -32,17 +33,14 @@ export function ScanResultsTable({
         <thead>
           <tr className="border-b border-border bg-background">
             <th className="w-10 px-3 py-2.5">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={selectedCount === deps.length}
-                onChange={(e) => {
-                  const val = e.target.checked;
+                onCheckedChange={(checked) => {
+                  const val = !!checked;
                   const s: Record<number, boolean> = {};
                   deps.forEach((_, i) => { s[i] = val; });
                   onSelectionsChange(s);
                 }}
-                className="rounded"
-                style={{ accentColor: "var(--beacon-accent)" }}
               />
             </th>
             <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
@@ -75,12 +73,9 @@ export function ScanResultsTable({
                 }}
               >
                 <td className="px-3 py-2.5">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={!!selections[i]}
-                    onChange={(e) => onSelectionsChange({ ...selections, [i]: e.target.checked })}
-                    className="rounded"
-                    style={{ accentColor: "var(--beacon-accent)" }}
+                    onCheckedChange={(checked) => onSelectionsChange({ ...selections, [i]: !!checked })}
                   />
                 </td>
                 <td className="px-3 py-2.5">

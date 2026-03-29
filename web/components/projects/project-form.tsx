@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Project, ProjectInput, SourceInput } from "@/lib/api/types";
 import { validateRepository } from "@/lib/format";
 import { Plus, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "@/lib/i18n/context";
 
 export interface ProjectFormResult {
@@ -192,11 +193,9 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
               </div>
               {(provider === "github" || provider === "gitlab" || provider === "pypi" || provider === "npm") && (
                 <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={excludePrereleases}
-                    onChange={(e) => setExcludePrereleases(e.target.checked)}
-                    className="rounded"
+                    onCheckedChange={(checked) => setExcludePrereleases(!!checked)}
                   />
                   {t("projectForm.excludePrereleases")}
                 </label>

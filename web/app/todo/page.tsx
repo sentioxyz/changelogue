@@ -12,15 +12,9 @@ import { timeAgo } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n/context";
 import { FilterBar, FilterConfig, expandDatePreset } from "@/components/filters/filter-bar";
 import { useFilterParams } from "@/components/filters/use-filter-params";
+import { UrgencyPill } from "@/components/ui/urgency-pill";
 
 const PER_PAGE = 15;
-
-const URGENCY_COLORS: Record<string, { bg: string; text: string }> = {
-  LOW: { bg: "#dcfce7", text: "#166534" },
-  MEDIUM: { bg: "#fef9c3", text: "#854d0e" },
-  HIGH: { bg: "#fee2e2", text: "#991b1b" },
-  CRITICAL: { bg: "#1f2937", text: "#ffffff" },
-};
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
@@ -359,17 +353,7 @@ function TodoPageInner() {
                   {/* Urgency */}
                   <td className="px-4 py-3">
                     {todo.urgency && todo.todo_type === "semantic" ? (
-                      <span
-                        className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-none"
-                        style={{
-                          backgroundColor:
-                            URGENCY_COLORS[todo.urgency.toUpperCase()]?.bg ?? "var(--mono-bg)",
-                          color:
-                            URGENCY_COLORS[todo.urgency.toUpperCase()]?.text ?? "var(--secondary-foreground)",
-                        }}
-                      >
-                        {todo.urgency.toUpperCase()}
-                      </span>
+                      <UrgencyPill urgency={todo.urgency} variant="text" />
                     ) : (
                       <span
                         className="text-text-muted"

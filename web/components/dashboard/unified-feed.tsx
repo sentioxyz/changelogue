@@ -13,6 +13,7 @@ import { Sparkles } from "lucide-react";
 import type { Release, SemanticRelease } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n/context";
+import { UrgencyPill } from "@/components/ui/urgency-pill";
 
 type FeedItemType =
   | { kind: "release"; data: Release; repository?: string; provider?: string; projectName?: string }
@@ -167,16 +168,8 @@ function FeedEntry({ item, isLast }: { item: FeedItemType; isLast: boolean }) {
           >
             {item.projectName ?? t("dashboard.feed.unknownProject")}
           </span>
-          {isUrgent && (
-            <span
-              className="inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold leading-none"
-              style={{
-                backgroundColor: urgency === "CRITICAL" ? "#fff1f2" : "#fff8f0",
-                color: urgency === "CRITICAL" ? "#dc2626" : "#d97706",
-              }}
-            >
-              {urgency}
-            </span>
+          {isUrgent && urgency && (
+            <UrgencyPill urgency={urgency} variant="text" />
           )}
         </div>
 

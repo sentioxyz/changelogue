@@ -18,7 +18,7 @@ import { SourceForm } from "@/components/sources/source-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/projects/project-form";
 import type { Project, Source } from "@/lib/api/types";
-import { URGENCY_STYLES, URGENCY_COLORS } from "@/components/ui/urgency-pill";
+import { URGENCY_STYLES, UrgencyPill } from "@/components/ui/urgency-pill";
 import { useTranslation } from "@/lib/i18n/context";
 
 /* ---------- Project Card Logo ---------- */
@@ -310,17 +310,13 @@ function ProjectFlowCard({ project }: { project: Project }) {
                   {r.version}
                 </Link>
                 {!r.excluded && matchingSr?.status === "completed" && (() => {
-                  const pill = matchingSr.report?.urgency
-                    ? URGENCY_STYLES[matchingSr.report.urgency.toLowerCase()]
-                    : undefined;
-                  return pill ? (
+                  return matchingSr.report?.urgency ? (
                     <Link
                       href={`/projects/${project.id}/semantic-releases/${matchingSr.id}`}
-                      className="inline-flex items-center justify-center rounded-full ml-1 transition-colors"
-                      style={{ backgroundColor: pill.bg, border: `1px solid ${pill.border}`, color: pill.text, width: 18, height: 18 }}
+                      className="ml-1 transition-colors"
                       title={`${matchingSr.report!.urgency} — ${t("projects.viewReport")}`}
                     >
-                      <pill.icon size={10} />
+                      <UrgencyPill urgency={matchingSr.report!.urgency} variant="icon-only" />
                     </Link>
                   ) : (
                     <Link
@@ -443,10 +439,6 @@ function ProjectCompactRow({ project }: { project: Project }) {
   const latestSrc = latest ? sourceMap.get(latest.source_id) : undefined;
   const latestIcon = latestSrc ? getProviderIcon(latestSrc.provider) : undefined;
 
-  const urgencyStyle = latestSr?.report?.urgency
-    ? URGENCY_COLORS[latestSr.report.urgency.toLowerCase()]
-    : undefined;
-
   return (
     <div
       onClick={() => router.push(`/projects/${project.id}`)}
@@ -478,18 +470,14 @@ function ProjectCompactRow({ project }: { project: Project }) {
             </Link>
             {latestIcon && latestIcon({ size: 12, className: "shrink-0 text-text-muted" })}
             {latestSr?.status === "completed" && (() => {
-              const pill = latestSr.report?.urgency
-                ? URGENCY_STYLES[latestSr.report.urgency.toLowerCase()]
-                : undefined;
-              return pill ? (
+              return latestSr.report?.urgency ? (
                 <Link
                   href={`/projects/${project.id}/semantic-releases/${latestSr.id}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center justify-center rounded-full transition-colors"
-                  style={{ backgroundColor: pill.bg, border: `1px solid ${pill.border}`, color: pill.text, width: 18, height: 18 }}
+                  className="transition-colors"
                   title={`${latestSr.report!.urgency} — ${t("projects.viewReport")}`}
                 >
-                  <pill.icon size={10} />
+                  <UrgencyPill urgency={latestSr.report!.urgency} variant="icon-only" />
                 </Link>
               ) : (
                 <Link
@@ -523,13 +511,8 @@ function ProjectCompactRow({ project }: { project: Project }) {
       <span className="flex items-center gap-1.5 flex-1 min-w-0">
         {latestSr?.status === "completed" ? (
           <>
-            {urgencyStyle && (
-              <span
-                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none shrink-0"
-                style={{ backgroundColor: urgencyStyle.bg, color: urgencyStyle.text }}
-              >
-                {latestSr.report?.urgency}
-              </span>
+            {latestSr.report?.urgency && (
+              <UrgencyPill urgency={latestSr.report.urgency} variant="text" className="shrink-0" />
             )}
             {latestSr.report?.summary && (
               <span className="text-[11px] truncate text-text-muted">
@@ -654,6 +637,7 @@ export default function ProjectsPage() {
               <List className="h-4 w-4" />
             </button>
           </div>
+          <div className="h-5 w-px bg-border mx-1" />
           <button
             onClick={() => setCreateOpen(true)}
             className="flex items-center gap-1.5 rounded px-3 py-1.5 text-[13px] text-white transition-opacity hover:opacity-90 bg-beacon-accent"

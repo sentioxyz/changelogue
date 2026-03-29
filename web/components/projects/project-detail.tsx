@@ -24,6 +24,8 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { formatInterval } from "@/lib/format";
 import { getPathSegment } from "@/lib/path";
 import { Pencil, Trash2, Play, Plus, ArrowLeft } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "@/lib/i18n/context";
 
 /* ---------- Tabs ---------- */
@@ -422,17 +424,11 @@ export function ProjectDetail() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleToggleSource(source)}
-                              className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200"
-                              style={{ backgroundColor: source.last_error ? "var(--error-text)" : source.enabled ? "var(--status-completed)" : "var(--text-muted)" }}
+                            <Switch
+                              checked={source.enabled}
+                              onCheckedChange={() => handleToggleSource(source)}
                               title={source.last_error ? `Error: ${source.last_error}` : source.enabled ? t("projects.detail.disablePolling") : t("projects.detail.enablePolling")}
-                            >
-                              <span
-                                className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200"
-                                style={{ transform: source.enabled ? "translateX(18px)" : "translateX(3px)" }}
-                              />
-                            </button>
+                            />
                             {source.last_error ? (
                               <span className="text-[11px] text-error-text max-w-[200px] truncate" title={source.last_error}>
                                 {source.last_error}
@@ -568,14 +564,11 @@ export function ProjectDetail() {
               </p>
               <div className="space-y-3">
                 <label className="flex items-center gap-2.5 text-[13px] text-secondary-foreground">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={currentRules.on_major_release ?? false}
-                    onChange={(e) =>
-                      setRulesDraft({ ...currentRules, on_major_release: e.target.checked })
+                    onCheckedChange={(checked) =>
+                      setRulesDraft({ ...currentRules, on_major_release: !!checked })
                     }
-                    className="h-4 w-4 rounded border accent-[#e8601a]"
-                    style={{ borderColor: "var(--border)" }}
                   />
                   {t("projects.detail.majorRelease")}
                   <span className="text-[11px] text-text-muted">
@@ -583,14 +576,11 @@ export function ProjectDetail() {
                   </span>
                 </label>
                 <label className="flex items-center gap-2.5 text-[13px] text-secondary-foreground">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={currentRules.on_minor_release ?? false}
-                    onChange={(e) =>
-                      setRulesDraft({ ...currentRules, on_minor_release: e.target.checked })
+                    onCheckedChange={(checked) =>
+                      setRulesDraft({ ...currentRules, on_minor_release: !!checked })
                     }
-                    className="h-4 w-4 rounded border accent-[#e8601a]"
-                    style={{ borderColor: "var(--border)" }}
                   />
                   {t("projects.detail.minorRelease")}
                   <span className="text-[11px] text-text-muted">
@@ -598,14 +588,11 @@ export function ProjectDetail() {
                   </span>
                 </label>
                 <label className="flex items-center gap-2.5 text-[13px] text-secondary-foreground">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={currentRules.on_security_patch ?? false}
-                    onChange={(e) =>
-                      setRulesDraft({ ...currentRules, on_security_patch: e.target.checked })
+                    onCheckedChange={(checked) =>
+                      setRulesDraft({ ...currentRules, on_security_patch: !!checked })
                     }
-                    className="h-4 w-4 rounded border accent-[#e8601a]"
-                    style={{ borderColor: "var(--border)" }}
                   />
                   {t("projects.detail.securityPatch")}
                   <span className="text-[11px] text-text-muted">
