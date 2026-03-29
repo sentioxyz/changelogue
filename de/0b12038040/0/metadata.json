@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "de0b12038040",
+  "session_id": "093e0d61-4e10-4997-a866-d4b4fa1d29d4",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-29T09:20:21.24761Z",
+  "branch": "main",
+  "checkpoints_count": 8,
+  "files_touched": [
+    "docs/ui-components.md",
+    "internal/api/pgstore.go",
+    "web/app/projects/page.tsx",
+    "web/app/releases/page.tsx",
+    "web/app/todo/page.tsx",
+    "web/components/dashboard/shared/scan-results-table.tsx",
+    "web/components/dashboard/unified-feed.tsx",
+    "web/components/filters/use-filter-params.ts",
+    "web/components/projects/project-detail.tsx",
+    "web/components/projects/project-form.tsx",
+    "web/components/semantic-releases/semantic-releases-list.tsx",
+    "web/components/ui/urgency-pill.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "e8b5adc003f9",
+  "transcript_identifier_at_start": "54cf8fa4-34e0-4ceb-86b7-51ddf315ec80",
+  "token_usage": {
+    "input_tokens": 12743369,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 24331,
+    "api_call_count": 114
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-29T09:20:20.072204Z",
+    "agent_lines": 408,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 408,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/093e0d61-4e10-4997-a866-d4b4fa1d29d4.jsonl"
+}

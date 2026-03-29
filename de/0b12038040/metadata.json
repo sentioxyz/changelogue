@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "de0b12038040",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 8,
+  "files_touched": [
+    "docs/ui-components.md",
+    "internal/api/pgstore.go",
+    "web/app/projects/page.tsx",
+    "web/app/releases/page.tsx",
+    "web/app/todo/page.tsx",
+    "web/components/dashboard/shared/scan-results-table.tsx",
+    "web/components/dashboard/unified-feed.tsx",
+    "web/components/filters/use-filter-params.ts",
+    "web/components/projects/project-detail.tsx",
+    "web/components/projects/project-form.tsx",
+    "web/components/semantic-releases/semantic-releases-list.tsx",
+    "web/components/ui/urgency-pill.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/de/0b12038040/0/metadata.json",
+      "transcript": "/de/0b12038040/0/full.jsonl",
+      "context": "/de/0b12038040/0/context.md",
+      "content_hash": "/de/0b12038040/0/content_hash.txt",
+      "prompt": "/de/0b12038040/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12743369,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 24331,
+    "api_call_count": 114
+  }
+}
