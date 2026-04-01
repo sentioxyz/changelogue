@@ -2,11 +2,15 @@ package stealth
 
 import (
 	"context"
+	"crypto/sha256"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/sentioxyz/changelogue/internal/models"
 )
@@ -344,3 +348,485 @@ func TestSources_CRUD(t *testing.T) {
 	}
 }
 
+// ─────────────────────────────────────────
+// Helper: create a source for a given project
+// ─────────────────────────────────────────
+
+func makeSource(t *testing.T, s *Store, projectID string) *models.Source {
+	t.Helper()
+	src := &models.Source{
+		ProjectID:           projectID,
+		Provider:            "github",
+		Repository:          fmt.Sprintf("org/repo-%d", time.Now().UnixNano()),
+		PollIntervalSeconds: 3600,
+		Enabled:             true,
+	}
+	if err := s.CreateSource(context.Background(), src); err != nil {
+		t.Fatalf("makeSource: CreateSource: %v", err)
+	}
+	return src
+}
+
+// ─────────────────────────────────────────
+// Releases Read
+// ─────────────────────────────────────────
+
+func TestReleases_Read(t *testing.T) {
+	ctx := context.Background()
+	s := testStore(t)
+
+	proj := makeProject(t, s)
+	src := makeSource(t, s, proj.ID)
+
+	// Insert a release directly (IngestRelease not yet implemented).
+	releaseID := "rel-001"
+	releasedAt := time.Now().UTC().Add(-time.Hour).Format(time.RFC3339Nano)
+	createdAt := time.Now().UTC().Format(time.RFC3339Nano)
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO releases (id, source_id, version, raw_data, released_at, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		releaseID, src.ID, "v1.0.0", `{"tag":"v1.0.0"}`, releasedAt, createdAt,
+	)
+	if err != nil {
+		t.Fatalf("insert release: %v", err)
+	}
+
+	// ListAllReleases
+	releases, total, err := s.ListAllReleases(ctx, 1, 10, false, models.ReleaseFilter{})
+	if err != nil {
+		t.Fatalf("ListAllReleases: %v", err)
+	}
+	if total != 1 {
+		t.Fatalf("expected total=1, got %d", total)
+	}
+	if len(releases) != 1 {
+		t.Fatalf("expected 1 release, got %d", len(releases))
+	}
+	r := releases[0]
+	if r.ID != releaseID {
+		t.Errorf("expected id %q, got %q", releaseID, r.ID)
+	}
+	if r.Version != "v1.0.0" {
+		t.Errorf("expected version 'v1.0.0', got %q", r.Version)
+	}
+	if r.ProjectID != proj.ID {
+		t.Errorf("expected project_id %q, got %q", proj.ID, r.ProjectID)
+	}
+	if r.ProjectName != proj.Name {
+		t.Errorf("expected project_name %q, got %q", proj.Name, r.ProjectName)
+	}
+	if r.Provider != "github" {
+		t.Errorf("expected provider 'github', got %q", r.Provider)
+	}
+	if r.ReleasedAt == nil {
+		t.Error("expected ReleasedAt to be set")
+	}
+
+	// ListReleasesBySource
+	releases, total, err = s.ListReleasesBySource(ctx, src.ID, 1, 10, false, models.ReleaseFilter{})
+	if err != nil {
+		t.Fatalf("ListReleasesBySource: %v", err)
+	}
+	if total != 1 || len(releases) != 1 {
+		t.Fatalf("expected 1 release by source, got total=%d len=%d", total, len(releases))
+	}
+
+	// ListReleasesByProject
+	releases, total, err = s.ListReleasesByProject(ctx, proj.ID, 1, 10, false, models.ReleaseFilter{})
+	if err != nil {
+		t.Fatalf("ListReleasesByProject: %v", err)
+	}
+	if total != 1 || len(releases) != 1 {
+		t.Fatalf("expected 1 release by project, got total=%d len=%d", total, len(releases))
+	}
+
+	// GetRelease
+	got, err := s.GetRelease(ctx, releaseID)
+	if err != nil {
+		t.Fatalf("GetRelease: %v", err)
+	}
+	if got.ID != releaseID {
+		t.Errorf("GetRelease id mismatch: %q", got.ID)
+	}
+	if got.Version != "v1.0.0" {
+		t.Errorf("GetRelease version mismatch: %q", got.Version)
+	}
+
+	// GetRelease — not found
+	_, err = s.GetRelease(ctx, "nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent release, got nil")
+	}
+
+	// Filter by provider — should match
+	releases, total, err = s.ListAllReleases(ctx, 1, 10, false, models.ReleaseFilter{Provider: "github"})
+	if err != nil {
+		t.Fatalf("ListAllReleases with provider filter: %v", err)
+	}
+	if total != 1 {
+		t.Errorf("expected 1 release with provider=github, got %d", total)
+	}
+
+	// Filter by provider — should not match
+	releases, total, err = s.ListAllReleases(ctx, 1, 10, false, models.ReleaseFilter{Provider: "npm"})
+	if err != nil {
+		t.Fatalf("ListAllReleases with non-matching provider: %v", err)
+	}
+	if total != 0 {
+		t.Errorf("expected 0 releases with provider=npm, got %d", total)
+	}
+	_ = releases
+}
+
+// ─────────────────────────────────────────
+// Channels CRUD
+// ─────────────────────────────────────────
+
+func TestChannels_CRUD(t *testing.T) {
+	ctx := context.Background()
+	s := testStore(t)
+
+	// Create
+	ch := &models.NotificationChannel{
+		Name:   "My Slack",
+		Type:   "slack",
+		Config: json.RawMessage(`{"webhook_url":"https://hooks.slack.com/test"}`),
+	}
+	if err := s.CreateChannel(ctx, ch); err != nil {
+		t.Fatalf("CreateChannel: %v", err)
+	}
+	if ch.ID == "" {
+		t.Fatal("expected ID to be populated")
+	}
+	if ch.CreatedAt.IsZero() {
+		t.Fatal("expected CreatedAt to be populated")
+	}
+
+	// List
+	channels, total, err := s.ListChannels(ctx, 1, 10)
+	if err != nil {
+		t.Fatalf("ListChannels: %v", err)
+	}
+	if total != 1 {
+		t.Fatalf("expected total=1, got %d", total)
+	}
+	if len(channels) != 1 {
+		t.Fatalf("expected 1 channel, got %d", len(channels))
+	}
+	if channels[0].Name != "My Slack" {
+		t.Errorf("expected name 'My Slack', got %q", channels[0].Name)
+	}
+	if string(channels[0].Config) != `{"webhook_url":"https://hooks.slack.com/test"}` {
+		t.Errorf("config mismatch: %s", string(channels[0].Config))
+	}
+
+	// Get
+	gotCh, err := s.GetChannel(ctx, ch.ID)
+	if err != nil {
+		t.Fatalf("GetChannel: %v", err)
+	}
+	if gotCh.Type != "slack" {
+		t.Errorf("GetChannel type mismatch: %q", gotCh.Type)
+	}
+
+	// Update
+	ch.Name = "Updated Slack"
+	ch.Config = json.RawMessage(`{"webhook_url":"https://hooks.slack.com/updated"}`)
+	if err := s.UpdateChannel(ctx, ch.ID, ch); err != nil {
+		t.Fatalf("UpdateChannel: %v", err)
+	}
+	gotCh, err = s.GetChannel(ctx, ch.ID)
+	if err != nil {
+		t.Fatalf("GetChannel after update: %v", err)
+	}
+	if gotCh.Name != "Updated Slack" {
+		t.Errorf("expected updated name, got %q", gotCh.Name)
+	}
+	if string(gotCh.Config) != `{"webhook_url":"https://hooks.slack.com/updated"}` {
+		t.Errorf("config after update mismatch: %s", string(gotCh.Config))
+	}
+
+	// Update non-existent
+	if err := s.UpdateChannel(ctx, "nonexistent", ch); err == nil {
+		t.Fatal("expected error updating non-existent channel")
+	}
+
+	// Delete
+	if err := s.DeleteChannel(ctx, ch.ID); err != nil {
+		t.Fatalf("DeleteChannel: %v", err)
+	}
+	_, err = s.GetChannel(ctx, ch.ID)
+	if err == nil {
+		t.Fatal("expected error after delete, got nil")
+	}
+
+	// Delete non-existent
+	if err := s.DeleteChannel(ctx, ch.ID); err == nil {
+		t.Fatal("expected error deleting non-existent channel")
+	}
+
+	// List after delete
+	channels, total, err = s.ListChannels(ctx, 1, 10)
+	if err != nil {
+		t.Fatalf("ListChannels after delete: %v", err)
+	}
+	if total != 0 {
+		t.Fatalf("expected total=0 after delete, got %d", total)
+	}
+	_ = channels
+}
+
+// ─────────────────────────────────────────
+// Subscriptions CRUD
+// ─────────────────────────────────────────
+
+func makeChannel(t *testing.T, s *Store) *models.NotificationChannel {
+	t.Helper()
+	ch := &models.NotificationChannel{
+		Name:   "Test Channel",
+		Type:   "slack",
+		Config: json.RawMessage(`{"webhook_url":"https://hooks.slack.com/x"}`),
+	}
+	if err := s.CreateChannel(context.Background(), ch); err != nil {
+		t.Fatalf("makeChannel: CreateChannel: %v", err)
+	}
+	return ch
+}
+
+func TestSubscriptions_CRUD(t *testing.T) {
+	ctx := context.Background()
+	s := testStore(t)
+
+	proj := makeProject(t, s)
+	src := makeSource(t, s, proj.ID)
+	ch := makeChannel(t, s)
+
+	srcID := src.ID
+
+	// Create (source_release)
+	sub := &models.Subscription{
+		ChannelID:     ch.ID,
+		Type:          "source_release",
+		SourceID:      &srcID,
+		VersionFilter: "v1.*",
+		Config:        json.RawMessage(`{"notify_on":"all"}`),
+	}
+	if err := s.CreateSubscription(ctx, sub); err != nil {
+		t.Fatalf("CreateSubscription: %v", err)
+	}
+	if sub.ID == "" {
+		t.Fatal("expected ID to be populated")
+	}
+	if sub.CreatedAt.IsZero() {
+		t.Fatal("expected CreatedAt to be populated")
+	}
+
+	// List
+	subs, total, err := s.ListSubscriptions(ctx, 1, 10)
+	if err != nil {
+		t.Fatalf("ListSubscriptions: %v", err)
+	}
+	if total != 1 {
+		t.Fatalf("expected total=1, got %d", total)
+	}
+	if len(subs) != 1 {
+		t.Fatalf("expected 1 subscription, got %d", len(subs))
+	}
+	if subs[0].ChannelID != ch.ID {
+		t.Errorf("expected channel_id %q, got %q", ch.ID, subs[0].ChannelID)
+	}
+	if subs[0].SourceID == nil || *subs[0].SourceID != srcID {
+		t.Errorf("expected source_id %q, got %v", srcID, subs[0].SourceID)
+	}
+	if subs[0].VersionFilter != "v1.*" {
+		t.Errorf("expected version_filter 'v1.*', got %q", subs[0].VersionFilter)
+	}
+	if string(subs[0].Config) != `{"notify_on":"all"}` {
+		t.Errorf("config mismatch: %s", string(subs[0].Config))
+	}
+
+	// Get
+	gotSub, err := s.GetSubscription(ctx, sub.ID)
+	if err != nil {
+		t.Fatalf("GetSubscription: %v", err)
+	}
+	if gotSub.Type != "source_release" {
+		t.Errorf("GetSubscription type mismatch: %q", gotSub.Type)
+	}
+
+	// Update
+	sub.VersionFilter = "v2.*"
+	sub.Config = json.RawMessage(`{"notify_on":"major"}`)
+	if err := s.UpdateSubscription(ctx, sub.ID, sub); err != nil {
+		t.Fatalf("UpdateSubscription: %v", err)
+	}
+	gotSub, err = s.GetSubscription(ctx, sub.ID)
+	if err != nil {
+		t.Fatalf("GetSubscription after update: %v", err)
+	}
+	if gotSub.VersionFilter != "v2.*" {
+		t.Errorf("expected updated version_filter, got %q", gotSub.VersionFilter)
+	}
+	if string(gotSub.Config) != `{"notify_on":"major"}` {
+		t.Errorf("config after update mismatch: %s", string(gotSub.Config))
+	}
+
+	// Update non-existent
+	if err := s.UpdateSubscription(ctx, "nonexistent", sub); err == nil {
+		t.Fatal("expected error updating non-existent subscription")
+	}
+
+	// Delete
+	if err := s.DeleteSubscription(ctx, sub.ID); err != nil {
+		t.Fatalf("DeleteSubscription: %v", err)
+	}
+	_, err = s.GetSubscription(ctx, sub.ID)
+	if err == nil {
+		t.Fatal("expected error after delete, got nil")
+	}
+
+	// Delete non-existent
+	if err := s.DeleteSubscription(ctx, sub.ID); err == nil {
+		t.Fatal("expected error deleting non-existent subscription")
+	}
+
+	// Batch create
+	projID := proj.ID
+	batchSubs := []models.Subscription{
+		{ChannelID: ch.ID, Type: "semantic_release", ProjectID: &projID},
+		{ChannelID: ch.ID, Type: "source_release", SourceID: &srcID},
+	}
+	created, err := s.CreateSubscriptionBatch(ctx, batchSubs)
+	if err != nil {
+		t.Fatalf("CreateSubscriptionBatch: %v", err)
+	}
+	if len(created) != 2 {
+		t.Fatalf("expected 2 created subscriptions, got %d", len(created))
+	}
+	for _, c := range created {
+		if c.ID == "" {
+			t.Error("expected each batch subscription to have an ID")
+		}
+	}
+
+	// Batch delete
+	batchIDs := []string{created[0].ID, created[1].ID}
+	if err := s.DeleteSubscriptionBatch(ctx, batchIDs); err != nil {
+		t.Fatalf("DeleteSubscriptionBatch: %v", err)
+	}
+	// Verify both are gone
+	for _, id := range batchIDs {
+		_, err := s.GetSubscription(ctx, id)
+		if err == nil {
+			t.Errorf("expected subscription %q to be deleted", id)
+		}
+	}
+
+	// List after all deletes
+	subs, total, err = s.ListSubscriptions(ctx, 1, 10)
+	if err != nil {
+		t.Fatalf("ListSubscriptions after delete: %v", err)
+	}
+	if total != 0 {
+		t.Fatalf("expected total=0, got %d", total)
+	}
+	_ = subs
+}
+
+// ─────────────────────────────────────────
+// KeyStore
+// ─────────────────────────────────────────
+
+func TestKeyStore(t *testing.T) {
+	ctx := context.Background()
+	s := testStore(t)
+
+	rawKey := "my-secret-api-key"
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(rawKey)))
+
+	// Insert an API key manually.
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO api_keys (id, name, key_hash, key_prefix, created_at) VALUES (?, ?, ?, ?, ?)`,
+		"key-001", "Test Key", hash, "my-s",
+		time.Now().UTC().Format(time.RFC3339Nano),
+	)
+	if err != nil {
+		t.Fatalf("insert api_key: %v", err)
+	}
+
+	// ValidateKey — valid key
+	valid, err := s.ValidateKey(ctx, rawKey)
+	if err != nil {
+		t.Fatalf("ValidateKey: %v", err)
+	}
+	if !valid {
+		t.Error("expected key to be valid")
+	}
+
+	// ValidateKey — invalid key
+	valid, err = s.ValidateKey(ctx, "wrong-key")
+	if err != nil {
+		t.Fatalf("ValidateKey (wrong): %v", err)
+	}
+	if valid {
+		t.Error("expected wrong key to be invalid")
+	}
+
+	// TouchKeyUsage — should update last_used_at without error
+	s.TouchKeyUsage(ctx, rawKey)
+
+	var lastUsedAt sql.NullString
+	err = s.db.QueryRowContext(ctx, `SELECT last_used_at FROM api_keys WHERE id = 'key-001'`).Scan(&lastUsedAt)
+	if err != nil {
+		t.Fatalf("select last_used_at: %v", err)
+	}
+	if !lastUsedAt.Valid || lastUsedAt.String == "" {
+		t.Error("expected last_used_at to be set after TouchKeyUsage")
+	}
+}
+
+// ─────────────────────────────────────────
+// HealthChecker
+// ─────────────────────────────────────────
+
+func TestHealthChecker(t *testing.T) {
+	ctx := context.Background()
+	s := testStore(t)
+
+	proj := makeProject(t, s)
+	src := makeSource(t, s, proj.ID)
+
+	// Insert 2 releases.
+	for i := 0; i < 2; i++ {
+		_, err := s.db.ExecContext(ctx,
+			`INSERT INTO releases (id, source_id, version, created_at) VALUES (?, ?, ?, ?)`,
+			fmt.Sprintf("rel-%d", i), src.ID, fmt.Sprintf("v1.%d.0", i),
+			time.Now().UTC().Format(time.RFC3339Nano),
+		)
+		if err != nil {
+			t.Fatalf("insert release %d: %v", i, err)
+		}
+	}
+
+	stats, err := s.GetStats(ctx)
+	if err != nil {
+		t.Fatalf("GetStats: %v", err)
+	}
+	if stats.TotalReleases != 2 {
+		t.Errorf("expected TotalReleases=2, got %d", stats.TotalReleases)
+	}
+	if stats.ActiveSources != 1 {
+		t.Errorf("expected ActiveSources=1, got %d", stats.ActiveSources)
+	}
+	if stats.TotalProjects != 1 {
+		t.Errorf("expected TotalProjects=1, got %d", stats.TotalProjects)
+	}
+
+	// GetTrend — stealth mode returns empty
+	buckets, err := s.GetTrend(ctx, "daily", time.Now().Add(-7*24*time.Hour), time.Now())
+	if err != nil {
+		t.Fatalf("GetTrend: %v", err)
+	}
+	if len(buckets) != 0 {
+		t.Errorf("expected 0 trend buckets in stealth mode, got %d", len(buckets))
+	}
+}
