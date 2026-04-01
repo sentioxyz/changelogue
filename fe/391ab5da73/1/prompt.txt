@@ -632,3 +632,269 @@ Done!
 
 **Alternative workflow:**
 - **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **User's Initial Request**: Create a "stealth mode" for Changelogue that integrates with agent harnesses like Claude Code. No UI, local running process with SQLite, agent talks to it through CLI.
+
+2. **Brainstorming Phase**: Used the brainstorming skill to explore the idea. A subagent explored the entire project architecture and produced a comprehensive summary of the codebase.
+
+3. **Clarifying Questions**:
+   - Use case: Event-driven with callback or start new agent instance
+   - Lifecycle: System service (always on, agent connects when needed)
+   - Callbacks: Shell command callback
+   - Data scope: Core subset (sources, releases, polling, notifications)
+   - Storage: User home directory (~/.changelogue/stealth.db)
+   - API surface: Local HTTP server on localhost:PORT
+
+4. **Three Approaches Proposed**:
+   - A: Separate binary with SQLite store (Recommended)
+   - B: Single binary with --stealth flag
+   - C: Embedded mode via CLI subcommand
+   - User chose A, but said "we should reuse component as we can"
+
+5. **Design Sections Presented and Approved**:
+   - Section 1: Architecture overview
+   - Section 2: SQLite store & schema
+   - Section 3: Shell command callbacks
+   - Section 4: Synchronous job processing
+   - Section 5: Binary, lifecycle & CLI integration
+   - Section 6: Ingestion orchestrator reuse
+
+6. **User Feedback on Shell Callbacks**: User wanted the shell to be customizable - "go to some project, start the claude code to do the update for this dependency or analyze if there's any breaking change". This led to per-subscription commands design.
+
+7. **Design Doc Written**: `docs/plans/2026-04-01-stealth-mode-design.md`
+
+8. **Implementation Plan Written**: `docs/plans/2026-04-01-stealth-mode-plan.md` with 13 tasks
+
+9. **Execution**: User chose subagent-driven development (option 1)
+
+10. **Tasks Completed So Far**:
+    - Task 1: Add Config field to Subscription model ✅
+    - Task 2: Shell Sender ✅
+    - Task 3: Refactor Ingestion Orchestrator ✅
+    - Task 4: SQLite Store — Schema and Connection ✅
+    - Tasks 5+6: Projects + Sources CRUD ✅
+    - Task 7: Releases, Channels, Subscriptions, KeyStore, HealthChecker ✅
+
+11. **Tasks Remaining**:
+    - Task 8: IngestRelease + NotifyStore + notify.go
+    - Task 9: Stub implementations
+    - Task 10: Stealth binary main entrypoint
+    - Task 11: Integration test
+    - Task 12: CLI --config flag
+    - Task 13: Final verification
+
+Let me now trace all the specific files and key code changes made.
+
+Key files modified/created:
+- `internal/models/subscription.go` - Added Config field
+- `internal/db/migrations.go` - Added subscription config migration
+- `internal/api/pgstore.go` - Updated all 7 subscription methods for config column
+- `internal/routing/shell_sender.go` - New ShellSender implementation
+- `internal/routing/shell_sender_test.go` - Tests for ShellSender
+- `internal/routing/worker.go` - Added "shell" to NewSenders()
+- `internal/ingestion/loader.go` - Extracted SourceLister interface, refactored SourceLoader
+- `internal/ingestion/orchestrator.go` - Extracted PollStatusUpdater interface
+- `internal/ingestion/pgstore.go` - Added ListEnabledSources, UpdateSourcePollStatus
+- `internal/ingestion/service.go` - Updated isUniqueViolation for SQLite
+- `cmd/server/main.go` - Updated orchestrator construction
+- `internal/stealth/store.go` - New SQLite store (Projects, Sources, Releases, Channels, Subscriptions, KeyStore, HealthChecker)
+- `internal/stealth/migrations.go` - SQLite schema
+- `internal/stealth/store_test.go` - Tests for all store methods
+
+No errors were encountered during implementation. All tasks completed with passing tests.
+
+The current work was just completing Task 7, and the next task would be Task 8 (IngestRelease + NotifyStore + notify.go).
+
+Summary:
+1. Primary Request and Intent:
+   The user wants to create a **"stealth mode"** for the Changelogue project — a headless, agent-native operation mode designed to integrate with agent harnesses like Claude Code. Key requirements:
+   - No UI — purely CLI-driven
+   - Runs as a local system service (always on, agent connects when needed)
+   - Uses SQLite for local storage instead of PostgreSQL
+   - Shell command callbacks for event-driven notifications (configurable per subscription)
+   - Agents can be spawned or resumed when new releases are detected
+   - Core feature subset only (sources, releases, polling, notifications — no agent/LLM, gates, todos)
+   - Per-subscription command templates so different sources trigger different agent workflows (e.g., "analyze breaking changes" vs "auto-update dependency")
+   - Maximize reuse of existing components
+
+2. Key Technical Concepts:
+   - **Separate binary architecture**: `cmd/stealth/main.go` builds to `clog-stealth`, reusing existing packages
+   - **SQLite via `modernc.org/sqlite`**: Pure Go, no CGo. WAL mode, busy_timeout, foreign_keys pragmas
+   - **Interface extraction for database abstraction**: `SourceLister`, `PollStatusUpdater` interfaces allow both PgStore and SQLite store
+   - **Synchronous job processing**: Replaces River async queue with in-process notification dispatch
+   - **Shell command callbacks**: New `ShellSender` implementing `routing.Sender` interface with `SendWithConfig` for per-subscription commands
+   - **Per-subscription config**: `Config json.RawMessage` field added to `models.Subscription` for command templates
+   - **Environment variable injection**: `CHANGELOGUE_VERSION`, `CHANGELOGUE_REPOSITORY`, etc. injected into shell commands
+   - **Stub pattern**: Unsupported interfaces (SemanticReleases, Agent, Todos, etc.) return 501
+   - **Store interface compliance**: SQLite store implements same interfaces as `api.PgStore`
+   - **Go module**: `github.com/sentioxyz/changelogue`, Go 1.25
+
+3. Files and Code Sections:
+
+   - **`docs/plans/2026-04-01-stealth-mode-design.md`** — Design spec document covering architecture, SQLite store, shell callbacks, synchronous processing, orchestrator refactor, binary lifecycle. Written and approved by user.
+
+   - **`docs/plans/2026-04-01-stealth-mode-plan.md`** — 13-task implementation plan with TDD steps, exact code, and commit messages.
+
+   - **`internal/models/subscription.go`** (Modified — Task 1)
+     - Added `Config json.RawMessage` field for per-subscription shell command configuration
+     ```go
+     type Subscription struct {
+         ID            string          `json:"id"`
+         ChannelID     string          `json:"channel_id"`
+         Type          string          `json:"type"`
+         SourceID      *string         `json:"source_id,omitempty"`
+         ProjectID     *string         `json:"project_id,omitempty"`
+         VersionFilter string          `json:"version_filter,omitempty"`
+         Config        json.RawMessage `json:"config,omitempty"`
+         CreatedAt     time.Time       `json:"created_at"`
+     }
+     ```
+
+   - **`internal/db/migrations.go`** (Modified — Task 1)
+     - Added `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS config JSONB;` migration
+
+   - **`internal/api/pgstore.go`** (Modified — Task 1)
+     - Updated all 7 subscription query methods (ListSubscriptions, CreateSubscription, GetSubscription, UpdateSubscription, CreateSubscriptionBatch, ListSourceSubscriptions, ListProjectSubscriptions) to include `config` column
+
+   - **`internal/routing/shell_sender.go`** (Created — Task 2)
+     - `ShellSender` struct implementing `Sender` interface
+     - `Send()` — no-op with warning (interface compliance)
+     - `SendWithConfig()` — full implementation: parses channel config (defaults) and subscription config (command + overrides), merges timeout/workdir, injects CHANGELOGUE_* env vars, expands ${VAR} in command, runs via `exec.CommandContext` in goroutine
+     ```go
+     type ShellSender struct{}
+     func (s *ShellSender) Send(ctx context.Context, ch *models.NotificationChannel, msg Notification) error
+     func (s *ShellSender) SendWithConfig(ctx context.Context, ch *models.NotificationChannel, msg Notification, subConfig json.RawMessage) error
+     ```
+
+   - **`internal/routing/shell_sender_test.go`** (Created — Task 2)
+     - `TestShellSender_Send` — verifies command runs with env var substitution
+     - `TestShellSender_SendMissingCommand` — verifies error on missing command
+
+   - **`internal/routing/worker.go`** (Modified — Task 2)
+     - Added `"shell": &ShellSender{}` to `NewSenders()` map
+
+   - **`internal/ingestion/loader.go`** (Modified — Task 3)
+     - Extracted `SourceLister` interface and `EnabledSource` struct
+     - Refactored `SourceLoader` to accept `SourceLister` instead of `*pgxpool.Pool`
+     - Removed `LookupSourceID` (confirmed unused)
+     ```go
+     type SourceLister interface {
+         ListEnabledSources(ctx context.Context) ([]EnabledSource, error)
+     }
+     type EnabledSource struct {
+         ID, Provider, Repository string
+         PollIntervalSeconds      int
+         LastPolledAt             *time.Time
+     }
+     ```
+
+   - **`internal/ingestion/orchestrator.go`** (Modified — Task 3)
+     - Extracted `PollStatusUpdater` interface
+     - Replaced `pool *pgxpool.Pool` with `pollUpdater PollStatusUpdater`
+     ```go
+     type PollStatusUpdater interface {
+         UpdateSourcePollStatus(ctx context.Context, id string, pollErr error) error
+     }
+     func NewOrchestrator(service *Service, loader *SourceLoader, pollUpdater PollStatusUpdater, interval time.Duration) *Orchestrator
+     ```
+
+   - **`internal/ingestion/pgstore.go`** (Modified — Task 3)
+     - Added `ListEnabledSources` (implements SourceLister)
+     - Added `UpdateSourcePollStatus` (implements PollStatusUpdater)
+
+   - **`internal/ingestion/service.go`** (Modified — Task 3)
+     - Updated `isUniqueViolation` to also match SQLite's `"UNIQUE constraint failed"`
+
+   - **`cmd/server/main.go`** (Modified — Task 3)
+     - Updated orchestrator construction: `ingestionStore` replaces `pool` in `NewSourceLoader` and `NewOrchestrator`
+
+   - **`internal/stealth/migrations.go`** (Created — Task 4)
+     - SQLite schema for: projects, sources, releases, notification_channels, subscriptions, api_keys
+     - TEXT for timestamps, INTEGER for booleans, TEXT for JSON
+
+   - **`internal/stealth/store.go`** (Created — Tasks 4-7)
+     - `Store` struct wrapping `*sql.DB`
+     - `NewStore(dbPath)` — creates directory, opens SQLite, sets pragmas, runs migrations
+     - **Projects CRUD**: ListProjects, CreateProject, GetProject, UpdateProject, DeleteProject
+     - **Sources CRUD**: ListSourcesByProject, CreateSource, GetSource, UpdateSource, DeleteSource, UpdateSourcePollStatus, ListAllSourceRepos, ListEnabledSources
+     - **Releases read**: ListAllReleases, ListReleasesBySource, ListReleasesByProject, GetRelease (with JOIN to sources/projects for enriched fields)
+     - **Channels CRUD**: ListChannels, CreateChannel, GetChannel, UpdateChannel, DeleteChannel
+     - **Subscriptions CRUD**: ListSubscriptions, CreateSubscription, CreateSubscriptionBatch, GetSubscription, UpdateSubscription, DeleteSubscription, DeleteSubscriptionBatch
+     - **KeyStore**: ValidateKey (SHA-256 hash comparison), TouchKeyUsage
+     - **HealthChecker**: PingDB, GetStats, GetTrend
+
+   - **`internal/stealth/store_test.go`** (Created — Tasks 4-7)
+     - Tests: TestNewStore, TestNewStore_CreatesDirectory, TestProjects_CRUD, TestSources_CRUD, TestReleases_Read, TestChannels_CRUD, TestSubscriptions_CRUD, TestKeyStore, TestHealthChecker
+
+4. Errors and Fixes:
+   - No errors were encountered during implementation. All tasks completed successfully with passing tests.
+   - All subagent implementations compiled and passed tests on first attempt.
+
+5. Problem Solving:
+   - **Database abstraction**: Solved by extracting `SourceLister` and `PollStatusUpdater` interfaces from the ingestion orchestrator, allowing both PostgreSQL and SQLite stores to be used
+   - **River queue elimination**: Replaced async transactional outbox with synchronous in-process notification dispatch
+   - **Per-subscription customization**: Solved by adding `Config json.RawMessage` to subscriptions and having `ShellSender.SendWithConfig()` accept subscription config separately from channel config
+   - **SQLite compatibility**: Handled via `?` placeholders, TEXT timestamps, INTEGER booleans, `UNIQUE constraint failed` error matching
+
+6. All User Messages:
+   - "I want to create a stealth mode which is designed to integrate with agent harness like claude code. there's no ui, and it starts a local running process with local storage like sqllite, the agent talks to it through the cli"
+   - "event driven and it should be able to use callback or start a new agent instance" (selected Event-driven assistant use case)
+   - "System service" (selected system service lifecycle)
+   - "Shell command callback" (selected shell command callback for notifications)
+   - "Core subset (Recommended)" (selected core feature subset)
+   - "User home directory (Recommended)" (selected storage location)
+   - "Local HTTP server (Recommended)" (selected API surface)
+   - "A, but we should reuse component as we can" (chose separate binary approach with max reuse)
+   - "Yes" (approved architecture overview)
+   - "Yes" (approved SQLite store & schema section)
+   - "Yes" (approved shell command callbacks section)
+   - "Yes" (approved synchronous job processing section)
+   - "Yes" (approved binary & lifecycle section)
+   - "Yes" (approved ingestion orchestrator reuse section)
+   - "I think we should make the shell customizable like go to some project, start the claude code to do the update for this depency or analze if there's any breaking change right?" (requested per-subscription command customization)
+   - "Per-subscription commands (Recommended)" (selected per-subscription command approach)
+   - "Looks good to me" (approved the written spec)
+   - "1" (chose subagent-driven development for execution)
+
+7. Pending Tasks (from the 13-task plan):
+   - **Task 8**: SQLite Store — IngestRelease + NotifyStore + notify.go (implements ingestion.ReleaseStore, routing.NotifyStore, synchronous notification dispatcher)
+   - **Task 9**: Stub implementations for unsupported interfaces (stubs.go)
+   - **Task 10**: Stealth binary main entrypoint (cmd/stealth/main.go + Makefile)
+   - **Task 11**: Integration test (end-to-end stealth flow)
+   - **Task 12**: CLI --config flag for subscriptions
+   - **Task 13**: Final verification and cleanup
+
+8. Current Work:
+   Task 7 just completed successfully. The subagent-driven development workflow is executing the implementation plan in `docs/plans/2026-04-01-stealth-mode-plan.md`. Seven of thirteen tasks are complete (Tasks 1-7). All completed tasks have been spec-reviewed and passed. The task tracking shows:
+   - Tasks 9-11 (plan Tasks 1-3): completed ✅
+   - Task 12 (plan Task 4): completed ✅
+   - Tasks 13-14 (plan Tasks 5-6): completed ✅
+   - Task 15 (plan Task 7): completed ✅
+   - Tasks 16-21 (plan Tasks 8-13): pending
+
+   Git commits made so far:
+   - `f1205e82` — feat: add config field to subscription model
+   - (Task 2 commit) — feat: add ShellSender for shell command callback notifications
+   - `d46b7d62` — refactor: extract SourceLister and PollStatusUpdater interfaces
+   - `310b3e8a` — feat(stealth): add SQLite store with schema migrations
+   - `acbd4e79` — feat(stealth): implement Projects and Sources CRUD on SQLite store
+   - (Task 7 commit) — feat(stealth): implement Releases, Channels, Subscriptions, KeyStore, HealthChecker
+
+9. Optional Next Step:
+   Continue the subagent-driven development workflow by dispatching **Task 8: SQLite Store — IngestRelease + NotifyStore + notify.go**. This task implements:
+   - `IngestRelease()` on the SQLite store (insert release + trigger notify hook)
+   - `NotifyStore` methods (ListSourceSubscriptions, GetPreviousRelease, EnqueueAgentRun no-op, CreateReleaseTodo no-op, HasReleaseGate always false)
+   - `internal/stealth/notify.go` — synchronous notification dispatcher using `routing.Sender` implementations
+   - `NotifyHook` callback pattern on the Store struct
+   
+   The user chose option "1" (subagent-driven development) and the workflow is actively executing the plan task-by-task with spec and code quality reviews between tasks.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/pc/.claude/projects/-Users-pc-web3-ReleaseBeacon/45b32cb4-489b-4cac-803e-86ad19ea5cbd.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
