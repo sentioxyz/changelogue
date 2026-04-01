@@ -32,9 +32,11 @@ func (s *Service) ProcessResults(ctx context.Context, sourceID string, sourceNam
 	return nil
 }
 
-// isUniqueViolation checks if the error is a PostgreSQL unique constraint violation.
-// pgx wraps the PG error; we check for the SQLSTATE code 23505.
+// isUniqueViolation checks if the error is a unique constraint violation.
+// Handles PostgreSQL (SQLSTATE 23505 / unique_violation) and SQLite.
 func isUniqueViolation(err error) bool {
-	return strings.Contains(err.Error(), "23505") ||
-		strings.Contains(err.Error(), "unique_violation")
+	s := err.Error()
+	return strings.Contains(s, "23505") ||
+		strings.Contains(s, "unique_violation") ||
+		strings.Contains(s, "UNIQUE constraint failed")
 }

@@ -4,23 +4,26 @@ import (
 	"context"
 	"log/slog"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// PollStatusUpdater persists poll status for a source.
+type PollStatusUpdater interface {
+	UpdateSourcePollStatus(ctx context.Context, id string, pollErr error) error
+}
 
 // Orchestrator runs polling ingestion sources on a fixed interval.
 type Orchestrator struct {
 	service       *Service
 	loader        *SourceLoader
-	pool          *pgxpool.Pool
+	pollUpdater   PollStatusUpdater
 	staticSources []IIngestionSource // for testing only
 	interval      time.Duration
 }
 
 // NewOrchestrator creates an orchestrator that dynamically loads enabled
 // sources from the database on each poll cycle.
-func NewOrchestrator(service *Service, loader *SourceLoader, pool *pgxpool.Pool, interval time.Duration) *Orchestrator {
-	return &Orchestrator{service: service, loader: loader, pool: pool, interval: interval}
+func NewOrchestrator(service *Service, loader *SourceLoader, pollUpdater PollStatusUpdater, interval time.Duration) *Orchestrator {
+	return &Orchestrator{service: service, loader: loader, pollUpdater: pollUpdater, interval: interval}
 }
 
 // NewOrchestratorWithSources creates an orchestrator with a static source list.
@@ -96,18 +99,10 @@ func (o *Orchestrator) pollSource(ctx context.Context, src IIngestionSource) {
 }
 
 func (o *Orchestrator) updateSourcePollStatus(ctx context.Context, sourceID string, pollErr error) {
-	if o.pool == nil {
+	if o.pollUpdater == nil {
 		return
 	}
-	var lastError *string
-	if pollErr != nil {
-		s := pollErr.Error()
-		lastError = &s
-	}
-	_, err := o.pool.Exec(ctx,
-		`UPDATE sources SET last_polled_at = NOW(), last_error = $1 WHERE id = $2`,
-		lastError, sourceID)
-	if err != nil {
+	if err := o.pollUpdater.UpdateSourcePollStatus(ctx, sourceID, pollErr); err != nil {
 		slog.Error("update source poll status", "source", sourceID, "err", err)
 	}
 }

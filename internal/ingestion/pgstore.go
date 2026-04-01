@@ -75,3 +75,37 @@ func (s *PgStore) IngestRelease(ctx context.Context, sourceID string, result *In
 	}
 	return nil
 }
+
+// ListEnabledSources implements SourceLister.
+func (s *PgStore) ListEnabledSources(ctx context.Context) ([]EnabledSource, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, provider, repository, poll_interval_seconds, last_polled_at
+		 FROM sources WHERE enabled = true`)
+	if err != nil {
+		return nil, fmt.Errorf("query enabled sources: %w", err)
+	}
+	defer rows.Close()
+
+	var sources []EnabledSource
+	for rows.Next() {
+		var e EnabledSource
+		if err := rows.Scan(&e.ID, &e.Provider, &e.Repository, &e.PollIntervalSeconds, &e.LastPolledAt); err != nil {
+			return nil, fmt.Errorf("scan source row: %w", err)
+		}
+		sources = append(sources, e)
+	}
+	return sources, rows.Err()
+}
+
+// UpdateSourcePollStatus implements PollStatusUpdater.
+func (s *PgStore) UpdateSourcePollStatus(ctx context.Context, id string, pollErr error) error {
+	var lastError *string
+	if pollErr != nil {
+		s := pollErr.Error()
+		lastError = &s
+	}
+	_, err := s.pool.Exec(ctx,
+		`UPDATE sources SET last_polled_at = NOW(), last_error = $1 WHERE id = $2`,
+		lastError, id)
+	return err
+}

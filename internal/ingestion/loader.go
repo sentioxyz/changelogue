@@ -6,82 +6,65 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// SourceLister abstracts the database query for enabled sources so both
+// PostgreSQL and SQLite stores can provide sources to the orchestrator.
+type SourceLister interface {
+	ListEnabledSources(ctx context.Context) ([]EnabledSource, error)
+}
+
+// EnabledSource carries the fields the loader needs to construct an IIngestionSource.
+type EnabledSource struct {
+	ID                  string
+	Provider            string
+	Repository          string
+	PollIntervalSeconds int
+	LastPolledAt        *time.Time
+}
 
 // ScheduledSource wraps an IIngestionSource with its scheduling metadata
 // so the orchestrator can decide whether the source is due for polling.
 type ScheduledSource struct {
 	Source              IIngestionSource
 	PollIntervalSeconds int
-	LastPolledAt         *time.Time
+	LastPolledAt        *time.Time
 }
 
 // SourceLoader reads source configuration from the database and constructs
 // IIngestionSource instances. It bridges the API-managed sources table with
 // the polling orchestrator.
 type SourceLoader struct {
-	pool   *pgxpool.Pool
+	lister SourceLister
 	client *http.Client
 }
 
-func NewSourceLoader(pool *pgxpool.Pool, client *http.Client) *SourceLoader {
-	return &SourceLoader{pool: pool, client: client}
+func NewSourceLoader(lister SourceLister, client *http.Client) *SourceLoader {
+	return &SourceLoader{lister: lister, client: client}
 }
 
 // LoadEnabledSources queries all enabled sources and constructs the
 // appropriate IIngestionSource for each one, along with scheduling metadata.
 func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]ScheduledSource, error) {
-	rows, err := l.pool.Query(ctx,
-		`SELECT id, provider, repository, poll_interval_seconds, last_polled_at
-		 FROM sources WHERE enabled = true`)
+	enabled, err := l.lister.ListEnabledSources(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("query enabled sources: %w", err)
+		return nil, fmt.Errorf("list enabled sources: %w", err)
 	}
-	defer rows.Close()
-
 	var sources []ScheduledSource
-	for rows.Next() {
-		var id string
-		var sourceType, repository string
-		var pollInterval int
-		var lastPolledAt *time.Time
-		if err := rows.Scan(&id, &sourceType, &repository, &pollInterval, &lastPolledAt); err != nil {
-			return nil, fmt.Errorf("scan source row: %w", err)
-		}
-
-		src := l.buildSource(id, sourceType, repository)
+	for _, e := range enabled {
+		src := BuildSource(l.client, e.ID, e.Provider, e.Repository)
 		if src == nil {
 			slog.Warn("unsupported source type, skipping",
-				"id", id, "type", sourceType, "repo", repository)
+				"id", e.ID, "type", e.Provider, "repo", e.Repository)
 			continue
 		}
 		sources = append(sources, ScheduledSource{
 			Source:              src,
-			PollIntervalSeconds: pollInterval,
-			LastPolledAt:         lastPolledAt,
+			PollIntervalSeconds: e.PollIntervalSeconds,
+			LastPolledAt:        e.LastPolledAt,
 		})
 	}
-	return sources, rows.Err()
-}
-
-// LookupSourceID finds the source ID for a given (provider, repository) pair.
-// Returns empty string and false if no matching enabled source exists.
-func (l *SourceLoader) LookupSourceID(ctx context.Context, provider, repository string) (string, bool) {
-	var id string
-	err := l.pool.QueryRow(ctx,
-		`SELECT id FROM sources WHERE provider = $1 AND repository = $2 AND enabled = true`,
-		provider, repository,
-	).Scan(&id)
-	if err != nil {
-		return "", false
-	}
-	return id, true
-}
-
-func (l *SourceLoader) buildSource(id string, sourceType, repository string) IIngestionSource {
-	return BuildSource(l.client, id, sourceType, repository)
+	return sources, nil
 }
 
 // BuildSource constructs the appropriate IIngestionSource based on provider type.

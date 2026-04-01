@@ -185,8 +185,8 @@ func main() {
 	ingestionStore := ingestion.NewPgStore(pool, riverClient)
 	svc := ingestion.NewService(ingestionStore)
 
-	loader := ingestion.NewSourceLoader(pool, http.DefaultClient)
-	orch := ingestion.NewOrchestrator(svc, loader, pool, 5*time.Minute)
+	loader := ingestion.NewSourceLoader(ingestionStore, http.DefaultClient)
+	orch := ingestion.NewOrchestrator(svc, loader, ingestionStore, 5*time.Minute)
 
 	broadcaster := api.NewBroadcaster()
 
