@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -199,7 +200,7 @@ Examples:
 	}
 
 	// --- create ---
-	var createChannelID, createType, createSourceID, createProjectID, createVersionFilter string
+	var createChannelID, createType, createSourceID, createProjectID, createVersionFilter, createConfig string
 	createCmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a subscription",
@@ -218,6 +219,13 @@ Examples:
 			}
 			if createVersionFilter != "" {
 				body["version_filter"] = createVersionFilter
+			}
+			if createConfig != "" {
+				var cfgJSON json.RawMessage
+				if err := json.Unmarshal([]byte(createConfig), &cfgJSON); err != nil {
+					return fmt.Errorf("invalid --config JSON: %w", err)
+				}
+				body["config"] = cfgJSON
 			}
 			sub, err := CreateSubscription(clientFn(), body)
 			if err != nil {
@@ -238,6 +246,7 @@ Examples:
 	createCmd.Flags().StringVar(&createSourceID, "source", "", "Source ID (for source_release type)")
 	createCmd.Flags().StringVar(&createProjectID, "project", "", "Project ID (for semantic_release type)")
 	createCmd.Flags().StringVar(&createVersionFilter, "version-filter", "", "Version regex filter")
+	createCmd.Flags().StringVar(&createConfig, "config", "", "JSON config for the subscription (e.g., shell command)")
 
 	// --- update ---
 	var updateVersionFilter, updateChannelID string
