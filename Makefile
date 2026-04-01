@@ -1,6 +1,7 @@
 .PHONY: up down db-reset build cli run run-auth dev test vet lint coverage \
         frontend-install frontend-dev frontend-build \
-        integration-test agent-dev clean release release-dry-run
+        integration-test agent-dev clean release release-dry-run \
+        stealth stealth-run
 
 # --- Configuration ---
 DATABASE_URL  ?= postgres://postgres:postgres@localhost:5432/releaseguard?sslmode=disable
@@ -81,7 +82,7 @@ integration-test:
 dev: up run
 
 clean:
-	rm -f $(BINARY) clog
+	rm -f $(BINARY) clog clog-stealth
 	docker compose down -v
 
 # --- Release ---
@@ -92,3 +93,10 @@ release:
 
 release-dry-run:
 	goreleaser release --snapshot --clean
+
+# --- Stealth Mode ---
+stealth:
+	go build -o clog-stealth ./cmd/stealth
+
+stealth-run: stealth
+	./clog-stealth serve
