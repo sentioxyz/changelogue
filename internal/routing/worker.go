@@ -47,6 +47,7 @@ func NewSenders() map[string]Sender {
 		"slack":   &SlackSender{Client: &http.Client{Timeout: 10 * time.Second}},
 		"discord": &DiscordSender{Client: &http.Client{Timeout: 10 * time.Second}},
 		"email":   &EmailSender{},
+		"shell":   &ShellSender{},
 	}
 }
 
