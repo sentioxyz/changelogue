@@ -262,7 +262,7 @@ GitHub repository scanning with LLM-based dependency extraction. A user submits 
 
 ### 2.10 Stealth Mode (Headless / Agent-Native)
 
-Stealth mode is an alternative deployment that replaces PostgreSQL and River with a local SQLite database and synchronous in-process dispatch. It is designed for embedding Changelogue into CI/CD pipelines, agent harnesses, or single-machine setups.
+Stealth mode is an alternative deployment that replaces PostgreSQL and River with a local SQLite database and synchronous in-process dispatch. It is designed for single-machine setups and agent harnesses where running PostgreSQL is not practical.
 
 **Key differences from full mode:**
 * **Storage:** SQLite (WAL mode, pure Go via `modernc.org/sqlite`) instead of PostgreSQL. Uses `?` placeholders and `TEXT` timestamps.

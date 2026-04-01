@@ -16,7 +16,7 @@
 - **TODO tracking** for operator acknowledgment and resolution of releases
 - **Discovery & suggestions** search public registries and recommend sources from your GitHub activity
 - **Serves a dashboard** (Next.js) for managing projects, sources, subscriptions, and browsing releases in real time
-- **Stealth mode** — headless, agent-native mode with SQLite storage for embedding into CI/CD pipelines or agent harnesses (no PostgreSQL required)
+- **Stealth mode** — headless, agent-native mode with SQLite storage for single-machine setups and agent harnesses (no PostgreSQL required)
 
 ## Architecture
 
@@ -90,7 +90,7 @@ Use `--json` on any command for machine-readable output. Use `--help` on any com
 
 ## Stealth mode
 
-Stealth mode is a headless, agent-native variant of Changelogue that replaces PostgreSQL + River with a local SQLite database and synchronous notification dispatch. It's designed for embedding into CI/CD pipelines, agent harnesses (e.g., Claude Code), or single-machine setups where running PostgreSQL is not practical.
+Stealth mode is a headless, agent-native variant of Changelogue that replaces PostgreSQL + River with a local SQLite database and synchronous notification dispatch. It's designed for single-machine setups and agent harnesses (e.g., Claude Code) where running PostgreSQL is not practical.
 
 ### Install
 
