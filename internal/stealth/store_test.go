@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/sentioxyz/changelogue/internal/ingestion"
 	"github.com/sentioxyz/changelogue/internal/models"
 )
 
@@ -828,5 +830,144 @@ func TestHealthChecker(t *testing.T) {
 	}
 	if len(buckets) != 0 {
 		t.Errorf("expected 0 trend buckets in stealth mode, got %d", len(buckets))
+	}
+}
+
+// ─────────────────────────────────────────
+// IngestRelease
+// ─────────────────────────────────────────
+
+func TestIngestRelease(t *testing.T) {
+	ctx := context.Background()
+	store := testStore(t)
+
+	// Setup: project + source
+	p := &models.Project{Name: "proj", AgentRules: json.RawMessage(`{}`)}
+	if err := store.CreateProject(ctx, p); err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+	src := &models.Source{
+		ProjectID: p.ID, Provider: "github", Repository: "owner/repo",
+		PollIntervalSeconds: 300, Enabled: true,
+	}
+	if err := store.CreateSource(ctx, src); err != nil {
+		t.Fatalf("CreateSource: %v", err)
+	}
+
+	// Ingest
+	result := &ingestion.IngestionResult{
+		Repository: "owner/repo",
+		RawVersion: "v1.0.0",
+		Timestamp:  time.Now(),
+		Metadata:   map[string]string{"tag": "v1.0.0"},
+	}
+	if err := store.IngestRelease(ctx, src.ID, result); err != nil {
+		t.Fatalf("IngestRelease: %v", err)
+	}
+
+	// Verify release exists
+	releases, total, err := store.ListReleasesBySource(ctx, src.ID, 1, 50, false, models.ReleaseFilter{})
+	if err != nil {
+		t.Fatalf("ListReleasesBySource: %v", err)
+	}
+	if total != 1 || len(releases) != 1 {
+		t.Fatalf("got %d/%d, want 1/1", len(releases), total)
+	}
+	if releases[0].Version != "v1.0.0" {
+		t.Errorf("got version %q, want %q", releases[0].Version, "v1.0.0")
+	}
+
+	// Duplicate should return a unique constraint error
+	err = store.IngestRelease(ctx, src.ID, result)
+	if err == nil || !strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		t.Fatalf("expected unique constraint error on duplicate, got: %v", err)
+	}
+}
+
+// ─────────────────────────────────────────
+// NotifyStore methods
+// ─────────────────────────────────────────
+
+func TestNotifyStoreMethods(t *testing.T) {
+	ctx := context.Background()
+	store := testStore(t)
+
+	proj := makeProject(t, store)
+	src := makeSource(t, store, proj.ID)
+	ch := makeChannel(t, store)
+
+	srcID := src.ID
+
+	// Create a source_release subscription
+	sub := &models.Subscription{
+		ChannelID: ch.ID,
+		Type:      "source_release",
+		SourceID:  &srcID,
+		Config:    json.RawMessage(`{"command":"echo test"}`),
+	}
+	if err := store.CreateSubscription(ctx, sub); err != nil {
+		t.Fatalf("CreateSubscription: %v", err)
+	}
+
+	// ListSourceSubscriptions
+	subs, err := store.ListSourceSubscriptions(ctx, srcID)
+	if err != nil {
+		t.Fatalf("ListSourceSubscriptions: %v", err)
+	}
+	if len(subs) != 1 {
+		t.Fatalf("expected 1 subscription, got %d", len(subs))
+	}
+	if subs[0].ID != sub.ID {
+		t.Errorf("subscription ID mismatch: got %q, want %q", subs[0].ID, sub.ID)
+	}
+
+	// GetPreviousRelease — no releases yet
+	prev, err := store.GetPreviousRelease(ctx, srcID, "v1.0.0")
+	if err != nil {
+		t.Fatalf("GetPreviousRelease: %v", err)
+	}
+	if prev != nil {
+		t.Error("expected nil previous release")
+	}
+
+	// Ingest two releases
+	r1 := &ingestion.IngestionResult{RawVersion: "v1.0.0", Timestamp: time.Now().Add(-time.Hour)}
+	if err := store.IngestRelease(ctx, srcID, r1); err != nil {
+		t.Fatalf("IngestRelease v1.0.0: %v", err)
+	}
+	r2 := &ingestion.IngestionResult{RawVersion: "v2.0.0", Timestamp: time.Now()}
+	if err := store.IngestRelease(ctx, srcID, r2); err != nil {
+		t.Fatalf("IngestRelease v2.0.0: %v", err)
+	}
+
+	// GetPreviousRelease — should find v1.0.0
+	prev, err = store.GetPreviousRelease(ctx, srcID, "v2.0.0")
+	if err != nil {
+		t.Fatalf("GetPreviousRelease: %v", err)
+	}
+	if prev == nil {
+		t.Fatal("expected non-nil previous release")
+	}
+	if prev.Version != "v1.0.0" {
+		t.Errorf("expected previous version v1.0.0, got %q", prev.Version)
+	}
+
+	// No-op methods
+	if err := store.EnqueueAgentRun(ctx, proj.ID, "test", "v1.0.0"); err != nil {
+		t.Fatalf("EnqueueAgentRun: %v", err)
+	}
+	todoID, err := store.CreateReleaseTodo(ctx, "some-release-id")
+	if err != nil {
+		t.Fatalf("CreateReleaseTodo: %v", err)
+	}
+	if todoID != "" {
+		t.Errorf("expected empty todoID, got %q", todoID)
+	}
+	hasGate, err := store.HasReleaseGate(ctx, proj.ID)
+	if err != nil {
+		t.Fatalf("HasReleaseGate: %v", err)
+	}
+	if hasGate {
+		t.Error("expected HasReleaseGate=false")
 	}
 }

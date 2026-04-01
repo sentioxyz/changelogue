@@ -21,7 +21,8 @@ import (
 
 // Store is a SQLite-backed store for stealth mode.
 type Store struct {
-	db *sql.DB
+	db         *sql.DB
+	NotifyHook func(ctx context.Context, releaseID, sourceID string)
 }
 
 // NewStore opens (or creates) the SQLite database at dbPath and runs migrations.
@@ -697,6 +698,127 @@ func (s *Store) GetRelease(ctx context.Context, id string) (*models.Release, err
 		return nil, fmt.Errorf("get release: %w", err)
 	}
 	return &rel, nil
+}
+
+// ─────────────────────────────────────────
+// IngestRelease (ingestion.ReleaseStore)
+// ─────────────────────────────────────────
+
+// IngestRelease inserts a new release into the database, implementing ingestion.ReleaseStore.
+func (s *Store) IngestRelease(ctx context.Context, sourceID string, result *ingestion.IngestionResult) error {
+	id := uuid.New().String()
+	now := time.Now().UTC()
+
+	rawData := map[string]interface{}{
+		"metadata":  result.Metadata,
+		"changelog": result.Changelog,
+	}
+	rawBytes, err := json.Marshal(rawData)
+	if err != nil {
+		return fmt.Errorf("marshal raw_data: %w", err)
+	}
+
+	var releasedAt sql.NullString
+	if !result.Timestamp.IsZero() {
+		releasedAt = sql.NullString{String: result.Timestamp.Format(time.RFC3339Nano), Valid: true}
+	}
+
+	_, err = s.db.ExecContext(ctx, `
+		INSERT INTO releases (id, source_id, version, raw_data, released_at, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		id, sourceID, result.RawVersion, string(rawBytes),
+		releasedAt, now.Format(time.RFC3339Nano),
+	)
+	if err != nil {
+		return err
+	}
+
+	if s.NotifyHook != nil {
+		s.NotifyHook(ctx, id, sourceID)
+	}
+	return nil
+}
+
+// ─────────────────────────────────────────
+// NotifyStore implementation
+// ─────────────────────────────────────────
+
+// ListSourceSubscriptions returns subscriptions for a source (type = 'source_release').
+func (s *Store) ListSourceSubscriptions(ctx context.Context, sourceID string) ([]models.Subscription, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, channel_id, type, source_id, project_id, version_filter, config, created_at
+		FROM subscriptions
+		WHERE type = 'source_release' AND source_id = ?`, sourceID)
+	if err != nil {
+		return nil, fmt.Errorf("list source subscriptions: %w", err)
+	}
+	defer rows.Close()
+
+	var subs []models.Subscription
+	for rows.Next() {
+		sub, err := scanSubscription(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan subscription: %w", err)
+		}
+		subs = append(subs, sub)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return subs, nil
+}
+
+// GetPreviousRelease returns the most recent release before the current one.
+func (s *Store) GetPreviousRelease(ctx context.Context, sourceID string, beforeVersion string) (*models.Release, error) {
+	row := s.db.QueryRowContext(ctx, `
+		SELECT id, source_id, version, COALESCE(raw_data,''), released_at, created_at
+		FROM releases
+		WHERE source_id = ? AND version != ?
+		ORDER BY COALESCE(released_at, created_at) DESC
+		LIMIT 1`, sourceID, beforeVersion)
+
+	var r models.Release
+	var rawData string
+	var releasedAtNull, createdAt sql.NullString
+	if err := row.Scan(&r.ID, &r.SourceID, &r.Version, &rawData, &releasedAtNull, &createdAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get previous release: %w", err)
+	}
+	if rawData != "" {
+		r.RawData = json.RawMessage(rawData)
+	}
+	if releasedAtNull.Valid && releasedAtNull.String != "" {
+		t, err := parseTime(releasedAtNull.String)
+		if err != nil {
+			return nil, fmt.Errorf("parse released_at: %w", err)
+		}
+		r.ReleasedAt = &t
+	}
+	if createdAt.Valid && createdAt.String != "" {
+		t, err := parseTime(createdAt.String)
+		if err != nil {
+			return nil, fmt.Errorf("parse created_at: %w", err)
+		}
+		r.CreatedAt = t
+	}
+	return &r, nil
+}
+
+// EnqueueAgentRun is a no-op in stealth mode (no River queue, no agent system).
+func (s *Store) EnqueueAgentRun(ctx context.Context, projectID, trigger, version string) error {
+	return nil
+}
+
+// CreateReleaseTodo is a no-op in stealth mode (no TODO tracking).
+func (s *Store) CreateReleaseTodo(ctx context.Context, releaseID string) (string, error) {
+	return "", nil
+}
+
+// HasReleaseGate always returns false in stealth mode (no gate system).
+func (s *Store) HasReleaseGate(ctx context.Context, projectID string) (bool, error) {
+	return false, nil
 }
 
 // ─────────────────────────────────────────
