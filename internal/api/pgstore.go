@@ -654,7 +654,7 @@ func (s *PgStore) ListSubscriptions(ctx context.Context, page, perPage int) ([]m
 	}
 	offset := (page - 1) * perPage
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), created_at
+		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), config, created_at
 		 FROM subscriptions ORDER BY created_at DESC LIMIT $1 OFFSET $2`, perPage, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list subscriptions: %w", err)
@@ -664,7 +664,7 @@ func (s *PgStore) ListSubscriptions(ctx context.Context, page, perPage int) ([]m
 	for rows.Next() {
 		var sub models.Subscription
 		if err := rows.Scan(&sub.ID, &sub.ChannelID, &sub.Type, &sub.SourceID,
-			&sub.ProjectID, &sub.VersionFilter, &sub.CreatedAt); err != nil {
+			&sub.ProjectID, &sub.VersionFilter, &sub.Config, &sub.CreatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan subscription: %w", err)
 		}
 		subs = append(subs, sub)
@@ -674,10 +674,10 @@ func (s *PgStore) ListSubscriptions(ctx context.Context, page, perPage int) ([]m
 
 func (s *PgStore) CreateSubscription(ctx context.Context, sub *models.Subscription) error {
 	return s.pool.QueryRow(ctx,
-		`INSERT INTO subscriptions (channel_id, type, source_id, project_id, version_filter)
-		 VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO subscriptions (channel_id, type, source_id, project_id, version_filter, config)
+		 VALUES ($1, $2, $3, $4, $5, $6)
 		 RETURNING id, created_at`,
-		sub.ChannelID, sub.Type, sub.SourceID, sub.ProjectID, sub.VersionFilter,
+		sub.ChannelID, sub.Type, sub.SourceID, sub.ProjectID, sub.VersionFilter, sub.Config,
 	).Scan(&sub.ID, &sub.CreatedAt)
 }
 
@@ -692,10 +692,10 @@ func (s *PgStore) CreateSubscriptionBatch(ctx context.Context, subs []models.Sub
 	for i := range subs {
 		sub := subs[i]
 		err := tx.QueryRow(ctx,
-			`INSERT INTO subscriptions (channel_id, type, source_id, project_id, version_filter)
-			 VALUES ($1, $2, $3, $4, $5)
+			`INSERT INTO subscriptions (channel_id, type, source_id, project_id, version_filter, config)
+			 VALUES ($1, $2, $3, $4, $5, $6)
 			 RETURNING id, created_at`,
-			sub.ChannelID, sub.Type, sub.SourceID, sub.ProjectID, sub.VersionFilter,
+			sub.ChannelID, sub.Type, sub.SourceID, sub.ProjectID, sub.VersionFilter, sub.Config,
 		).Scan(&sub.ID, &sub.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("insert subscription %d: %w", i, err)
@@ -712,10 +712,10 @@ func (s *PgStore) CreateSubscriptionBatch(ctx context.Context, subs []models.Sub
 func (s *PgStore) GetSubscription(ctx context.Context, id string) (*models.Subscription, error) {
 	var sub models.Subscription
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), created_at
+		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), config, created_at
 		 FROM subscriptions WHERE id = $1`, id,
 	).Scan(&sub.ID, &sub.ChannelID, &sub.Type, &sub.SourceID,
-		&sub.ProjectID, &sub.VersionFilter, &sub.CreatedAt)
+		&sub.ProjectID, &sub.VersionFilter, &sub.Config, &sub.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -724,9 +724,9 @@ func (s *PgStore) GetSubscription(ctx context.Context, id string) (*models.Subsc
 
 func (s *PgStore) UpdateSubscription(ctx context.Context, id string, sub *models.Subscription) error {
 	return s.pool.QueryRow(ctx,
-		`UPDATE subscriptions SET channel_id=$1, type=$2, source_id=$3, project_id=$4, version_filter=$5
-		 WHERE id=$6 RETURNING created_at`,
-		sub.ChannelID, sub.Type, sub.SourceID, sub.ProjectID, sub.VersionFilter, id,
+		`UPDATE subscriptions SET channel_id=$1, type=$2, source_id=$3, project_id=$4, version_filter=$5, config=$6
+		 WHERE id=$7 RETURNING created_at`,
+		sub.ChannelID, sub.Type, sub.SourceID, sub.ProjectID, sub.VersionFilter, sub.Config, id,
 	).Scan(&sub.CreatedAt)
 }
 
@@ -1081,7 +1081,7 @@ func (s *PgStore) GetAgentRun(ctx context.Context, id string) (*models.AgentRun,
 // ListSourceSubscriptions returns all source-level subscriptions for a given source.
 func (s *PgStore) ListSourceSubscriptions(ctx context.Context, sourceID string) ([]models.Subscription, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), created_at
+		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), config, created_at
 		 FROM subscriptions
 		 WHERE type = 'source_release' AND source_id = $1`, sourceID)
 	if err != nil {
@@ -1092,7 +1092,7 @@ func (s *PgStore) ListSourceSubscriptions(ctx context.Context, sourceID string) 
 	for rows.Next() {
 		var sub models.Subscription
 		if err := rows.Scan(&sub.ID, &sub.ChannelID, &sub.Type, &sub.SourceID,
-			&sub.ProjectID, &sub.VersionFilter, &sub.CreatedAt); err != nil {
+			&sub.ProjectID, &sub.VersionFilter, &sub.Config, &sub.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan subscription: %w", err)
 		}
 		subs = append(subs, sub)
@@ -1229,7 +1229,7 @@ func (s *PgStore) UpdateAgentRunResult(ctx context.Context, id string, semanticR
 // ListProjectSubscriptions returns all project-level subscriptions for a given project.
 func (s *PgStore) ListProjectSubscriptions(ctx context.Context, projectID string) ([]models.Subscription, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), created_at
+		`SELECT id, channel_id, type, source_id, project_id, COALESCE(version_filter,''), config, created_at
 		 FROM subscriptions
 		 WHERE type = 'semantic_release' AND project_id = $1`, projectID)
 	if err != nil {
@@ -1240,7 +1240,7 @@ func (s *PgStore) ListProjectSubscriptions(ctx context.Context, projectID string
 	for rows.Next() {
 		var sub models.Subscription
 		if err := rows.Scan(&sub.ID, &sub.ChannelID, &sub.Type, &sub.SourceID,
-			&sub.ProjectID, &sub.VersionFilter, &sub.CreatedAt); err != nil {
+			&sub.ProjectID, &sub.VersionFilter, &sub.Config, &sub.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan subscription: %w", err)
 		}
 		subs = append(subs, sub)

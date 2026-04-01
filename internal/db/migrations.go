@@ -300,6 +300,12 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 		return fmt.Errorf("source exclude_prereleases migration: %w", err)
 	}
 
+	if _, err := pool.Exec(ctx, `
+		ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS config JSONB;
+	`); err != nil {
+		return fmt.Errorf("subscription config migration: %w", err)
+	}
+
 	// Auto-create release_gates for projects with WaitForAllSources enabled.
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO release_gates (project_id, timeout_hours, enabled)
