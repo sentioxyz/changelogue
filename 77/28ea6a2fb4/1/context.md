@@ -81,3 +81,14 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at the...
 
+### Prompt 15
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **User's Initial Request**: Create a "stealth mode" for Changelogue that integrates with agent harnesses like Claude Code. No UI, local running process with SQLite, agent talks to it through CLI.
+
+2. **Brainstorming Phase**: Used the brainstorming skill to explore the idea. A subagen...
+
