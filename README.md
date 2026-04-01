@@ -16,6 +16,7 @@
 - **TODO tracking** for operator acknowledgment and resolution of releases
 - **Discovery & suggestions** search public registries and recommend sources from your GitHub activity
 - **Serves a dashboard** (Next.js) for managing projects, sources, subscriptions, and browsing releases in real time
+- **Stealth mode** — headless, agent-native mode with SQLite storage for embedding into CI/CD pipelines or agent harnesses (no PostgreSQL required)
 
 ## Architecture
 
@@ -87,6 +88,47 @@ clog version                                      Print CLI version
 
 Use `--json` on any command for machine-readable output. Use `--help` on any command for detailed usage and examples.
 
+## Stealth mode
+
+Stealth mode is a headless, agent-native variant of Changelogue that replaces PostgreSQL + River with a local SQLite database and synchronous notification dispatch. It's designed for embedding into CI/CD pipelines, agent harnesses (e.g., Claude Code), or single-machine setups where running PostgreSQL is not practical.
+
+### Install
+
+```bash
+make stealth    # builds ./clog-stealth binary
+```
+
+### Usage
+
+```bash
+# Start the stealth server (SQLite-backed, localhost:9876)
+clog-stealth serve
+
+# Install/uninstall as a background service (writes PID to ~/.changelogue/stealth.pid)
+clog-stealth install
+clog-stealth uninstall
+
+# Check if stealth is running
+clog-stealth status
+```
+
+### Configuration
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `CHANGELOGUE_STEALTH_DB` | `~/.changelogue/stealth.db` | SQLite database path |
+| `CHANGELOGUE_STEALTH_PORT` | `9876` | HTTP server port |
+| `POLL_INTERVAL` | `5m` | Source polling interval |
+| `LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+
+### Differences from full mode
+
+- **Storage:** SQLite (WAL mode) instead of PostgreSQL
+- **Job processing:** Synchronous in-process instead of River queue
+- **Notifications:** Shell command callbacks via subscription config (e.g., `{"command": "notify-send ..."}`)
+- **No dashboard:** API-only, no Next.js frontend
+- **No agent/gate/onboard:** Agent analysis, release gates, and onboarding scanning are unavailable
+
 ## Environment variables
 
 | Variable | Default | Purpose |
@@ -119,6 +161,7 @@ At least one of `ALLOWED_GITHUB_USERS` or `ALLOWED_GITHUB_ORGS` must be set when
 cmd/
   server/              Entry point — wires all layers together
   cli/                 CLI binary (clog) — REST API client
+  stealth/             Stealth binary (clog-stealth) — headless SQLite mode
   agent/               Agent CLI — run agent analysis for a project
 internal/
   agent/               ADK-Go agent orchestrator, tools, and worker
@@ -132,6 +175,7 @@ internal/
   onboard/             GitHub repo scanning and dependency extraction
   queue/               River job definitions and client
   routing/             Notification channels and delivery worker
+  stealth/             SQLite store and stubs for stealth mode
 web/                   Next.js dashboard (React + Tailwind + shadcn)
 scripts/               Integration test harness
 ```
@@ -160,7 +204,7 @@ type Sender interface {
 
 Releases are automated via [GoReleaser](https://goreleaser.com/) and GitHub Actions.
 
-Pushing a `v*` tag triggers the [release workflow](.github/workflows/release.yml), which cross-compiles the server and CLI for linux/darwin (amd64/arm64), creates archives with checksums, and publishes a GitHub Release.
+Pushing a `v*` tag triggers the [release workflow](.github/workflows/release.yml), which cross-compiles the server, CLI, and stealth binary for linux/darwin (amd64/arm64), creates archives with checksums, and publishes a GitHub Release.
 
 ```bash
 # Tag and push — triggers the full pipeline
@@ -177,6 +221,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the release history.
 ```bash
 make build              # go build -o changelogue ./cmd/server
 make cli                # build clog CLI binary
+make stealth            # build clog-stealth binary (headless SQLite mode)
 make run-auth           # build and run server with GitHub OAuth enabled
 make test               # go test ./...
 make coverage           # go test with coverage profile + print total %
@@ -186,6 +231,7 @@ make integration-test   # full integration test (spins up its own Postgres)
 make db-reset           # drop and recreate the local database
 make frontend-build     # build Next.js static export
 make agent-dev          # run agent CLI for a specific project
+make stealth-run        # build and run stealth server
 make release VERSION=x  # tag and push a release
 make release-dry-run    # test GoReleaser locally without publishing
 make clean              # remove binary, stop containers, delete volumes

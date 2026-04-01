@@ -31,11 +31,24 @@ builds:
       - amd64
       - arm64
 
+  - id: clog-stealth
+    main: ./cmd/stealth
+    binary: clog-stealth
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
 archives:
   - id: changelogue
     builds:
       - changelogue
       - clog
+      - clog-stealth
     formats:
       - tar.gz
     name_template: >-

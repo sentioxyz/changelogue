@@ -260,7 +260,26 @@ GitHub repository scanning with LLM-based dependency extraction. A user submits 
 * **Discovery** (public, no auth) — Search GitHub repos and Docker Hub images by keyword.
 * **Suggestions** (auth required) — Personalized recommendations from the authenticated user's GitHub starred repos and authored repos, with a `tracked` flag indicating whether each is already a source.
 
-### 2.10 Agentic Tooling (Planned: SRE Validation)
+### 2.10 Stealth Mode (Headless / Agent-Native)
+
+Stealth mode is an alternative deployment that replaces PostgreSQL and River with a local SQLite database and synchronous in-process dispatch. It is designed for embedding Changelogue into CI/CD pipelines, agent harnesses, or single-machine setups.
+
+**Key differences from full mode:**
+* **Storage:** SQLite (WAL mode, pure Go via `modernc.org/sqlite`) instead of PostgreSQL. Uses `?` placeholders and `TEXT` timestamps.
+* **Job processing:** Synchronous — notifications fire in-process immediately after release ingestion, instead of going through the River queue.
+* **Notifications:** Shell command callbacks (`ShellSender`) with per-subscription `config` supporting custom commands (e.g., `{"command": "notify-send ..."}`).
+* **No dashboard:** API-only (REST), no Next.js frontend embedded.
+* **Unsupported subsystems:** Agent analysis, release gates, onboarding/scanning, context sources, and semantic releases return `not implemented in stealth mode` errors via stub types.
+
+**Architecture:**
+* `cmd/stealth/main.go` — Binary entrypoint with `serve`, `install`, `uninstall`, `status` subcommands.
+* `internal/stealth/store.go` — SQLite store implementing `api.ProjectsStore`, `api.ReleasesStore`, `api.SourcesStore`, `api.ChannelsStore`, `api.SubscriptionsStore`, and `routing.NotifyStore`.
+* `internal/stealth/notify.go` — Synchronous notification dispatcher reusing `routing.Sender` implementations.
+* `internal/stealth/stubs.go` — Stub implementations for unsupported interfaces (`SemanticReleasesStore`, `AgentStore`, `TodosStore`, etc.).
+
+The ingestion layer (`internal/ingestion/`) is shared between full and stealth modes via extracted interfaces (`SourceLister`, `PollStatusUpdater`).
+
+### 2.11 Agentic Tooling (Planned: SRE Validation)
 
 For deep validation, Changelogue will utilize SRE agents with a suite of abstracted tools:
 
@@ -287,6 +306,7 @@ This will allow the agent to autonomously deploy a sandbox, verify that the depl
 ├── cmd/
 │   ├── server/          # Main Go application entry point
 │   ├── cli/             # CLI binary (clog) — REST API client
+│   ├── stealth/         # Stealth binary (clog-stealth) — headless SQLite mode
 │   └── agent/           # Agent CLI — run agent analysis for a project
 ├── internal/
 │   ├── api/             # REST API handlers, middleware, SSE broadcaster
@@ -297,6 +317,7 @@ This will allow the agent to autonomously deploy a sandbox, verify that the depl
 │   ├── gate/            # Release gate system (gate check, NL eval, timeout workers)
 │   ├── onboard/         # GitHub repo scanning and LLM-based dependency extraction
 │   ├── routing/         # Notification routing worker and channel implementations (Sender)
+│   ├── stealth/         # SQLite store, stubs, and notification dispatch for stealth mode
 │   ├── queue/           # River queue job definitions (notify, agent, gate, scan)
 │   ├── db/              # Connection pool and schema migrations
 │   ├── cli/             # CLI client code and commands

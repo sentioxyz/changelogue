@@ -20,8 +20,14 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Build
+      - name: Build server
         run: go build -o changelogue ./cmd/server
+
+      - name: Build CLI
+        run: go build -o clog ./cmd/cli
+
+      - name: Build stealth
+        run: go build -o clog-stealth ./cmd/stealth
 
       - name: Test
         run: go test -coverprofile=coverage.out ./...
