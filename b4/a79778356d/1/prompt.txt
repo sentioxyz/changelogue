@@ -1,0 +1,5 @@
+I found a bug that the semantic release after the gate is not associated with source releases and I cannot see the urgency of it through releases and projects page
+
+---
+
+commit and push
