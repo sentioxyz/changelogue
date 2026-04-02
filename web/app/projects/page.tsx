@@ -198,14 +198,8 @@ function ProjectFlowCard({ project }: { project: Project }) {
     `project-${project.id}-card-releases`,
     () => releasesApi.listByProject(project.id, 1, 25, { include_excluded: true }),
   );
-  const { data: srData } = useSWR(
-    `project-${project.id}-card-sr`,
-    () => srApi.list(project.id, 1, 10),
-  );
-
   const sources = srcData?.data ?? [];
   const releases = relData?.data ?? [];
-  const srItems = srData?.data ?? [];
 
   const sourceMap = useMemo(() => {
     const m = new Map<string, Source>();
@@ -295,7 +289,6 @@ function ProjectFlowCard({ project }: { project: Project }) {
         <FlowSection label={t("projects.releases")} moreHref={`/releases?project=${project.id}`} moreLabel={t("projects.more")}>
           {releases.map((r) => {
             const src = sourceMap.get(r.source_id);
-            const matchingSr = srItems.find((sr) => sr.version === r.version);
             return (
               <span key={r.id} className="inline-flex items-baseline mr-2.5">
                 <Link
@@ -309,18 +302,18 @@ function ProjectFlowCard({ project }: { project: Project }) {
                 >
                   {r.version}
                 </Link>
-                {!r.excluded && matchingSr?.status === "completed" && (() => {
-                  return matchingSr.report?.urgency ? (
+                {!r.excluded && r.semantic_release_status === "completed" && r.semantic_release_id && (() => {
+                  return r.semantic_release_urgency ? (
                     <Link
-                      href={`/projects/${project.id}/semantic-releases/${matchingSr.id}`}
+                      href={`/projects/${project.id}/semantic-releases/${r.semantic_release_id}`}
                       className="ml-1 transition-colors"
-                      title={`${matchingSr.report!.urgency} — ${t("projects.viewReport")}`}
+                      title={`${r.semantic_release_urgency} — ${t("projects.viewReport")}`}
                     >
-                      <UrgencyPill urgency={matchingSr.report!.urgency} variant="icon-only" />
+                      <UrgencyPill urgency={r.semantic_release_urgency} variant="icon-only" />
                     </Link>
                   ) : (
                     <Link
-                      href={`/projects/${project.id}/semantic-releases/${matchingSr.id}`}
+                      href={`/projects/${project.id}/semantic-releases/${r.semantic_release_id}`}
                       className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 ml-1 text-[10px] font-semibold transition-colors bg-muted text-text-secondary"
                       style={{ border: "1px solid rgba(107,114,128,0.18)", fontFamily: "var(--font-dm-sans)" }}
                       title={t("projects.viewReport")}
@@ -329,7 +322,7 @@ function ProjectFlowCard({ project }: { project: Project }) {
                     </Link>
                   );
                 })()}
-                {!r.excluded && (matchingSr?.status === "pending" || matchingSr?.status === "processing") && (
+                {!r.excluded && (r.semantic_release_status === "pending" || r.semantic_release_status === "processing") && (
                   <span
                     className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 ml-1 text-[10px]"
                     style={{ backgroundColor: "#fef9c3", color: "#92400e", fontFamily: "var(--font-dm-sans)" }}
@@ -469,19 +462,19 @@ function ProjectCompactRow({ project }: { project: Project }) {
               {latest.version}
             </Link>
             {latestIcon && latestIcon({ size: 12, className: "shrink-0 text-text-muted" })}
-            {latestSr?.status === "completed" && (() => {
-              return latestSr.report?.urgency ? (
+            {latest.semantic_release_status === "completed" && latest.semantic_release_id && (() => {
+              return latest.semantic_release_urgency ? (
                 <Link
-                  href={`/projects/${project.id}/semantic-releases/${latestSr.id}`}
+                  href={`/projects/${project.id}/semantic-releases/${latest.semantic_release_id}`}
                   onClick={(e) => e.stopPropagation()}
                   className="transition-colors"
-                  title={`${latestSr.report!.urgency} — ${t("projects.viewReport")}`}
+                  title={`${latest.semantic_release_urgency} — ${t("projects.viewReport")}`}
                 >
-                  <UrgencyPill urgency={latestSr.report!.urgency} variant="icon-only" />
+                  <UrgencyPill urgency={latest.semantic_release_urgency} variant="icon-only" />
                 </Link>
               ) : (
                 <Link
-                  href={`/projects/${project.id}/semantic-releases/${latestSr.id}`}
+                  href={`/projects/${project.id}/semantic-releases/${latest.semantic_release_id}`}
                   onClick={(e) => e.stopPropagation()}
                   className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors bg-muted text-text-secondary"
                   style={{ border: "1px solid rgba(107,114,128,0.18)", fontFamily: "var(--font-dm-sans)" }}
@@ -491,7 +484,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
                 </Link>
               );
             })()}
-            {(latestSr?.status === "pending" || latestSr?.status === "processing") && (
+            {(latest.semantic_release_status === "pending" || latest.semantic_release_status === "processing") && (
               <span
                 className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px]"
                 style={{ backgroundColor: "#fef9c3", color: "#92400e", fontFamily: "var(--font-dm-sans)" }}
@@ -509,12 +502,12 @@ function ProjectCompactRow({ project }: { project: Project }) {
 
       {/* Summary */}
       <span className="flex items-center gap-1.5 flex-1 min-w-0">
-        {latestSr?.status === "completed" ? (
+        {latest?.semantic_release_status === "completed" ? (
           <>
-            {latestSr.report?.urgency && (
-              <UrgencyPill urgency={latestSr.report.urgency} variant="text" className="shrink-0" />
+            {latest.semantic_release_urgency && (
+              <UrgencyPill urgency={latest.semantic_release_urgency} variant="text" className="shrink-0" />
             )}
-            {latestSr.report?.summary && (
+            {latestSr?.report?.summary && (
               <span className="text-[11px] truncate text-text-muted">
                 {latestSr.report.summary.length > 60
                   ? latestSr.report.summary.slice(0, 60) + "\u2026"
@@ -524,7 +517,7 @@ function ProjectCompactRow({ project }: { project: Project }) {
           </>
         ) : (
           <span className="text-[12px] italic text-text-muted">
-            {latestSr ? latestSr.status : t("projects.noAnalysis")}
+            {latest?.semantic_release_status ? latest.semantic_release_status : t("projects.noAnalysis")}
           </span>
         )}
       </span>
