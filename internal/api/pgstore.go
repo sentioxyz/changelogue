@@ -337,12 +337,16 @@ func (s *PgStore) ListAllReleases(ctx context.Context, page, perPage int, includ
 		 LEFT JOIN LATERAL (
 		     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
 		      FROM semantic_releases sr
-		      WHERE sr.project_id = p.id AND sr.version = r.version
+		      WHERE sr.project_id = p.id AND (sr.version = r.version
+		            OR EXISTS (SELECT 1 FROM semantic_release_sources srs
+		                       WHERE srs.semantic_release_id = sr.id AND srs.release_id = r.id))
 		      ORDER BY sr.created_at DESC LIMIT 1)
 		     UNION ALL
 		     (SELECT NULL::uuid, 'processing', '', 1
 		      FROM agent_runs ar
-		      WHERE ar.project_id = p.id AND ar.version = r.version
+		      WHERE ar.project_id = p.id
+		        AND (ar.version = r.version
+		             OR ar.version = LOWER(TRIM(LEADING 'v' FROM TRIM(LEADING 'V' FROM r.version))))
 		        AND ar.status IN ('pending', 'running')
 		      LIMIT 1)
 		     ORDER BY priority LIMIT 1
@@ -461,12 +465,16 @@ func (s *PgStore) ListReleasesBySource(ctx context.Context, sourceID string, pag
 		 LEFT JOIN LATERAL (
 		     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
 		      FROM semantic_releases sr
-		      WHERE sr.project_id = p.id AND sr.version = r.version
+		      WHERE sr.project_id = p.id AND (sr.version = r.version
+		            OR EXISTS (SELECT 1 FROM semantic_release_sources srs
+		                       WHERE srs.semantic_release_id = sr.id AND srs.release_id = r.id))
 		      ORDER BY sr.created_at DESC LIMIT 1)
 		     UNION ALL
 		     (SELECT NULL::uuid, 'processing', '', 1
 		      FROM agent_runs ar
-		      WHERE ar.project_id = p.id AND ar.version = r.version
+		      WHERE ar.project_id = p.id
+		        AND (ar.version = r.version
+		             OR ar.version = LOWER(TRIM(LEADING 'v' FROM TRIM(LEADING 'V' FROM r.version))))
 		        AND ar.status IN ('pending', 'running')
 		      LIMIT 1)
 		     ORDER BY priority LIMIT 1
@@ -584,12 +592,16 @@ func (s *PgStore) ListReleasesByProject(ctx context.Context, projectID string, p
 		 LEFT JOIN LATERAL (
 		     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
 		      FROM semantic_releases sr
-		      WHERE sr.project_id = p.id AND sr.version = r.version
+		      WHERE sr.project_id = p.id AND (sr.version = r.version
+		            OR EXISTS (SELECT 1 FROM semantic_release_sources srs
+		                       WHERE srs.semantic_release_id = sr.id AND srs.release_id = r.id))
 		      ORDER BY sr.created_at DESC LIMIT 1)
 		     UNION ALL
 		     (SELECT NULL::uuid, 'processing', '', 1
 		      FROM agent_runs ar
-		      WHERE ar.project_id = p.id AND ar.version = r.version
+		      WHERE ar.project_id = p.id
+		        AND (ar.version = r.version
+		             OR ar.version = LOWER(TRIM(LEADING 'v' FROM TRIM(LEADING 'V' FROM r.version))))
 		        AND ar.status IN ('pending', 'running')
 		      LIMIT 1)
 		     ORDER BY priority LIMIT 1
@@ -624,12 +636,16 @@ func (s *PgStore) GetRelease(ctx context.Context, id string) (*models.Release, e
 		 LEFT JOIN LATERAL (
 		     (SELECT sr.id, sr.status, sr.report->>'urgency' AS urgency, 0 AS priority
 		      FROM semantic_releases sr
-		      WHERE sr.project_id = p.id AND sr.version = r.version
+		      WHERE sr.project_id = p.id AND (sr.version = r.version
+		            OR EXISTS (SELECT 1 FROM semantic_release_sources srs
+		                       WHERE srs.semantic_release_id = sr.id AND srs.release_id = r.id))
 		      ORDER BY sr.created_at DESC LIMIT 1)
 		     UNION ALL
 		     (SELECT NULL::uuid, 'processing', '', 1
 		      FROM agent_runs ar
-		      WHERE ar.project_id = p.id AND ar.version = r.version
+		      WHERE ar.project_id = p.id
+		        AND (ar.version = r.version
+		             OR ar.version = LOWER(TRIM(LEADING 'v' FROM TRIM(LEADING 'V' FROM r.version))))
 		        AND ar.status IN ('pending', 'running')
 		      LIMIT 1)
 		     ORDER BY priority LIMIT 1

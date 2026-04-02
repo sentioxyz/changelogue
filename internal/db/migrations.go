@@ -317,5 +317,24 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 		return fmt.Errorf("wait_for_all_sources migration: %w", err)
 	}
 
+	// Backfill semantic_release_sources for existing semantic releases that were
+	// created with normalized versions (e.g., gate stripped v-prefix).
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO semantic_release_sources (semantic_release_id, release_id)
+		SELECT sr.id, r.id
+		FROM semantic_releases sr
+		JOIN sources s ON s.project_id = sr.project_id
+		JOIN releases r ON r.source_id = s.id
+		  AND LOWER(TRIM(LEADING 'v' FROM TRIM(LEADING 'V' FROM r.version)))
+		    = LOWER(TRIM(LEADING 'v' FROM TRIM(LEADING 'V' FROM sr.version)))
+		WHERE NOT EXISTS (
+		    SELECT 1 FROM semantic_release_sources srs
+		    WHERE srs.semantic_release_id = sr.id AND srs.release_id = r.id
+		)
+		ON CONFLICT DO NOTHING
+	`); err != nil {
+		return fmt.Errorf("backfill semantic_release_sources: %w", err)
+	}
+
 	return nil
 }

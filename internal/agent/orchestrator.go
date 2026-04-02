@@ -22,6 +22,7 @@ import (
 	"google.golang.org/adk/tool/geminitool"
 
 	oaimodel "github.com/sentioxyz/changelogue/internal/agent/openai"
+	"github.com/sentioxyz/changelogue/internal/gate"
 	"github.com/sentioxyz/changelogue/internal/models"
 	"github.com/sentioxyz/changelogue/internal/routing"
 )
@@ -433,8 +434,9 @@ func (o *Orchestrator) executeAgent(ctx context.Context, run *models.AgentRun) (
 		return nil, fmt.Errorf("list releases for semantic release: %w", err)
 	}
 	releaseIDs := make([]string, 0, len(releases))
+	normalizedVersion := gate.NormalizeVersion(version, nil)
 	for _, r := range releases {
-		if r.Version == version {
+		if gate.NormalizeVersion(r.Version, nil) == normalizedVersion {
 			releaseIDs = append(releaseIDs, r.ID)
 		}
 	}
