@@ -102,15 +102,14 @@ export function ReleaseDetail() {
   );
   const project: Project | undefined = projectData?.data;
 
-  /* Fetch linked semantic releases (via project) */
+  /* Fetch linked semantic release (from API response field) */
   const { data: srData } = useSWR(
-    source ? `sr-for-release-${id}` : null,
+    release?.semantic_release_id ? `sr-for-release-${id}` : null,
     async () => {
-      if (!source) return [];
-      const res = await srApi.list(source.project_id, 1).catch(() => null);
+      if (!release?.semantic_release_id) return [];
+      const res = await srApi.get(release.semantic_release_id).catch(() => null);
       if (!res?.data) return [];
-      /* Filter semantic releases whose version matches this release version */
-      return res.data.filter((sr: SemanticRelease) => sr.version === release?.version);
+      return [res.data];
     }
   );
 
