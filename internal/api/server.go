@@ -24,6 +24,7 @@ type Dependencies struct {
 	TodosStore            TodosStore
 	OnboardStore          OnboardStore
 	GatesStore            GatesStore
+	ApiKeysStore          ApiKeysStore
 	PublicURL             string
 	KeyStore              KeyStore
 	SessionValidator      SessionValidator
@@ -129,6 +130,12 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 
 	// Release Gates
 	gates := NewGatesHandler(deps.GatesStore)
+
+	// API Keys (CRUD)
+	apiKeys := NewApiKeysHandler(deps.ApiKeysStore)
+	mux.Handle("GET /api/v1/api-keys", chain(http.HandlerFunc(apiKeys.List)))
+	mux.Handle("POST /api/v1/api-keys", chain(http.HandlerFunc(apiKeys.Create)))
+	mux.Handle("DELETE /api/v1/api-keys/{id}", chain(http.HandlerFunc(apiKeys.Delete)))
 	mux.Handle("GET /api/v1/projects/{id}/release-gate", chain(http.HandlerFunc(gates.GetGate)))
 	mux.Handle("PUT /api/v1/projects/{id}/release-gate", chain(http.HandlerFunc(gates.UpsertGate)))
 	mux.Handle("DELETE /api/v1/projects/{id}/release-gate", chain(http.HandlerFunc(gates.DeleteGate)))

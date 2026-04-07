@@ -13,6 +13,7 @@ const SEGMENT_KEYS: Record<string, string> = {
   agent: "header.breadcrumb.agent",
   "semantic-releases": "header.breadcrumb.semanticReleases",
   "context-sources": "header.breadcrumb.contextSources",
+  "api-keys": "header.breadcrumb.apiKeys",
   new: "header.breadcrumb.new",
   edit: "header.breadcrumb.edit",
 };

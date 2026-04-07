@@ -14,6 +14,7 @@ import {
   PanelLeftClose,
   LogOut,
   Settings,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/context";
@@ -34,6 +35,7 @@ const navKeys = [
   { href: "/releases", key: "nav.releases", icon: Package },
   { href: "/channels", key: "nav.channels", icon: Megaphone },
   { href: "/subscriptions", key: "nav.subscriptions", icon: Bell },
+  { href: "/api-keys", key: "nav.apiKeys", icon: KeyRound },
 ];
 
 export function Sidebar() {

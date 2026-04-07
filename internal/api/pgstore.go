@@ -122,6 +122,53 @@ func (s *PgStore) TouchKeyUsage(ctx context.Context, rawKey string) {
 	_, _ = s.pool.Exec(ctx, `UPDATE api_keys SET last_used_at = NOW() WHERE key_hash = $1`, keyHash)
 }
 
+// --- ApiKeysStore ---
+
+func (s *PgStore) ListApiKeys(ctx context.Context, page, perPage int) ([]models.ApiKey, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM api_keys`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count api_keys: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, name, key_prefix, created_at, last_used_at
+		 FROM api_keys ORDER BY created_at DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list api_keys: %w", err)
+	}
+	defer rows.Close()
+	var keys []models.ApiKey
+	for rows.Next() {
+		var k models.ApiKey
+		if err := rows.Scan(&k.ID, &k.Name, &k.KeyPrefix, &k.CreatedAt, &k.LastUsedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan api_key: %w", err)
+		}
+		keys = append(keys, k)
+	}
+	return keys, total, rows.Err()
+}
+
+func (s *PgStore) CreateApiKey(ctx context.Context, key *models.ApiKey) error {
+	// key.Key is expected to contain the SHA-256 hash at this point.
+	return s.pool.QueryRow(ctx,
+		`INSERT INTO api_keys (name, key_hash, key_prefix) VALUES ($1, $2, $3)
+		 RETURNING id, created_at`,
+		key.Name, key.Key, key.KeyPrefix,
+	).Scan(&key.ID, &key.CreatedAt)
+}
+
+func (s *PgStore) DeleteApiKey(ctx context.Context, id string) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM api_keys WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete api_key: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("not found")
+	}
+	return nil
+}
+
 // --- SourcesStore ---
 
 func (s *PgStore) ListSourcesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Source, int, error) {

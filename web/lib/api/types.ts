@@ -381,3 +381,18 @@ export interface GateEvent {
   details?: Record<string, unknown>;
   created_at: string;
 }
+
+// --- API Keys ---
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  key?: string; // only returned on create
+  created_at: string;
+  last_used_at?: string;
+}
+
+export interface ApiKeyCreateInput {
+  name: string;
+}

@@ -30,6 +30,8 @@ import type {
   ReleaseGateInput,
   VersionReadiness,
   GateEvent,
+  ApiKey,
+  ApiKeyCreateInput,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -361,4 +363,18 @@ export const gates = {
     request<ApiResponse<GateEvent[]>>(
       `/projects/${projectId}/version-readiness/${encodeURIComponent(version)}/events?page=${page}&per_page=${perPage}`
     ),
+};
+
+// --- API Keys ---
+
+export const apiKeys = {
+  list: (page = 1, perPage = 100) =>
+    request<ApiResponse<ApiKey[]>>(`/api-keys?page=${page}&per_page=${perPage}`),
+  create: (input: ApiKeyCreateInput) =>
+    request<ApiResponse<ApiKey>>("/api-keys", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  delete: (id: string) =>
+    request<ApiResponse<null>>(`/api-keys/${id}`, { method: "DELETE" }),
 };
