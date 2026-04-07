@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "f8730c7c9012",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 8,
+  "files_touched": [
+    "cmd/cli/main.go",
+    "cmd/server/main.go",
+    "internal/api/apikeys.go",
+    "internal/api/pgstore.go",
+    "internal/api/server.go",
+    "internal/cli/apikeys.go",
+    "internal/models/api_key.go",
+    "web/app/api-keys/page.tsx",
+    "web/app/login/page.tsx",
+    "web/components/layout/header.tsx",
+    "web/components/layout/sidebar.tsx",
+    "web/lib/api/client.ts",
+    "web/lib/api/types.ts",
+    "web/lib/i18n/messages/en.json",
+    "web/lib/i18n/messages/zh.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f8/730c7c9012/0/metadata.json",
+      "transcript": "/f8/730c7c9012/0/full.jsonl",
+      "context": "/f8/730c7c9012/0/context.md",
+      "content_hash": "/f8/730c7c9012/0/content_hash.txt",
+      "prompt": "/f8/730c7c9012/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 15165969,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 26655,
+    "api_call_count": 140
+  }
+}
