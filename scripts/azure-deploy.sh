@@ -46,7 +46,7 @@ DB_USER="pgadmin"
 DB_PASSWORD="${AZURE_DB_PASSWORD:-}"
 APP_PLAN="${AZURE_APP_PLAN:-changelogue-plan}"
 APP_NAME="${AZURE_APP_NAME:-changelogue-app}"
-APP_SKU="${AZURE_APP_SKU:-F1}"
+APP_SKU="${AZURE_APP_SKU:-B1}"
 APP_LOCATION="${AZURE_APP_LOCATION:-westus3}"
 IMAGE="${ACR}.azurecr.io/changelogue:latest"
 
@@ -228,6 +228,13 @@ cmd_setup() {
     --resource-group "$RG" \
     --name "$APP_NAME" \
     --settings $SETTINGS \
+    --output none
+
+  log "Enabling Always On (keeps container alive for background polling)..."
+  az webapp config set \
+    --resource-group "$RG" \
+    --name "$APP_NAME" \
+    --always-on true \
     --output none
 
   log "Restarting App Service..."
