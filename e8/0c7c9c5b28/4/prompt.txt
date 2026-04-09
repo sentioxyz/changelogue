@@ -1,0 +1,9 @@
+There's a bug that even the source's poll interval set to daily, but it seesm that we poll them until we open the website, why?
+
+---
+
+Sure
+
+---
+
+commit and push
