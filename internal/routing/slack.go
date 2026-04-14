@@ -200,21 +200,15 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 			// auto-collapses long code blocks in attachments with a
 			// "Show more" button.
 			asciiChangelog := markdownToASCII(changelogText)
-			attachText := fmt.Sprintf("*%s* `%s`\n```%s```", msg.Title, msg.Version, asciiChangelog)
+			attachText := fmt.Sprintf("*%s* `%s`\n```\n%s\n```", msg.Title, msg.Version, asciiChangelog)
 
-			// Append links after the code block
+			// Append links after the code block (Acknowledge/Resolve are shown as buttons below)
 			var linkParts []string
 			if msg.SourceURL != "" {
 				linkParts = append(linkParts, fmt.Sprintf("<%s|View on %s>", msg.SourceURL, ProviderLabel(msg.Provider)))
 			}
 			if msg.ReleaseURL != "" {
 				linkParts = append(linkParts, fmt.Sprintf("<%s|View in Changelogue>", msg.ReleaseURL))
-			}
-			if msg.TodoID != "" && msg.PublicURL != "" {
-				linkParts = append(linkParts,
-					fmt.Sprintf("<%s|Acknowledge>", TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)),
-					fmt.Sprintf("<%s|Resolve>", TodoResolveURL(msg.PublicURL, msg.TodoID)),
-				)
 			}
 			if len(linkParts) > 0 {
 				attachText += "\n" + strings.Join(linkParts, "  |  ")
@@ -247,23 +241,15 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 				})
 			}
 		} else {
-			// No changelog — show a clean version announcement instead of raw JSON.
-			headerText := msg.Title
-			if msg.Version != "" && msg.Title != msg.Version {
-				headerText = fmt.Sprintf("%s %s", msg.Title, msg.Version)
-			}
-			if len(headerText) > 150 {
-				headerText = headerText[:147] + "..."
+			// No changelog — use attachment format consistent with the changelog path.
+			titleLabel := msg.Title
+			if msg.Repository != "" && msg.Provider != "" {
+				titleLabel = fmt.Sprintf("%s on %s", msg.Repository, ProviderLabel(msg.Provider))
 			}
 
-			blocks := []any{
-				slackBlock{Type: "header", Text: &slackText{Type: "plain_text", Text: headerText}},
-			}
+			attachText := fmt.Sprintf("*%s* `%s`", msg.Title, msg.Version)
 
 			var linkParts []string
-			if msg.Provider != "" && msg.Repository != "" {
-				linkParts = append(linkParts, fmt.Sprintf("%s · %s", ProviderLabel(msg.Provider), msg.Repository))
-			}
 			if msg.SourceURL != "" {
 				linkParts = append(linkParts, fmt.Sprintf("<%s|View on %s>", msg.SourceURL, ProviderLabel(msg.Provider)))
 			}
@@ -271,23 +257,35 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 				linkParts = append(linkParts, fmt.Sprintf("<%s|View in Changelogue>", msg.ReleaseURL))
 			}
 			if len(linkParts) > 0 {
-				blocks = append(blocks, slackBlock{
-					Type: "context",
-					Elements: []slackText{
-						{Type: "mrkdwn", Text: strings.Join(linkParts, "  |  ")},
-					},
-				})
+				attachText += "\n" + strings.Join(linkParts, "  |  ")
 			}
+
+			attachment := slackAttachment{
+				Color:    "#D3D3D3",
+				Title:    titleLabel,
+				Text:     attachText,
+				MrkdwnIn: []string{"text"},
+			}
+			if msg.SourceURL != "" {
+				attachment.TitleLink = msg.SourceURL
+			}
+			payload.Attachments = []slackAttachment{attachment}
+
+			// Action buttons as a second attachment
 			if msg.TodoID != "" && msg.PublicURL != "" {
-				blocks = append(blocks, slackActionsBlock{
-					Type: "actions",
-					Elements: []slackButton{
-						{Type: "button", Text: slackText{Type: "plain_text", Text: "Acknowledge"}, URL: TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)},
-						{Type: "button", Text: slackText{Type: "plain_text", Text: "Resolve"}, URL: TodoResolveURL(msg.PublicURL, msg.TodoID)},
+				payload.Attachments = append(payload.Attachments, slackAttachment{
+					Color: "#D3D3D3",
+					Blocks: []any{
+						slackActionsBlock{
+							Type: "actions",
+							Elements: []slackButton{
+								{Type: "button", Text: slackText{Type: "plain_text", Text: "Acknowledge"}, URL: TodoAcknowledgeURL(msg.PublicURL, msg.TodoID)},
+								{Type: "button", Text: slackText{Type: "plain_text", Text: "Resolve"}, URL: TodoResolveURL(msg.PublicURL, msg.TodoID)},
+							},
+						},
 					},
 				})
 			}
-			payload.Blocks = blocks
 		}
 	}
 

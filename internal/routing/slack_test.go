@@ -267,18 +267,20 @@ func TestSlackSender_NonReportFallback(t *testing.T) {
 		t.Fatalf("received invalid JSON: %v", err)
 	}
 
-	// Fallback with no changelog should produce a header block (no raw JSON dumped)
-	if len(payload.Blocks) < 1 {
-		t.Fatal("expected at least 1 block for non-report")
+	// Fallback with no changelog should use attachment format (consistent with changelog path)
+	if len(payload.Attachments) < 1 {
+		t.Fatal("expected at least 1 attachment for non-report fallback")
 	}
-	if payload.Blocks[0].Type != "header" {
-		t.Fatalf("expected header block, got %s", payload.Blocks[0].Type)
+	att := payload.Attachments[0]
+	if !strings.Contains(att.Text, "geth") {
+		t.Fatalf("attachment text should contain project name, got %q", att.Text)
 	}
-	// Should NOT contain raw body text in a section block
-	for _, b := range payload.Blocks {
-		if b.Type == "section" && b.Text != nil && b.Text.Text == "Released on GitHub with security fixes" {
-			t.Fatal("should not dump raw body text in section block")
-		}
+	if !strings.Contains(att.Text, "v1.14.0") {
+		t.Fatalf("attachment text should contain version, got %q", att.Text)
+	}
+	// Should NOT contain raw body text
+	if strings.Contains(att.Text, "Released on GitHub with security fixes") {
+		t.Fatal("should not dump raw body text in attachment")
 	}
 }
 
@@ -419,36 +421,39 @@ func TestSlackSender_EmptyChangelog_NoRawJSON(t *testing.T) {
 				t.Fatalf("received invalid JSON: %v", err)
 			}
 
-			// Should use blocks (no changelog for attachments)
-			if len(payload.Blocks) < 1 {
-				t.Fatal("expected at least 1 block")
+			// Should use attachments (consistent with changelog path)
+			if len(payload.Attachments) < 1 {
+				t.Fatal("expected at least 1 attachment")
 			}
 
-			// Header should include project name and version
-			header := payload.Blocks[0].Text.Text
-			if !strings.Contains(header, tt.msg.Title) {
-				t.Fatalf("header should contain project name %q, got %q", tt.msg.Title, header)
+			att := payload.Attachments[0]
+
+			// Attachment text should include project name and version
+			if !strings.Contains(att.Text, tt.msg.Title) {
+				t.Fatalf("attachment text should contain project name %q, got %q", tt.msg.Title, att.Text)
 			}
-			if !strings.Contains(header, tt.msg.Version) {
-				t.Fatalf("header should contain version %q, got %q", tt.msg.Version, header)
+			if !strings.Contains(att.Text, tt.msg.Version) {
+				t.Fatalf("attachment text should contain version %q, got %q", tt.msg.Version, att.Text)
 			}
 
-			// Should NOT contain raw JSON in any block
-			for _, b := range payload.Blocks {
-				if b.Text != nil {
-					if strings.Contains(b.Text.Text, "prerelease") {
-						t.Fatalf("should not contain raw JSON key 'prerelease' in block text: %q", b.Text.Text)
-					}
-					if b.Text.Text == tt.msg.Body {
-						t.Fatalf("should not dump raw body JSON in block: %q", b.Text.Text)
-					}
+			// Attachment title should show repo on provider
+			if tt.msg.Repository != "" && tt.msg.Provider != "" {
+				if !strings.Contains(att.Title, tt.msg.Repository) {
+					t.Fatalf("expected repo in attachment title, got %q", att.Title)
 				}
 			}
 
-			// Should have context block with links
-			lastBlock := payload.Blocks[len(payload.Blocks)-1]
-			if lastBlock.Type != "context" {
-				t.Fatalf("expected last block to be context with links, got %s", lastBlock.Type)
+			// Should NOT contain raw JSON in attachment text
+			if strings.Contains(att.Text, "prerelease") {
+				t.Fatalf("should not contain raw JSON key 'prerelease' in text: %q", att.Text)
+			}
+
+			// Should have links
+			if tt.msg.SourceURL != "" && !strings.Contains(att.Text, "View on") {
+				t.Fatal("expected 'View on' link in attachment text")
+			}
+			if tt.msg.ReleaseURL != "" && !strings.Contains(att.Text, "View in Changelogue") {
+				t.Fatal("expected 'View in Changelogue' link in attachment text")
 			}
 		})
 	}
