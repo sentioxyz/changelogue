@@ -1,0 +1,102 @@
+Please apply the similar filter ribbon of releases page to the subscriptions page, include the release chanel and the release type
+
+---
+
+Base directory for this skill: /Users/pc/.claude/skills/nextjs-typecheck
+
+# Next.js TypeScript Type Check
+
+Run `npx tsc --noEmit` in a Next.js frontend directory to verify all TypeScript types are correct.
+
+## Usage
+
+Invoke after editing TypeScript/TSX files in a Next.js project.
+
+## Parameters
+
+- `` (optional): Path to the web/frontend directory (default: `./web`)
+
+## Execution
+
+1. Run the companion script:
+
+```bash
+bash /Users/pc/.claude/skills/nextjs-typecheck/scripts/nextjs-typecheck.sh ${ARGUMENTS:-./web}
+```
+
+2. If the script exits 0, report that TypeScript compilation succeeded with no errors.
+3. If it exits non-zero, parse the error output, fix the type errors, then re-run.
+
+---
+
+Also please help me merge the select all checkbox and the ribbon shows total subscriptions with the title of the channels
+
+---
+
+Then the filter ribbon shouldn't have the select all checkbox  the select all check box should be on the sheet's header and once click it , the header will change to include the delete button
+
+---
+
+The `Delete selected` button is too close to the "1 of 5 selected"
+
+---
+
+The style still looks not very good, can you design the header better?
+
+---
+
+much better, push the changes
+
+---
+
+Base directory for this skill: /Users/pc/.claude/skills/git-ship
+
+# Git Ship
+
+Inspect working tree state, stage changes, commit with a conventional commit message, and optionally push.
+
+## Usage
+
+Invoke when you have completed a code change and want to commit. The skill performs the standard pre-commit inspection sequence: `git status` → `git diff` → `git log` to understand context before staging and committing.
+
+## Parameters
+
+- `` (optional): Include `push` to also push after committing
+
+## Execution
+
+1. **Inspect** — Run these commands in parallel to understand current state:
+
+```bash
+git status
+git diff --stat
+git log --oneline -5
+```
+
+2. **Analyze** — Review the output to understand:
+   - What files are modified/untracked
+   - The nature of changes (new feature, fix, refactor, etc.)
+   - Recent commit message style
+
+3. **Stage** — Add relevant files:
+
+```bash
+git add <specific-files>
+```
+
+4. **Commit** — Create a conventional commit with Co-Authored-By footer:
+
+```bash
+git commit -m "$(cat <<'EOF'
+<type>(<scope>): <description>
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+EOF
+)"
+```
+
+5. **Push** (if `push` argument provided):
+
+```bash
+git push
+```
