@@ -3,7 +3,7 @@
   "checkpoint_id": "06df580a22ee",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "internal/routing/sender.go",
     "internal/routing/slack_test.go"
@@ -50,13 +50,20 @@
       "context": "/06/df580a22ee/5/context.md",
       "content_hash": "/06/df580a22ee/5/content_hash.txt",
       "prompt": "/06/df580a22ee/5/prompt.txt"
+    },
+    {
+      "metadata": "/06/df580a22ee/6/metadata.json",
+      "transcript": "/06/df580a22ee/6/full.jsonl",
+      "context": "/06/df580a22ee/6/context.md",
+      "content_hash": "/06/df580a22ee/6/content_hash.txt",
+      "prompt": "/06/df580a22ee/6/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 51973404,
+    "input_tokens": 52640228,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 107839,
-    "api_call_count": 523
+    "output_tokens": 111802,
+    "api_call_count": 538
   }
 }

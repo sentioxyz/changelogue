@@ -1,0 +1,17 @@
+https://github.com/cilium/cilium/releases/tag/v1.18.9
+Slack notification shows:
+cilium v1.18.9
+```
+Summary of Changes
+------------------
+
+It should be:
+------------------
+Summary of Changes
+------------------
+
+REMEMBER every time you fix these format errors, create a UT to avoid regression, there are too many times of such issues
+
+---
+
+Cool, commit and push and release
