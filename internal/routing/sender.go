@@ -115,6 +115,9 @@ var (
 	reMdLink = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
 	// Headings ## Text → dashed ASCII box
 	reHeading = regexp.MustCompile(`(?m)^#{1,6}\s+(.+)$`)
+	// Setext headings: Title\n====== (h1) or Title\n------ (h2)
+	reSetextH1 = regexp.MustCompile(`(?m)^(.+)\n[=]{2,}$`)
+	reSetextH2 = regexp.MustCompile(`(?m)^(.+)\n[-]{2,}$`)
 	// Bold **text** and __text__
 	reBoldStar = regexp.MustCompile(`\*\*(.+?)\*\*`)
 	reBoldUnderscore = regexp.MustCompile(`__(.+?)__`)
@@ -140,7 +143,21 @@ func markdownToASCII(md string) string {
 	// Convert markdown links [text](url) → text ( url )
 	s = reMdLink.ReplaceAllString(s, "$1 ( $2 )")
 
-	// Convert headings to ASCII art with dashes
+	// Convert Setext headings (Title\n====== or Title\n------) to ASCII box
+	s = reSetextH1.ReplaceAllStringFunc(s, func(match string) string {
+		parts := reSetextH1.FindStringSubmatch(match)
+		title := strings.TrimSpace(parts[1])
+		dashes := strings.Repeat("-", len(title))
+		return dashes + "\n" + title + "\n" + dashes
+	})
+	s = reSetextH2.ReplaceAllStringFunc(s, func(match string) string {
+		parts := reSetextH2.FindStringSubmatch(match)
+		title := strings.TrimSpace(parts[1])
+		dashes := strings.Repeat("-", len(title))
+		return dashes + "\n" + title + "\n" + dashes
+	})
+
+	// Convert ATX headings to ASCII art with dashes
 	s = reHeading.ReplaceAllStringFunc(s, func(match string) string {
 		parts := reHeading.FindStringSubmatch(match)
 		title := strings.TrimSpace(parts[1])

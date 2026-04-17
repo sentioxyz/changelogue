@@ -519,6 +519,24 @@ func TestMarkdownToASCII(t *testing.T) {
 			excludes: []string{"<br/>", "<b>", "</b>"},
 		},
 		{
+			name:     "setext h2 heading (dashes)",
+			input:    "Summary of Changes\n------------------",
+			contains: []string{"------------------\nSummary of Changes\n------------------"},
+		},
+		{
+			name:     "setext h1 heading (equals)",
+			input:    "Release Notes\n=============",
+			contains: []string{"-------------\nRelease Notes\n-------------"},
+		},
+		{
+			name:  "cilium-style changelog with setext heading",
+			input: "Summary of Changes\n------------------\n\n* Fixed a bug in endpoint routing\n* Updated Hubble version to v1.2.3",
+			contains: []string{
+				"------------------\nSummary of Changes\n------------------",
+				"Fixed a bug in endpoint routing",
+			},
+		},
+		{
 			name:  "full changelog example",
 			input: "## What's Changed\n\n* feat: add monitoring by @dev in https://github.com/org/repo/pull/42\n* fix: **memory leak** in `worker`\n\n**Full Changelog**: [v0.9...v1.0](https://github.com/org/repo/compare/v0.9.0...v1.0.0)",
 			contains: []string{
