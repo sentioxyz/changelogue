@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "06df580a22ee",
+  "session_id": "70cf8d29-7b13-4e61-b5ea-472863ba4244",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-17T01:54:12.669909Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "internal/routing/sender.go",
+    "internal/routing/slack_test.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "3df83ee49624",
+  "checkpoint_transcript_start": 375,
+  "transcript_lines_at_start": 375,
+  "token_usage": {
+    "input_tokens": 10917753,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 24801,
+    "api_call_count": 106
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-17T01:54:12.175418Z",
+    "agent_lines": 36,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 36,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/70cf8d29-7b13-4e61-b5ea-472863ba4244.jsonl"
+}
