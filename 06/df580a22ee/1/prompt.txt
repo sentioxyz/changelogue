@@ -1,0 +1,37 @@
+For the slack notification, when there's no release notes for a version, the notification shows as ClickHouse v26.2.13.2-stableGitHub · ClickHouse/ClickHouse  |  View on GitHub  |  View in Changelogue  which is not consistent with the ones who have the release notes: kubernetes-sigs/kubespray on GitHubkubespray v2.26.1
+
+---
+
+I also noticed that there are duplicated acknowledge and resolve link both on the attachment and buttons View on GitHub  |  View in Changelogue  |  Acknowledge  |  Resolve
+
+---
+
+https://github.com/aptos-labs/aptos-core/releases/tag/aptos-node-v1.44.2-rc
+for this the format in the notification seems broken aptos aptos-node-v1.44.2-rc
+```--------------
+What's Changed
+--------------
+
+---
+
+No I want ------ Text ----- instead of ``` ---- text ---- others workwell but only https://github.com/aptos-labs/aptos-core/releases/tag/aptos-node-v1.44.2-rc it's broken you should look into its format to understand why
+
+---
+
+But why https://github.com/0xPolygon/bor/releases/tag/v2.7.1 works?
+
+---
+
+cool, commit and push
+
+---
+
+Why the Changelog.md was not automatically updated?
+
+---
+
+3
+
+---
+
+[Request interrupted by user for tool use]
