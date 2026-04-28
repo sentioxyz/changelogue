@@ -1456,13 +1456,14 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		countArgs = append(countArgs, filter.Urgency)
 		nextIdx++
 	}
+	releaseTimeFilter := `COALESCE(r.released_at, sr.created_at, t.created_at)`
 	if filter.DateFrom != nil {
-		filterClauses = append(filterClauses, fmt.Sprintf("t.created_at >= $%d", nextIdx))
+		filterClauses = append(filterClauses, fmt.Sprintf(releaseTimeFilter+" >= $%d", nextIdx))
 		countArgs = append(countArgs, *filter.DateFrom)
 		nextIdx++
 	}
 	if filter.DateTo != nil {
-		filterClauses = append(filterClauses, fmt.Sprintf("t.created_at <= $%d", nextIdx))
+		filterClauses = append(filterClauses, fmt.Sprintf(releaseTimeFilter+" <= $%d", nextIdx))
 		countArgs = append(countArgs, *filter.DateTo)
 		nextIdx++
 	}
@@ -1501,6 +1502,8 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 	var query string
 	offset := (page - 1) * perPage
 
+	releaseTimeExpr := `COALESCE(r.released_at, sr.created_at, t.created_at)`
+
 	if aggregated {
 		// Aggregated: keep only the latest todo per grouping key.
 		// Group by (source_id) for release todos, (project_id) for semantic todos.
@@ -1509,7 +1512,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		countQuery = `
 			SELECT COUNT(*) FROM (
 				SELECT t.id,
-					ROW_NUMBER() OVER (PARTITION BY ` + partitionExpr + ` ORDER BY t.created_at DESC) AS rn
+					ROW_NUMBER() OVER (PARTITION BY ` + partitionExpr + ` ORDER BY ` + releaseTimeExpr + ` DESC) AS rn
 				` + fromClause + whereClause + `
 			) sub WHERE sub.rn = 1`
 
@@ -1519,13 +1522,13 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 				project_id, project_name, version, provider, repository, todo_type, urgency, released_at
 			FROM (
 				SELECT ` + selectCols + `,
-					ROW_NUMBER() OVER (PARTITION BY ` + partitionExpr + ` ORDER BY t.created_at DESC) AS rn
+					ROW_NUMBER() OVER (PARTITION BY ` + partitionExpr + ` ORDER BY ` + releaseTimeExpr + ` DESC) AS rn
 				` + fromClause + whereClause + `
 			) sub WHERE sub.rn = 1
-			ORDER BY created_at DESC`
+			ORDER BY released_at DESC`
 	} else {
 		countQuery = `SELECT COUNT(*) ` + fromClause + whereClause
-		query = `SELECT ` + selectCols + fromClause + whereClause + ` ORDER BY t.created_at DESC`
+		query = `SELECT ` + selectCols + fromClause + whereClause + ` ORDER BY ` + releaseTimeExpr + ` DESC`
 	}
 
 	// Execute count query
