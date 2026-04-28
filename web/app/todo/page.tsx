@@ -14,7 +14,28 @@ import { FilterBar, FilterConfig, expandDatePreset } from "@/components/filters/
 import { useFilterParams } from "@/components/filters/use-filter-params";
 import { UrgencyPill } from "@/components/ui/urgency-pill";
 
+import { ExternalLink } from "lucide-react";
+
 const PER_PAGE = 15;
+
+function getProviderRepoUrl(provider: string, repository: string): string | null {
+  switch (provider) {
+    case "github":
+      return `https://github.com/${repository}`;
+    case "dockerhub":
+      return `https://hub.docker.com/r/${repository}`;
+    case "ecr-public":
+      return `https://gallery.ecr.aws/${repository}`;
+    case "gitlab":
+      return `https://gitlab.com/${repository}`;
+    case "pypi":
+      return `https://pypi.org/project/${repository}`;
+    case "npm":
+      return `https://www.npmjs.com/package/${repository}`;
+    default:
+      return null;
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
@@ -282,19 +303,36 @@ function TodoPageInner() {
                   {/* Project */}
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-0.5">
-                      {todo.repository ? (
-                        <Link
-                          href={`/releases?project=${todo.project_id}`}
-                          className="text-foreground hover:underline"
-                          style={{
-                            fontFamily: "'JetBrains Mono', monospace",
-                            fontSize: "12px",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {todo.repository}
-                        </Link>
-                      ) : null}
+                      {todo.repository && todo.provider ? (() => {
+                        const repoUrl = getProviderRepoUrl(todo.provider, todo.repository);
+                        return repoUrl ? (
+                          <a
+                            href={repoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-foreground hover:underline"
+                            style={{
+                              fontFamily: "'JetBrains Mono', monospace",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {todo.repository}
+                            <ExternalLink size={10} className="shrink-0 text-text-muted" />
+                          </a>
+                        ) : (
+                          <span
+                            className="text-foreground"
+                            style={{
+                              fontFamily: "'JetBrains Mono', monospace",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {todo.repository}
+                          </span>
+                        );
+                      })() : null}
                       {todo.project_name ? (
                         <Link
                           href={`/projects/${todo.project_id}`}
