@@ -281,16 +281,43 @@ function TodoPageInner() {
                 >
                   {/* Project */}
                   <td className="px-4 py-3">
-                    <span
-                      className="text-foreground"
-                      style={{
-                        fontFamily: "var(--font-dm-sans)",
-                        fontSize: "13px",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {todo.project_name ?? "\u2014"}
-                    </span>
+                    <div className="flex flex-col gap-0.5">
+                      {todo.repository ? (
+                        <Link
+                          href={todo.release_id ? `/releases/${todo.release_id}` : `/releases?project=${todo.project_id}`}
+                          className="text-foreground hover:underline"
+                          style={{
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: "12px",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {todo.repository}
+                        </Link>
+                      ) : null}
+                      {todo.project_name ? (
+                        <Link
+                          href={`/projects/${todo.project_id}`}
+                          className="text-text-muted hover:underline"
+                          style={{
+                            fontFamily: "var(--font-dm-sans)",
+                            fontSize: "11px",
+                          }}
+                        >
+                          {todo.project_name}
+                        </Link>
+                      ) : (
+                        <span
+                          className="text-text-muted"
+                          style={{
+                            fontFamily: "var(--font-dm-sans)",
+                            fontSize: "13px",
+                          }}
+                        >
+                          {"\u2014"}
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Version */}
