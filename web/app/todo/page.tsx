@@ -399,7 +399,7 @@ function TodoPageInner() {
 
                   {/* Urgency */}
                   <td className="px-4 py-3">
-                    {todo.urgency && todo.todo_type === "semantic" ? (
+                    {todo.urgency ? (
                       <UrgencyPill urgency={todo.urgency} variant="text" />
                     ) : (
                       <span

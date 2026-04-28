@@ -1452,7 +1452,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		nextIdx++
 	}
 	if filter.Urgency != "" {
-		filterClauses = append(filterClauses, fmt.Sprintf("COALESCE(sr.report->>'urgency', '') ILIKE $%d", nextIdx))
+		filterClauses = append(filterClauses, fmt.Sprintf("COALESCE(sr.report->>'urgency', rel_sr.urgency, '') ILIKE $%d", nextIdx))
 		countArgs = append(countArgs, filter.Urgency)
 		nextIdx++
 	}
@@ -1482,6 +1482,14 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		LEFT JOIN sources src ON src.id = r.source_id
 		LEFT JOIN projects p1 ON p1.id = src.project_id
 		LEFT JOIN semantic_releases sr ON sr.id = t.semantic_release_id
+		LEFT JOIN LATERAL (
+			SELECT sr2.report->>'urgency' AS urgency
+			FROM semantic_release_sources srs
+			JOIN semantic_releases sr2 ON sr2.id = srs.semantic_release_id
+			WHERE srs.release_id = r.id
+			ORDER BY sr2.created_at DESC
+			LIMIT 1
+		) rel_sr ON t.release_id IS NOT NULL
 		LEFT JOIN projects p2 ON p2.id = sr.project_id
 	`
 
@@ -1495,7 +1503,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 			COALESCE(src.provider, '') AS provider,
 			COALESCE(src.repository, '') AS repository,
 			CASE WHEN t.release_id IS NOT NULL THEN 'release' ELSE 'semantic' END AS todo_type,
-			COALESCE(sr.report->>'urgency', '') AS urgency,
+			COALESCE(sr.report->>'urgency', rel_sr.urgency, '') AS urgency,
 			COALESCE(r.released_at, sr.created_at, t.created_at) AS released_at`
 
 	var countQuery string
@@ -1576,13 +1584,21 @@ func (s *PgStore) GetTodo(ctx context.Context, id string) (*models.Todo, error) 
 			COALESCE(src.provider, ''),
 			COALESCE(src.repository, ''),
 			CASE WHEN t.release_id IS NOT NULL THEN 'release' ELSE 'semantic' END,
-			COALESCE(sr.report->>'urgency', ''),
+			COALESCE(sr.report->>'urgency', rel_sr.urgency, ''),
 			COALESCE(r.released_at, sr.created_at, t.created_at)
 		FROM release_todos t
 		LEFT JOIN releases r ON r.id = t.release_id
 		LEFT JOIN sources src ON src.id = r.source_id
 		LEFT JOIN projects p1 ON p1.id = src.project_id
 		LEFT JOIN semantic_releases sr ON sr.id = t.semantic_release_id
+		LEFT JOIN LATERAL (
+			SELECT sr2.report->>'urgency' AS urgency
+			FROM semantic_release_sources srs
+			JOIN semantic_releases sr2 ON sr2.id = srs.semantic_release_id
+			WHERE srs.release_id = r.id
+			ORDER BY sr2.created_at DESC
+			LIMIT 1
+		) rel_sr ON t.release_id IS NOT NULL
 		LEFT JOIN projects p2 ON p2.id = sr.project_id
 		WHERE t.id = $1
 	`, id).Scan(
