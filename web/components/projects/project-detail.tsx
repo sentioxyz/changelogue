@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import Link from "next/link";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   projects as projectsApi,
@@ -23,10 +23,14 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { SectionLabel } from "@/components/ui/section-label";
 import { formatInterval } from "@/lib/format";
 import { getPathSegment } from "@/lib/path";
-import { Pencil, Trash2, Play, Plus, ArrowLeft } from "lucide-react";
+import { Pencil, Trash2, Play, Plus, ArrowLeft, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "@/lib/i18n/context";
+import { getProviderIcon } from "@/components/ui/provider-badge";
+import { VersionChip } from "@/components/ui/version-chip";
+import { UrgencyPill } from "@/components/ui/urgency-pill";
+import { timeAgo } from "@/lib/format";
 
 /* ---------- Tabs ---------- */
 
@@ -126,6 +130,18 @@ export function ProjectDetail() {
     testSourceId ? `source-${testSourceId}-releases` : null,
     () => releasesApi.listBySource(testSourceId, 1),
   );
+  const { data: projectReleasesData } = useSWR(
+    `project-${id}-releases`,
+    () => releasesApi.listByProject(id, 1, 25, { include_excluded: true }),
+  );
+
+  const sources = sourcesData?.data ?? [];
+  const projectReleases = projectReleasesData?.data ?? [];
+  const sourceMap = useMemo(() => {
+    const m = new Map<string, Source>();
+    for (const s of sources) m.set(s.id, s);
+    return m;
+  }, [sources]);
 
   const saveName = useCallback(async () => {
     const p = data?.data;
@@ -345,6 +361,96 @@ export function ProjectDetail() {
           </div>
         </div>
       </div>
+
+      {/* ===== Recent releases ===== */}
+      {projectReleases.length > 0 && (
+        <div
+          className="-mx-6 border-b px-6 py-3 bg-surface"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span
+              className="text-[11px] font-medium uppercase tracking-[0.08em] mr-0.5 text-text-muted"
+              style={{ fontFamily: "var(--font-dm-sans)" }}
+            >
+              {t("projects.releases")}:
+            </span>
+            {projectReleases.slice(0, 20).map((r) => {
+              const src = sourceMap.get(r.source_id);
+              return (
+                <span key={r.id} className="inline-flex items-baseline gap-1">
+                  {src && (() => {
+                    const Icon = getProviderIcon(src.provider);
+                    return Icon ? <Icon size={11} className="shrink-0 text-text-muted translate-y-[1px]" /> : null;
+                  })()}
+                  <Link
+                    href={`/releases/${r.id}`}
+                    className={r.excluded ? "" : "text-[#2563eb] hover:underline"}
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: "12px",
+                      ...(r.excluded ? { color: "var(--text-muted)" } : {}),
+                    }}
+                  >
+                    {r.version}
+                  </Link>
+                  {!r.excluded && r.semantic_release_status === "completed" && r.semantic_release_id && (
+                    r.semantic_release_urgency ? (
+                      <Link
+                        href={`/projects/${id}/semantic-releases/${r.semantic_release_id}`}
+                        className="transition-colors"
+                        title={`${r.semantic_release_urgency} — ${t("projects.viewReport")}`}
+                      >
+                        <UrgencyPill urgency={r.semantic_release_urgency} variant="icon-only" />
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/projects/${id}/semantic-releases/${r.semantic_release_id}`}
+                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors bg-muted text-text-secondary"
+                        style={{ border: "1px solid rgba(107,114,128,0.18)", fontFamily: "var(--font-dm-sans)" }}
+                        title={t("projects.viewReport")}
+                      >
+                        {t("projects.report")}
+                      </Link>
+                    )
+                  )}
+                  {!r.excluded && (r.semantic_release_status === "pending" || r.semantic_release_status === "processing") && (
+                    <span
+                      className="inline-flex items-center rounded px-1 py-0.5 text-[10px]"
+                      style={{ backgroundColor: "#fef9c3", color: "#92400e", fontFamily: "var(--font-dm-sans)" }}
+                    >
+                      <Loader2 size={10} className="animate-spin" />
+                    </span>
+                  )}
+                  {src && (
+                    <span
+                      className="text-[11px] hidden sm:inline text-text-muted"
+                      style={r.excluded ? { opacity: 0.5 } : {}}
+                    >
+                      ({src.repository.split("/").pop()})
+                    </span>
+                  )}
+                  <span
+                    className="text-[11px] text-text-muted"
+                    style={r.excluded ? { opacity: 0.5 } : {}}
+                  >
+                    {timeAgo(r.released_at || r.created_at).replace(" ago", "")}
+                  </span>
+                </span>
+              );
+            })}
+            {projectReleases.length > 20 && (
+              <Link
+                href={`/releases?project=${id}`}
+                className="text-[12px] font-medium hover:underline text-beacon-accent"
+                style={{ fontFamily: "var(--font-dm-sans)" }}
+              >
+                {t("projects.more")}
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ===== Tab bar ===== */}
       <div
