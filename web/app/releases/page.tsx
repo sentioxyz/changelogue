@@ -111,6 +111,25 @@ function ReleasesPageInner() {
   /* Releases come pre-enriched with project/source metadata from the backend */
   const releases: Release[] = data?.data ?? [];
 
+  /* Add source filter with options derived from loaded releases */
+  const sourceOptions = (() => {
+    const seen = new Map<string, string>();
+    for (const r of releases) {
+      if (r.source_id && r.repository && !seen.has(r.source_id)) {
+        seen.set(r.source_id, r.repository);
+      }
+    }
+    return Array.from(seen, ([id, repo]) => ({ value: id, label: repo }));
+  })();
+  if (sourceOptions.length > 0 || filters.source) {
+    filterConfig.splice(1, 0, {
+      key: "source",
+      label: "Source",
+      type: "select",
+      options: sourceOptions,
+    });
+  }
+
   /* Pagination math */
   const total = data?.meta?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
