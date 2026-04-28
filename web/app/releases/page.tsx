@@ -38,7 +38,7 @@ export default function ReleasesPage() {
 
 function ReleasesPageInner() {
   const { t } = useTranslation();
-  const FILTER_KEYS = ["project", "provider", "urgency", "date", "excluded"];
+  const FILTER_KEYS = ["project", "source", "provider", "urgency", "date", "excluded"];
   const { filters, setFilters, page, setPage } = useFilterParams(FILTER_KEYS, { excluded: "true" });
   const [triggeringVersion, setTriggeringVersion] = useState<string | null>(null);
 
@@ -96,15 +96,15 @@ function ReleasesPageInner() {
     apiFilters.date_to = expanded.date_to;
   }
 
-  /* Fetch releases — scoped by project or all */
+  /* Fetch releases — scoped by source, project, or all */
   const { data, isLoading } = useSWR(
-    filters.project
-      ? ["releases", page, JSON.stringify(filters)]
-      : ["all-releases", page, JSON.stringify(filters)],
+    ["releases", page, JSON.stringify(filters)],
     () =>
-      filters.project
-        ? releasesApi.listByProject(filters.project, page, PER_PAGE, apiFilters)
-        : releasesApi.list(page, PER_PAGE, apiFilters),
+      filters.source
+        ? releasesApi.listBySource(filters.source, page, PER_PAGE, apiFilters)
+        : filters.project
+          ? releasesApi.listByProject(filters.project, page, PER_PAGE, apiFilters)
+          : releasesApi.list(page, PER_PAGE, apiFilters),
     { refreshInterval: 30_000 }
   );
 
