@@ -201,6 +201,36 @@ func (s *PgStore) ListSourcesByProject(ctx context.Context, projectID string, pa
 	return sources, total, nil
 }
 
+func (s *PgStore) ListAllSources(ctx context.Context, page, perPage int) ([]models.Source, int, error) {
+	var total int
+	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM sources`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count sources: %w", err)
+	}
+	offset := (page - 1) * perPage
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, project_id, provider, repository, poll_interval_seconds, enabled,
+		        COALESCE(config,'{}'), version_filter_include, version_filter_exclude, exclude_prereleases,
+		        last_polled_at, last_error, created_at, updated_at
+		 FROM sources ORDER BY created_at DESC LIMIT $1 OFFSET $2`, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list sources: %w", err)
+	}
+	defer rows.Close()
+	var sources []models.Source
+	for rows.Next() {
+		var src models.Source
+		if err := rows.Scan(&src.ID, &src.ProjectID, &src.Provider, &src.Repository,
+			&src.PollIntervalSeconds, &src.Enabled, &src.Config,
+			&src.VersionFilterInclude, &src.VersionFilterExclude, &src.ExcludePrereleases,
+			&src.LastPolledAt, &src.LastError, &src.CreatedAt, &src.UpdatedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan source: %w", err)
+		}
+		sources = append(sources, src)
+	}
+	return sources, total, nil
+}
+
 func (s *PgStore) CreateSource(ctx context.Context, src *models.Source) error {
 	return s.pool.QueryRow(ctx,
 		`INSERT INTO sources (project_id, provider, repository, poll_interval_seconds, enabled, config,

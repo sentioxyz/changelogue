@@ -97,6 +97,10 @@ func (m *mockSourcesStore) ListAllSourceRepos(_ context.Context) ([]models.Sourc
 	return nil, nil
 }
 
+func (m *mockSourcesStore) ListAllSources(_ context.Context, page, perPage int) ([]models.Source, int, error) {
+	return m.sources, len(m.sources), nil
+}
+
 func setupSourcesMux(store SourcesStore) *http.ServeMux {
 	h := NewSourcesHandler(store, nil, nil)
 	mux := http.NewServeMux()

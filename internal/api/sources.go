@@ -13,6 +13,7 @@ import (
 // SourcesStore defines the persistence operations for sources.
 type SourcesStore interface {
 	ListSourcesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Source, int, error)
+	ListAllSources(ctx context.Context, page, perPage int) ([]models.Source, int, error)
 	CreateSource(ctx context.Context, src *models.Source) error
 	GetSource(ctx context.Context, id string) (*models.Source, error)
 	UpdateSource(ctx context.Context, id string, src *models.Source) error
@@ -42,6 +43,20 @@ func (h *SourcesHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	page, perPage := ParsePagination(r)
 	sources, total, err := h.store.ListSourcesByProject(r.Context(), projectID, page, perPage)
+	if err != nil {
+		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to list sources")
+		return
+	}
+	if sources == nil {
+		sources = []models.Source{}
+	}
+	RespondList(w, r, http.StatusOK, sources, page, perPage, total)
+}
+
+// ListAll handles GET /sources — returns a paginated list of all sources.
+func (h *SourcesHandler) ListAll(w http.ResponseWriter, r *http.Request) {
+	page, perPage := ParsePagination(r)
+	sources, total, err := h.store.ListAllSources(r.Context(), page, perPage)
 	if err != nil {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to list sources")
 		return

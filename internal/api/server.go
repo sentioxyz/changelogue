@@ -58,6 +58,7 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	sources := NewSourcesHandler(deps.SourcesStore, deps.IngestionService, deps.HTTPClient)
 	mux.Handle("GET /api/v1/projects/{projectId}/sources", chain(http.HandlerFunc(sources.List)))
 	mux.Handle("POST /api/v1/projects/{projectId}/sources", chain(http.HandlerFunc(sources.Create)))
+	mux.Handle("GET /api/v1/sources", chain(http.HandlerFunc(sources.ListAll)))
 	mux.Handle("GET /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Get)))
 	mux.Handle("PUT /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Update)))
 	mux.Handle("DELETE /api/v1/sources/{id}", chain(http.HandlerFunc(sources.Delete)))

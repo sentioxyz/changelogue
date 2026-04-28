@@ -73,6 +73,8 @@ export const projects = {
 // --- Sources (nested under projects) ---
 
 export const sources = {
+  list: (page = 1, perPage = 100) =>
+    request<ApiResponse<Source[]>>(`/sources?page=${page}&per_page=${perPage}`),
   listByProject: (projectId: string, page = 1) =>
     request<ApiResponse<Source[]>>(`/projects/${projectId}/sources?page=${page}`),
   create: (projectId: string, input: SourceInput) =>
