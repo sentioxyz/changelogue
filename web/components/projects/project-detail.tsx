@@ -489,7 +489,7 @@ export function ProjectDetail() {
                             ))}
                             {(releasesBySource.get(source.id) ?? []).length > 10 && (
                               <Link
-                                href={`/releases?source=${source.id}`}
+                                href={`/releases?project=${id}`}
                                 className="text-[11px] font-medium hover:underline text-beacon-accent"
                                 style={{ fontFamily: "var(--font-dm-sans)" }}
                               >
