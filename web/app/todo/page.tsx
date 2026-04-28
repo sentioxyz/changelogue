@@ -13,29 +13,11 @@ import { useTranslation } from "@/lib/i18n/context";
 import { FilterBar, FilterConfig, expandDatePreset } from "@/components/filters/filter-bar";
 import { useFilterParams } from "@/components/filters/use-filter-params";
 import { UrgencyPill } from "@/components/ui/urgency-pill";
+import { getProviderUrl } from "@/lib/provider-urls";
 
 import { ExternalLink } from "lucide-react";
 
 const PER_PAGE = 15;
-
-function getProviderRepoUrl(provider: string, repository: string): string | null {
-  switch (provider) {
-    case "github":
-      return `https://github.com/${repository}`;
-    case "dockerhub":
-      return `https://hub.docker.com/r/${repository}`;
-    case "ecr-public":
-      return `https://gallery.ecr.aws/${repository}`;
-    case "gitlab":
-      return `https://gitlab.com/${repository}`;
-    case "pypi":
-      return `https://pypi.org/project/${repository}`;
-    case "npm":
-      return `https://www.npmjs.com/package/${repository}`;
-    default:
-      return null;
-  }
-}
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
@@ -304,7 +286,7 @@ function TodoPageInner() {
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-0.5">
                       {todo.repository && todo.provider ? (() => {
-                        const repoUrl = getProviderRepoUrl(todo.provider, todo.repository);
+                        const repoUrl = getProviderUrl(todo.provider, todo.repository);
                         return repoUrl ? (
                           <a
                             href={repoUrl}

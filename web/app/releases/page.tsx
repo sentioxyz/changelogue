@@ -19,28 +19,10 @@ import { FilterBar, FilterConfig, expandDatePreset } from "@/components/filters/
 import { useFilterParams } from "@/components/filters/use-filter-params";
 
 import { timeAgo } from "@/lib/format";
+import { getProviderUrl } from "@/lib/provider-urls";
 
 const PER_PAGE = 15;
 const SSE_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
-
-function getProviderUrl(
-  provider: string,
-  repository: string,
-  version: string
-): string | null {
-  switch (provider) {
-    case "github":
-      return `https://github.com/${repository}/releases/tag/${version}`;
-    case "dockerhub":
-      return `https://hub.docker.com/r/${repository}/tags?name=${encodeURIComponent(version)}`;
-    case "ecr-public":
-      return `https://gallery.ecr.aws/${repository}`;
-    case "gitlab":
-      return `https://gitlab.com/${repository}/-/releases/${version}`;
-    default:
-      return null;
-  }
-}
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */

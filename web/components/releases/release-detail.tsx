@@ -19,6 +19,7 @@ import { useTranslation } from "@/lib/i18n/context";
 
 import { timeAgo } from "@/lib/format";
 import { getPathSegment } from "@/lib/path";
+import { getProviderUrl } from "@/lib/provider-urls";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -28,29 +29,6 @@ import { getPathSegment } from "@/lib/path";
  *  `marked` handles mixed markdown+HTML, so we always parse. */
 function changelogToHtml(raw: string): string {
   return marked.parse(raw, { async: false }) as string;
-}
-
-function getProviderUrl(
-  provider: string,
-  repository: string,
-  version: string
-): string | null {
-  switch (provider) {
-    case "github":
-      return `https://github.com/${repository}/releases/tag/${version}`;
-    case "dockerhub":
-      return `https://hub.docker.com/r/${repository}/tags?name=${encodeURIComponent(version)}`;
-    case "ecr-public":
-      return `https://gallery.ecr.aws/${repository}`;
-    case "gitlab":
-      return `https://gitlab.com/${repository}/-/releases/${version}`;
-    case "pypi":
-      return `https://pypi.org/project/${repository}/${encodeURIComponent(version)}/`;
-    case "npm":
-      return `https://www.npmjs.com/package/${repository}/v/${encodeURIComponent(version)}`;
-    default:
-      return null;
-  }
 }
 
 function getProviderLabel(provider: string): string {
