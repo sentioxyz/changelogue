@@ -284,7 +284,7 @@ function TodoPageInner() {
                     <div className="flex flex-col gap-0.5">
                       {todo.repository ? (
                         <Link
-                          href={todo.release_id ? `/releases/${todo.release_id}` : `/releases?project=${todo.project_id}`}
+                          href={`/releases?project=${todo.project_id}`}
                           className="text-foreground hover:underline"
                           style={{
                             fontFamily: "'JetBrains Mono', monospace",
