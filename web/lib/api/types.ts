@@ -211,6 +211,7 @@ export interface Todo {
   source_url?: string;
   release_url?: string;
   urgency?: string;
+  released_at?: string;
   todo_type?: "release" | "semantic";
 }
 

@@ -398,7 +398,7 @@
   "todo.thType": "Type",
   "todo.thProvider": "Provider",
   "todo.thUrgency": "Urgency",
-  "todo.thCreated": "Created",
+  "todo.thCreated": "Released",
   "todo.thActions": "Actions",
   "todo.typeSemantic": "Semantic",
   "todo.typeRelease": "Release",

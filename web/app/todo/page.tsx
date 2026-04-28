@@ -367,7 +367,7 @@ function TodoPageInner() {
                     )}
                   </td>
 
-                  {/* Created */}
+                  {/* Released */}
                   <td className="px-4 py-3">
                     <span
                       className="text-text-muted"
@@ -376,7 +376,7 @@ function TodoPageInner() {
                         fontSize: "13px",
                       }}
                     >
-                      {timeAgo(todo.created_at)}
+                      {timeAgo(todo.released_at || todo.created_at)}
                     </span>
                   </td>
 

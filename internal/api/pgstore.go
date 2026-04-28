@@ -1494,7 +1494,8 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 			COALESCE(src.provider, '') AS provider,
 			COALESCE(src.repository, '') AS repository,
 			CASE WHEN t.release_id IS NOT NULL THEN 'release' ELSE 'semantic' END AS todo_type,
-			COALESCE(sr.report->>'urgency', '') AS urgency`
+			COALESCE(sr.report->>'urgency', '') AS urgency,
+			COALESCE(r.released_at, sr.created_at, t.created_at) AS released_at`
 
 	var countQuery string
 	var query string
@@ -1515,7 +1516,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		query = `
 			SELECT id, release_id, semantic_release_id, status,
 				created_at, acknowledged_at, resolved_at,
-				project_id, project_name, version, provider, repository, todo_type, urgency
+				project_id, project_name, version, provider, repository, todo_type, urgency, released_at
 			FROM (
 				SELECT ` + selectCols + `,
 					ROW_NUMBER() OVER (PARTITION BY ` + partitionExpr + ` ORDER BY t.created_at DESC) AS rn
@@ -1523,7 +1524,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 			) sub WHERE sub.rn = 1
 			ORDER BY created_at DESC`
 	} else {
-		countQuery = `SELECT COUNT(*) FROM release_todos t` + whereClause
+		countQuery = `SELECT COUNT(*) ` + fromClause + whereClause
 		query = `SELECT ` + selectCols + fromClause + whereClause + ` ORDER BY t.created_at DESC`
 	}
 
@@ -1551,7 +1552,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		if err := rows.Scan(
 			&t.ID, &t.ReleaseID, &t.SemanticReleaseID, &t.Status,
 			&t.CreatedAt, &t.AcknowledgedAt, &t.ResolvedAt,
-			&t.ProjectID, &t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType, &t.Urgency,
+			&t.ProjectID, &t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType, &t.Urgency, &t.ReleasedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan todo: %w", err)
 		}
@@ -1572,7 +1573,8 @@ func (s *PgStore) GetTodo(ctx context.Context, id string) (*models.Todo, error) 
 			COALESCE(src.provider, ''),
 			COALESCE(src.repository, ''),
 			CASE WHEN t.release_id IS NOT NULL THEN 'release' ELSE 'semantic' END,
-			COALESCE(sr.report->>'urgency', '')
+			COALESCE(sr.report->>'urgency', ''),
+			COALESCE(r.released_at, sr.created_at, t.created_at)
 		FROM release_todos t
 		LEFT JOIN releases r ON r.id = t.release_id
 		LEFT JOIN sources src ON src.id = r.source_id
@@ -1583,7 +1585,7 @@ func (s *PgStore) GetTodo(ctx context.Context, id string) (*models.Todo, error) 
 	`, id).Scan(
 		&t.ID, &t.ReleaseID, &t.SemanticReleaseID, &t.Status,
 		&t.CreatedAt, &t.AcknowledgedAt, &t.ResolvedAt,
-		&t.ProjectID, &t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType, &t.Urgency,
+		&t.ProjectID, &t.ProjectName, &t.Version, &t.Provider, &t.Repository, &t.TodoType, &t.Urgency, &t.ReleasedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get todo: %w", err)

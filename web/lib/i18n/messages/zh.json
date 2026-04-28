@@ -398,7 +398,7 @@
   "todo.thType": "类型",
   "todo.thProvider": "提供者",
   "todo.thUrgency": "紧急程度",
-  "todo.thCreated": "创建时间",
+  "todo.thCreated": "发布时间",
   "todo.thActions": "操作",
   "todo.typeSemantic": "语义",
   "todo.typeRelease": "发布",

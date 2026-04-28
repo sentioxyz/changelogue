@@ -15,8 +15,7 @@ export function useFilterParams(
   page: number;
   setPage: (p: number) => void;
 } {
-  const [filters, setFiltersState] = useState<Record<string, string>>(() => {
-    if (typeof window === "undefined") return defaults ?? {};
+  const readFiltersFromURL = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     const parsed: Record<string, string> = { ...(defaults ?? {}) };
     const allowed = new Set(allowedKeys);
@@ -26,7 +25,18 @@ export function useFilterParams(
       }
     });
     return parsed;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [filters, setFiltersState] = useState<Record<string, string>>(() => {
+    if (typeof window === "undefined") return defaults ?? {};
+    return readFiltersFromURL();
   });
+
+  // Re-read URL params on mount to correct SSR hydration mismatch
+  useEffect(() => {
+    setFiltersState(readFiltersFromURL());
+  }, [readFiltersFromURL]);
 
   const [page, setPageState] = useState<number>(() => {
     if (typeof window === "undefined") return 1;

@@ -19,6 +19,7 @@ type Todo struct {
 	Repository  string `json:"repository,omitempty"`
 	SourceURL   string `json:"source_url,omitempty"`
 	ReleaseURL  string `json:"release_url,omitempty"`
-	Urgency     string `json:"urgency,omitempty"`
-	TodoType    string `json:"todo_type,omitempty"` // "release" or "semantic"
+	Urgency     string     `json:"urgency,omitempty"`
+	TodoType    string     `json:"todo_type,omitempty"` // "release" or "semantic"
+	ReleasedAt  *time.Time `json:"released_at,omitempty"`
 }
