@@ -5,7 +5,7 @@ import useSWR from "swr";
 import Link from "next/link";
 import { todos as todosApi, projects as projectsApi } from "@/lib/api/client";
 import type { TodoFilters } from "@/lib/api/client";
-import { ProviderBadge } from "@/components/ui/provider-badge";
+import { getProviderIcon } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
 import type { Todo } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
@@ -255,7 +255,7 @@ function TodoPageInner() {
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--background)" }}>
-                {[t("todo.thProject"), t("todo.thVersion"), t("todo.thType"), t("todo.thProvider"), t("todo.thUrgency"), t("todo.thCreated"), t("todo.thActions")].map(
+                {[t("todo.thProject"), t("todo.thVersion"), t("todo.thType"), t("todo.thUrgency"), t("todo.thCreated"), t("todo.thActions")].map(
                   (col) => (
                     <th
                       key={col}
@@ -287,20 +287,27 @@ function TodoPageInner() {
                     <div className="flex flex-col gap-0.5">
                       {todo.repository && todo.provider ? (() => {
                         const repoUrl = getProviderUrl(todo.provider, todo.repository);
+                        const Icon = getProviderIcon(todo.provider);
+                        const content = (
+                          <span className="inline-flex items-center gap-1.5">
+                            {Icon && <Icon size={12} className="shrink-0 text-text-muted" />}
+                            <span>{todo.repository}</span>
+                            {repoUrl && <ExternalLink size={10} className="shrink-0 text-text-muted" />}
+                          </span>
+                        );
                         return repoUrl ? (
                           <a
                             href={repoUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-foreground hover:underline"
+                            className="inline-flex items-center text-foreground hover:underline"
                             style={{
                               fontFamily: "'JetBrains Mono', monospace",
                               fontSize: "12px",
                               fontWeight: 500,
                             }}
                           >
-                            {todo.repository}
-                            <ExternalLink size={10} className="shrink-0 text-text-muted" />
+                            {content}
                           </a>
                         ) : (
                           <span
@@ -311,7 +318,7 @@ function TodoPageInner() {
                               fontWeight: 500,
                             }}
                           >
-                            {todo.repository}
+                            {content}
                           </span>
                         );
                       })() : null}
@@ -378,23 +385,6 @@ function TodoPageInner() {
                     >
                       {todo.todo_type === "semantic" ? t("todo.typeSemantic") : t("todo.typeRelease")}
                     </span>
-                  </td>
-
-                  {/* Provider */}
-                  <td className="px-4 py-3">
-                    {todo.provider ? (
-                      <ProviderBadge provider={todo.provider} />
-                    ) : (
-                      <span
-                        className="text-text-muted"
-                        style={{
-                          fontFamily: "var(--font-dm-sans)",
-                          fontSize: "13px",
-                        }}
-                      >
-                        {"\u2014"}
-                      </span>
-                    )}
                   </td>
 
                   {/* Urgency */}
