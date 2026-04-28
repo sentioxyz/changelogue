@@ -393,7 +393,7 @@
   "todo.latestOnly": "仅显示最新",
   "todo.loading": "加载中...",
   "todo.noItems": "暂无{status}项",
-  "todo.thProject": "项目",
+  "todo.thProject": "发布",
   "todo.thVersion": "版本",
   "todo.thType": "类型",
   "todo.thProvider": "提供者",

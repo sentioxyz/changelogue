@@ -393,7 +393,7 @@
   "todo.latestOnly": "Latest only",
   "todo.loading": "Loading...",
   "todo.noItems": "No {status} items",
-  "todo.thProject": "Project",
+  "todo.thProject": "Release",
   "todo.thVersion": "Version",
   "todo.thType": "Type",
   "todo.thProvider": "Provider",

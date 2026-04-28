@@ -282,16 +282,16 @@ function TodoPageInner() {
                   className="transition-colors hover:bg-background"
                   style={{ borderBottom: "1px solid var(--border)" }}
                 >
-                  {/* Project */}
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-0.5">
+                  {/* Release */}
+                  <td className="px-4 py-3" style={{ maxWidth: "280px" }}>
+                    <div className="flex flex-col gap-0.5 min-w-0">
                       {todo.repository && todo.provider ? (() => {
                         const repoUrl = getProviderUrl(todo.provider, todo.repository);
                         const Icon = getProviderIcon(todo.provider);
                         const content = (
-                          <span className="inline-flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1.5 min-w-0">
                             {Icon && <Icon size={12} className="shrink-0 text-text-muted" />}
-                            <span>{todo.repository}</span>
+                            <span className="truncate">{todo.repository}</span>
                             {repoUrl && <ExternalLink size={10} className="shrink-0 text-text-muted" />}
                           </span>
                         );
@@ -300,7 +300,7 @@ function TodoPageInner() {
                             href={repoUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center text-foreground hover:underline"
+                            className="inline-flex items-center min-w-0 text-foreground hover:underline"
                             style={{
                               fontFamily: "'JetBrains Mono', monospace",
                               fontSize: "12px",
