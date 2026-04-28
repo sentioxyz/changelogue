@@ -1441,6 +1441,10 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 	// Append dynamic filter conditions.
 	filterClauses := []string{}
 	nextIdx := len(countArgs) + 1
+
+	// Only show source release todos, not semantic release todos.
+	filterClauses = append(filterClauses, "t.release_id IS NOT NULL")
+
 	if filter.ProjectID != "" {
 		filterClauses = append(filterClauses, fmt.Sprintf("COALESCE(p1.id, p2.id)::text = $%d", nextIdx))
 		countArgs = append(countArgs, filter.ProjectID)

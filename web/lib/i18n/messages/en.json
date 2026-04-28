@@ -386,7 +386,7 @@
   "subscriptions.deleteSubscriptionsDesc": "This will permanently delete {count} subscription(s). This cannot be undone.",
 
   "todo.title": "Todo",
-  "todo.description": "Action items from new releases and semantic reports.",
+  "todo.description": "Action items from new releases.",
   "todo.tabPending": "Pending",
   "todo.tabAcknowledged": "Acknowledged",
   "todo.tabResolved": "Resolved",

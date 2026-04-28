@@ -255,7 +255,7 @@ function TodoPageInner() {
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--background)" }}>
-                {[t("todo.thProject"), t("todo.thVersion"), t("todo.thType"), t("todo.thUrgency"), t("todo.thCreated"), t("todo.thActions")].map(
+                {[t("todo.thProject"), t("todo.thVersion"), t("todo.thUrgency"), t("todo.thCreated"), t("todo.thActions")].map(
                   (col) => (
                     <th
                       key={col}
@@ -349,16 +349,8 @@ function TodoPageInner() {
 
                   {/* Version */}
                   <td className="px-4 py-3">
-                    {todo.version ? (
-                      <Link
-                        href={
-                          todo.todo_type === "semantic" && todo.semantic_release_id && todo.project_id
-                            ? `/projects/${todo.project_id}/semantic-releases/${todo.semantic_release_id}`
-                            : todo.release_id
-                              ? `/releases/${todo.release_id}`
-                              : "#"
-                        }
-                      >
+                    {todo.version && todo.release_id ? (
+                      <Link href={`/releases/${todo.release_id}`}>
                         <VersionChip version={todo.version} />
                       </Link>
                     ) : (
@@ -372,19 +364,6 @@ function TodoPageInner() {
                         {"\u2014"}
                       </span>
                     )}
-                  </td>
-
-                  {/* Type */}
-                  <td className="px-4 py-3">
-                    <span
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-none"
-                      style={{
-                        backgroundColor: todo.todo_type === "semantic" ? "#ede9fe" : "#e0f2fe",
-                        color: todo.todo_type === "semantic" ? "#6d28d9" : "#0369a1",
-                      }}
-                    >
-                      {todo.todo_type === "semantic" ? t("todo.typeSemantic") : t("todo.typeRelease")}
-                    </span>
                   </td>
 
                   {/* Urgency */}

@@ -386,7 +386,7 @@
   "subscriptions.deleteSubscriptionsDesc": "此操作将永久删除 {count} 个订阅，且无法撤销。",
 
   "todo.title": "待办",
-  "todo.description": "来自新发布和语义报告的待办事项。",
+  "todo.description": "来自新发布的待办事项。",
   "todo.tabPending": "待处理",
   "todo.tabAcknowledged": "已确认",
   "todo.tabResolved": "已解决",
