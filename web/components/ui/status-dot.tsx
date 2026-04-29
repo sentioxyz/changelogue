@@ -13,7 +13,7 @@ interface StatusDotProps {
 }
 
 export function StatusDot({ status, className }: StatusDotProps) {
-  const color = STATUS_COLORS[status.toLowerCase()] ?? "#6b7280";
+  const color = STATUS_COLORS[status?.toLowerCase()] ?? "#6b7280";
   return (
     <span
       className={cn("inline-block h-2 w-2 rounded-full shrink-0", className)}

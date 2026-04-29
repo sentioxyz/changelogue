@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,20 +13,17 @@ import {
 } from "@/lib/api/client";
 import { ProviderBadge } from "@/components/ui/provider-badge";
 import { VersionChip } from "@/components/ui/version-chip";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SemanticReleaseReport } from "@/components/semantic-releases/semantic-release-report";
+import { UrgencyPill } from "@/components/ui/urgency-pill";
 import type { SemanticRelease, Source, Project } from "@/lib/api/types";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/context";
 
 import { timeAgo } from "@/lib/format";
 import { getPathSegment } from "@/lib/path";
 import { getProviderUrl } from "@/lib/provider-urls";
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-
-/** Convert changelog to HTML via markdown parser.
- *  `marked` handles mixed markdown+HTML, so we always parse. */
 function changelogToHtml(raw: string): string {
   return marked.parse(raw, { async: false }) as string;
 }
@@ -50,57 +47,40 @@ function getProviderLabel(provider: string): string {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
-
 export function ReleaseDetail() {
   const { t } = useTranslation();
   const router = useRouter();
-  // Read ID from URL path — useParams() returns stale "0" in static export
-  const id = getPathSegment(1); // /releases/{id}
-  /* Fetch release */
+  const id = getPathSegment(1);
+
   const { data: releaseData, isLoading } = useSWR(`release-${id}`, () =>
     releasesApi.get(id)
   );
-
   const release = releaseData?.data;
 
-  /* Fetch source info once we have the release */
   const { data: sourceData } = useSWR(
     release ? `source-${release.source_id}` : null,
     () => (release ? sourcesApi.get(release.source_id) : null)
   );
   const source: Source | undefined = sourceData?.data;
 
-  /* Fetch project info once we have the source */
   const { data: projectData } = useSWR(
     source ? `project-${source.project_id}` : null,
     () => (source ? projectsApi.get(source.project_id) : null)
   );
   const project: Project | undefined = projectData?.data;
 
-  /* Fetch linked semantic release (from API response field) */
-  const { data: srData } = useSWR(
-    release?.semantic_release_id ? `sr-for-release-${id}` : null,
-    async () => {
-      if (!release?.semantic_release_id) return [];
-      const res = await srApi.get(release.semantic_release_id).catch(() => null);
-      if (!res?.data) return [];
-      return [res.data];
-    }
+  const { data: linkedSRData } = useSWR(
+    release?.semantic_release_id ? `sr-${release.semantic_release_id}` : null,
+    () => (release?.semantic_release_id ? srApi.get(release.semantic_release_id) : null)
   );
+  const linkedSRs: SemanticRelease[] = linkedSRData?.data ? [linkedSRData.data] : [];
 
-  const linkedSRs: SemanticRelease[] = srData ?? [];
-
-  /* Memoize changelog HTML conversion */
   const changelogHtml = useMemo(() => {
     const raw = release?.raw_data?.changelog;
     if (!raw) return null;
     return changelogToHtml(String(raw));
   }, [release?.raw_data?.changelog]);
 
-  /* Loading state */
   if (isLoading) {
     return (
       <div
@@ -216,134 +196,116 @@ export function ReleaseDetail() {
         )}
       </div>
 
-      {/* Info grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Version Details card */}
-        <div
-          className="rounded-lg bg-surface"
-          style={{ border: "1px solid var(--border)" }}
-        >
-          <div
-            className="px-5 py-4"
-            style={{ borderBottom: "1px solid var(--border)" }}
-          >
-            <h2
-              style={{
-                fontFamily: "var(--font-raleway)",
-                fontSize: "16px",
-                fontWeight: 600,
-                color: "var(--foreground)",
-              }}
-            >
-              {t("releases.versionDetails")}
-            </h2>
-          </div>
-          <div className="space-y-3 px-5 py-4">
-            <DetailRow label={t("releases.detail.version")} value={release.version} mono />
-            <DetailRow
-              label={t("releases.detail.sourceId")}
-              value={release.source_id}
-              mono
-              small
-            />
-            {source && (
-              <>
-                <DetailRow label={t("releases.detail.provider")} value={source.provider} />
-                <DetailRow label={t("releases.detail.repository")} value={source.repository} mono />
-              </>
+      {/* Tabs */}
+      <Tabs defaultValue="basic">
+        <TabsList variant="line">
+          <TabsTrigger value="basic">{t("releases.tabBasic")}</TabsTrigger>
+          <TabsTrigger value="report">
+            {t("releases.tabReport")}
+            {linkedSRs.length > 0 && (
+              <span
+                style={{
+                  fontFamily: "var(--font-dm-sans)",
+                  fontSize: "10px",
+                  color: "var(--text-muted)",
+                  marginLeft: "-1px",
+                }}
+              >
+                +{linkedSRs.length}
+              </span>
             )}
-            {release.released_at && (
-              <DetailRow
-                label={t("releases.detail.releasedAt")}
-                value={new Date(release.released_at).toLocaleString()}
-              />
-            )}
-            <DetailRow
-              label={t("releases.detail.ingestedAt")}
-              value={new Date(release.created_at).toLocaleString()}
-            />
-            <DetailRow
-              label={t("releases.detail.age")}
-              value={timeAgo(release.released_at ?? release.created_at)}
-            />
-          </div>
-        </div>
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Linked Semantic Releases */}
-        <div
-          className="rounded-lg bg-surface"
-          style={{ border: "1px solid var(--border)" }}
-        >
-          <div
-            className="px-5 py-4"
-            style={{ borderBottom: "1px solid var(--border)" }}
-          >
-            <h2
-              style={{
-                fontFamily: "var(--font-raleway)",
-                fontSize: "16px",
-                fontWeight: 600,
-                color: "var(--foreground)",
-              }}
+        {/* Basic tab */}
+        <TabsContent value="basic" className="space-y-6 pt-6">
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Version Details card */}
+            <div
+              className="rounded-lg bg-surface lg:col-span-1"
+              style={{ border: "1px solid var(--border)" }}
             >
-              {t("releases.semanticReleases")}
-            </h2>
+            <div
+              className="px-5 py-4"
+              style={{ borderBottom: "1px solid var(--border)" }}
+            >
+              <h2
+                style={{
+                  fontFamily: "var(--font-raleway)",
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  color: "var(--foreground)",
+                }}
+              >
+                {t("releases.versionDetails")}
+              </h2>
+            </div>
+            <div className="space-y-3 px-5 py-4">
+              <DetailRow label={t("releases.detail.version")} value={release.version} mono />
+              <DetailRow
+                label={t("releases.detail.sourceId")}
+                value={release.source_id}
+                mono
+                small
+              />
+              {source && (
+                <>
+                  <DetailRow label={t("releases.detail.provider")} value={source.provider} />
+                  <DetailRow label={t("releases.detail.repository")} value={source.repository} mono />
+                </>
+              )}
+              {release.released_at && (
+                <DetailRow
+                  label={t("releases.detail.releasedAt")}
+                  value={new Date(release.released_at).toLocaleString()}
+                />
+              )}
+              <DetailRow
+                label={t("releases.detail.ingestedAt")}
+                value={new Date(release.created_at).toLocaleString()}
+              />
+              <DetailRow
+                label={t("releases.detail.age")}
+                value={timeAgo(release.released_at ?? release.created_at)}
+              />
+            </div>
           </div>
-          <div className="px-5 py-4">
-            {linkedSRs.length > 0 ? (
-              <div className="space-y-3">
-                {linkedSRs.map((sr) => (
-                  <Link
-                    key={sr.id}
-                    href={`/projects/${sr.project_id}/semantic-releases/${sr.id}`}
-                    className="block rounded-lg px-4 py-3 transition-colors hover:bg-background"
-                    style={{ border: "1px solid var(--border)" }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <VersionChip version={sr.version} />
-                      <span
-                        className="rounded-full px-2 py-0.5"
-                        style={{
-                          fontFamily: "var(--font-dm-sans)",
-                          fontSize: "11px",
-                          fontWeight: 500,
-                          color:
-                            sr.status === "completed" ? "#16a34a" : "var(--beacon-accent)",
-                          backgroundColor:
-                            sr.status === "completed" ? "#f0fdf4" : "color-mix(in srgb, var(--beacon-accent) 10%, transparent)",
-                        }}
-                      >
-                        {sr.status}
-                      </span>
-                    </div>
-                    {sr.report?.summary && (
-                      <p
-                        className="mt-2 line-clamp-2"
-                        style={{
-                          fontFamily: "var(--font-dm-sans)",
-                          fontStyle: "italic",
-                          fontSize: "13px",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        {sr.report.summary}
-                      </p>
-                    )}
-                    <p
-                      className="mt-1"
-                      style={{
-                        fontFamily: "var(--font-dm-sans)",
-                        fontSize: "12px",
-                        color: "var(--text-muted)",
-                      }}
-                    >
-                      {timeAgo(sr.created_at)}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="py-6 text-center">
+
+          {/* Release Notes */}
+          <div
+            className="rounded-lg bg-surface lg:col-span-2"
+            style={{ border: "1px solid var(--border)" }}
+          >
+            <div
+              className="px-5 py-4"
+              style={{ borderBottom: "1px solid var(--border)" }}
+            >
+              <h2
+                style={{
+                  fontFamily: "var(--font-raleway)",
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  color: "var(--foreground)",
+                }}
+              >
+                {t("releases.releaseNotes")}
+              </h2>
+            </div>
+            <div className="px-5 py-4">
+              {changelogHtml ? (
+                <div
+                  className="release-notes-content"
+                  style={{
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "13px",
+                    lineHeight: 1.7,
+                    color: "var(--secondary-foreground)",
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: changelogHtml,
+                  }}
+                />
+              ) : (
                 <p
                   style={{
                     fontFamily: "var(--font-raleway)",
@@ -352,69 +314,109 @@ export function ReleaseDetail() {
                     color: "var(--text-muted)",
                   }}
                 >
-                  {t("releases.noSemanticReleases")}
+                  {t("releases.noReleaseNotes")}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+          </div>
+        </TabsContent>
 
-      {/* Release Notes */}
-      <div
-        className="rounded-lg bg-surface"
-        style={{ border: "1px solid var(--border)" }}
-      >
-        <div
-          className="px-5 py-4"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          <h2
-            style={{
-              fontFamily: "var(--font-raleway)",
-              fontSize: "16px",
-              fontWeight: 600,
-              color: "var(--foreground)",
-            }}
-          >
-            {t("releases.releaseNotes")}
-          </h2>
-        </div>
-        <div className="px-5 py-4">
-          {changelogHtml ? (
-            <div
-              className="release-notes-content"
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "13px",
-                lineHeight: 1.7,
-                color: "var(--secondary-foreground)",
-              }}
-              dangerouslySetInnerHTML={{
-                __html: changelogHtml,
-              }}
-            />
+        {/* Semantic Releases tab */}
+        <TabsContent value="report" className="pt-6">
+          {linkedSRs.length > 0 ? (
+            <div className="space-y-4">
+              {linkedSRs.map((sr, index) => (
+                <SRCollapsibleItem
+                  key={sr.id}
+                  sr={sr}
+                  defaultExpanded={index === 0}
+                />
+              ))}
+            </div>
           ) : (
-            <p
-              style={{
-                fontFamily: "var(--font-raleway)",
-                fontStyle: "italic",
-                fontSize: "14px",
-                color: "var(--text-muted)",
-              }}
-            >
-              {t("releases.noReleaseNotes")}
-            </p>
+            <div className="py-12 text-center">
+              <p
+                style={{
+                  fontFamily: "var(--font-raleway)",
+                  fontStyle: "italic",
+                  fontSize: "14px",
+                  color: "var(--text-muted)",
+                }}
+              >
+                {t("releases.noSemanticReleases")}
+              </p>
+            </div>
           )}
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Sub-components                                                     */
-/* ------------------------------------------------------------------ */
+function SRCollapsibleItem({
+  sr,
+  defaultExpanded,
+}: {
+  sr: SemanticRelease;
+  defaultExpanded: boolean;
+}) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const riskLevel = (sr.report?.urgency ?? sr.report?.risk_level)?.toLowerCase();
+
+  return (
+    <div
+      className="rounded-lg bg-surface overflow-hidden"
+      style={{ border: "1px solid var(--border)" }}
+    >
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-background cursor-pointer"
+      >
+        {expanded ? (
+          <ChevronDown size={16} className="shrink-0 text-text-muted" />
+        ) : (
+          <ChevronRight size={16} className="shrink-0 text-text-muted" />
+        )}
+        {riskLevel && (
+          <UrgencyPill urgency={riskLevel} variant="text" />
+        )}
+        {sr.report?.subject && (
+          <span
+            className="flex-1 truncate text-[13px] text-secondary-foreground"
+            style={{ fontFamily: "var(--font-dm-sans)" }}
+          >
+            {sr.report.subject.replace(/^Ready to Deploy:\s*/i, "")}
+          </span>
+        )}
+        <span
+          className="shrink-0 text-[12px] text-text-muted"
+          style={{ fontFamily: "var(--font-dm-sans)" }}
+        >
+          {timeAgo(sr.completed_at ?? sr.created_at)}
+        </span>
+        <Link
+          href={`/projects/${sr.project_id}/semantic-releases/${sr.id}`}
+          className="shrink-0 text-text-muted hover:text-secondary-foreground transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ExternalLink size={14} />
+        </Link>
+      </button>
+      {expanded && (
+        <div
+          className="px-5 pb-5"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          <div className="pt-5">
+            <SemanticReleaseReport report={sr.report} error={sr.error} compact />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function DetailRow({
   label,
