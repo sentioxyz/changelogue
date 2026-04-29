@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -861,7 +860,7 @@ func TestIngestRelease(t *testing.T) {
 		Timestamp:  time.Now(),
 		Metadata:   map[string]string{"tag": "v1.0.0"},
 	}
-	if err := store.IngestRelease(ctx, src.ID, result); err != nil {
+	if _, err := store.IngestRelease(ctx, src.ID, result); err != nil {
 		t.Fatalf("IngestRelease: %v", err)
 	}
 
@@ -877,10 +876,13 @@ func TestIngestRelease(t *testing.T) {
 		t.Errorf("got version %q, want %q", releases[0].Version, "v1.0.0")
 	}
 
-	// Duplicate should return a unique constraint error
-	err = store.IngestRelease(ctx, src.ID, result)
-	if err == nil || !strings.Contains(err.Error(), "UNIQUE constraint failed") {
-		t.Fatalf("expected unique constraint error on duplicate, got: %v", err)
+	// Duplicate with same data should be skipped (no error)
+	res, err := store.IngestRelease(ctx, src.ID, result)
+	if err != nil {
+		t.Fatalf("duplicate IngestRelease should not error: %v", err)
+	}
+	if res != ingestion.IngestSkipped {
+		t.Errorf("expected IngestSkipped for unchanged duplicate, got %v", res)
 	}
 }
 
@@ -932,11 +934,11 @@ func TestNotifyStoreMethods(t *testing.T) {
 
 	// Ingest two releases
 	r1 := &ingestion.IngestionResult{RawVersion: "v1.0.0", Timestamp: time.Now().Add(-time.Hour)}
-	if err := store.IngestRelease(ctx, srcID, r1); err != nil {
+	if _, err := store.IngestRelease(ctx, srcID, r1); err != nil {
 		t.Fatalf("IngestRelease v1.0.0: %v", err)
 	}
 	r2 := &ingestion.IngestionResult{RawVersion: "v2.0.0", Timestamp: time.Now()}
-	if err := store.IngestRelease(ctx, srcID, r2); err != nil {
+	if _, err := store.IngestRelease(ctx, srcID, r2); err != nil {
 		t.Fatalf("IngestRelease v2.0.0: %v", err)
 	}
 

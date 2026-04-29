@@ -9,19 +9,20 @@ import (
 
 type mockStore struct {
 	ingested []*IngestionResult
+	result   IngestResult
 	err      error
 }
 
-func (m *mockStore) IngestRelease(_ context.Context, _ string, result *IngestionResult) error {
+func (m *mockStore) IngestRelease(_ context.Context, _ string, result *IngestionResult) (IngestResult, error) {
 	if m.err != nil {
-		return m.err
+		return IngestSkipped, m.err
 	}
 	m.ingested = append(m.ingested, result)
-	return nil
+	return m.result, nil
 }
 
 func TestServiceProcessResults(t *testing.T) {
-	store := &mockStore{}
+	store := &mockStore{result: IngestNew}
 	svc := NewService(store)
 
 	results := []IngestionResult{
@@ -51,17 +52,16 @@ func TestServiceProcessResults(t *testing.T) {
 	}
 }
 
-func TestServiceProcessResultsDuplicateSkipped(t *testing.T) {
-	store := &mockStore{err: errors.New("unique_violation")}
+func TestServiceProcessResultsError(t *testing.T) {
+	store := &mockStore{err: errors.New("db connection lost")}
 	svc := NewService(store)
 
 	results := []IngestionResult{
 		{Repository: "lib/go", RawVersion: "1.0.0", Timestamp: time.Now()},
 	}
 
-	// Duplicates should not cause a top-level error — they're expected.
 	err := svc.ProcessResults(context.Background(), "src-1", "dockerhub", results)
-	if err != nil {
-		t.Fatalf("ProcessResults should not fail on duplicates: %v", err)
+	if err == nil {
+		t.Fatal("ProcessResults should fail on store error")
 	}
 }

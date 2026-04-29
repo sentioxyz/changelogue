@@ -206,7 +206,7 @@ func TestStealthIntegration(t *testing.T) {
 		Timestamp:  time.Now(),
 		Metadata:   map[string]string{"tag": "v1.0.0"},
 	}
-	if err := store.IngestRelease(ctx, sourceID, result); err != nil {
+	if _, err := store.IngestRelease(ctx, sourceID, result); err != nil {
 		t.Fatalf("IngestRelease: %v", err)
 	}
 

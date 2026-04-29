@@ -3,7 +3,7 @@ package ingestion
 import "context"
 
 // ReleaseStore persists release events using the transactional outbox pattern.
-// The implementation inserts the release and enqueues a notify job atomically.
+// The implementation upserts the release and enqueues downstream jobs atomically.
 type ReleaseStore interface {
-	IngestRelease(ctx context.Context, sourceID string, result *IngestionResult) error
+	IngestRelease(ctx context.Context, sourceID string, result *IngestionResult) (IngestResult, error)
 }

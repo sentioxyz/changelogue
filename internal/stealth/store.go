@@ -733,8 +733,8 @@ func (s *Store) GetRelease(ctx context.Context, id string) (*models.Release, err
 // IngestRelease (ingestion.ReleaseStore)
 // ─────────────────────────────────────────
 
-// IngestRelease inserts a new release into the database, implementing ingestion.ReleaseStore.
-func (s *Store) IngestRelease(ctx context.Context, sourceID string, result *ingestion.IngestionResult) error {
+// IngestRelease upserts a release into the database, implementing ingestion.ReleaseStore.
+func (s *Store) IngestRelease(ctx context.Context, sourceID string, result *ingestion.IngestionResult) (ingestion.IngestResult, error) {
 	id := uuid.New().String()
 	now := time.Now().UTC()
 
@@ -744,7 +744,7 @@ func (s *Store) IngestRelease(ctx context.Context, sourceID string, result *inge
 	}
 	rawBytes, err := json.Marshal(rawData)
 	if err != nil {
-		return fmt.Errorf("marshal raw_data: %w", err)
+		return ingestion.IngestSkipped, fmt.Errorf("marshal raw_data: %w", err)
 	}
 
 	var releasedAt sql.NullString
@@ -752,20 +752,29 @@ func (s *Store) IngestRelease(ctx context.Context, sourceID string, result *inge
 		releasedAt = sql.NullString{String: result.Timestamp.Format(time.RFC3339Nano), Valid: true}
 	}
 
-	_, err = s.db.ExecContext(ctx, `
+	res, err := s.db.ExecContext(ctx, `
 		INSERT INTO releases (id, source_id, version, raw_data, released_at, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?)
+		ON CONFLICT (source_id, version) DO UPDATE
+		   SET raw_data = excluded.raw_data, released_at = excluded.released_at
+		   WHERE releases.raw_data IS NOT excluded.raw_data
+		      OR releases.released_at IS NOT excluded.released_at`,
 		id, sourceID, result.RawVersion, string(rawBytes),
 		releasedAt, now.Format(time.RFC3339Nano),
 	)
 	if err != nil {
-		return err
+		return ingestion.IngestSkipped, err
+	}
+
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return ingestion.IngestSkipped, nil
 	}
 
 	if s.NotifyHook != nil {
 		s.NotifyHook(ctx, id, sourceID)
 	}
-	return nil
+	return ingestion.IngestNew, nil
 }
 
 // ─────────────────────────────────────────
