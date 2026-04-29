@@ -1666,7 +1666,7 @@ func (s *PgStore) AcknowledgeTodo(ctx context.Context, id string, cascade bool) 
 					SELECT r2.id FROM releases r2
 					JOIN releases r1 ON r1.source_id = r2.source_id
 					JOIN release_todos t1 ON t1.release_id = r1.id
-					WHERE t1.id = $1 AND r2.created_at <= r1.created_at AND r2.id != r1.id
+					WHERE t1.id = $1 AND COALESCE(r2.released_at, r2.created_at) <= COALESCE(r1.released_at, r1.created_at) AND r2.id != r1.id
 				))
 				OR
 				(semantic_release_id IS NOT NULL AND semantic_release_id IN (
@@ -1701,7 +1701,7 @@ func (s *PgStore) ResolveTodo(ctx context.Context, id string, cascade bool) erro
 					SELECT r2.id FROM releases r2
 					JOIN releases r1 ON r1.source_id = r2.source_id
 					JOIN release_todos t1 ON t1.release_id = r1.id
-					WHERE t1.id = $1 AND r2.created_at <= r1.created_at AND r2.id != r1.id
+					WHERE t1.id = $1 AND COALESCE(r2.released_at, r2.created_at) <= COALESCE(r1.released_at, r1.created_at) AND r2.id != r1.id
 				))
 				OR
 				(semantic_release_id IS NOT NULL AND semantic_release_id IN (
