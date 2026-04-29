@@ -48,13 +48,13 @@ function FlowSection({
   moreLabel: string;
   children: React.ReactNode;
 }) {
-  const contentRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const [overflows, setOverflows] = useState(false);
 
   const items = React.Children.toArray(children);
 
   const check = useCallback(() => {
-    const el = contentRef.current;
+    const el = measureRef.current;
     if (!el) return;
     setOverflows(el.scrollHeight > MAX_HEIGHT + 4);
   }, []);
@@ -62,7 +62,7 @@ function FlowSection({
   useEffect(() => {
     const raf = requestAnimationFrame(check);
     const obs = new ResizeObserver(check);
-    if (contentRef.current) obs.observe(contentRef.current);
+    if (measureRef.current) obs.observe(measureRef.current);
     return () => {
       cancelAnimationFrame(raf);
       obs.disconnect();
@@ -70,11 +70,23 @@ function FlowSection({
   }, [check, items.length]);
 
   return (
-    <div>
+    <div className="relative">
+      {/* Hidden copy to measure natural height */}
       <div
-        ref={contentRef}
+        ref={measureRef}
         className="text-[13px] leading-7"
-        style={{ maxHeight: MAX_HEIGHT, overflow: "hidden" }}
+        style={{ position: "absolute", visibility: "hidden", top: 0, left: 0, right: 0, pointerEvents: "none" }}
+        aria-hidden="true"
+      >
+        <span className="text-[11px] font-medium uppercase tracking-[0.08em] mr-1.5">
+          {label}:
+        </span>
+        {items}
+      </div>
+      {/* Visible section */}
+      <div
+        className="text-[13px] leading-7"
+        style={{ maxHeight: overflows ? MAX_HEIGHT : undefined, overflow: overflows ? "hidden" : undefined }}
       >
         <span
           className="text-[11px] font-medium uppercase tracking-[0.08em] mr-1.5 text-text-muted"
@@ -87,9 +99,10 @@ function FlowSection({
       {overflows && (
         <Link
           href={moreHref}
-          className="inline-flex items-baseline text-[12px] font-medium hover:underline whitespace-nowrap mt-0.5 text-beacon-accent"
+          className="inline-flex items-baseline text-[12px] font-medium hover:underline whitespace-nowrap text-beacon-accent"
+          style={{ marginTop: -2 }}
         >
-          {moreLabel}
+          {moreLabel} →
         </Link>
       )}
     </div>
