@@ -7,6 +7,7 @@ import "github.com/riverqueue/river"
 type NotifyJobArgs struct {
 	ReleaseID string `json:"release_id"`
 	SourceID  string `json:"source_id"`
+	IsUpdate  bool   `json:"is_update,omitempty"`
 }
 
 func (NotifyJobArgs) Kind() string { return "notify_release" }

@@ -138,6 +138,9 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 		if release.ProjectName != "" {
 			title = release.ProjectName
 		}
+		if job.Args.IsUpdate {
+			title += " [Updated]"
+		}
 
 		msg := Notification{
 			Title:       title,

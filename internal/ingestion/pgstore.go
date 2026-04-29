@@ -90,6 +90,7 @@ func (s *PgStore) IngestRelease(ctx context.Context, sourceID string, result *In
 		_, err = s.river.InsertTx(ctx, tx, queue.NotifyJobArgs{
 			ReleaseID: releaseID,
 			SourceID:  sourceID,
+			IsUpdate:  changelogAdded,
 		}, nil)
 		if err != nil {
 			return IngestSkipped, fmt.Errorf("enqueue job: %w", err)
