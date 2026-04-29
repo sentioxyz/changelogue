@@ -33,7 +33,7 @@ function ProjectCardLogo({ projectId, name }: { projectId: string; name: string 
 
 /* ---------- Overflow Flow ---------- */
 
-const LINE_HEIGHT = 28; // matches leading-7 (1.75rem = 28px)
+const LINE_HEIGHT = 28; // matches leading-7
 const MAX_LINES = 2;
 const MAX_HEIGHT = LINE_HEIGHT * MAX_LINES;
 
@@ -48,96 +48,50 @@ function FlowSection({
   moreLabel: string;
   children: React.ReactNode;
 }) {
-  const measureRef = useRef<HTMLDivElement>(null);
-  const moreRef = useRef<HTMLSpanElement>(null);
-  const [visibleCount, setVisibleCount] = useState<number | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [overflows, setOverflows] = useState(false);
 
   const items = React.Children.toArray(children);
 
-  const measure = useCallback(() => {
-    const el = measureRef.current;
+  const check = useCallback(() => {
+    const el = contentRef.current;
     if (!el) return;
-    const nodes = el.children;
-    const itemNodeCount = nodes.length - 2; // exclude label (first) and hidden "more…" span (last)
-    // Check if everything fits without overflow
-    if (el.scrollHeight <= MAX_HEIGHT + 4) {
-      setVisibleCount(items.length);
-      return;
-    }
-    // Measure actual "more…" link width
-    const moreWidth = moreRef.current ? moreRef.current.offsetWidth + 8 : 52;
-    const containerWidth = el.offsetWidth;
-    // First pass: find all items that fit within MAX_HEIGHT (2 lines)
-    let lastFitting = 0;
-    for (let i = 1; i <= itemNodeCount; i++) {
-      const node = nodes[i] as HTMLElement;
-      if (node.offsetTop + node.offsetHeight > MAX_HEIGHT) break;
-      lastFitting = i;
-    }
-    // Second pass: walk backward from lastFitting until "more…" fits after the item
-    let count = lastFitting;
-    while (count > 1) {
-      const node = nodes[count] as HTMLElement;
-      const nodeBottom = node.offsetTop + node.offsetHeight;
-      // If this item is on line 1, "more…" can always wrap to line 2 — we're fine
-      if (nodeBottom <= LINE_HEIGHT) break;
-      // Item is on line 2 — check if "more…" fits after it on the same line
-      const nodeRight = node.offsetLeft + node.offsetWidth;
-      if (nodeRight + moreWidth <= containerWidth) break;
-      count--;
-    }
-    setVisibleCount(Math.max(1, count));
-  }, [items.length]);
+    setOverflows(el.scrollHeight > MAX_HEIGHT + 4);
+  }, []);
 
   useEffect(() => {
-    const raf = requestAnimationFrame(measure);
-    const obs = new ResizeObserver(measure);
-    if (measureRef.current) obs.observe(measureRef.current);
+    const raf = requestAnimationFrame(check);
+    const obs = new ResizeObserver(check);
+    if (contentRef.current) obs.observe(contentRef.current);
     return () => {
       cancelAnimationFrame(raf);
       obs.disconnect();
     };
-  }, [measure, items.length]);
-
-  const hasOverflow = visibleCount !== null && visibleCount < items.length;
-  const displayed = visibleCount !== null ? items.slice(0, visibleCount) : items;
+  }, [check, items.length]);
 
   return (
-    <div className="relative">
-      {/* Hidden measurer — renders all items to find cutoff */}
+    <div>
       <div
-        ref={measureRef}
+        ref={contentRef}
         className="text-[13px] leading-7"
-        style={{ position: "absolute", visibility: "hidden", top: 0, left: 0, right: 0, pointerEvents: "none" }}
-        aria-hidden="true"
+        style={{ maxHeight: MAX_HEIGHT, overflow: "hidden" }}
       >
-        <span className="text-[11px] font-medium uppercase tracking-[0.08em] mr-1.5">
-          {label}:
-        </span>
-        {items}
-        {/* Hidden "more…" to measure its actual width */}
-        <span ref={moreRef} className="inline-flex items-baseline text-[12px] font-medium whitespace-nowrap">
-          {moreLabel}
-        </span>
-      </div>
-      {/* Visible section */}
-      <div className="text-[13px] leading-7">
         <span
           className="text-[11px] font-medium uppercase tracking-[0.08em] mr-1.5 text-text-muted"
           style={{ fontFamily: "var(--font-dm-sans)" }}
         >
           {label}:
         </span>
-        {displayed}
-        {hasOverflow && (
-          <Link
-            href={moreHref}
-            className="inline-flex items-baseline text-[12px] font-medium hover:underline whitespace-nowrap text-beacon-accent"
-          >
-            {moreLabel}
-          </Link>
-        )}
+        {items}
       </div>
+      {overflows && (
+        <Link
+          href={moreHref}
+          className="inline-flex items-baseline text-[12px] font-medium hover:underline whitespace-nowrap mt-0.5 text-beacon-accent"
+        >
+          {moreLabel}
+        </Link>
+      )}
     </div>
   );
 }
