@@ -368,7 +368,14 @@ function TodoPageInner() {
 
                   {/* Urgency */}
                   <td className="px-4 py-3">
-                    {todo.urgency ? (
+                    {todo.urgency && todo.project_id && todo.semantic_release_id ? (
+                      <Link
+                        href={`/projects/${todo.project_id}/semantic-releases/${todo.semantic_release_id}`}
+                        className="transition-colors"
+                      >
+                        <UrgencyPill urgency={todo.urgency} variant="text" />
+                      </Link>
+                    ) : todo.urgency ? (
                       <UrgencyPill urgency={todo.urgency} variant="text" />
                     ) : (
                       <span
