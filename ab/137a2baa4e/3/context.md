@@ -1,0 +1,15 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+https://changelogue-app.azurewebsites.net/releases/5fc988f5-ad2a-4584-93f8-170cf9969b37
+
+https://changelogue-app.azurewebsites.net/projects/1772f23b-1425-4fc3-9396-430401cc4008/semantic-releases/202fd308-c621-4999-be8e-22923df64994
+
+我其实感觉这两个页面应该合并在第一个的页面里面， 一个初步的想法是弄成tab：
+一个是basic： 就是Version Details+Release Notes
+第二个semantic releases:
+这个tab从上到下显是所有的report item，每个item可以展开或...
+
