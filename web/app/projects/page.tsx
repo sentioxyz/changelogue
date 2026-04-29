@@ -33,7 +33,7 @@ function ProjectCardLogo({ projectId, name }: { projectId: string; name: string 
 
 /* ---------- Overflow Flow ---------- */
 
-const LINE_HEIGHT = 28; // matches leading-7
+const LINE_HEIGHT = 28; // matches leading-7 (1.75rem = 28px)
 const MAX_LINES = 2;
 const MAX_HEIGHT = LINE_HEIGHT * MAX_LINES;
 
@@ -49,29 +49,62 @@ function FlowSection({
   children: React.ReactNode;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
-  const [overflows, setOverflows] = useState(false);
+  const moreRef = useRef<HTMLSpanElement>(null);
+  const [visibleCount, setVisibleCount] = useState<number | null>(null);
 
   const items = React.Children.toArray(children);
 
-  const check = useCallback(() => {
+  const measure = useCallback(() => {
     const el = measureRef.current;
     if (!el) return;
-    setOverflows(el.scrollHeight > MAX_HEIGHT + 4);
-  }, []);
+    const nodes = el.children;
+    const itemNodeCount = nodes.length - 2; // exclude label (first) and hidden "more…" span (last)
+    // Check if everything fits without overflow
+    if (el.scrollHeight <= MAX_HEIGHT + 4) {
+      setVisibleCount(items.length);
+      return;
+    }
+    // Measure actual "more…" link width
+    const moreWidth = moreRef.current ? moreRef.current.offsetWidth + 8 : 52;
+    const containerWidth = el.offsetWidth;
+    // First pass: find all items that fit within MAX_HEIGHT (2 lines)
+    let lastFitting = 0;
+    for (let i = 1; i <= itemNodeCount; i++) {
+      const node = nodes[i] as HTMLElement;
+      if (node.offsetTop + node.offsetHeight > MAX_HEIGHT) break;
+      lastFitting = i;
+    }
+    // Second pass: walk backward from lastFitting until "more…" fits after the item
+    let count = lastFitting;
+    while (count > 1) {
+      const node = nodes[count] as HTMLElement;
+      const nodeBottom = node.offsetTop + node.offsetHeight;
+      // If this item is on line 1, "more…" can always wrap to line 2 — we're fine
+      if (nodeBottom <= LINE_HEIGHT) break;
+      // Item is on line 2 — check if "more…" fits after it on the same line
+      const nodeRight = node.offsetLeft + node.offsetWidth;
+      if (nodeRight + moreWidth <= containerWidth) break;
+      count--;
+    }
+    setVisibleCount(Math.max(1, count));
+  }, [items.length]);
 
   useEffect(() => {
-    const raf = requestAnimationFrame(check);
-    const obs = new ResizeObserver(check);
+    const raf = requestAnimationFrame(measure);
+    const obs = new ResizeObserver(measure);
     if (measureRef.current) obs.observe(measureRef.current);
     return () => {
       cancelAnimationFrame(raf);
       obs.disconnect();
     };
-  }, [check, items.length]);
+  }, [measure, items.length]);
+
+  const hasOverflow = visibleCount !== null && visibleCount < items.length;
+  const displayed = visibleCount !== null ? items.slice(0, visibleCount) : items;
 
   return (
     <div className="relative">
-      {/* Hidden copy to measure natural height */}
+      {/* Hidden measurer — renders all items to find cutoff */}
       <div
         ref={measureRef}
         className="text-[13px] leading-7"
@@ -82,29 +115,29 @@ function FlowSection({
           {label}:
         </span>
         {items}
+        {/* Hidden "more…" to measure its actual width */}
+        <span ref={moreRef} className="inline-flex items-baseline text-[12px] font-medium whitespace-nowrap">
+          {moreLabel}
+        </span>
       </div>
       {/* Visible section */}
-      <div
-        className="text-[13px] leading-7"
-        style={{ maxHeight: overflows ? MAX_HEIGHT : undefined, overflow: overflows ? "hidden" : undefined }}
-      >
+      <div className="text-[13px] leading-7">
         <span
           className="text-[11px] font-medium uppercase tracking-[0.08em] mr-1.5 text-text-muted"
           style={{ fontFamily: "var(--font-dm-sans)" }}
         >
           {label}:
         </span>
-        {items}
+        {displayed}
+        {hasOverflow && (
+          <Link
+            href={moreHref}
+            className="inline-flex items-baseline text-[12px] font-medium hover:underline whitespace-nowrap text-beacon-accent"
+          >
+            {moreLabel}
+          </Link>
+        )}
       </div>
-      {overflows && (
-        <Link
-          href={moreHref}
-          className="inline-flex items-baseline text-[12px] font-medium hover:underline whitespace-nowrap text-beacon-accent"
-          style={{ marginTop: -2 }}
-        >
-          {moreLabel} →
-        </Link>
-      )}
     </div>
   );
 }
