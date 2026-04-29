@@ -317,6 +317,35 @@ func (s *Store) ListSourcesByProject(ctx context.Context, projectID string, page
 	return sources, total, nil
 }
 
+func (s *Store) ListAllSources(ctx context.Context, page, perPage int) ([]models.Source, int, error) {
+	var total int
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sources`).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count sources: %w", err)
+	}
+
+	offset := (page - 1) * perPage
+	rows, err := s.db.QueryContext(ctx, `SELECT`+sourceSelectCols+`FROM sources
+		ORDER BY created_at ASC
+		LIMIT ? OFFSET ?`, perPage, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list all sources: %w", err)
+	}
+	defer rows.Close()
+
+	var sources []models.Source
+	for rows.Next() {
+		src, err := scanSource(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("scan source: %w", err)
+		}
+		sources = append(sources, src)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return sources, total, nil
+}
+
 // CreateSource inserts a new source, generating its ID and timestamps.
 func (s *Store) CreateSource(ctx context.Context, src *models.Source) error {
 	src.ID = uuid.New().String()

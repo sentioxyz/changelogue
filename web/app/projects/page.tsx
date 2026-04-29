@@ -13,7 +13,8 @@ import {
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { ProjectLogo } from "@/components/ui/project-logo";
 import { timeAgo } from "@/lib/format";
-import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil, ArrowUpDown, Loader2, Info } from "lucide-react";
+import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil, ArrowUpDown, Loader2, Info, EyeOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { SourceForm } from "@/components/sources/source-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/projects/project-form";
@@ -185,7 +186,7 @@ function UrgencyLegend() {
   );
 }
 
-function ProjectFlowCard({ project }: { project: Project }) {
+function ProjectFlowCard({ project, showExcluded }: { project: Project; showExcluded: boolean }) {
   const { t } = useTranslation();
   const [sourceCreateOpen, setSourceCreateOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
@@ -199,7 +200,8 @@ function ProjectFlowCard({ project }: { project: Project }) {
     () => releasesApi.listByProject(project.id, 1, 25, { include_excluded: true }),
   );
   const sources = srcData?.data ?? [];
-  const releases = relData?.data ?? [];
+  const allReleases = relData?.data ?? [];
+  const releases = showExcluded ? allReleases : allReleases.filter((r) => !r.excluded);
 
   const sourceMap = useMemo(() => {
     const m = new Map<string, Source>();
@@ -404,7 +406,7 @@ function ProjectFlowCard({ project }: { project: Project }) {
 
 /* ---------- Compact Row ---------- */
 
-function ProjectCompactRow({ project }: { project: Project }) {
+function ProjectCompactRow({ project, showExcluded }: { project: Project; showExcluded: boolean }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: relData } = useSWR(`project-${project.id}-card-releases`, () =>
@@ -417,7 +419,8 @@ function ProjectCompactRow({ project }: { project: Project }) {
     srApi.list(project.id, 1, 3)
   );
 
-  const releases = relData?.data ?? [];
+  const allReleases = relData?.data ?? [];
+  const releases = showExcluded ? allReleases : allReleases.filter((r) => !r.excluded);
   const sources = srcData?.data ?? [];
   const srItems = srData?.data ?? [];
   const latest = releases[0];
@@ -536,6 +539,7 @@ export default function ProjectsPage() {
   const [viewMode, setViewMode] = useState<"cards" | "compact">("cards");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"updated" | "added" | "name">("updated");
+  const [showExcluded, setShowExcluded] = useState(true);
   const [page, setPage] = useState(1);
   const { data, isLoading } = useSWR("projects", () => projectsApi.list(1, 100));
   const items = data?.data ?? [];
@@ -606,6 +610,10 @@ export default function ProjectsPage() {
               <option value="name">{t("projects.sortName")}</option>
             </select>
           </div>
+          <label className="flex items-center gap-1.5 text-[12px] text-text-muted cursor-pointer" style={{ fontFamily: "var(--font-dm-sans)" }}>
+            <Switch size="sm" checked={showExcluded} onCheckedChange={setShowExcluded} />
+            {t("releases.showExcluded")}
+          </label>
           <div className="flex items-center rounded-md border border-border">
             <button
               onClick={() => setViewMode("cards")}
@@ -680,9 +688,9 @@ export default function ProjectsPage() {
           <div className={viewMode === "cards" ? "space-y-5" : "space-y-1.5"}>
             {paged.map((project) =>
               viewMode === "cards" ? (
-                <ProjectFlowCard key={project.id} project={project} />
+                <ProjectFlowCard key={project.id} project={project} showExcluded={showExcluded} />
               ) : (
-                <ProjectCompactRow key={project.id} project={project} />
+                <ProjectCompactRow key={project.id} project={project} showExcluded={showExcluded} />
               )
             )}
           </div>

@@ -108,6 +108,7 @@ export function ProjectDetail() {
   const [ctxCreateOpen, setCtxCreateOpen] = useState(false);
   const [deletingCtxId, setDeletingCtxId] = useState<string | null>(null);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [showExcluded, setShowExcluded] = useState(true);
 
   /* Data fetching */
   const { data, isLoading, mutate: mutateProject } = useSWR(`project-${id}`, () => projectsApi.get(id));
@@ -135,14 +136,15 @@ export function ProjectDetail() {
   const sources = sourcesData?.data ?? [];
   const projectReleases = projectReleasesData?.data ?? [];
   const releasesBySource = useMemo(() => {
+    const filtered = showExcluded ? projectReleases : projectReleases.filter((r) => !r.excluded);
     const m = new Map<string, typeof projectReleases>();
-    for (const r of projectReleases) {
+    for (const r of filtered) {
       const arr = m.get(r.source_id) ?? [];
       arr.push(r);
       m.set(r.source_id, arr);
     }
     return m;
-  }, [projectReleases]);
+  }, [projectReleases, showExcluded]);
 
   const saveName = useCallback(async () => {
     const p = data?.data;
@@ -400,7 +402,12 @@ export function ProjectDetail() {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <SectionLabel>{t("projects.detail.tabSources")}</SectionLabel>
-              <button
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-[12px] text-text-muted cursor-pointer" style={{ fontFamily: "var(--font-dm-sans)" }}>
+                  <Switch size="sm" checked={showExcluded} onCheckedChange={setShowExcluded} />
+                  {t("releases.showExcluded")}
+                </label>
+                <button
                 onClick={() => setSourceCreateOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-mono-bg border-border text-secondary-foreground"
                 style={{
@@ -410,6 +417,7 @@ export function ProjectDetail() {
                 <Plus className="h-3.5 w-3.5" />
                 {t("projects.detail.addSourceBtn")}
               </button>
+              </div>
             </div>
 
             {sourcesData?.data && sourcesData.data.length > 0 ? (
