@@ -54,34 +54,46 @@ func (s *PgStore) IngestRelease(ctx context.Context, sourceID string, result *In
 		return IngestSkipped, fmt.Errorf("marshal raw_data: %w", err)
 	}
 
+	// Check if this release already exists and what changelog it has.
+	var existingID *string
+	var oldChangelog *string
+	_ = tx.QueryRow(ctx,
+		`SELECT id, raw_data->>'changelog' FROM releases WHERE source_id = $1 AND version = $2`,
+		sourceID, result.RawVersion,
+	).Scan(&existingID, &oldChangelog)
+
+	isNew := existingID == nil
+
 	var releaseID string
-	var xmax uint32
-	err = tx.QueryRow(ctx,
-		`INSERT INTO releases (id, source_id, version, raw_data, released_at)
-		 VALUES ($1, $2, $3, $4, $5)
-		 ON CONFLICT (source_id, version) DO UPDATE
-		    SET raw_data = EXCLUDED.raw_data, released_at = EXCLUDED.released_at
-		    WHERE releases.raw_data IS DISTINCT FROM EXCLUDED.raw_data
-		       OR releases.released_at IS DISTINCT FROM EXCLUDED.released_at
-		 RETURNING id, xmin::text::int`,
-		uuid.New().String(), sourceID, result.RawVersion, rawData, result.Timestamp,
-	).Scan(&releaseID, &xmax)
+	if isNew {
+		releaseID = uuid.New().String()
+		_, err = tx.Exec(ctx,
+			`INSERT INTO releases (id, source_id, version, raw_data, released_at) VALUES ($1, $2, $3, $4, $5)`,
+			releaseID, sourceID, result.RawVersion, rawData, result.Timestamp,
+		)
+	} else {
+		releaseID = *existingID
+		_, err = tx.Exec(ctx,
+			`UPDATE releases SET raw_data = $1, released_at = $2 WHERE id = $3`,
+			rawData, result.Timestamp, releaseID,
+		)
+	}
 	if err != nil {
-		if err.Error() == "no rows in result set" {
-			return IngestSkipped, nil
-		}
 		return IngestSkipped, fmt.Errorf("upsert release: %w", err)
 	}
 
-	// xmax == 0 means a fresh insert; xmax > 0 means an existing row was updated.
-	isNew := xmax == 0
+	// Only re-notify when changelog content was meaningfully added or changed.
+	changelogAdded := !isNew && result.Changelog != "" &&
+		(oldChangelog == nil || *oldChangelog == "" || *oldChangelog != result.Changelog)
 
-	_, err = s.river.InsertTx(ctx, tx, queue.NotifyJobArgs{
-		ReleaseID: releaseID,
-		SourceID:  sourceID,
-	}, nil)
-	if err != nil {
-		return IngestSkipped, fmt.Errorf("enqueue job: %w", err)
+	if isNew || changelogAdded {
+		_, err = s.river.InsertTx(ctx, tx, queue.NotifyJobArgs{
+			ReleaseID: releaseID,
+			SourceID:  sourceID,
+		}, nil)
+		if err != nil {
+			return IngestSkipped, fmt.Errorf("enqueue job: %w", err)
+		}
 	}
 
 	if isNew {
@@ -101,7 +113,10 @@ func (s *PgStore) IngestRelease(ctx context.Context, sourceID string, result *In
 	if isNew {
 		return IngestNew, nil
 	}
-	return IngestUpdated, nil
+	if changelogAdded {
+		return IngestUpdated, nil
+	}
+	return IngestSkipped, nil
 }
 
 // ListEnabledSources implements SourceLister.
