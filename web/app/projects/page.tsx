@@ -539,7 +539,17 @@ export default function ProjectsPage() {
   const [viewMode, setViewMode] = useState<"cards" | "compact">("cards");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"updated" | "added" | "name">("updated");
-  const [showExcluded, setShowExcluded] = useState(true);
+  const [showExcluded, setShowExcluded] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("projects-show-excluded");
+      return stored !== null ? stored === "true" : true;
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("projects-show-excluded", String(showExcluded));
+  }, [showExcluded]);
   const [page, setPage] = useState(1);
   const { data, isLoading } = useSWR("projects", () => projectsApi.list(1, 100));
   const items = data?.data ?? [];
