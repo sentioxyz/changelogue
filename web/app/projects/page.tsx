@@ -586,6 +586,10 @@ export default function ProjectsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[12px] text-text-muted cursor-pointer" style={{ fontFamily: "var(--font-dm-sans)" }}>
+            <Switch size="sm" checked={showExcluded} onCheckedChange={setShowExcluded} />
+            {t("releases.showExcluded")}
+          </label>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
             <input
@@ -644,12 +648,6 @@ export default function ProjectsPage() {
             {t("projects.newProject")}
           </button>
         </div>
-      </div>
-      <div className="flex justify-end mb-2">
-        <label className="flex items-center gap-1.5 text-[12px] text-text-muted cursor-pointer" style={{ fontFamily: "var(--font-dm-sans)" }}>
-          <Switch size="sm" checked={showExcluded} onCheckedChange={setShowExcluded} />
-          {t("releases.showExcluded")}
-        </label>
       </div>
 
       {isLoading ? (
