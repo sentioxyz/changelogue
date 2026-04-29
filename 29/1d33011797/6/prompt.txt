@@ -1,0 +1,33 @@
+There's a bug that even the source's poll interval set to daily, but it seesm that we poll them until we open the website, why?
+
+---
+
+Sure
+
+---
+
+commit and push
+
+---
+
+Does our pipeline auto triggers it?
+
+---
+
+./scripts/azure-deploy.sh setup
+[+] Checking Azure CLI login...
+[=] Resource group: changelogue-res (already exists, skipping)
+[=] Azure Container Registry: changelogueacr (already exists, skipping)
+[=] PostgreSQL Flexible Server: changelogue-db (already exists, skipping)
+[=] Database: changelogue (already exists, skipping)
+[=] Container image: changelogue:latest (already exists, skipping)
+[=] App Service plan: changelogue-plan (already exists, skipping)
+[=] Web App: changelogue-app (already exists, skipping)
+[+] Updating container image...
+[+] Configuring ACR credentials for App Service...
+
+---
+
+[+] Setting app configuration...
+[+] Enabling Always On (keeps container alive for background polling)...
+Operation returned an invalid status 'Conflict'
