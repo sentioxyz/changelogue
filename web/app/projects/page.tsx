@@ -13,7 +13,7 @@ import {
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { ProjectLogo } from "@/components/ui/project-logo";
 import { timeAgo } from "@/lib/format";
-import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil, ArrowUpDown, Loader2, Info, EyeOff } from "lucide-react";
+import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil, ArrowUpDown, Loader2, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { SourceForm } from "@/components/sources/source-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -610,10 +610,6 @@ export default function ProjectsPage() {
               <option value="name">{t("projects.sortName")}</option>
             </select>
           </div>
-          <label className="flex items-center gap-1.5 text-[12px] text-text-muted cursor-pointer" style={{ fontFamily: "var(--font-dm-sans)" }}>
-            <Switch size="sm" checked={showExcluded} onCheckedChange={setShowExcluded} />
-            {t("releases.showExcluded")}
-          </label>
           <div className="flex items-center rounded-md border border-border">
             <button
               onClick={() => setViewMode("cards")}
@@ -648,6 +644,12 @@ export default function ProjectsPage() {
             {t("projects.newProject")}
           </button>
         </div>
+      </div>
+      <div className="flex justify-end mb-2">
+        <label className="flex items-center gap-1.5 text-[12px] text-text-muted cursor-pointer" style={{ fontFamily: "var(--font-dm-sans)" }}>
+          <Switch size="sm" checked={showExcluded} onCheckedChange={setShowExcluded} />
+          {t("releases.showExcluded")}
+        </label>
       </div>
 
       {isLoading ? (

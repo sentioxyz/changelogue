@@ -1517,7 +1517,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 		LEFT JOIN projects p1 ON p1.id = src.project_id
 		LEFT JOIN semantic_releases sr ON sr.id = t.semantic_release_id
 		LEFT JOIN LATERAL (
-			SELECT sr2.report->>'urgency' AS urgency
+			SELECT sr2.report->>'urgency' AS urgency, sr2.id AS semantic_release_id
 			FROM semantic_release_sources srs
 			JOIN semantic_releases sr2 ON sr2.id = srs.semantic_release_id
 			WHERE srs.release_id = r.id
@@ -1529,7 +1529,7 @@ func (s *PgStore) ListTodos(ctx context.Context, status string, page, perPage in
 
 	// Shared select columns with aliases for subquery use.
 	selectCols := `
-			t.id, t.release_id, t.semantic_release_id, t.status,
+			t.id, t.release_id, COALESCE(t.semantic_release_id, rel_sr.semantic_release_id) AS semantic_release_id, t.status,
 			t.created_at, t.acknowledged_at, t.resolved_at,
 			COALESCE(p1.id, p2.id, gen_random_uuid())::text AS project_id,
 			COALESCE(p1.name, p2.name, '') AS project_name,
