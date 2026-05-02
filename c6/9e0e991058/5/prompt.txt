@@ -1,0 +1,17 @@
+how to add other github account to access https://changelogue-app.azurewebsites.net/
+
+---
+
+could you create a script to add ALLOWED_GITHUB_USERS
+
+---
+
+help me add https://github.com/wengych
+
+---
+
+Do this for me
+
+---
+
+commit and push
