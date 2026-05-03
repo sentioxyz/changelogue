@@ -3,7 +3,7 @@
   "checkpoint_id": "653a34c02b72",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 5,
   "files_touched": [
     "web/app/subscriptions/page.tsx",
     "web/components/subscriptions/subscription-form.tsx",
@@ -30,6 +30,13 @@
       "context": "/65/3a34c02b72/2/context.md",
       "content_hash": "/65/3a34c02b72/2/content_hash.txt",
       "prompt": "/65/3a34c02b72/2/prompt.txt"
+    },
+    {
+      "metadata": "/65/3a34c02b72/3/metadata.json",
+      "transcript": "/65/3a34c02b72/3/full.jsonl",
+      "context": "",
+      "content_hash": "/65/3a34c02b72/3/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
