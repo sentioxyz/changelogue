@@ -1,0 +1,23 @@
+Please help me remove the "Semantic Release" option in the subsriptions also the type column
+
+---
+
+when we create the subscription for the source, we should be able to search the project/source name.
+Also the we should support select by project, which means it subscribes to all the sources under the project.
+Please design first, implement second
+
+---
+
+There's another bug regarding the subscription editing panel, the existing source doesn't auto fill in the panel
+
+---
+
+For the target / subscription of source, now it shows github: repo/name, but in other places we are using icon+url, should we unify the visual?
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+It should be fine let keep this. now commit and push
