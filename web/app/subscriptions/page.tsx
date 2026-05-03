@@ -18,29 +18,6 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SubscriptionForm } from "@/components/subscriptions/subscription-form";
 import { useTranslation } from "@/lib/i18n/context";
 
-const SUB_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  source_release: { bg: "#1a1a1a", text: "#ffffff" },
-  semantic_release: { bg: "#2563eb", text: "#ffffff" },
-};
-
-function SubTypeBadge({ type }: { type: string }) {
-  const colors = SUB_TYPE_COLORS[type] ?? { bg: "#6b7280", text: "#ffffff" };
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5"
-      style={{
-        backgroundColor: colors.bg,
-        color: colors.text,
-        fontFamily: "var(--font-dm-sans)",
-        fontSize: "12px",
-        fontWeight: 500,
-        lineHeight: "16px",
-      }}
-    >
-      {type}
-    </span>
-  );
-}
 
 export default function SubscriptionsPage() {
   return (
@@ -52,7 +29,7 @@ export default function SubscriptionsPage() {
 
 function SubscriptionsPageInner() {
   const { t } = useTranslation();
-  const FILTER_KEYS = ["channel", "type"];
+  const FILTER_KEYS = ["channel"];
   const { filters, setFilters } = useFilterParams(FILTER_KEYS);
   const { data, isLoading } = useSWR("subscriptions", () => subsApi.list());
   const { data: channelsData } = useSWR("channels-for-sub-list", () =>
@@ -113,15 +90,6 @@ function SubscriptionsPageInner() {
       type: "select" as const,
       options: (channelsData?.data ?? []).map((c) => ({ value: c.id, label: c.name })),
     },
-    {
-      key: "type",
-      label: "Type",
-      type: "select" as const,
-      options: [
-        { value: "source_release", label: "Source Release" },
-        { value: "semantic_release", label: "Semantic Release" },
-      ],
-    },
   ], [channelsData]);
 
   /* Client-side filtering */
@@ -130,9 +98,6 @@ function SubscriptionsPageInner() {
     let result = allSubscriptions;
     if (filters.channel) {
       result = result.filter((s) => s.channel_id === filters.channel);
-    }
-    if (filters.type) {
-      result = result.filter((s) => s.type === filters.type);
     }
     return result;
   }, [allSubscriptions, filters.channel, filters.type]);
@@ -271,11 +236,11 @@ function SubscriptionsPageInner() {
                     </div>
                   </th>
                 ) : (
-                  [t("subscriptions.thType"), "Channel", t("subscriptions.thTarget"), t("subscriptions.thVersionFilter"), ""].map(
+                  ["Channel", t("subscriptions.thTarget"), t("subscriptions.thVersionFilter"), ""].map(
                     (heading, i) => (
                       <th
                         key={i}
-                        className={`py-3 text-left ${i === 4 ? "w-20 px-5" : "px-5"}`}
+                        className={`py-3 text-left ${i === 3 ? "w-20 px-5" : "px-5"}`}
                         style={{
                           fontFamily: "var(--font-dm-sans)",
                           fontSize: "11px",
@@ -306,10 +271,6 @@ function SubscriptionsPageInner() {
                     />
                   </td>
 
-                  <td className="px-5 py-3">
-                    <SubTypeBadge type={sub.type} />
-                  </td>
-
                   <td
                     className="px-5 py-3 text-foreground"
                     style={{
@@ -329,9 +290,9 @@ function SubscriptionsPageInner() {
                       fontWeight: 500,
                     }}
                   >
-                    {sub.type === "source_release"
-                      ? getSourceLabel(sub.source_id!)
-                      : getProjectName(sub.project_id!)}
+                    {sub.source_id
+                      ? getSourceLabel(sub.source_id)
+                      : sub.project_id ? getProjectName(sub.project_id) : "\u2014"}
                   </td>
 
                   <td
