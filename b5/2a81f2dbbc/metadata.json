@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b52a81f2dbbc",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "internal/agent/orchestrator.go",
+    "web/lib/i18n/messages/en.json",
+    "web/lib/i18n/messages/zh.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b5/2a81f2dbbc/0/metadata.json",
+      "transcript": "/b5/2a81f2dbbc/0/full.jsonl",
+      "context": "/b5/2a81f2dbbc/0/context.md",
+      "content_hash": "/b5/2a81f2dbbc/0/content_hash.txt",
+      "prompt": "/b5/2a81f2dbbc/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2394594,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 5526,
+    "api_call_count": 46
+  }
+}

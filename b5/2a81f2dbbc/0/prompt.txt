@@ -1,0 +1,9 @@
+Hi
+
+---
+
+Can you help me change the "Semantic release" concept directly into "AI Report", product side changes backend can keep the same but need to document
+
+---
+
+commit and push
