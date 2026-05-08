@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b52a81f2dbbc",
+  "session_id": "45b32cb4-489b-4cac-803e-86ad19ea5cbd",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-08T07:03:37.854795Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "web/lib/i18n/messages/en.json",
+    "web/lib/i18n/messages/zh.json",
+    "internal/agent/orchestrator.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "deb62a135490",
+  "transcript_identifier_at_start": "c9448ce6-3877-4b3f-9163-8caa71fdb9c1",
+  "initial_attribution": {
+    "calculated_at": "2026-05-08T07:03:37.815206Z",
+    "agent_lines": 33,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 33,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/45b32cb4-489b-4cac-803e-86ad19ea5cbd.jsonl"
+}
