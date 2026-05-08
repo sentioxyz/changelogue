@@ -520,7 +520,7 @@ func (o *Orchestrator) sendProjectNotifications(ctx context.Context, run *models
 	}
 
 	msg := routing.Notification{
-		Title:       fmt.Sprintf("Semantic Release Report: %s %s", result.projectName, result.version),
+		Title:       fmt.Sprintf("AI Report: %s %s", result.projectName, result.version),
 		Body:        notifBody,
 		Version:     result.version,
 		ProjectName: result.projectName,
