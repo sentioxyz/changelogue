@@ -416,14 +416,7 @@ function TodoPageInner() {
                             {t("todo.acknowledge")}
                           </button>
                           <button
-                            onClick={() =>
-                              setConfirmDialog({
-                                action: t("todo.dismiss"),
-                                projectName: todo.project_name,
-                                version: todo.version,
-                                onConfirm: () => handleResolve(todo.id, false),
-                              })
-                            }
+                            onClick={() => handleResolve(todo.id, false)}
                             className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80 text-text-secondary border-border"
                             style={{
                               fontFamily: "var(--font-dm-sans)",
