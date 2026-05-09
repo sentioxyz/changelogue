@@ -20,9 +20,11 @@ interface SubscriptionFormProps {
   title: string;
   onSuccess?: () => void;
   onCancel?: () => void;
+  scopeProjectId?: string;
+  scopeSources?: Source[];
 }
 
-export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSuccess, onCancel }: SubscriptionFormProps) {
+export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSuccess, onCancel, scopeProjectId, scopeSources }: SubscriptionFormProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const isEditing = !!initial;
@@ -31,14 +33,14 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
   const [type] = useState<"source_release">("source_release");
   const [channelId, setChannelId] = useState(initial?.channel_id ?? "");
   // Single-select state (edit mode)
-  const [projectId, setProjectId] = useState(initial?.project_id ?? "");
+  const [projectId, setProjectId] = useState(initial?.project_id ?? scopeProjectId ?? "");
   const [sourceId, setSourceId] = useState(initial?.source_id ?? "");
   // Multi-select state (create mode)
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [sourceSearch, setSourceSearch] = useState("");
   const [versionFilter, setVersionFilter] = useState(initial?.version_filter ?? "");
 
-  const { data: projectsData } = useSWR("projects-for-sub", () => projectsApi.list(1, 100));
+  const { data: projectsData } = useSWR(!scopeProjectId ? "projects-for-sub" : null, () => projectsApi.list(1, 100));
   const { data: channelsData } = useSWR("channels-for-sub", () => channelsApi.list());
 
   // When editing, resolve the source to find its project_id
@@ -52,18 +54,19 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
     }
   }, [initialSourceData]);
 
-  // Edit mode: fetch sources for the selected project
+  // Edit mode: fetch sources for the selected project (skip if scoped)
   const { data: sourcesData } = useSWR(
-    type === "source_release" && isEditing && projectId
+    type === "source_release" && isEditing && projectId && !scopeSources
       ? `sources-for-sub-${projectId}`
       : null,
     () => sourcesApi.listByProject(projectId)
   );
+  const editSources = scopeSources ?? sourcesData?.data ?? [];
 
-  // Create mode (source type): fetch sources for ALL projects
+  // Create mode (source type): fetch sources for ALL projects (skip if scoped)
   const projectIds = projectsData?.data.map((p) => p.id) ?? [];
   const { data: allSourcesData } = useSWR(
-    type === "source_release" && !isEditing && projectIds.length > 0
+    type === "source_release" && !isEditing && !scopeSources && projectIds.length > 0
       ? `all-sources-for-sub-${projectIds.join(",")}`
       : null,
     async () => {
@@ -76,10 +79,15 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
 
   // Group all sources by project for display
   const sourcesByProject = useMemo(() => {
-    if (!allSourcesData || !projectsData?.data) return [];
+    const sourceList = scopeSources ?? allSourcesData;
+    if (!sourceList) return [];
+    if (scopeProjectId) {
+      return [{ projectName: "", sources: sourceList }];
+    }
+    if (!projectsData?.data) return [];
     const projectMap = new Map(projectsData.data.map((p) => [p.id, p.name]));
     const groups = new Map<string, { projectName: string; sources: Source[] }>();
-    for (const s of allSourcesData) {
+    for (const s of sourceList) {
       const name = projectMap.get(s.project_id) ?? s.project_id;
       if (!groups.has(s.project_id)) {
         groups.set(s.project_id, { projectName: name, sources: [] });
@@ -87,7 +95,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
       groups.get(s.project_id)!.sources.push(s);
     }
     return Array.from(groups.values());
-  }, [allSourcesData, projectsData]);
+  }, [allSourcesData, projectsData, scopeSources, scopeProjectId]);
 
   const filteredSourcesByProject = useMemo(() => {
     if (!sourceSearch.trim()) return sourcesByProject;
@@ -120,7 +128,7 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
     );
   };
 
-  const allSourceIds = allSourcesData?.map((s) => s.id) ?? [];
+  const allSourceIds = (scopeSources ?? allSourcesData)?.map((s) => s.id) ?? [];
 
   const toggleAllSources = () => {
     if (selectedSourceIds.length === allSourceIds.length) {
@@ -169,23 +177,25 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
       {/* SOURCE SELECTION */}
       {type === "source_release" && isEditing && (
         <>
-          <div className="space-y-2">
-            <Label>{t("subscriptionForm.projectToListSources")}</Label>
-            <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSourceId(""); }}>
-              <SelectTrigger><SelectValue placeholder={t("subscriptionForm.selectProject")} /></SelectTrigger>
-              <SelectContent>
-                {projectsData?.data.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!scopeProjectId && (
+            <div className="space-y-2">
+              <Label>{t("subscriptionForm.projectToListSources")}</Label>
+              <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSourceId(""); }}>
+                <SelectTrigger><SelectValue placeholder={t("subscriptionForm.selectProject")} /></SelectTrigger>
+                <SelectContent>
+                  {projectsData?.data.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>{t("subscriptionForm.source")}</Label>
             <Select value={sourceId} onValueChange={setSourceId} required>
               <SelectTrigger><SelectValue placeholder={t("subscriptionForm.selectSource")} /></SelectTrigger>
               <SelectContent>
-                {sourcesData?.data.map((s) => (
+                {editSources.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.provider}: {s.repository}</SelectItem>
                 ))}
               </SelectContent>
@@ -207,28 +217,32 @@ export function SubscriptionForm({ initial, onSubmit, onBatchSubmit, title, onSu
               </button>
             )}
           </div>
-          <Input
-            placeholder="Search projects or sources..."
-            value={sourceSearch}
-            onChange={(e) => setSourceSearch(e.target.value)}
-          />
+          {!scopeProjectId && (
+            <Input
+              placeholder="Search projects or sources..."
+              value={sourceSearch}
+              onChange={(e) => setSourceSearch(e.target.value)}
+            />
+          )}
           <div className="max-h-64 overflow-y-auto rounded-md border border-input p-2 space-y-3">
             {filteredSourcesByProject.map((group) => {
               const groupIds = group.sources.map((s) => s.id);
               const allGroupSelected = groupIds.every((id) => selectedSourceIds.includes(id));
               const someGroupSelected = !allGroupSelected && groupIds.some((id) => selectedSourceIds.includes(id));
               return (
-                <div key={group.projectName}>
-                  <label className="flex items-center gap-2 px-2 pb-1 cursor-pointer">
-                    <Checkbox
-                      checked={allGroupSelected ? true : someGroupSelected ? "indeterminate" : false}
-                      onCheckedChange={() => toggleProjectSources(group)}
-                    />
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{group.projectName}</span>
-                  </label>
+                <div key={group.projectName || "_scoped"}>
+                  {group.projectName && (
+                    <label className="flex items-center gap-2 px-2 pb-1 cursor-pointer">
+                      <Checkbox
+                        checked={allGroupSelected ? true : someGroupSelected ? "indeterminate" : false}
+                        onCheckedChange={() => toggleProjectSources(group)}
+                      />
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{group.projectName}</span>
+                    </label>
+                  )}
                   <div className="space-y-1">
                     {group.sources.map((s) => (
-                      <label key={s.id} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-accent cursor-pointer ml-4">
+                      <label key={s.id} className={`flex items-center gap-2 rounded px-2 py-1.5 hover:bg-accent cursor-pointer ${group.projectName ? "ml-4" : ""}`}>
                         <Checkbox
                           checked={selectedSourceIds.includes(s.id)}
                           onCheckedChange={() => toggleSourceId(s.id)}

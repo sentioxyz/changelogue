@@ -1,6 +1,6 @@
 "use client";
 
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,8 +10,10 @@ import {
   contextSources as ctxApi,
   agent as agentApi,
   releases as releasesApi,
+  subscriptions as subsApi,
+  channels as channelsApi,
 } from "@/lib/api/client";
-import type { AgentRules, Source } from "@/lib/api/types";
+import type { AgentRules, Source, Subscription, NotificationChannel } from "@/lib/api/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SourceForm } from "@/components/sources/source-form";
@@ -28,6 +30,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "@/lib/i18n/context";
 import { UrgencyPill } from "@/components/ui/urgency-pill";
+import { ChannelTypeBadge } from "@/components/ui/channel-type-badge";
+import { SubscriptionForm } from "@/components/subscriptions/subscription-form";
 
 /* ---------- Tabs ---------- */
 
@@ -109,6 +113,9 @@ export function ProjectDetail() {
   const [deletingCtxId, setDeletingCtxId] = useState<string | null>(null);
   const [deletingProject, setDeletingProject] = useState(false);
   const [showExcluded, setShowExcluded] = useState(true);
+  const [subCreateOpen, setSubCreateOpen] = useState(false);
+  const [editingSub, setEditingSub] = useState<Subscription | null>(null);
+  const [deletingSubId, setDeletingSubId] = useState<string | null>(null);
 
   /* Data fetching */
   const { data, isLoading, mutate: mutateProject } = useSWR(`project-${id}`, () => projectsApi.get(id));
@@ -132,6 +139,14 @@ export function ProjectDetail() {
     `project-${id}-releases`,
     () => releasesApi.listByProject(id, 1, 25, { include_excluded: true }),
   );
+  const { data: subscriptionsData } = useSWR(
+    `project-${id}-subscriptions`,
+    () => subsApi.list(),
+  );
+  const { data: channelsData } = useSWR(
+    "channels-for-project",
+    () => channelsApi.list(),
+  );
 
   const sources = sourcesData?.data ?? [];
   const projectReleases = projectReleasesData?.data ?? [];
@@ -145,6 +160,24 @@ export function ProjectDetail() {
     }
     return m;
   }, [projectReleases, showExcluded]);
+
+  const channelMap = useMemo(() => {
+    const m = new Map<string, NotificationChannel>();
+    for (const c of channelsData?.data ?? []) m.set(c.id, c);
+    return m;
+  }, [channelsData]);
+
+  const subscriptionsBySource = useMemo(() => {
+    const m = new Map<string, Subscription[]>();
+    for (const sub of subscriptionsData?.data ?? []) {
+      if (sub.source_id) {
+        const arr = m.get(sub.source_id) ?? [];
+        arr.push(sub);
+        m.set(sub.source_id, arr);
+      }
+    }
+    return m;
+  }, [subscriptionsData]);
 
   const saveName = useCallback(async () => {
     const p = data?.data;
@@ -539,6 +572,104 @@ export function ProjectDetail() {
                 {t("projects.detail.noSources")}
               </div>
             )}
+
+            {/* Subscriptions per source */}
+            {sources.length > 0 && (
+              <div className="mt-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <SectionLabel>{t("projects.detail.subscriptions")}</SectionLabel>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href="/subscriptions"
+                      className="text-[12px] font-medium hover:underline text-beacon-accent"
+                      style={{ fontFamily: "var(--font-dm-sans)" }}
+                    >
+                      {t("projects.detail.manageSubscriptions")}
+                    </Link>
+                    <button
+                      onClick={() => setSubCreateOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-mono-bg border-border text-secondary-foreground"
+                      style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      {t("projects.detail.addSubscription")}
+                    </button>
+                  </div>
+                </div>
+                {(() => {
+                  const allSubs = sources.flatMap((source) =>
+                    (subscriptionsBySource.get(source.id) ?? []).map((sub) => ({ sub, source }))
+                  );
+                  if (allSubs.length === 0) {
+                    return (
+                      <div className="flex h-32 items-center justify-center rounded-md border text-[13px] border-border text-text-muted">
+                        {t("projects.detail.noSubscriptions")}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="overflow-hidden rounded-md border" style={{ borderColor: "var(--border)" }}>
+                      <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
+                        <thead>
+                          <tr style={{ backgroundColor: "var(--background)" }}>
+                            <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.source")}</th>
+                            <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("subscriptions.thChannel")}</th>
+                            <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("subscriptions.thVersionFilter")}</th>
+                            <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allSubs.map(({ sub, source }) => (
+                            <tr key={sub.id} className="border-t" style={{ borderColor: "var(--border)" }}>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <ProviderBadge provider={source.provider} />
+                                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>
+                                    {source.repository}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                {(() => {
+                                  const ch = channelMap.get(sub.channel_id);
+                                  return ch ? (
+                                    <div className="flex items-center gap-2">
+                                      <ChannelTypeBadge type={ch.type} />
+                                      <span>{ch.name}</span>
+                                    </div>
+                                  ) : sub.channel_id;
+                                })()}
+                              </td>
+                              <td className="px-4 py-3" style={{ fontFamily: sub.version_filter ? "'JetBrains Mono', monospace" : "inherit", fontSize: "12px", color: sub.version_filter ? "var(--foreground)" : "var(--text-muted)" }}>
+                                {sub.version_filter || "\u2014"}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => setEditingSub(sub)}
+                                    className="rounded p-1 text-text-muted transition-colors hover:bg-mono-bg hover:text-foreground"
+                                    title={t("projects.detail.editSubscription")}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingSubId(sub.id)}
+                                    className="rounded p-1 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600"
+                                    title={t("subscriptions.deleteSubscription")}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         )}
 
@@ -919,6 +1050,50 @@ export function ProjectDetail() {
         title={t("projects.detail.dialogDeleteContextSource")}
         description={t("projects.detail.dialogDeleteContextSourceDesc")}
         onConfirm={async () => { if (deletingCtxId) { await ctxApi.delete(deletingCtxId); mutateCtx(); } }}
+      />
+
+      {/* Subscription create dialog */}
+      <Dialog open={subCreateOpen} onOpenChange={setSubCreateOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>{t("subscriptions.createSubscription")}</DialogTitle></DialogHeader>
+          <SubscriptionForm
+            title={t("subscriptions.createSubscription")}
+            scopeProjectId={id}
+            scopeSources={sources}
+            onSubmit={async (input) => { await subsApi.create(input); }}
+            onBatchSubmit={async (input) => { await subsApi.batchCreate(input); }}
+            onSuccess={() => { setSubCreateOpen(false); globalMutate(`project-${id}-subscriptions`); }}
+            onCancel={() => setSubCreateOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscription edit dialog */}
+      <Dialog open={!!editingSub} onOpenChange={(open) => { if (!open) setEditingSub(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>{t("subscriptions.editSubscription")}</DialogTitle></DialogHeader>
+          {editingSub && (
+            <SubscriptionForm
+              key={editingSub.id}
+              title={t("subscriptions.editSubscription")}
+              initial={editingSub}
+              scopeProjectId={id}
+              scopeSources={sources}
+              onSubmit={async (input) => { await subsApi.update(editingSub.id, input); }}
+              onSuccess={() => { setEditingSub(null); globalMutate(`project-${id}-subscriptions`); }}
+              onCancel={() => setEditingSub(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscription delete dialog */}
+      <ConfirmDialog
+        open={!!deletingSubId}
+        onOpenChange={(open) => { if (!open) setDeletingSubId(null); }}
+        title={t("subscriptions.deleteSubscription")}
+        description={t("subscriptions.deleteSubscriptionDesc")}
+        onConfirm={async () => { if (deletingSubId) { await subsApi.delete(deletingSubId); globalMutate(`project-${id}-subscriptions`); } }}
       />
 
       {/* Project delete dialog */}
