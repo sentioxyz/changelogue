@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "3f5c5dbd8a6d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "web/app/channels/page.tsx",
+    "web/components/projects/project-detail.tsx",
+    "web/components/subscriptions/subscription-form.tsx",
+    "web/components/ui/channel-type-badge.tsx",
+    "web/lib/i18n/messages/en.json",
+    "web/lib/i18n/messages/zh.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/3f/5c5dbd8a6d/0/metadata.json",
+      "transcript": "/3f/5c5dbd8a6d/0/full.jsonl",
+      "context": "/3f/5c5dbd8a6d/0/context.md",
+      "content_hash": "/3f/5c5dbd8a6d/0/content_hash.txt",
+      "prompt": "/3f/5c5dbd8a6d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 15475165,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 26756,
+    "api_call_count": 142
+  }
+}
