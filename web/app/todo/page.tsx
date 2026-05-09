@@ -37,13 +37,6 @@ function TodoPageInner() {
   const FILTER_KEYS = ["status", "project", "provider", "urgency", "date", "aggregated"];
   const { filters, setFilters, page, setPage } = useFilterParams(FILTER_KEYS, { status: "pending", aggregated: "true" });
 
-  const [confirmDialog, setConfirmDialog] = useState<{
-    action: string;
-    projectName?: string;
-    version?: string;
-    onConfirm: () => void;
-  } | null>(null);
-
   /* Fetch projects for the Project filter dropdown */
   const { data: projectsData } = useSWR("projects-for-todo-filters", () =>
     projectsApi.list(1, 100)
@@ -460,14 +453,7 @@ function TodoPageInner() {
                             {t("todo.resolve")}
                           </button>
                           <button
-                            onClick={() =>
-                              setConfirmDialog({
-                                action: t("todo.undo"),
-                                projectName: todo.project_name,
-                                version: todo.version,
-                                onConfirm: () => handleReopen(todo.id),
-                              })
-                            }
+                            onClick={() => handleReopen(todo.id)}
                             className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80 text-text-secondary"
                             style={{
                               fontFamily: "var(--font-dm-sans)",
@@ -482,14 +468,7 @@ function TodoPageInner() {
                       )}
                       {activeStatus === "resolved" && (
                         <button
-                          onClick={() =>
-                            setConfirmDialog({
-                              action: t("todo.reopen"),
-                              projectName: todo.project_name,
-                              version: todo.version,
-                              onConfirm: () => handleReopen(todo.id),
-                            })
-                          }
+                          onClick={() => handleReopen(todo.id)}
                           className="rounded-md px-2.5 py-1 transition-colors hover:opacity-80 text-text-secondary"
                           style={{
                             fontFamily: "var(--font-dm-sans)",
@@ -551,79 +530,6 @@ function TodoPageInner() {
         </div>
       )}
 
-      {/* Confirmation dialog */}
-      {confirmDialog && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-          onClick={() => setConfirmDialog(null)}
-        >
-          <div
-            className="rounded-lg bg-surface p-6 shadow-xl"
-            style={{ maxWidth: "360px", width: "100%" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p
-              className="text-foreground"
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "14px",
-                fontWeight: 400,
-                marginBottom: "20px",
-                lineHeight: 1.6,
-              }}
-            >
-              {confirmDialog.action}{" "}
-              {confirmDialog.projectName && (
-                <span style={{ fontWeight: 600 }}>{confirmDialog.projectName}</span>
-              )}{" "}
-              <span
-                className="bg-mono-bg"
-                style={{
-                  fontFamily: "var(--font-mono, ui-monospace, monospace)",
-                  fontSize: "13px",
-                  borderRadius: "4px",
-                  padding: "1px 6px",
-                  color: "#6d28d9",
-                }}
-              >
-                {confirmDialog.version ?? t("todo.thisItem")}
-              </span>
-              ?
-            </p>
-            <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={() => setConfirmDialog(null)}
-                className="rounded-md px-3 py-1.5 transition-colors hover:bg-mono-bg text-text-secondary"
-                style={{
-                  fontFamily: "var(--font-dm-sans)",
-                  fontSize: "13px",
-                  border: "1px solid var(--border)",
-                }}
-              >
-                {t("todo.cancel")}
-              </button>
-              <button
-                onClick={() => {
-                  confirmDialog.onConfirm();
-                  setConfirmDialog(null);
-                }}
-                className="rounded-md px-3 py-1.5 transition-colors hover:opacity-80"
-                style={{
-                  fontFamily: "var(--font-dm-sans)",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  backgroundColor: "#fee2e2",
-                  color: "#991b1b",
-                  border: "1px solid #fecaca",
-                }}
-              >
-                {t("todo.confirm")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
