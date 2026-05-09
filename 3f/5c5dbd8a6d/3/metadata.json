@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "3f5c5dbd8a6d",
+  "session_id": "1fd22758-ae57-4a37-8a4a-fc75f854d9c0",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-09T16:18:44.68277Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "web/components/projects/project-detail.tsx",
+    "web/components/subscriptions/subscription-form.tsx",
+    "web/components/ui/channel-type-badge.tsx",
+    "web/lib/i18n/messages/en.json",
+    "web/lib/i18n/messages/zh.json",
+    "web/app/channels/page.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "b320aa2f6fba",
+  "transcript_identifier_at_start": "d08c555c-197d-4c9e-ac5c-bf8270177b50",
+  "checkpoint_transcript_start": 77,
+  "transcript_lines_at_start": 77,
+  "token_usage": {
+    "input_tokens": 43203,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 58,
+    "api_call_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-09T16:18:44.62568Z",
+    "agent_lines": 274,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 274,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/1fd22758-ae57-4a37-8a4a-fc75f854d9c0.jsonl"
+}
