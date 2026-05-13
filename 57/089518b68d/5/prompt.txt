@@ -1,0 +1,10 @@
+https://changelogue-app.azurewebsites.net/projects/1772f23b-1425-4fc3-9396-430401cc4008 有个bug，我加了一个docker的source之后，github source的版本不见了
+matter-labs/zksync-era all the version gone, including latest polled one
+
+---
+
+but why I cannot see them in the projects page as well?
+
+---
+
+commit and push
