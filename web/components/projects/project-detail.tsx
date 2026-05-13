@@ -54,6 +54,17 @@ function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max) + "\u2026" : str;
 }
 
+function getSourceUrl(provider: string, repository: string): string | null {
+  switch (provider) {
+    case "github": return `https://github.com/${repository}`;
+    case "gitlab": return `https://gitlab.com/${repository}`;
+    case "docker_hub": return `https://hub.docker.com/r/${repository}`;
+    case "pypi": return `https://pypi.org/project/${repository}`;
+    case "npm": return `https://www.npmjs.com/package/${repository}`;
+    default: return null;
+  }
+}
+
 /* ---------- Main component ---------- */
 
 export function ProjectDetail() {
@@ -479,9 +490,11 @@ export function ProjectDetail() {
                           <ProviderBadge provider={source.provider} />
                         </td>
                         <td className="px-4 py-3">
-                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>
-                            {source.repository}
-                          </span>
+                          {(() => {
+                            const url = getSourceUrl(source.provider, source.repository);
+                            const inner = <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>;
+                            return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{inner}</a> : inner;
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-text-secondary">
                           {formatInterval(source.poll_interval_seconds)}
@@ -629,9 +642,11 @@ export function ProjectDetail() {
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
                                   <ProviderBadge provider={source.provider} />
-                                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>
-                                    {source.repository}
-                                  </span>
+                                  {(() => {
+                                    const url = getSourceUrl(source.provider, source.repository);
+                                    const inner = <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>;
+                                    return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{inner}</a> : inner;
+                                  })()}
                                 </div>
                               </td>
                               <td className="px-4 py-3">
