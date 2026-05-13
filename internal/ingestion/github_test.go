@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -142,6 +143,9 @@ func TestGitHubFetchHTTPError(t *testing.T) {
 func TestGitHubLiveGoEthereum(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping live test in short mode")
+	}
+	if os.Getenv("GITHUB_TOKEN") == "" {
+		t.Skip("skipping live test: GITHUB_TOKEN not set")
 	}
 
 	src := NewGitHubSource(http.DefaultClient, "ethereum/go-ethereum", "live-test")
