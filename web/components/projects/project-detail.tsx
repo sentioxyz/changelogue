@@ -483,7 +483,7 @@ export function ProjectDetail() {
                           {(() => {
                             const url = getProviderUrl(source.provider, source.repository);
                             const inner = <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>;
-                            return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{inner}</a> : inner;
+                            return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] dark:text-[#60a5fa] hover:underline">{inner}</a> : inner;
                           })()}
                         </td>
                         <td className="px-4 py-3 text-text-secondary">
@@ -635,7 +635,7 @@ export function ProjectDetail() {
                                   {(() => {
                                     const url = getProviderUrl(source.provider, source.repository);
                                     const inner = <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>;
-                                    return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{inner}</a> : inner;
+                                    return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] dark:text-[#60a5fa] hover:underline">{inner}</a> : inner;
                                   })()}
                                 </div>
                               </td>
