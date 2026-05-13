@@ -135,10 +135,6 @@ export function ProjectDetail() {
     testSourceId ? `source-${testSourceId}-releases` : null,
     () => releasesApi.listBySource(testSourceId, 1),
   );
-  const { data: projectReleasesData } = useSWR(
-    `project-${id}-releases`,
-    () => releasesApi.listByProject(id, 1, 25, { include_excluded: true }),
-  );
   const { data: subscriptionsData } = useSWR(
     `project-${id}-subscriptions`,
     () => subsApi.list(),
@@ -149,7 +145,16 @@ export function ProjectDetail() {
   );
 
   const sources = sourcesData?.data ?? [];
-  const projectReleases = projectReleasesData?.data ?? [];
+  const { data: perSourceReleasesData } = useSWR(
+    sources.length > 0 ? `project-${id}-releases-per-source-${sources.map(s => s.id).join(",")}` : null,
+    async () => {
+      const results = await Promise.all(
+        sources.map((s) => releasesApi.listBySource(s.id, 1, 15, { include_excluded: true }))
+      );
+      return results.flatMap((r) => r.data ?? []);
+    },
+  );
+  const projectReleases = perSourceReleasesData ?? [];
   const releasesBySource = useMemo(() => {
     const filtered = showExcluded ? projectReleases : projectReleases.filter((r) => !r.excluded);
     const m = new Map<string, typeof projectReleases>();

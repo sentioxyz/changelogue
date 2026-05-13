@@ -195,12 +195,17 @@ function ProjectFlowCard({ project, showExcluded }: { project: Project; showExcl
     `project-${project.id}-card-sources`,
     () => sourcesApi.listByProject(project.id),
   );
-  const { data: relData } = useSWR(
-    `project-${project.id}-card-releases`,
-    () => releasesApi.listByProject(project.id, 1, 25, { include_excluded: true }),
-  );
   const sources = srcData?.data ?? [];
-  const allReleases = relData?.data ?? [];
+  const { data: relData } = useSWR(
+    sources.length > 0 ? `project-${project.id}-card-releases-${sources.map(s => s.id).join(",")}` : null,
+    async () => {
+      const results = await Promise.all(
+        sources.map((s) => releasesApi.listBySource(s.id, 1, 15, { include_excluded: true }))
+      );
+      return results.flatMap((r) => r.data ?? []);
+    },
+  );
+  const allReleases = relData ?? [];
   const releases = showExcluded ? allReleases : allReleases.filter((r) => !r.excluded);
 
   const sourceMap = useMemo(() => {
@@ -409,19 +414,25 @@ function ProjectFlowCard({ project, showExcluded }: { project: Project; showExcl
 function ProjectCompactRow({ project, showExcluded }: { project: Project; showExcluded: boolean }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { data: relData } = useSWR(`project-${project.id}-card-releases`, () =>
-    releasesApi.listByProject(project.id, 1, 5, { include_excluded: true })
-  );
   const { data: srcData } = useSWR(`project-${project.id}-card-sources`, () =>
     sourcesApi.listByProject(project.id)
+  );
+  const sources = srcData?.data ?? [];
+  const { data: relData } = useSWR(
+    sources.length > 0 ? `project-${project.id}-card-releases-${sources.map(s => s.id).join(",")}` : null,
+    async () => {
+      const results = await Promise.all(
+        sources.map((s) => releasesApi.listBySource(s.id, 1, 5, { include_excluded: true }))
+      );
+      return results.flatMap((r) => r.data ?? []);
+    },
   );
   const { data: srData } = useSWR(`project-${project.id}-card-sr`, () =>
     srApi.list(project.id, 1, 3)
   );
 
-  const allReleases = relData?.data ?? [];
+  const allReleases = relData ?? [];
   const releases = showExcluded ? allReleases : allReleases.filter((r) => !r.excluded);
-  const sources = srcData?.data ?? [];
   const srItems = srData?.data ?? [];
   const latest = releases[0];
   const latestSr = srItems[0];
