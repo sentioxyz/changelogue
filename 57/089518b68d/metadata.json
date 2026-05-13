@@ -1,0 +1,20 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "57089518b68d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "web/app/projects/page.tsx",
+    "web/components/projects/project-detail.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/57/089518b68d/0/metadata.json",
+      "transcript": "/57/089518b68d/0/full.jsonl",
+      "context": "",
+      "content_hash": "/57/089518b68d/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
