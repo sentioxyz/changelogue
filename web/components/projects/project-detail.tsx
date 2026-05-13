@@ -30,6 +30,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "@/lib/i18n/context";
 import { UrgencyPill } from "@/components/ui/urgency-pill";
+import { getProviderUrl } from "@/lib/provider-urls";
 import { ChannelTypeBadge } from "@/components/ui/channel-type-badge";
 import { SubscriptionForm } from "@/components/subscriptions/subscription-form";
 
@@ -52,18 +53,6 @@ function formatDuration(startedAt?: string, completedAt?: string): string {
 
 function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max) + "\u2026" : str;
-}
-
-function getSourceUrl(provider: string, repository: string): string | null {
-  switch (provider) {
-    case "github": return `https://github.com/${repository}`;
-    case "gitlab": return `https://gitlab.com/${repository}`;
-    case "dockerhub": return `https://hub.docker.com/r/${repository}`;
-    case "ecr-public": return `https://gallery.ecr.aws/${repository}`;
-    case "pypi": return `https://pypi.org/project/${repository}`;
-    case "npm": return `https://www.npmjs.com/package/${repository}`;
-    default: return null;
-  }
 }
 
 /* ---------- Main component ---------- */
@@ -492,7 +481,7 @@ export function ProjectDetail() {
                         </td>
                         <td className="px-4 py-3">
                           {(() => {
-                            const url = getSourceUrl(source.provider, source.repository);
+                            const url = getProviderUrl(source.provider, source.repository);
                             const inner = <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>;
                             return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{inner}</a> : inner;
                           })()}
@@ -644,7 +633,7 @@ export function ProjectDetail() {
                                 <div className="flex items-center gap-2">
                                   <ProviderBadge provider={source.provider} />
                                   {(() => {
-                                    const url = getSourceUrl(source.provider, source.repository);
+                                    const url = getProviderUrl(source.provider, source.repository);
                                     const inner = <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>;
                                     return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{inner}</a> : inner;
                                   })()}

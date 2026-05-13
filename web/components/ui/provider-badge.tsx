@@ -1,8 +1,9 @@
 import { cn } from "@/lib/utils";
 import { FaGithub, FaDocker, FaAws, FaGitlab, FaPython, FaNpm } from "react-icons/fa";
 import type { IconType } from "react-icons";
+import type { Provider } from "@/lib/provider-urls";
 
-const PROVIDER_STYLES: Record<string, { bg: string; text: string; label: string; icon: IconType }> = {
+const PROVIDER_STYLES: Record<Provider, { bg: string; text: string; label: string; icon: IconType }> = {
   github: { bg: "#1a1a1a", text: "#ffffff", label: "GitHub", icon: FaGithub },
   dockerhub: { bg: "#2496ed", text: "#ffffff", label: "Docker Hub", icon: FaDocker },
   "ecr-public": { bg: "#ff9900", text: "#ffffff", label: "ECR Public", icon: FaAws },
@@ -12,7 +13,7 @@ const PROVIDER_STYLES: Record<string, { bg: string; text: string; label: string;
 };
 
 export function getProviderIcon(provider: string): IconType | undefined {
-  return PROVIDER_STYLES[provider.toLowerCase()]?.icon;
+  return PROVIDER_STYLES[provider.toLowerCase() as Provider]?.icon;
 }
 
 interface ProviderBadgeProps {
@@ -21,7 +22,7 @@ interface ProviderBadgeProps {
 }
 
 export function ProviderBadge({ provider, className }: ProviderBadgeProps) {
-  const style = PROVIDER_STYLES[provider.toLowerCase()];
+  const style = PROVIDER_STYLES[provider.toLowerCase() as Provider];
   const resolved = style ?? {
     bg: "#6b7280",
     text: "#ffffff",
