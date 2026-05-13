@@ -58,7 +58,8 @@ function getSourceUrl(provider: string, repository: string): string | null {
   switch (provider) {
     case "github": return `https://github.com/${repository}`;
     case "gitlab": return `https://gitlab.com/${repository}`;
-    case "docker_hub": return `https://hub.docker.com/r/${repository}`;
+    case "dockerhub": return `https://hub.docker.com/r/${repository}`;
+    case "ecr-public": return `https://gallery.ecr.aws/${repository}`;
     case "pypi": return `https://pypi.org/project/${repository}`;
     case "npm": return `https://www.npmjs.com/package/${repository}`;
     default: return null;
