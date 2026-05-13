@@ -3,7 +3,7 @@
   "checkpoint_id": "29a8de06c203",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "internal/ingestion/github_test.go"
   ],
@@ -49,13 +49,20 @@
       "context": "",
       "content_hash": "/29/a8de06c203/5/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/29/a8de06c203/6/metadata.json",
+      "transcript": "/29/a8de06c203/6/full.jsonl",
+      "context": "/29/a8de06c203/6/context.md",
+      "content_hash": "/29/a8de06c203/6/content_hash.txt",
+      "prompt": "/29/a8de06c203/6/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 8089276,
+    "input_tokens": 8567179,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 27462,
-    "api_call_count": 116
+    "output_tokens": 29129,
+    "api_call_count": 128
   }
 }
