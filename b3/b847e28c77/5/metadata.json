@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b3b847e28c77",
+  "session_id": "b854e341-451b-4d17-ac11-6a6ddc0f389f",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-13T12:42:24.662408Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "web/components/projects/project-detail.tsx"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "bb283babfbc4",
+  "checkpoint_transcript_start": 253,
+  "transcript_lines_at_start": 253,
+  "token_usage": {
+    "input_tokens": 1673523,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 4988,
+    "api_call_count": 23
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-13T12:42:24.532094Z",
+    "agent_lines": 0,
+    "human_added": 7,
+    "human_modified": 14,
+    "human_removed": 0,
+    "total_committed": 7,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/b854e341-451b-4d17-ac11-6a6ddc0f389f.jsonl"
+}
