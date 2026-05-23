@@ -20,7 +20,7 @@ import { SourceForm } from "@/components/sources/source-form";
 import { NewContextSourceForm } from "@/components/context-sources/new-context-source-form";
 import { ReleaseGateTab } from "./release-gate-tab";
 import { ProjectLogo } from "@/components/ui/project-logo";
-import { ProviderBadge } from "@/components/ui/provider-badge";
+import { ProviderBadge, getProviderIcon } from "@/components/ui/provider-badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { SectionLabel } from "@/components/ui/section-label";
 import { formatInterval } from "@/lib/format";
@@ -464,8 +464,7 @@ export function ProjectDetail() {
                 <table className="w-full text-[13px]" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
                   <thead>
                     <tr style={{ backgroundColor: "var(--background)" }}>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.provider")}</th>
-                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.repository")}</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.sources")}</th>
                       <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.interval")}</th>
                       <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.status")}</th>
                       <th className="px-4 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-text-muted">{t("projects.detail.lastPolled")}</th>
@@ -477,13 +476,16 @@ export function ProjectDetail() {
                     {sourcesData.data.map((source) => (
                       <tr key={source.id} className="border-t" style={{ borderColor: "var(--border)" }}>
                         <td className="px-4 py-3">
-                          <ProviderBadge provider={source.provider} />
-                        </td>
-                        <td className="px-4 py-3">
                           {(() => {
+                            const Icon = getProviderIcon(source.provider);
                             const url = getProviderUrl(source.provider, source.repository);
-                            const inner = <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>;
-                            return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] dark:text-[#60a5fa] hover:underline">{inner}</a> : inner;
+                            const inner = (
+                              <span className="inline-flex items-center gap-1.5">
+                                {Icon && <Icon size={13} className="shrink-0 text-text-muted" />}
+                                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>
+                              </span>
+                            );
+                            return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] dark:text-[#60a5fa] hover:underline inline-flex items-center gap-1.5">{inner}</a> : inner;
                           })()}
                         </td>
                         <td className="px-4 py-3 text-text-secondary">
