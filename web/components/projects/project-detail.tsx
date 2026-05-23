@@ -20,7 +20,7 @@ import { SourceForm } from "@/components/sources/source-form";
 import { NewContextSourceForm } from "@/components/context-sources/new-context-source-form";
 import { ReleaseGateTab } from "./release-gate-tab";
 import { ProjectLogo } from "@/components/ui/project-logo";
-import { ProviderBadge, getProviderIcon } from "@/components/ui/provider-badge";
+import { getProviderIcon } from "@/components/ui/provider-badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { SectionLabel } from "@/components/ui/section-label";
 import { formatInterval } from "@/lib/format";
@@ -632,14 +632,17 @@ export function ProjectDetail() {
                           {allSubs.map(({ sub, source }) => (
                             <tr key={sub.id} className="border-t" style={{ borderColor: "var(--border)" }}>
                               <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <ProviderBadge provider={source.provider} />
-                                  {(() => {
-                                    const url = getProviderUrl(source.provider, source.repository);
-                                    const inner = <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>;
-                                    return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] dark:text-[#60a5fa] hover:underline">{inner}</a> : inner;
-                                  })()}
-                                </div>
+                                {(() => {
+                                  const Icon = getProviderIcon(source.provider);
+                                  const url = getProviderUrl(source.provider, source.repository);
+                                  const inner = (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      {Icon && <Icon size={13} className="shrink-0 text-text-muted" />}
+                                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" }}>{source.repository}</span>
+                                    </span>
+                                  );
+                                  return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] dark:text-[#60a5fa] hover:underline inline-flex items-center gap-1.5">{inner}</a> : inner;
+                                })()}
                               </td>
                               <td className="px-4 py-3">
                                 {(() => {
