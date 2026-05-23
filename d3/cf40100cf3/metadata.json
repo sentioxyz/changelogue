@@ -3,7 +3,7 @@
   "checkpoint_id": "d3cf40100cf3",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "web/components/projects/project-detail.tsx",
     "web/components/ui/channel-type-badge.tsx"
@@ -50,13 +50,20 @@
       "context": "",
       "content_hash": "/d3/cf40100cf3/5/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/d3/cf40100cf3/6/metadata.json",
+      "transcript": "/d3/cf40100cf3/6/full.jsonl",
+      "context": "/d3/cf40100cf3/6/context.md",
+      "content_hash": "/d3/cf40100cf3/6/content_hash.txt",
+      "prompt": "/d3/cf40100cf3/6/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 12729386,
+    "input_tokens": 14084548,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 0,
-    "output_tokens": 43232,
-    "api_call_count": 178
+    "output_tokens": 45178,
+    "api_call_count": 193
   }
 }
