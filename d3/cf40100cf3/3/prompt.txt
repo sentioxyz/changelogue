@@ -1,0 +1,5 @@
+In the todo page, we found that there's a pop up to confrim while redo a ackknowledged todo, but no confirmation for ackowledging, how about keep them consistent that all the action doesnt require confirmation
+
+---
+
+commit and push
