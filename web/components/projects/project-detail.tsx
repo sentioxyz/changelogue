@@ -31,7 +31,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "@/lib/i18n/context";
 import { UrgencyPill } from "@/components/ui/urgency-pill";
 import { getProviderUrl } from "@/lib/provider-urls";
-import { ChannelTypeBadge } from "@/components/ui/channel-type-badge";
+import { getChannelIcon } from "@/components/ui/channel-type-badge";
 import { SubscriptionForm } from "@/components/subscriptions/subscription-form";
 
 /* ---------- Tabs ---------- */
@@ -647,12 +647,14 @@ export function ProjectDetail() {
                               <td className="px-4 py-3">
                                 {(() => {
                                   const ch = channelMap.get(sub.channel_id);
-                                  return ch ? (
-                                    <div className="flex items-center gap-2">
-                                      <ChannelTypeBadge type={ch.type} />
-                                      <span>{ch.name}</span>
-                                    </div>
-                                  ) : sub.channel_id;
+                                  if (!ch) return sub.channel_id;
+                                  const Icon = getChannelIcon(ch.type);
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      {Icon && <Icon size={13} className="shrink-0 text-text-muted" />}
+                                      <span style={{ fontSize: "13px" }}>{ch.name}</span>
+                                    </span>
+                                  );
                                 })()}
                               </td>
                               <td className="px-4 py-3" style={{ fontFamily: sub.version_filter ? "'JetBrains Mono', monospace" : "inherit", fontSize: "12px", color: sub.version_filter ? "var(--foreground)" : "var(--text-muted)" }}>

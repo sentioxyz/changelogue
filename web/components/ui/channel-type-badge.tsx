@@ -10,6 +10,10 @@ const TYPE_STYLES: Record<string, { bg: string; text: string; icon: IconType }> 
   email: { bg: "#2563EB", text: "#ffffff", icon: HiOutlineMail },
 };
 
+export function getChannelIcon(type: string): IconType | undefined {
+  return TYPE_STYLES[type.toLowerCase()]?.icon;
+}
+
 export function ChannelTypeBadge({ type }: { type: string }) {
   const style = TYPE_STYLES[type.toLowerCase()];
   const colors = style ?? { bg: "#6b7280", text: "#ffffff" };
