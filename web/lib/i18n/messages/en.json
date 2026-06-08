@@ -527,6 +527,8 @@
   "channelForm.slack.webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
   "channelForm.slack.channel": "Channel",
   "channelForm.slack.channelPlaceholder": "#releases",
+  "channelForm.slack.additionalMessage": "Additional Message",
+  "channelForm.slack.additionalMessagePlaceholder": "e.g. <!here> or @oncall-bot",
   "channelForm.pagerduty.routingKey": "Routing Key",
   "channelForm.pagerduty.routingKeyPlaceholder": "R0xxxxx",
   "channelForm.webhook.url": "URL",

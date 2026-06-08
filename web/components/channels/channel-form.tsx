@@ -14,6 +14,7 @@ const channelFields: Record<string, { labelKey: string; placeholderKey: string; 
   slack: [
     { labelKey: "channelForm.slack.webhookUrl", placeholderKey: "channelForm.slack.webhookUrlPlaceholder", configKey: "webhook_url" },
     { labelKey: "channelForm.slack.channel", placeholderKey: "channelForm.slack.channelPlaceholder", configKey: "channel" },
+    { labelKey: "channelForm.slack.additionalMessage", placeholderKey: "channelForm.slack.additionalMessagePlaceholder", configKey: "additional_message" },
   ],
   pagerduty: [
     { labelKey: "channelForm.pagerduty.routingKey", placeholderKey: "channelForm.pagerduty.routingKeyPlaceholder", configKey: "routing_key" },

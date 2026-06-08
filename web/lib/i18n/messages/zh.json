@@ -527,6 +527,8 @@
   "channelForm.slack.webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
   "channelForm.slack.channel": "频道",
   "channelForm.slack.channelPlaceholder": "#releases",
+  "channelForm.slack.additionalMessage": "附加消息",
+  "channelForm.slack.additionalMessagePlaceholder": "例如 <!here> 或 @oncall-bot",
   "channelForm.pagerduty.routingKey": "路由密钥",
   "channelForm.pagerduty.routingKeyPlaceholder": "R0xxxxx",
   "channelForm.webhook.url": "地址",

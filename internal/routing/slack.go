@@ -13,6 +13,9 @@ import (
 
 type slackConfig struct {
 	WebhookURL string `json:"webhook_url"`
+	// AdditionalMessage is free-form text prepended to every notification as a
+	// top-level message (e.g. "@here", "<!subteam^ID>" or a bot trigger phrase).
+	AdditionalMessage string `json:"additional_message"`
 }
 
 // SlackSender sends notifications as Slack Block Kit messages via incoming webhook.
@@ -22,6 +25,7 @@ type SlackSender struct {
 
 // slackPayload is the Slack incoming webhook payload using Block Kit and/or attachments.
 type slackPayload struct {
+	Text        string            `json:"text,omitempty"`
 	Blocks      []any             `json:"blocks,omitempty"`
 	Attachments []slackAttachment `json:"attachments,omitempty"`
 }
@@ -287,6 +291,12 @@ func (s *SlackSender) Send(ctx context.Context, ch *models.NotificationChannel, 
 				})
 			}
 		}
+	}
+
+	// Prepend the configured additional message as top-level text so it renders
+	// above the report and so @mentions/bot triggers are delivered to Slack.
+	if msgText := strings.TrimSpace(cfg.AdditionalMessage); msgText != "" {
+		payload.Text = msgText
 	}
 
 	body, err := json.Marshal(payload)

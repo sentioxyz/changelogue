@@ -276,3 +276,41 @@ func TestDiscordSender_SemanticReport(t *testing.T) {
 		t.Fatalf("expected critical color 0x111113, got 0x%06X", embed.Color)
 	}
 }
+
+func TestDiscordSender_AdditionalMessage(t *testing.T) {
+var received []byte
+srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+received, _ = io.ReadAll(r.Body)
+w.WriteHeader(http.StatusNoContent)
+}))
+defer srv.Close()
+
+sender := &DiscordSender{Client: srv.Client()}
+ch := &models.NotificationChannel{
+Type:   "discord",
+Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `", "additional_message": "@here <@&123>"}`),
+}
+msg := Notification{
+Title:      "geth",
+Body:       `{"changelog":"Security fixes"}`,
+Version:    "v1.14.0",
+Provider:   "github",
+Repository: "ethereum/go-ethereum",
+}
+
+if err := sender.Send(context.Background(), ch, msg); err != nil {
+t.Fatalf("unexpected error: %v", err)
+}
+
+var payload map[string]interface{}
+if err := json.Unmarshal(received, &payload); err != nil {
+t.Fatalf("received invalid JSON: %v", err)
+}
+content, ok := payload["content"].(string)
+if !ok {
+t.Fatalf("expected top-level 'content' in payload, got %v", payload)
+}
+if content != "@here <@&123>" {
+t.Fatalf("expected additional message as content, got %q", content)
+}
+}

@@ -565,3 +565,68 @@ func TestMarkdownToASCII(t *testing.T) {
 		})
 	}
 }
+
+func TestSlackSender_AdditionalMessage(t *testing.T) {
+var received []byte
+srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+received, _ = io.ReadAll(r.Body)
+w.WriteHeader(http.StatusOK)
+}))
+defer srv.Close()
+
+sender := &SlackSender{Client: srv.Client()}
+ch := &models.NotificationChannel{
+Type:   "slack",
+Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `", "additional_message": "<!here> @oncall-bot"}`),
+}
+msg := Notification{
+Title:      "geth",
+Body:       `{"changelog":"Security fixes"}`,
+Version:    "v1.14.0",
+Provider:   "github",
+Repository: "ethereum/go-ethereum",
+}
+
+if err := sender.Send(context.Background(), ch, msg); err != nil {
+t.Fatalf("unexpected error: %v", err)
+}
+
+var payload map[string]interface{}
+if err := json.Unmarshal(received, &payload); err != nil {
+t.Fatalf("received invalid JSON: %v", err)
+}
+text, ok := payload["text"].(string)
+if !ok {
+t.Fatalf("expected top-level 'text' in payload, got %v", payload)
+}
+if text != "<!here> @oncall-bot" {
+t.Fatalf("expected additional message as text, got %q", text)
+}
+}
+
+func TestSlackSender_NoAdditionalMessage(t *testing.T) {
+var received []byte
+srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+received, _ = io.ReadAll(r.Body)
+w.WriteHeader(http.StatusOK)
+}))
+defer srv.Close()
+
+sender := &SlackSender{Client: srv.Client()}
+ch := &models.NotificationChannel{
+Type:   "slack",
+Config: json.RawMessage(`{"webhook_url": "` + srv.URL + `"}`),
+}
+msg := Notification{Title: "geth", Body: `{"changelog":"x"}`, Version: "v1.14.0"}
+
+if err := sender.Send(context.Background(), ch, msg); err != nil {
+t.Fatalf("unexpected error: %v", err)
+}
+var payload map[string]interface{}
+if err := json.Unmarshal(received, &payload); err != nil {
+t.Fatalf("received invalid JSON: %v", err)
+}
+if _, exists := payload["text"]; exists {
+t.Fatalf("expected no 'text' key when additional_message empty, got %v", payload)
+}
+}

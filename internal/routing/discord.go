@@ -16,6 +16,9 @@ const discordEmbedDescriptionLimit = 4096
 
 type discordConfig struct {
 	WebhookURL string `json:"webhook_url"`
+	// AdditionalMessage is free-form text prepended to every notification as the
+	// top-level message content (e.g. "@here", "<@&roleID>" or a bot trigger phrase).
+	AdditionalMessage string `json:"additional_message"`
 }
 
 // DiscordSender sends notifications as Discord webhook messages with embeds.
@@ -25,7 +28,8 @@ type DiscordSender struct {
 
 // discordPayload is the Discord webhook payload.
 type discordPayload struct {
-	Embeds []discordEmbed `json:"embeds"`
+	Content string         `json:"content,omitempty"`
+	Embeds  []discordEmbed `json:"embeds"`
 }
 
 type discordEmbed struct {
@@ -200,6 +204,12 @@ func (s *DiscordSender) Send(ctx context.Context, ch *models.NotificationChannel
 	}
 
 	payload := discordPayload{Embeds: []discordEmbed{embed}}
+
+	// Prepend the configured additional message as top-level content so it renders
+	// above the embed and so @mentions/bot triggers are delivered to Discord.
+	if msgText := strings.TrimSpace(cfg.AdditionalMessage); msgText != "" {
+		payload.Content = msgText
+	}
 
 	body, err := json.Marshal(payload)
 	if err != nil {

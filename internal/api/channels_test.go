@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -330,6 +331,52 @@ func TestChannelsHandlerTestSuccess(t *testing.T) {
 	}
 	if sender.sent.Title != "Changelogue" {
 		t.Fatalf("unexpected title: %s", sender.sent.Title)
+	}
+}
+
+// TestChannelsHandlerTestIncludesAdditionalMessage verifies the test-channel
+// endpoint forwards the channel's additional_message through to the rendered
+// Slack payload (as top-level text), so a test notification can mention people
+// or trigger bots just like a real notification.
+func TestChannelsHandlerTestIncludesAdditionalMessage(t *testing.T) {
+	var received []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	store := &mockChannelsStore{
+		channels: []models.NotificationChannel{
+			{
+				ID:     "ch-1",
+				Type:   "slack",
+				Name:   "releases",
+				Config: json.RawMessage(`{"webhook_url":"` + srv.URL + `","additional_message":"<!here> @oncall-bot"}`),
+			},
+		},
+	}
+	senders := map[string]routing.Sender{"slack": &routing.SlackSender{Client: srv.Client()}}
+	mux := setupChannelsMuxWithSenders(store, senders)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/channels/ch-1/test", nil)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal(received, &payload); err != nil {
+		t.Fatalf("received invalid JSON: %v", err)
+	}
+	text, ok := payload["text"].(string)
+	if !ok {
+		t.Fatalf("expected top-level 'text' in test payload, got %v", payload)
+	}
+	if text != "<!here> @oncall-bot" {
+		t.Fatalf("expected additional message in test notification, got %q", text)
 	}
 }
 
