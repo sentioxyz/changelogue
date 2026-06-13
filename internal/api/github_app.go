@@ -42,6 +42,9 @@ func (h *GitHubAppHandler) Status(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to list GitHub App installations")
 		return
 	}
+	if installations == nil {
+		installations = []models.GitHubAppInstallation{}
+	}
 	status := models.GitHubAppStatus{
 		Configured:    h.client != nil && h.client.Configured(),
 		Installations: installations,

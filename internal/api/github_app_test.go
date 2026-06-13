@@ -45,6 +45,32 @@ func TestGitHubAppSyncStoresInstallationsAndRepositories(t *testing.T) {
 	}
 }
 
+func TestGitHubAppStatusReturnsEmptyInstallationsArray(t *testing.T) {
+	store := &mockGitHubAppStore{installations: nil}
+	client := &mockGitHubAppClient{configured: true, appID: "42"}
+	h := NewGitHubAppHandler(store, client)
+	req := httptest.NewRequest(http.MethodGet, "/github-app/status", nil)
+	w := httptest.NewRecorder()
+
+	h.Status(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", w.Code, w.Body.String())
+	}
+	var body struct {
+		Data models.GitHubAppStatus `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Data.Installations == nil {
+		t.Fatal("installations is nil, want empty array")
+	}
+	if len(body.Data.Installations) != 0 {
+		t.Fatalf("installations length = %d, want 0", len(body.Data.Installations))
+	}
+}
+
 type mockGitHubAppClient struct {
 	configured    bool
 	appID         string

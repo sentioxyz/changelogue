@@ -58,6 +58,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     { value: "dark", label: t("settings.theme.dark"), icon: Moon },
     { value: "system", label: t("settings.theme.system"), icon: Monitor },
   ] as const;
+  const installationCount = githubStatus?.installations?.length ?? 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,7 +131,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               )}
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-muted-foreground">Installations</span>
-                <span>{githubStatus?.installations.length ?? 0}</span>
+                <span>{installationCount}</span>
               </div>
             </div>
             {githubStatus?.install_url && (
