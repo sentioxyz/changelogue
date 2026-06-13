@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "926f2fd4657d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "README.md",
+    "cmd/server/main.go",
+    "cmd/stealth/main.go",
+    "internal/api/github_app.go",
+    "internal/api/github_app_test.go",
+    "internal/api/pgstore.go",
+    "internal/api/server.go",
+    "internal/api/sources.go",
+    "internal/api/sources_test.go",
+    "internal/db/migrations.go",
+    "internal/githubauth/app_provider.go",
+    "internal/githubauth/app_provider_test.go",
+    "internal/githubauth/token_provider.go",
+    "internal/ingestion/github.go",
+    "internal/ingestion/github_test.go",
+    "internal/ingestion/loader.go",
+    "internal/models/github_app.go",
+    "internal/onboard/scanner.go",
+    "internal/onboard/scanner_test.go",
+    "internal/stealth/stubs.go",
+    "web/components/settings/settings-dialog.tsx",
+    "web/components/sources/source-form.tsx",
+    "web/lib/api/client.ts",
+    "web/lib/api/types.ts",
+    "web/lib/i18n/messages/en.json",
+    "web/lib/i18n/messages/zh.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/92/6f2fd4657d/0/metadata.json",
+      "transcript": "/92/6f2fd4657d/0/full.jsonl",
+      "context": "",
+      "content_hash": "/92/6f2fd4657d/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
