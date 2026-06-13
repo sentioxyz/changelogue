@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "726406c8ce14",
+  "session_id": "110180fc-aff9-493f-be97-98c90ea15cc4",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-13T08:22:34.426229Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "web/components/settings/settings-dialog.tsx",
+    "internal/api/github_app.go",
+    "internal/api/github_app_test.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "7a6916bebc23",
+  "initial_attribution": {
+    "calculated_at": "2026-06-13T08:22:34.387798Z",
+    "agent_lines": 0,
+    "human_added": 30,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 30,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/110180fc-aff9-493f-be97-98c90ea15cc4.jsonl"
+}
