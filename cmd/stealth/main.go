@@ -116,6 +116,7 @@ func main() {
 		HTTPClient:            http.DefaultClient,
 		GitHubTokenProvider:   githubTokens,
 	})
+	api.RegisterAuthRoutes(mux, nil, noAuth, "")
 
 	srv := &http.Server{Addr: addr, Handler: api.CORS(mux)}
 
