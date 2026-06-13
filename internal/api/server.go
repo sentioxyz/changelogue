@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sentioxyz/changelogue/internal/auth"
+	"github.com/sentioxyz/changelogue/internal/githubauth"
 	"github.com/sentioxyz/changelogue/internal/ingestion"
 	"github.com/sentioxyz/changelogue/internal/routing"
 )
@@ -25,6 +26,7 @@ type Dependencies struct {
 	OnboardStore          OnboardStore
 	GatesStore            GatesStore
 	ApiKeysStore          ApiKeysStore
+	GitHubAppStore        GitHubAppStore
 	PublicURL             string
 	KeyStore              KeyStore
 	SessionValidator      SessionValidator
@@ -33,6 +35,8 @@ type Dependencies struct {
 	NoAuth                bool
 	IngestionService      *ingestion.Service
 	HTTPClient            *http.Client
+	GitHubTokenProvider   githubauth.TokenProvider
+	GitHubAppClient       GitHubAppClient
 }
 
 // RegisterRoutes registers all API v1 routes on the given ServeMux.
@@ -55,7 +59,7 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("DELETE /api/v1/projects/{id}", chain(http.HandlerFunc(projects.Delete)))
 
 	// Sources (nested under projects)
-	sources := NewSourcesHandler(deps.SourcesStore, deps.IngestionService, deps.HTTPClient)
+	sources := NewSourcesHandler(deps.SourcesStore, deps.IngestionService, deps.HTTPClient, deps.GitHubTokenProvider)
 	mux.Handle("GET /api/v1/projects/{projectId}/sources", chain(http.HandlerFunc(sources.List)))
 	mux.Handle("POST /api/v1/projects/{projectId}/sources", chain(http.HandlerFunc(sources.Create)))
 	mux.Handle("GET /api/v1/sources", chain(http.HandlerFunc(sources.ListAll)))
@@ -137,6 +141,13 @@ func RegisterRoutes(mux *http.ServeMux, deps Dependencies) {
 	mux.Handle("GET /api/v1/api-keys", chain(http.HandlerFunc(apiKeys.List)))
 	mux.Handle("POST /api/v1/api-keys", chain(http.HandlerFunc(apiKeys.Create)))
 	mux.Handle("DELETE /api/v1/api-keys/{id}", chain(http.HandlerFunc(apiKeys.Delete)))
+
+	// GitHub App integration
+	githubApp := NewGitHubAppHandler(deps.GitHubAppStore, deps.GitHubAppClient)
+	mux.Handle("GET /api/v1/github-app/status", chain(http.HandlerFunc(githubApp.Status)))
+	mux.Handle("POST /api/v1/github-app/sync", chain(http.HandlerFunc(githubApp.Sync)))
+	mux.Handle("GET /api/v1/github-app/repositories", chain(http.HandlerFunc(githubApp.Repositories)))
+
 	mux.Handle("GET /api/v1/projects/{id}/release-gate", chain(http.HandlerFunc(gates.GetGate)))
 	mux.Handle("PUT /api/v1/projects/{id}/release-gate", chain(http.HandlerFunc(gates.UpsertGate)))
 	mux.Handle("DELETE /api/v1/projects/{id}/release-gate", chain(http.HandlerFunc(gates.DeleteGate)))

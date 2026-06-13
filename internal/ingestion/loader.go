@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/sentioxyz/changelogue/internal/githubauth"
 )
 
 // SourceLister abstracts the database query for enabled sources so both
@@ -35,12 +37,17 @@ type ScheduledSource struct {
 // IIngestionSource instances. It bridges the API-managed sources table with
 // the polling orchestrator.
 type SourceLoader struct {
-	lister SourceLister
-	client *http.Client
+	lister        SourceLister
+	client        *http.Client
+	tokenProvider githubauth.TokenProvider
 }
 
 func NewSourceLoader(lister SourceLister, client *http.Client) *SourceLoader {
-	return &SourceLoader{lister: lister, client: client}
+	return NewSourceLoaderWithTokenProvider(lister, client, githubauth.NewDefaultTokenProvider(client, ""))
+}
+
+func NewSourceLoaderWithTokenProvider(lister SourceLister, client *http.Client, tokenProvider githubauth.TokenProvider) *SourceLoader {
+	return &SourceLoader{lister: lister, client: client, tokenProvider: tokenProvider}
 }
 
 // LoadEnabledSources queries all enabled sources and constructs the
@@ -52,7 +59,7 @@ func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]ScheduledSourc
 	}
 	var sources []ScheduledSource
 	for _, e := range enabled {
-		src := BuildSource(l.client, e.ID, e.Provider, e.Repository)
+		src := BuildSourceWithTokenProvider(l.client, e.ID, e.Provider, e.Repository, l.tokenProvider)
 		if src == nil {
 			slog.Warn("unsupported source type, skipping",
 				"id", e.ID, "type", e.Provider, "repo", e.Repository)
@@ -69,11 +76,15 @@ func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]ScheduledSourc
 
 // BuildSource constructs the appropriate IIngestionSource based on provider type.
 func BuildSource(client *http.Client, id string, sourceType, repository string) IIngestionSource {
+	return BuildSourceWithTokenProvider(client, id, sourceType, repository, githubauth.NewDefaultTokenProvider(client, ""))
+}
+
+func BuildSourceWithTokenProvider(client *http.Client, id string, sourceType, repository string, tokenProvider githubauth.TokenProvider) IIngestionSource {
 	switch sourceType {
 	case "dockerhub":
 		return NewDockerHubSource(client, repository, id)
 	case "github":
-		return NewGitHubSource(client, repository, id)
+		return NewGitHubSourceWithTokenProvider(client, repository, id, tokenProvider)
 	case "ecr-public":
 		return NewECRPublicSource(client, repository, id)
 	case "gitlab":

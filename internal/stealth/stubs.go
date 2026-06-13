@@ -162,6 +162,30 @@ func (GatesStub) ListGateEventsByVersion(_ context.Context, _, _ string, _, _ in
 }
 
 // ---------------------------------------------------------------------------
+// GitHubAppStore stub
+// ---------------------------------------------------------------------------
+
+type GitHubAppStub struct{}
+
+var _ api.GitHubAppStore = (*GitHubAppStub)(nil)
+
+func (GitHubAppStub) ListGitHubAppInstallations(_ context.Context) ([]models.GitHubAppInstallation, error) {
+	return []models.GitHubAppInstallation{}, nil
+}
+
+func (GitHubAppStub) UpsertGitHubAppInstallation(_ context.Context, _ models.GitHubAppInstallation) error {
+	return errNotImplemented
+}
+
+func (GitHubAppStub) ReplaceGitHubAppRepositories(_ context.Context, _ int64, _ []models.GitHubAppRepository) error {
+	return errNotImplemented
+}
+
+func (GitHubAppStub) ListGitHubAppRepositories(_ context.Context) ([]models.GitHubAppRepository, error) {
+	return []models.GitHubAppRepository{}, nil
+}
+
+// ---------------------------------------------------------------------------
 // ContextSourcesStore stub
 // ---------------------------------------------------------------------------
 

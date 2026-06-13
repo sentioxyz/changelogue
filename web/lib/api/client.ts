@@ -32,6 +32,8 @@ import type {
   GateEvent,
   ApiKey,
   ApiKeyCreateInput,
+  GitHubAppStatus,
+  GitHubAppRepository,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -95,6 +97,14 @@ export const sources = {
     request<ApiResponse<{ new_releases: number }>>(`/sources/${id}/poll`, {
       method: "POST",
     }),
+};
+
+// --- GitHub App Integration ---
+
+export const githubApp = {
+  status: () => request<ApiResponse<GitHubAppStatus>>("/github-app/status"),
+  sync: () => request<ApiResponse<{ installations: number }>>("/github-app/sync", { method: "POST" }),
+  repositories: () => request<ApiResponse<GitHubAppRepository[]>>("/github-app/repositories"),
 };
 
 export interface ReleaseFilters {

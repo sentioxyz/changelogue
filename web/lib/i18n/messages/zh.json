@@ -600,6 +600,11 @@
   "sourceForm.save": "保存",
   "sourceForm.errorInvalidJson": "配置必须是有效的 JSON",
   "sourceForm.errorFailedToSave": "保存失败",
+  "sourceForm.githubAuthorizedRepos": "已授权的 GitHub 仓库",
+  "sourceForm.githubSync": "同步",
+  "sourceForm.githubSelectRepo": "选择已授权的仓库",
+  "sourceForm.githubNoRepos": "还没有同步已授权仓库。安装 GitHub App 后同步。",
+  "sourceForm.githubNotConfigured": "服务器未配置 GitHub App 凭据。",
 
   "projectForm.name": "名称",
   "projectForm.description": "描述",

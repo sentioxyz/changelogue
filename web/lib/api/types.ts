@@ -73,6 +73,32 @@ export interface SourceInput {
   exclude_prereleases?: boolean;
 }
 
+export interface GitHubAppInstallation {
+  id: string;
+  installation_id: number;
+  account_login: string;
+  account_type: string;
+  repository_selection: string;
+  permissions?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GitHubAppStatus {
+  configured: boolean;
+  app_id?: string;
+  install_url?: string;
+  installations: GitHubAppInstallation[];
+}
+
+export interface GitHubAppRepository {
+  installation_id: number;
+  full_name: string;
+  private: boolean;
+  html_url?: string;
+  updated_at: string;
+}
+
 export interface Release {
   id: string;
   source_id: string;

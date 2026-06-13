@@ -600,6 +600,11 @@
   "sourceForm.save": "Save",
   "sourceForm.errorInvalidJson": "Config must be valid JSON",
   "sourceForm.errorFailedToSave": "Failed to save",
+  "sourceForm.githubAuthorizedRepos": "Authorized GitHub repositories",
+  "sourceForm.githubSync": "Sync",
+  "sourceForm.githubSelectRepo": "Select an authorized repository",
+  "sourceForm.githubNoRepos": "No authorized repositories synced yet. Sync after installing the GitHub App.",
+  "sourceForm.githubNotConfigured": "GitHub App credentials are not configured on the server.",
 
   "projectForm.name": "Name",
   "projectForm.description": "Description",

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sentioxyz/changelogue/internal/githubauth"
 	"github.com/sentioxyz/changelogue/internal/ingestion"
 	"github.com/sentioxyz/changelogue/internal/models"
 )
@@ -27,11 +28,15 @@ type SourcesHandler struct {
 	store            SourcesStore
 	ingestionService *ingestion.Service
 	httpClient       *http.Client
+	tokenProvider    githubauth.TokenProvider
 }
 
 // NewSourcesHandler returns a new SourcesHandler.
-func NewSourcesHandler(store SourcesStore, ingestionService *ingestion.Service, httpClient *http.Client) *SourcesHandler {
-	return &SourcesHandler{store: store, ingestionService: ingestionService, httpClient: httpClient}
+func NewSourcesHandler(store SourcesStore, ingestionService *ingestion.Service, httpClient *http.Client, tokenProvider githubauth.TokenProvider) *SourcesHandler {
+	if tokenProvider == nil {
+		tokenProvider = githubauth.NewDefaultTokenProvider(httpClient, "")
+	}
+	return &SourcesHandler{store: store, ingestionService: ingestionService, httpClient: httpClient, tokenProvider: tokenProvider}
 }
 
 // List handles GET /projects/{projectId}/sources — returns a paginated list of sources for a project.
@@ -172,7 +177,7 @@ func (h *SourcesHandler) FetchReleases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ingestionSrc := ingestion.BuildSource(h.httpClient, src.ID, src.Provider, src.Repository)
+	ingestionSrc := ingestion.BuildSourceWithTokenProvider(h.httpClient, src.ID, src.Provider, src.Repository, h.tokenProvider)
 	if ingestionSrc == nil {
 		RespondError(w, r, http.StatusUnprocessableEntity, "unsupported_provider", "Unsupported provider: "+src.Provider)
 		return
@@ -206,7 +211,7 @@ func (h *SourcesHandler) FetchReleases(w http.ResponseWriter, r *http.Request) {
 func (h *SourcesHandler) pollSourceAsync(sourceID, provider, repository string) {
 	ctx := context.Background()
 
-	ingestionSrc := ingestion.BuildSource(h.httpClient, sourceID, provider, repository)
+	ingestionSrc := ingestion.BuildSourceWithTokenProvider(h.httpClient, sourceID, provider, repository, h.tokenProvider)
 	if ingestionSrc == nil {
 		slog.Warn("async poll: unsupported provider", "source", sourceID, "provider", provider)
 		return

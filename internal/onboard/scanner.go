@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sentioxyz/changelogue/internal/githubauth"
 )
 
 // DependencyFile holds the path and decoded content of a dependency manifest.
@@ -19,40 +21,50 @@ type DependencyFile struct {
 
 // depFileNames lists known dependency/manifest file names.
 var depFileNames = map[string]bool{
-	"go.mod":               true,
-	"go.sum":               false, // skip, too large and low value
-	"package.json":         true,
-	"package-lock.json":    false,
-	"yarn.lock":            false,
-	"requirements.txt":     true,
-	"Pipfile":              true,
-	"pyproject.toml":       true,
-	"Cargo.toml":           true,
-	"Gemfile":              true,
-	"pom.xml":              true,
-	"build.gradle":         true,
-	"build.gradle.kts":     true,
-	"Dockerfile":           true,
-	"docker-compose.yml":   true,
-	"docker-compose.yaml":  true,
+	"go.mod":              true,
+	"go.sum":              false, // skip, too large and low value
+	"package.json":        true,
+	"package-lock.json":   false,
+	"yarn.lock":           false,
+	"requirements.txt":    true,
+	"Pipfile":             true,
+	"pyproject.toml":      true,
+	"Cargo.toml":          true,
+	"Gemfile":             true,
+	"pom.xml":             true,
+	"build.gradle":        true,
+	"build.gradle.kts":    true,
+	"Dockerfile":          true,
+	"docker-compose.yml":  true,
+	"docker-compose.yaml": true,
 }
 
 // Scanner fetches dependency files from a GitHub repo via the API.
 type Scanner struct {
-	client  *http.Client
-	baseURL string
-	token   string
+	client        *http.Client
+	baseURL       string
+	tokenProvider githubauth.TokenProvider
 }
 
 // NewScanner creates a Scanner. If token is empty, it reads GITHUB_TOKEN from env.
 func NewScanner(client *http.Client, baseURL, token string) *Scanner {
-	if token == "" {
-		token = os.Getenv("GITHUB_TOKEN")
+	var tokenProvider githubauth.TokenProvider
+	if token != "" {
+		tokenProvider = githubauth.NewStaticTokenProvider(token)
+	} else {
+		tokenProvider = githubauth.NewDefaultTokenProvider(client, baseURL)
 	}
+	return NewScannerWithTokenProvider(client, baseURL, tokenProvider)
+}
+
+func NewScannerWithTokenProvider(client *http.Client, baseURL string, tokenProvider githubauth.TokenProvider) *Scanner {
 	if baseURL == "" {
 		baseURL = "https://api.github.com"
 	}
-	return &Scanner{client: client, baseURL: baseURL, token: token}
+	if tokenProvider == nil {
+		tokenProvider = githubauth.NewEnvTokenProvider()
+	}
+	return &Scanner{client: client, baseURL: baseURL, tokenProvider: tokenProvider}
 }
 
 // ParseRepoURL extracts owner and repo from various GitHub URL formats.
@@ -121,7 +133,7 @@ func (s *Scanner) getDefaultBranch(ctx context.Context, owner, repo string) (str
 	var result struct {
 		DefaultBranch string `json:"default_branch"`
 	}
-	if err := s.doGet(ctx, url, &result); err != nil {
+	if err := s.doGet(ctx, owner, repo, url, &result); err != nil {
 		return "", err
 	}
 	return result.DefaultBranch, nil
@@ -132,7 +144,7 @@ func (s *Scanner) getTree(ctx context.Context, owner, repo, branch string) ([]tr
 	var result struct {
 		Tree []treeEntry `json:"tree"`
 	}
-	if err := s.doGet(ctx, url, &result); err != nil {
+	if err := s.doGet(ctx, owner, repo, url, &result); err != nil {
 		return nil, err
 	}
 	return result.Tree, nil
@@ -144,7 +156,7 @@ func (s *Scanner) getFileContent(ctx context.Context, owner, repo, path string) 
 		Content  string `json:"content"`
 		Encoding string `json:"encoding"`
 	}
-	if err := s.doGet(ctx, url, &result); err != nil {
+	if err := s.doGet(ctx, owner, repo, url, &result); err != nil {
 		return "", err
 	}
 	if result.Encoding == "base64" {
@@ -157,13 +169,15 @@ func (s *Scanner) getFileContent(ctx context.Context, owner, repo, path string) 
 	return result.Content, nil
 }
 
-func (s *Scanner) doGet(ctx context.Context, url string, out any) error {
+func (s *Scanner) doGet(ctx context.Context, owner, repo, url string, out any) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return err
 	}
-	if s.token != "" {
-		req.Header.Set("Authorization", "Bearer "+s.token)
+	if token, err := s.tokenProvider.TokenForRepo(ctx, owner, repo); err == nil && token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	} else if err != nil && !errors.Is(err, githubauth.ErrNotConfigured) {
+		return err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	resp, err := s.client.Do(req)

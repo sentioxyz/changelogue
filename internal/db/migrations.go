@@ -254,6 +254,27 @@ CREATE TABLE IF NOT EXISTS gate_events (
 );
 CREATE INDEX IF NOT EXISTS idx_gate_events_readiness ON gate_events(version_readiness_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_gate_events_project ON gate_events(project_id, created_at);
+
+-- GitHub App installations authorized for private repository scanning.
+CREATE TABLE IF NOT EXISTS github_app_installations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    installation_id BIGINT NOT NULL UNIQUE,
+    account_login TEXT NOT NULL,
+    account_type TEXT NOT NULL,
+    repository_selection TEXT NOT NULL,
+    permissions JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS github_app_repositories (
+    installation_id BIGINT NOT NULL REFERENCES github_app_installations(installation_id) ON DELETE CASCADE,
+    full_name TEXT NOT NULL,
+    private BOOLEAN NOT NULL DEFAULT false,
+    html_url TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (installation_id, full_name)
+);
 `
 
 // RunMigrations applies River's schema and the application schema. Idempotent — safe to call on every startup.

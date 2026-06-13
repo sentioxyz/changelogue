@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/sentioxyz/changelogue/internal/githubauth"
 )
 
 func TestParseRepoURL(t *testing.T) {
@@ -51,6 +53,9 @@ func TestFetchDependencyFiles(t *testing.T) {
 
 	// Repo metadata (default branch)
 	mux.HandleFunc("GET /repos/test/repo", func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer test-token" {
+			t.Fatalf("Authorization = %q, want Bearer test-token", got)
+		}
 		json.NewEncoder(w).Encode(map[string]any{"default_branch": "main"})
 	})
 
@@ -96,5 +101,32 @@ func TestFetchDependencyFiles(t *testing.T) {
 	}
 	if files[0].Content != "module example.com" {
 		t.Errorf("files[0].Content = %q, want 'module example.com'", files[0].Content)
+	}
+}
+
+func TestFetchDependencyFilesUsesTokenProvider(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /repos/private/repo", func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer provider-token" {
+			t.Fatalf("Authorization = %q, want Bearer provider-token", got)
+		}
+		json.NewEncoder(w).Encode(map[string]any{"default_branch": "main"})
+	})
+	mux.HandleFunc("GET /repos/private/repo/git/trees/main", func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer provider-token" {
+			t.Fatalf("Authorization = %q, want Bearer provider-token", got)
+		}
+		json.NewEncoder(w).Encode(map[string]any{"tree": []map[string]any{}})
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	scanner := NewScannerWithTokenProvider(server.Client(), server.URL, githubauth.NewStaticTokenProvider("provider-token"))
+	files, err := scanner.FetchDependencyFiles(context.Background(), "private", "repo")
+	if err != nil {
+		t.Fatalf("FetchDependencyFiles: %v", err)
+	}
+	if len(files) != 0 {
+		t.Fatalf("expected no files, got %d", len(files))
 	}
 }

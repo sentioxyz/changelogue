@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/sentioxyz/changelogue/internal/githubauth"
 )
 
 const sampleGitHubReleases = `[
@@ -135,6 +137,24 @@ func TestGitHubFetchHTTPError(t *testing.T) {
 	_, err := src.FetchNewReleases(context.Background())
 	if err == nil {
 		t.Fatal("expected error for 404 response")
+	}
+}
+
+func TestGitHubFetchUsesTokenProvider(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer test-token" {
+			t.Fatalf("Authorization = %q, want Bearer test-token", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("[]"))
+	}))
+	defer srv.Close()
+
+	src := NewGitHubSourceWithTokenProvider(srv.Client(), "org/private", "src-id", githubauth.NewStaticTokenProvider("test-token"))
+	src.baseURL = srv.URL
+
+	if _, err := src.FetchNewReleases(context.Background()); err != nil {
+		t.Fatalf("FetchNewReleases: %v", err)
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/sentioxyz/changelogue/internal/auth"
 	"github.com/sentioxyz/changelogue/internal/db"
 	gatepkg "github.com/sentioxyz/changelogue/internal/gate"
+	"github.com/sentioxyz/changelogue/internal/githubauth"
 	"github.com/sentioxyz/changelogue/internal/ingestion"
 	"github.com/sentioxyz/changelogue/internal/onboard"
 	"github.com/sentioxyz/changelogue/internal/queue"
@@ -64,6 +65,8 @@ func main() {
 	// The river client is set to nil initially; TriggerAgentRun (which needs it)
 	// won't be called until the server is up and the client is set below.
 	pgStore := api.NewPgStore(pool, nil)
+	githubApp := githubauth.NewAppTokenProviderFromEnv(http.DefaultClient, "")
+	githubTokens := githubauth.NewChainTokenProvider(githubApp, githubauth.NewEnvTokenProvider())
 
 	// Auth setup
 	allowlist := auth.NewAllowlist(allowedUsers, allowedOrgs)
@@ -125,7 +128,7 @@ func main() {
 	}
 
 	// Scan worker: requires LLM for dependency extraction
-	scanScanner := onboard.NewScanner(http.DefaultClient, "", "")
+	scanScanner := onboard.NewScannerWithTokenProvider(http.DefaultClient, "", githubTokens)
 	var scanExtractor *onboard.DependencyExtractor
 	extractorCfg := onboard.ExtractorConfig{
 		Provider:      llmConfig.Provider,
@@ -185,7 +188,7 @@ func main() {
 	ingestionStore := ingestion.NewPgStore(pool, riverClient)
 	svc := ingestion.NewService(ingestionStore)
 
-	loader := ingestion.NewSourceLoader(ingestionStore, http.DefaultClient)
+	loader := ingestion.NewSourceLoaderWithTokenProvider(ingestionStore, http.DefaultClient, githubTokens)
 	orch := ingestion.NewOrchestrator(svc, loader, ingestionStore, 5*time.Minute)
 
 	broadcaster := api.NewBroadcaster()
@@ -213,6 +216,7 @@ func main() {
 		OnboardStore:          pgStore,
 		GatesStore:            pgStore,
 		ApiKeysStore:          pgStore,
+		GitHubAppStore:        pgStore,
 		PublicURL:             os.Getenv("PUBLIC_URL"),
 		KeyStore:              pgStore,
 		SessionValidator:      sessionStore,
@@ -221,6 +225,8 @@ func main() {
 		NoAuth:                noAuth,
 		IngestionService:      svc,
 		HTTPClient:            http.DefaultClient,
+		GitHubTokenProvider:   githubTokens,
+		GitHubAppClient:       githubApp,
 	})
 
 	api.RegisterAuthRoutes(mux, oauthHandler, noAuth, os.Getenv("FRONTEND_URL"))

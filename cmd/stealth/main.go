@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sentioxyz/changelogue/internal/api"
+	"github.com/sentioxyz/changelogue/internal/githubauth"
 	"github.com/sentioxyz/changelogue/internal/ingestion"
 	"github.com/sentioxyz/changelogue/internal/routing"
 	"github.com/sentioxyz/changelogue/internal/stealth"
@@ -72,7 +73,8 @@ func main() {
 
 	// Ingestion layer
 	svc := ingestion.NewService(store)
-	loader := ingestion.NewSourceLoader(store, http.DefaultClient)
+	githubTokens := githubauth.NewDefaultTokenProvider(http.DefaultClient, "")
+	loader := ingestion.NewSourceLoaderWithTokenProvider(store, http.DefaultClient, githubTokens)
 	pollInterval := 5 * time.Minute
 	if v := os.Getenv("POLL_INTERVAL"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
@@ -104,6 +106,7 @@ func main() {
 		TodosStore:            stealth.TodosStub{},
 		OnboardStore:          stealth.OnboardStub{},
 		GatesStore:            stealth.GatesStub{},
+		GitHubAppStore:        stealth.GitHubAppStub{},
 		KeyStore:              store,
 		SessionValidator:      stealth.SessionValidatorStub{},
 		HealthChecker:         store,
@@ -111,6 +114,7 @@ func main() {
 		NoAuth:                noAuth,
 		IngestionService:      svc,
 		HTTPClient:            http.DefaultClient,
+		GitHubTokenProvider:   githubTokens,
 	})
 
 	srv := &http.Server{Addr: addr, Handler: api.CORS(mux)}

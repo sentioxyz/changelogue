@@ -102,7 +102,7 @@ func (m *mockSourcesStore) ListAllSources(_ context.Context, page, perPage int) 
 }
 
 func setupSourcesMux(store SourcesStore) *http.ServeMux {
-	h := NewSourcesHandler(store, nil, nil)
+	h := NewSourcesHandler(store, nil, nil, nil)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /projects/{projectId}/sources", h.List)
 	mux.HandleFunc("POST /projects/{projectId}/sources", h.Create)

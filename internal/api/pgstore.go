@@ -169,6 +169,87 @@ func (s *PgStore) DeleteApiKey(ctx context.Context, id string) error {
 	return nil
 }
 
+// --- GitHubAppStore ---
+
+func (s *PgStore) ListGitHubAppInstallations(ctx context.Context) ([]models.GitHubAppInstallation, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, installation_id, account_login, account_type, repository_selection,
+		        COALESCE(permissions,'{}'), created_at, updated_at
+		 FROM github_app_installations ORDER BY account_login ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("list github app installations: %w", err)
+	}
+	defer rows.Close()
+	var items []models.GitHubAppInstallation
+	for rows.Next() {
+		var item models.GitHubAppInstallation
+		if err := rows.Scan(&item.ID, &item.InstallationID, &item.AccountLogin, &item.AccountType,
+			&item.RepositorySelection, &item.Permissions, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan github app installation: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (s *PgStore) UpsertGitHubAppInstallation(ctx context.Context, inst models.GitHubAppInstallation) error {
+	permissions := inst.Permissions
+	if len(permissions) == 0 {
+		permissions = json.RawMessage(`{}`)
+	}
+	return s.pool.QueryRow(ctx,
+		`INSERT INTO github_app_installations (installation_id, account_login, account_type, repository_selection, permissions)
+		 VALUES ($1, $2, $3, $4, $5)
+		 ON CONFLICT (installation_id) DO UPDATE SET
+		   account_login = EXCLUDED.account_login,
+		   account_type = EXCLUDED.account_type,
+		   repository_selection = EXCLUDED.repository_selection,
+		   permissions = EXCLUDED.permissions,
+		   updated_at = NOW()
+		 RETURNING id, created_at, updated_at`,
+		inst.InstallationID, inst.AccountLogin, inst.AccountType, inst.RepositorySelection, permissions,
+	).Scan(&inst.ID, &inst.CreatedAt, &inst.UpdatedAt)
+}
+
+func (s *PgStore) ReplaceGitHubAppRepositories(ctx context.Context, installationID int64, repos []models.GitHubAppRepository) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin replace github app repositories: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `DELETE FROM github_app_repositories WHERE installation_id = $1`, installationID); err != nil {
+		return fmt.Errorf("delete github app repositories: %w", err)
+	}
+	for _, repo := range repos {
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO github_app_repositories (installation_id, full_name, private, html_url, updated_at)
+			 VALUES ($1, $2, $3, $4, NOW())`,
+			repo.InstallationID, repo.FullName, repo.Private, repo.HTMLURL); err != nil {
+			return fmt.Errorf("insert github app repository: %w", err)
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+func (s *PgStore) ListGitHubAppRepositories(ctx context.Context) ([]models.GitHubAppRepository, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT installation_id, full_name, private, COALESCE(html_url,''), updated_at
+		 FROM github_app_repositories ORDER BY full_name ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("list github app repositories: %w", err)
+	}
+	defer rows.Close()
+	var repos []models.GitHubAppRepository
+	for rows.Next() {
+		var repo models.GitHubAppRepository
+		if err := rows.Scan(&repo.InstallationID, &repo.FullName, &repo.Private, &repo.HTMLURL, &repo.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan github app repository: %w", err)
+		}
+		repos = append(repos, repo)
+	}
+	return repos, rows.Err()
+}
+
 // --- SourcesStore ---
 
 func (s *PgStore) ListSourcesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Source, int, error) {

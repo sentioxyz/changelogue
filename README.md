@@ -151,9 +151,18 @@ clog-stealth status
 | `PUBLIC_URL` | _(empty)_ | Base URL for constructing notification action links |
 | `FRONTEND_URL` | _(empty)_ | Frontend URL for OAuth redirects (if separate from server) |
 | `GITHUB_TOKEN` | _(empty)_ | GitHub PAT for increased API limits (ingestion, onboarding, suggestions) |
+| `GITHUB_APP_ID` | _(empty)_ | GitHub App ID for private repository release polling and onboarding scans |
+| `GITHUB_APP_PRIVATE_KEY` | _(empty)_ | GitHub App private key PEM; supports escaped `\n` line breaks |
+| `GITHUB_APP_PRIVATE_KEY_FILE` | _(empty)_ | Path to a GitHub App private key PEM file; used when `GITHUB_APP_PRIVATE_KEY` is empty |
+| `GITHUB_APP_INSTALLATION_ID` | _(empty)_ | Optional installation ID fallback; otherwise resolved per `owner/repo` |
+| `GITHUB_APP_NAME` | _(empty)_ | Optional GitHub App slug used to show an install link in Settings |
 | `GITLAB_TOKEN` | _(empty)_ | GitLab PAT for GitLab provider authentication |
 
 At least one of `ALLOWED_GITHUB_USERS` or `ALLOWED_GITHUB_ORGS` must be set when `NO_AUTH` is not `true`.
+
+### Private GitHub repositories
+
+For private GitHub repositories, configure a GitHub App and install it on the repositories Changelogue should scan. Grant read-only permissions for repository metadata, contents, and releases. Set `GITHUB_APP_ID` plus either `GITHUB_APP_PRIVATE_KEY` or `GITHUB_APP_PRIVATE_KEY_FILE`; Changelogue will mint short-lived installation tokens per repository. Set `GITHUB_APP_NAME` to show an install link under Settings. After installing or changing repository access, use Settings -> GitHub App -> Sync to refresh the repositories available in the source form. `GITHUB_TOKEN` remains supported as a fallback for development or public-only deployments.
 
 ## Project structure
 
