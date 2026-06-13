@@ -21,6 +21,13 @@
       "context": "",
       "content_hash": "/79/4d3caf629a/1/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/79/4d3caf629a/2/metadata.json",
+      "transcript": "/79/4d3caf629a/2/full.jsonl",
+      "context": "",
+      "content_hash": "/79/4d3caf629a/2/content_hash.txt",
+      "prompt": ""
     }
   ]
 }
