@@ -1,0 +1,52 @@
+Add a icon in the projects overview page for each source in the project To let us know if this source has a subscription associated with it
+
+---
+
+Base directory for this skill: /Users/pc/.claude/skills/nextjs-typecheck
+
+# Next.js TypeScript Type Check
+
+Run `npx tsc --noEmit` in a Next.js frontend directory to verify all TypeScript types are correct.
+
+## Usage
+
+Invoke after editing TypeScript/TSX files in a Next.js project.
+
+## Parameters
+
+- `web` (optional): Path to the web/frontend directory (default: `./web`)
+
+## Execution
+
+1. Run the companion script:
+
+```bash
+bash /Users/pc/.claude/skills/nextjs-typecheck/scripts/nextjs-typecheck.sh ${ARGUMENTS:-./web}
+```
+
+2. If the script exits 0, report that TypeScript compilation succeeded with no errors.
+3. If it exits non-zero, parse the error output, fix the type errors, then re-run.
+
+---
+
+Please start the dev servers locally so that I can verify the changes you've made.
+
+---
+
+Can you reuse an existing changelog database which contains already complete projects and sources so that it can verify it in the end?
+
+---
+
+How about sre-bot-postgres
+
+---
+
+How about releaseguard-pg
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+OK, it looks good. Please commit and push these changes to the remote.
