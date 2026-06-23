@@ -232,6 +232,7 @@
   "projects.addSource": "添加来源",
   "projects.editSource": "编辑来源",
   "projects.sources": "来源",
+  "projects.sourceSubscribed": "已设置通知订阅",
   "projects.releases": "发布",
   "projects.more": "更多…",
   "projects.noReleases": "暂无发布",

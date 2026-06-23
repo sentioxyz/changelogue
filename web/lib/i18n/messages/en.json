@@ -232,6 +232,7 @@
   "projects.addSource": "Add Source",
   "projects.editSource": "Edit Source",
   "projects.sources": "Sources",
+  "projects.sourceSubscribed": "Has a notification subscription",
   "projects.releases": "Releases",
   "projects.more": "more…",
   "projects.noReleases": "No releases",

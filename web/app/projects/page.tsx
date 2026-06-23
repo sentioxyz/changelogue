@@ -9,11 +9,12 @@ import {
   releases as releasesApi,
   sources as sourcesApi,
   semanticReleases as srApi,
+  subscriptions as subsApi,
 } from "@/lib/api/client";
 import { getProviderIcon } from "@/components/ui/provider-badge";
 import { ProjectLogo } from "@/components/ui/project-logo";
 import { timeAgo } from "@/lib/format";
-import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil, ArrowUpDown, Loader2, Info } from "lucide-react";
+import { Plus, ArrowRight, LayoutGrid, List, Search, Pencil, ArrowUpDown, Loader2, Info, Bell } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { SourceForm } from "@/components/sources/source-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -29,6 +30,19 @@ function ProjectCardLogo({ projectId, name }: { projectId: string; name: string 
     sourcesApi.listByProject(projectId)
   );
   return <ProjectLogo name={name} sources={data?.data} size={40} />;
+}
+
+/* ---------- Subscribed Sources ---------- */
+
+function useSubscribedSourceIds(): Set<string> {
+  const { data } = useSWR("subscriptions", () => subsApi.list(1, 100));
+  return useMemo(() => {
+    const ids = new Set<string>();
+    for (const sub of data?.data ?? []) {
+      if (sub.type === "source_release" && sub.source_id) ids.add(sub.source_id);
+    }
+    return ids;
+  }, [data]);
 }
 
 /* ---------- Overflow Flow ---------- */
@@ -196,6 +210,7 @@ function ProjectFlowCard({ project, showExcluded }: { project: Project; showExcl
     () => sourcesApi.listByProject(project.id),
   );
   const sources = srcData?.data ?? [];
+  const subscribedSourceIds = useSubscribedSourceIds();
   const { data: relData } = useSWR(
     sources.length > 0 ? `project-${project.id}-card-releases-${sources.map(s => s.id).join(",")}` : null,
     async () => {
@@ -271,6 +286,11 @@ function ProjectFlowCard({ project, showExcluded }: { project: Project; showExcl
             <span className="text-secondary-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
               {source.repository}
             </span>
+            {subscribedSourceIds.has(source.id) && (
+              <span className="inline-flex shrink-0" title={t("projects.sourceSubscribed")}>
+                <Bell size={11} className="fill-current text-beacon-accent" />
+              </span>
+            )}
             {source.last_polled_at && (
               <span className="text-text-muted">
                 {timeAgo(source.last_polled_at).replace(" ago", "")}
