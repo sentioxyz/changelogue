@@ -19,10 +19,10 @@ type Notification struct {
 	ProjectName string `json:"project_name,omitempty"`
 	Provider    string `json:"provider,omitempty"`
 	Repository  string `json:"repository,omitempty"`
-	ReleaseURL  string `json:"release_url,omitempty"`  // internal Changelogue link
-	SourceURL   string `json:"source_url,omitempty"`   // upstream provider link
-	TodoID      string `json:"todo_id,omitempty"`      // for constructing acknowledge/resolve URLs
-	PublicURL   string `json:"-"`                      // base URL for action links (not serialized)
+	ReleaseURL  string `json:"release_url,omitempty"` // internal Changelogue link
+	SourceURL   string `json:"source_url,omitempty"`  // upstream provider link
+	TodoID      string `json:"todo_id,omitempty"`     // for constructing acknowledge/resolve URLs
+	PublicURL   string `json:"-"`                     // base URL for action links (not serialized)
 }
 
 // Sender is the interface that all notification channel implementations must satisfy.
@@ -68,6 +68,11 @@ func ProviderURL(provider, repository, version string) string {
 		return fmt.Sprintf("https://hub.docker.com/r/%s/tags?name=%s", repository, url.QueryEscape(version))
 	case "ecr-public":
 		return fmt.Sprintf("https://gallery.ecr.aws/%s", repository)
+	case "ghcr":
+		if version != "" {
+			return fmt.Sprintf("https://ghcr.io/%s:%s", repository, url.QueryEscape(version))
+		}
+		return fmt.Sprintf("https://ghcr.io/%s", repository)
 	case "gitlab":
 		return fmt.Sprintf("https://gitlab.com/%s/-/releases/%s", repository, version)
 	default:
@@ -84,6 +89,8 @@ func ProviderLabel(provider string) string {
 		return "Docker Hub"
 	case "ecr-public":
 		return "ECR Public"
+	case "ghcr":
+		return "GHCR"
 	case "gitlab":
 		return "GitLab"
 	default:
@@ -119,7 +126,7 @@ var (
 	reSetextH1 = regexp.MustCompile(`(?m)^(.+)\n[=]{2,}$`)
 	reSetextH2 = regexp.MustCompile(`(?m)^(.+)\n[-]{2,}$`)
 	// Bold **text** and __text__
-	reBoldStar = regexp.MustCompile(`\*\*(.+?)\*\*`)
+	reBoldStar       = regexp.MustCompile(`\*\*(.+?)\*\*`)
 	reBoldUnderscore = regexp.MustCompile(`__(.+?)__`)
 	// Inline code `text`
 	reInlineCode = regexp.MustCompile("`([^`]+)`")

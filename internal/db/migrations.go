@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS projects (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Configured ingestion sources (polling-based: GitHub, Docker Hub)
+-- Configured ingestion sources (polling-based registries and release APIs)
 CREATE TABLE IF NOT EXISTS sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,

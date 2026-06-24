@@ -184,7 +184,7 @@ Components do not call each other synchronously. Instead, they rely on PostgreSQ
 
 All external integrations are abstracted behind strict Go interfaces.
 
-* `IIngestionSource`: Standardizes how polling workers fetch data. Adding a new registry (like npm or NuGet) only requires implementing this interface. Each implementation maps to a `source_type` in the database. Current implementations: Docker Hub, GitHub, ECR Public, GitLab, PyPI, npm.
+* `IIngestionSource`: Standardizes how polling workers fetch data. Adding a new registry (like npm or NuGet) only requires implementing this interface. Each implementation maps to a `source_type` in the database. Current implementations: Docker Hub, GitHub, ECR Public, GHCR, GitLab, PyPI, npm.
 * `Sender`: Standardizes output routing. Each implementation maps to a `type` in the `notification_channels` table (Slack, Discord, email, webhooks).
 
 ### 2.3 REST API & Dashboard
@@ -311,7 +311,7 @@ This will allow the agent to autonomously deploy a sandbox, verify that the depl
 ├── internal/
 │   ├── api/             # REST API handlers, middleware, SSE broadcaster
 │   ├── auth/            # GitHub OAuth 2.0, server-side sessions, user allowlisting
-│   ├── ingestion/       # Polling workers (IIngestionSource: Docker Hub, GitHub, ECR Public, GitLab, PyPI, npm)
+│   ├── ingestion/       # Polling workers (IIngestionSource: Docker Hub, GitHub, ECR Public, GHCR, GitLab, PyPI, npm)
 │   ├── agent/           # ADK-Go agent for semantic release analysis
 │   │   └── openai/      # OpenAI-compatible LLM provider adapter
 │   ├── gate/            # Release gate system (gate check, NL eval, timeout workers)

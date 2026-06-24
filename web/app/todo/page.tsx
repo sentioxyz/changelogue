@@ -68,6 +68,7 @@ function TodoPageInner() {
         { value: "github", label: "GitHub" },
         { value: "dockerhub", label: "Docker Hub" },
         { value: "ecr-public", label: "ECR Public" },
+        { value: "ghcr", label: "GHCR" },
         { value: "gitlab", label: "GitLab" },
         { value: "pypi", label: "PyPI" },
         { value: "npm", label: "npm" },

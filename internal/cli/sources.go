@@ -97,7 +97,7 @@ func NewSourcesCmd(clientFn func() *Client, jsonFlag *bool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sources",
 		Short: "Manage ingestion sources",
-		Long:  "Add, list, update, and remove sources for a project.\n\nProviders: dockerhub, github, ecr, gitlab, pypi, npm\n\nExamples:\n  clog sources list --project <id>\n  clog sources create --project <id> --provider dockerhub --repository library/postgres",
+		Long:  "Add, list, update, and remove sources for a project.\n\nProviders: dockerhub, github, ecr-public, ghcr, gitlab, pypi, npm\n\nExamples:\n  clog sources list --project <id>\n  clog sources create --project <id> --provider dockerhub --repository library/postgres",
 	}
 
 	var page, perPage int
@@ -199,7 +199,7 @@ func NewSourcesCmd(clientFn func() *Client, jsonFlag *bool) *cobra.Command {
 	}
 	createCmd.Flags().StringVar(&createProjectID, "project", "", "Project ID (required)")
 	createCmd.MarkFlagRequired("project")
-	createCmd.Flags().StringVar(&createProvider, "provider", "", "Provider: dockerhub, github, ecr, gitlab, pypi, npm (required)")
+	createCmd.Flags().StringVar(&createProvider, "provider", "", "Provider: dockerhub, github, ecr-public, ghcr, gitlab, pypi, npm (required)")
 	createCmd.MarkFlagRequired("provider")
 	createCmd.Flags().StringVar(&createRepo, "repository", "", "Repository identifier (required)")
 	createCmd.MarkFlagRequired("repository")

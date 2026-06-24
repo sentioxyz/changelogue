@@ -87,6 +87,8 @@ func BuildSourceWithTokenProvider(client *http.Client, id string, sourceType, re
 		return NewGitHubSourceWithTokenProvider(client, repository, id, tokenProvider)
 	case "ecr-public":
 		return NewECRPublicSource(client, repository, id)
+	case "ghcr":
+		return NewGHCRSource(client, repository, id)
 	case "gitlab":
 		return NewGitLabSource(client, repository, id)
 	case "pypi":

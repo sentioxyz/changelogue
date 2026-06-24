@@ -36,6 +36,8 @@ function getProviderLabel(provider: string): string {
       return "Docker Hub";
     case "ecr-public":
       return "ECR Public";
+    case "ghcr":
+      return "GHCR";
     case "gitlab":
       return "GitLab";
     case "pypi":

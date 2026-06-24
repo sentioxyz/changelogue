@@ -15,6 +15,7 @@ import { ProviderBadge } from "@/components/ui/provider-badge";
 import { timeAgo } from "@/lib/format";
 import { getPathSegment } from "@/lib/path";
 import { useTranslation } from "@/lib/i18n/context";
+import { getProviderUrl } from "@/lib/provider-urls";
 import { ArrowLeft, ExternalLink, BookOpen } from "lucide-react";
 import { SemanticReleaseReport } from "./semantic-release-report";
 
@@ -201,14 +202,7 @@ export function SemanticReleaseDetail() {
               <tbody>
                 {releasesList.map((rel) => {
                   const source = sourcesById[rel.source_id];
-                  const versionUrl =
-                    source?.provider === "github"
-                      ? `https://github.com/${source.repository}/releases/tag/${rel.version}`
-                      : source?.provider === "dockerhub"
-                        ? `https://hub.docker.com/r/${source.repository}/tags?name=${encodeURIComponent(rel.version)}`
-                        : source?.provider === "ecr-public"
-                          ? `https://gallery.ecr.aws/${source.repository}`
-                          : null;
+                  const versionUrl = source ? getProviderUrl(source.provider, source.repository, rel.version) : null;
 
                   return (
                     <tr

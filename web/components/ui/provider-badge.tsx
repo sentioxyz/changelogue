@@ -7,6 +7,7 @@ const PROVIDER_STYLES: Record<Provider, { bg: string; text: string; label: strin
   github: { bg: "#1a1a1a", text: "#ffffff", label: "GitHub", icon: FaGithub },
   dockerhub: { bg: "#2496ed", text: "#ffffff", label: "Docker Hub", icon: FaDocker },
   "ecr-public": { bg: "#ff9900", text: "#ffffff", label: "ECR Public", icon: FaAws },
+  ghcr: { bg: "#24292f", text: "#ffffff", label: "GHCR", icon: FaGithub },
   gitlab: { bg: "#fc6d26", text: "#ffffff", label: "GitLab", icon: FaGitlab },
   pypi: { bg: "#006DAD", text: "#ffffff", label: "PyPI", icon: FaPython },
   npm: { bg: "#CB3837", text: "#ffffff", label: "npm", icon: FaNpm },

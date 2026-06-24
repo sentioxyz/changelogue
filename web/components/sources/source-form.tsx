@@ -164,6 +164,7 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
             <SelectItem value="dockerhub">{t("sourceForm.providerDockerHub")}</SelectItem>
             <SelectItem value="github">{t("sourceForm.providerGitHub")}</SelectItem>
             <SelectItem value="ecr-public">{t("sourceForm.providerECR")}</SelectItem>
+            <SelectItem value="ghcr">{t("sourceForm.providerGHCR")}</SelectItem>
             <SelectItem value="gitlab">{t("sourceForm.providerGitLab")}</SelectItem>
             <SelectItem value="pypi">{t("sourceForm.providerPyPI")}</SelectItem>
             <SelectItem value="npm">{t("sourceForm.providerNpm")}</SelectItem>
