@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "073cea0117ca",
+  "session_id": "110180fc-aff9-493f-be97-98c90ea15cc4",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-24T05:32:42.673973Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "internal/ingestion/loader.go",
+    "internal/stealth/store.go",
+    "web/lib/api/types.ts",
+    "internal/cli/sources.go",
+    "internal/ingestion/pgstore.go",
+    "internal/stealth/migrations.go",
+    "web/lib/i18n/messages/en.json",
+    "web/lib/i18n/messages/zh.json",
+    "internal/api/sources.go",
+    "web/components/projects/project-form.tsx",
+    "internal/api/pgstore.go",
+    "internal/ingestion/github.go",
+    "internal/ingestion/github_test.go",
+    "internal/models/source.go",
+    "web/components/sources/source-form.tsx",
+    "internal/db/migrations.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "7a6916bebc23",
+  "initial_attribution": {
+    "calculated_at": "2026-06-24T05:32:42.63539Z",
+    "agent_lines": 0,
+    "human_added": 742,
+    "human_modified": 60,
+    "human_removed": 0,
+    "total_committed": 742,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-pc-web3-ReleaseBeacon/110180fc-aff9-493f-be97-98c90ea15cc4.jsonl"
+}
