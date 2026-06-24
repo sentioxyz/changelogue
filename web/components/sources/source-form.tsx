@@ -59,7 +59,8 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
   );
   const [versionFilterInclude, setVersionFilterInclude] = useState(initial?.version_filter_include ?? "");
   const [versionFilterExclude, setVersionFilterExclude] = useState(initial?.version_filter_exclude ?? "");
-  const [excludePrereleases, setExcludePrereleases] = useState(initial?.exclude_prereleases ?? false);
+  const [excludePrereleases, setExcludePrereleases] = useState(initial?.exclude_prereleases ?? true);
+  const [releasesOnly, setReleasesOnly] = useState(initial?.releases_only ?? true);
   const [githubRepos, setGithubRepos] = useState<GitHubAppRepository[]>([]);
   const [githubConfigured, setGithubConfigured] = useState(false);
   const [loadingGithubRepos, setLoadingGithubRepos] = useState(false);
@@ -131,7 +132,8 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         config: parsedConfig,
         version_filter_include: versionFilterInclude.trim() || undefined,
         version_filter_exclude: versionFilterExclude.trim() || undefined,
-        exclude_prereleases: excludePrereleases || undefined,
+        exclude_prereleases: excludePrereleases,
+        releases_only: releasesOnly,
       });
       if (onSuccess) {
         onSuccess();
@@ -254,6 +256,15 @@ export function SourceForm({ initial, onSubmit, title, redirectTo, onSuccess, on
         <div className="flex items-center gap-3">
           <Switch checked={excludePrereleases} onCheckedChange={setExcludePrereleases} />
           <Label>{t("sourceForm.excludePrereleases")}</Label>
+        </div>
+      )}
+      {provider === "github" && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <Switch checked={releasesOnly} onCheckedChange={setReleasesOnly} />
+            <Label>{t("sourceForm.releasesOnly")}</Label>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("sourceForm.releasesOnlyHelper")}</p>
         </div>
       )}
       <div className="flex items-center gap-3">

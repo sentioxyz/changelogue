@@ -22,6 +22,7 @@ type EnabledSource struct {
 	Provider            string
 	Repository          string
 	PollIntervalSeconds int
+	ReleasesOnly        bool
 	LastPolledAt        *time.Time
 }
 
@@ -59,7 +60,7 @@ func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]ScheduledSourc
 	}
 	var sources []ScheduledSource
 	for _, e := range enabled {
-		src := BuildSourceWithTokenProvider(l.client, e.ID, e.Provider, e.Repository, l.tokenProvider)
+		src := BuildSourceWithTokenProvider(l.client, e.ID, e.Provider, e.Repository, l.tokenProvider, SourceOptions{ReleasesOnly: e.ReleasesOnly})
 		if src == nil {
 			slog.Warn("unsupported source type, skipping",
 				"id", e.ID, "type", e.Provider, "repo", e.Repository)
@@ -74,17 +75,23 @@ func (l *SourceLoader) LoadEnabledSources(ctx context.Context) ([]ScheduledSourc
 	return sources, nil
 }
 
-// BuildSource constructs the appropriate IIngestionSource based on provider type.
-func BuildSource(client *http.Client, id string, sourceType, repository string) IIngestionSource {
-	return BuildSourceWithTokenProvider(client, id, sourceType, repository, githubauth.NewDefaultTokenProvider(client, ""))
+// SourceOptions carries optional per-source configuration that only some
+// providers use (e.g. GitHub tag discovery).
+type SourceOptions struct {
+	ReleasesOnly bool
 }
 
-func BuildSourceWithTokenProvider(client *http.Client, id string, sourceType, repository string, tokenProvider githubauth.TokenProvider) IIngestionSource {
+// BuildSource constructs the appropriate IIngestionSource based on provider type.
+func BuildSource(client *http.Client, id string, sourceType, repository string) IIngestionSource {
+	return BuildSourceWithTokenProvider(client, id, sourceType, repository, githubauth.NewDefaultTokenProvider(client, ""), SourceOptions{ReleasesOnly: true})
+}
+
+func BuildSourceWithTokenProvider(client *http.Client, id string, sourceType, repository string, tokenProvider githubauth.TokenProvider, opts SourceOptions) IIngestionSource {
 	switch sourceType {
 	case "dockerhub":
 		return NewDockerHubSource(client, repository, id)
 	case "github":
-		return NewGitHubSourceWithTokenProvider(client, repository, id, tokenProvider)
+		return NewGitHubSourceWithTokenProvider(client, repository, id, tokenProvider, opts.ReleasesOnly)
 	case "ecr-public":
 		return NewECRPublicSource(client, repository, id)
 	case "ghcr":

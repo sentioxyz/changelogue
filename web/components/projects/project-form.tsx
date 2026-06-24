@@ -46,7 +46,7 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
   const [pollInterval, setPollInterval] = useState("86400");
   const [versionFilterInclude, setVersionFilterInclude] = useState("");
   const [versionFilterExclude, setVersionFilterExclude] = useState("");
-  const [excludePrereleases, setExcludePrereleases] = useState(false);
+  const [excludePrereleases, setExcludePrereleases] = useState(true);
 
   const handleCancel = () => {
     if (onCancel) {
@@ -81,7 +81,7 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
           enabled: true,
           version_filter_include: versionFilterInclude.trim() || undefined,
           version_filter_exclude: versionFilterExclude.trim() || undefined,
-          exclude_prereleases: excludePrereleases || undefined,
+          exclude_prereleases: excludePrereleases,
         };
       }
       await onSubmit(result);

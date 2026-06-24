@@ -164,6 +164,7 @@ func NewSourcesCmd(clientFn func() *Client, jsonFlag *bool) *cobra.Command {
 	var createProjectID, createProvider, createRepo, createFilterInclude, createFilterExclude string
 	var createPollInterval int
 	var createExcludePrerelease bool
+	var createReleasesOnly string
 	createCmd := &cobra.Command{
 		Use:     "create",
 		Short:   "Add a new source",
@@ -184,6 +185,12 @@ func NewSourcesCmd(clientFn func() *Client, jsonFlag *bool) *cobra.Command {
 			}
 			if createExcludePrerelease {
 				body["exclude_prereleases"] = true
+			}
+			if cmd.Flags().Changed("releases-only") {
+				if createReleasesOnly != "true" && createReleasesOnly != "false" {
+					return fmt.Errorf("--releases-only must be 'true' or 'false'")
+				}
+				body["releases_only"] = createReleasesOnly == "true"
 			}
 			src, err := CreateSource(clientFn(), createProjectID, body)
 			if err != nil {
@@ -207,11 +214,12 @@ func NewSourcesCmd(clientFn func() *Client, jsonFlag *bool) *cobra.Command {
 	createCmd.Flags().StringVar(&createFilterInclude, "filter-include", "", "Version include regex pattern")
 	createCmd.Flags().StringVar(&createFilterExclude, "filter-exclude", "", "Version exclude regex pattern")
 	createCmd.Flags().BoolVar(&createExcludePrerelease, "exclude-prereleases", false, "Exclude prerelease versions")
+	createCmd.Flags().StringVar(&createReleasesOnly, "releases-only", "", "GitHub: watch releases only; set false to also discover tags (true/false, default true)")
 
 	// --- update ---
 	var updateProvider, updateRepo, updateFilterInclude, updateFilterExclude string
 	var updatePollInterval int
-	var updateEnabled, updateExcludePrerelease string
+	var updateEnabled, updateExcludePrerelease, updateReleasesOnly string
 	updateCmd := &cobra.Command{
 		Use:     "update <id>",
 		Short:   "Update a source",
@@ -246,6 +254,12 @@ func NewSourcesCmd(clientFn func() *Client, jsonFlag *bool) *cobra.Command {
 				}
 				fields["exclude_prereleases"] = updateExcludePrerelease == "true"
 			}
+			if cmd.Flags().Changed("releases-only") {
+				if updateReleasesOnly != "true" && updateReleasesOnly != "false" {
+					return fmt.Errorf("--releases-only must be 'true' or 'false'")
+				}
+				fields["releases_only"] = updateReleasesOnly == "true"
+			}
 			if len(fields) == 0 {
 				return fmt.Errorf("no fields to update")
 			}
@@ -268,6 +282,7 @@ func NewSourcesCmd(clientFn func() *Client, jsonFlag *bool) *cobra.Command {
 	updateCmd.Flags().StringVar(&updateFilterInclude, "filter-include", "", "Version include regex")
 	updateCmd.Flags().StringVar(&updateFilterExclude, "filter-exclude", "", "Version exclude regex")
 	updateCmd.Flags().StringVar(&updateExcludePrerelease, "exclude-prereleases", "", "Exclude prereleases (true/false)")
+	updateCmd.Flags().StringVar(&updateReleasesOnly, "releases-only", "", "GitHub: watch releases only; set false to also discover tags (true/false)")
 
 	// --- delete ---
 	deleteCmd := &cobra.Command{

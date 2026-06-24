@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -80,10 +82,16 @@ func (h *SourcesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var src models.Source
-	if err := DecodeJSON(r, &src); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid request body")
+		return
+	}
+	if err := json.Unmarshal(body, &src); err != nil {
 		RespondError(w, r, http.StatusBadRequest, "bad_request", "Invalid JSON body")
 		return
 	}
+	applySourceDefaults(body, &src)
 	src.ProjectID = projectID
 	src.Provider = strings.TrimSpace(src.Provider)
 	src.Repository = strings.TrimSpace(src.Repository)
@@ -99,8 +107,24 @@ func (h *SourcesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, r, http.StatusInternalServerError, "internal_error", "Failed to create source")
 		return
 	}
-	go h.pollSourceAsync(src.ID, src.Provider, src.Repository)
+	go h.pollSourceAsync(src.ID, src.Provider, src.Repository, src.ReleasesOnly)
 	RespondJSON(w, r, http.StatusCreated, src)
+}
+
+// applySourceDefaults sets defaults for fields omitted from the create request.
+// New sources exclude prereleases and watch releases only unless told otherwise.
+func applySourceDefaults(body []byte, src *models.Source) {
+	var present struct {
+		ExcludePrereleases *bool `json:"exclude_prereleases"`
+		ReleasesOnly       *bool `json:"releases_only"`
+	}
+	_ = json.Unmarshal(body, &present)
+	if present.ExcludePrereleases == nil {
+		src.ExcludePrereleases = true
+	}
+	if present.ReleasesOnly == nil {
+		src.ReleasesOnly = true
+	}
 }
 
 // Get handles GET /sources/{id} — returns a single source.
@@ -145,7 +169,7 @@ func (h *SourcesHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	src.ID = id
-	go h.pollSourceAsync(id, src.Provider, src.Repository)
+	go h.pollSourceAsync(id, src.Provider, src.Repository, src.ReleasesOnly)
 	RespondJSON(w, r, http.StatusOK, src)
 }
 
@@ -177,7 +201,7 @@ func (h *SourcesHandler) FetchReleases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ingestionSrc := ingestion.BuildSourceWithTokenProvider(h.httpClient, src.ID, src.Provider, src.Repository, h.tokenProvider)
+	ingestionSrc := ingestion.BuildSourceWithTokenProvider(h.httpClient, src.ID, src.Provider, src.Repository, h.tokenProvider, ingestion.SourceOptions{ReleasesOnly: src.ReleasesOnly})
 	if ingestionSrc == nil {
 		RespondError(w, r, http.StatusUnprocessableEntity, "unsupported_provider", "Unsupported provider: "+src.Provider)
 		return
@@ -208,10 +232,10 @@ func (h *SourcesHandler) FetchReleases(w http.ResponseWriter, r *http.Request) {
 }
 
 // pollSourceAsync polls a source in the background and updates its poll status.
-func (h *SourcesHandler) pollSourceAsync(sourceID, provider, repository string) {
+func (h *SourcesHandler) pollSourceAsync(sourceID, provider, repository string, releasesOnly bool) {
 	ctx := context.Background()
 
-	ingestionSrc := ingestion.BuildSourceWithTokenProvider(h.httpClient, sourceID, provider, repository, h.tokenProvider)
+	ingestionSrc := ingestion.BuildSourceWithTokenProvider(h.httpClient, sourceID, provider, repository, h.tokenProvider, ingestion.SourceOptions{ReleasesOnly: releasesOnly})
 	if ingestionSrc == nil {
 		slog.Warn("async poll: unsupported provider", "source", sourceID, "provider", provider)
 		return

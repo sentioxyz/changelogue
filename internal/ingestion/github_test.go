@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/sentioxyz/changelogue/internal/githubauth"
@@ -150,7 +151,7 @@ func TestGitHubFetchUsesTokenProvider(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	src := NewGitHubSourceWithTokenProvider(srv.Client(), "org/private", "src-id", githubauth.NewStaticTokenProvider("test-token"))
+	src := NewGitHubSourceWithTokenProvider(srv.Client(), "org/private", "src-id", githubauth.NewStaticTokenProvider("test-token"), true)
 	src.baseURL = srv.URL
 
 	if _, err := src.FetchNewReleases(context.Background()); err != nil {
@@ -197,5 +198,130 @@ func TestGitHubLiveGoEthereum(t *testing.T) {
 		}
 		t.Logf("  [%d] %s  released=%s  prerelease=%s  changelog_len=%d  url=%s",
 			i, r.RawVersion, r.Timestamp.Format("2006-01-02"), r.Metadata["prerelease"], len(r.Changelog), r.Metadata["release_url"])
+	}
+}
+
+const sampleGitHubTags = `[
+  { "name": "v1.17.0", "commit": { "sha": "aaa" } },
+  { "name": "v1.16.9", "commit": { "sha": "bbb" } },
+  { "name": "v1.16.8", "commit": { "sha": "ccc" } }
+]`
+
+// githubMux routes /releases and /tags to separate bodies and records whether
+// the tags endpoint was hit.
+func githubMux(t *testing.T, releasesBody, tagsBody string, tagsHit *bool) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(r.URL.Path, "/tags"):
+			if tagsHit != nil {
+				*tagsHit = true
+			}
+			w.Write([]byte(tagsBody))
+		case strings.Contains(r.URL.Path, "/releases"):
+			w.Write([]byte(releasesBody))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+}
+
+func TestGitHubReleasesOnlySkipsTags(t *testing.T) {
+	tagsHit := false
+	srv := githubMux(t, sampleGitHubReleases, sampleGitHubTags, &tagsHit)
+	defer srv.Close()
+
+	src := NewGitHubSource(srv.Client(), "ethereum/go-ethereum", "src-id") // releasesOnly = true
+	src.baseURL = srv.URL
+
+	results, err := src.FetchNewReleases(context.Background())
+	if err != nil {
+		t.Fatalf("FetchNewReleases: %v", err)
+	}
+	if tagsHit {
+		t.Error("tags endpoint should not be called when releasesOnly is true")
+	}
+	if len(results) != 3 { // draft excluded
+		t.Fatalf("got %d results, want 3", len(results))
+	}
+}
+
+func TestGitHubTagDiscoveryMergesAndDedups(t *testing.T) {
+	srv := githubMux(t, sampleGitHubReleases, sampleGitHubTags, nil)
+	defer srv.Close()
+
+	src := NewGitHubSourceWithTokenProvider(srv.Client(), "ethereum/go-ethereum", "src-id", githubauth.NewStaticTokenProvider(""), false)
+	src.baseURL = srv.URL
+
+	results, err := src.FetchNewReleases(context.Background())
+	if err != nil {
+		t.Fatalf("FetchNewReleases: %v", err)
+	}
+
+	// 3 releases (draft excluded) + only v1.16.8 from tags (v1.17.0/v1.16.9 already releases) = 4
+	if len(results) != 4 {
+		t.Fatalf("got %d results, want 4", len(results))
+	}
+
+	byVersion := map[string]IngestionResult{}
+	for _, r := range results {
+		byVersion[r.RawVersion] = r
+	}
+
+	// The release-backed version keeps its changelog and timestamp.
+	rel := byVersion["v1.17.0"]
+	if rel.Changelog == "" {
+		t.Error("release v1.17.0 should keep its changelog (not clobbered by tag)")
+	}
+	if rel.Timestamp.IsZero() {
+		t.Error("release v1.17.0 should keep its timestamp")
+	}
+	if _, ok := rel.Metadata["source_kind"]; ok {
+		t.Error("release v1.17.0 should not be marked source_kind=tag")
+	}
+
+	// The tag-only version has no changelog, a zero timestamp, and tag metadata.
+	tag, ok := byVersion["v1.16.8"]
+	if !ok {
+		t.Fatal("expected tag-only version v1.16.8 in results")
+	}
+	if tag.Changelog != "" {
+		t.Errorf("tag v1.16.8 changelog = %q, want empty", tag.Changelog)
+	}
+	if !tag.Timestamp.IsZero() {
+		t.Error("tag v1.16.8 timestamp should be zero")
+	}
+	if tag.Metadata["source_kind"] != "tag" {
+		t.Errorf("tag v1.16.8 source_kind = %q, want tag", tag.Metadata["source_kind"])
+	}
+	if tag.Metadata["release_url"] != "https://github.com/ethereum/go-ethereum/releases/tag/v1.16.8" {
+		t.Errorf("tag v1.16.8 release_url = %q", tag.Metadata["release_url"])
+	}
+}
+
+func TestGitHubTagDiscoveryTagsOnlyRepo(t *testing.T) {
+	srv := githubMux(t, "[]", sampleGitHubTags, nil)
+	defer srv.Close()
+
+	src := NewGitHubSourceWithTokenProvider(srv.Client(), "FraxFinance/fraxtal-op-reth", "src-id", githubauth.NewStaticTokenProvider(""), false)
+	src.baseURL = srv.URL
+
+	results, err := src.FetchNewReleases(context.Background())
+	if err != nil {
+		t.Fatalf("FetchNewReleases: %v", err)
+	}
+
+	// No releases, so all 3 tags surface.
+	if len(results) != 3 {
+		t.Fatalf("got %d results, want 3", len(results))
+	}
+	for _, r := range results {
+		if r.Metadata["source_kind"] != "tag" {
+			t.Errorf("%s source_kind = %q, want tag", r.RawVersion, r.Metadata["source_kind"])
+		}
+		if !r.Timestamp.IsZero() {
+			t.Errorf("%s timestamp should be zero", r.RawVersion)
+		}
 	}
 }

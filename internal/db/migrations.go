@@ -321,6 +321,14 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 		return fmt.Errorf("source exclude_prereleases migration: %w", err)
 	}
 
+	// New sources exclude prereleases by default. Existing rows keep their value.
+	if _, err := pool.Exec(ctx, `
+		ALTER TABLE sources ALTER COLUMN exclude_prereleases SET DEFAULT true;
+		ALTER TABLE sources ADD COLUMN IF NOT EXISTS releases_only BOOLEAN DEFAULT true;
+	`); err != nil {
+		return fmt.Errorf("source releases_only migration: %w", err)
+	}
+
 	if _, err := pool.Exec(ctx, `
 		ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS config JSONB;
 	`); err != nil {

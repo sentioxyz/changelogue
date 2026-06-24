@@ -596,6 +596,8 @@
   "sourceForm.versionFilterExcludePlaceholder": "e.g. -(alpha|beta|rc|nightly)",
   "sourceForm.versionFilterExcludeHelper": "Hide/suppress versions matching this pattern",
   "sourceForm.excludePrereleases": "Exclude Pre-Releases",
+  "sourceForm.releasesOnly": "Releases Only",
+  "sourceForm.releasesOnlyHelper": "Watch published releases only. Turn off to also discover repos that publish tags without releases.",
   "sourceForm.enabled": "Enabled",
   "sourceForm.cancel": "Cancel",
   "sourceForm.saving": "Saving...",

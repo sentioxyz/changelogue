@@ -55,6 +55,13 @@ func NewStore(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
+	// Additive column for stealth DBs created before releases_only existed.
+	if _, err := db.Exec(`ALTER TABLE sources ADD COLUMN releases_only INTEGER DEFAULT 1`); err != nil &&
+		!strings.Contains(err.Error(), "duplicate column name") {
+		db.Close()
+		return nil, fmt.Errorf("add releases_only column: %w", err)
+	}
+
 	return &Store{db: db}, nil
 }
 
@@ -227,12 +234,12 @@ func (s *Store) DeleteProject(ctx context.Context, id string) error {
 // scanSource scans a row into a models.Source.
 // Column order: id, project_id, provider, repository, poll_interval_seconds,
 //               enabled, config, version_filter_include, version_filter_exclude,
-//               exclude_prereleases, last_polled_at, last_error, created_at, updated_at
+//               exclude_prereleases, releases_only, last_polled_at, last_error, created_at, updated_at
 func scanSource(row interface {
 	Scan(dest ...any) error
 }) (models.Source, error) {
 	var src models.Source
-	var enabledInt, excludePrereleasesInt int
+	var enabledInt, excludePrereleasesInt, releasesOnlyInt int
 	var configNull, vfiNull, vfeNull, lastPolledAtNull, lastErrorNull sql.NullString
 	var createdAt, updatedAt string
 
@@ -240,7 +247,7 @@ func scanSource(row interface {
 		&src.ID, &src.ProjectID, &src.Provider, &src.Repository,
 		&src.PollIntervalSeconds, &enabledInt,
 		&configNull, &vfiNull, &vfeNull,
-		&excludePrereleasesInt,
+		&excludePrereleasesInt, &releasesOnlyInt,
 		&lastPolledAtNull, &lastErrorNull,
 		&createdAt, &updatedAt,
 	); err != nil {
@@ -249,6 +256,7 @@ func scanSource(row interface {
 
 	src.Enabled = enabledInt != 0
 	src.ExcludePrereleases = excludePrereleasesInt != 0
+	src.ReleasesOnly = releasesOnlyInt != 0
 
 	if configNull.Valid && configNull.String != "" {
 		src.Config = json.RawMessage(configNull.String)
@@ -285,7 +293,7 @@ func scanSource(row interface {
 
 const sourceSelectCols = ` id, project_id, provider, repository, poll_interval_seconds,
 	enabled, config, version_filter_include, version_filter_exclude,
-	exclude_prereleases, last_polled_at, last_error, created_at, updated_at `
+	exclude_prereleases, releases_only, last_polled_at, last_error, created_at, updated_at `
 
 // ListSourcesByProject returns a paginated list of sources for a project.
 func (s *Store) ListSourcesByProject(ctx context.Context, projectID string, page, perPage int) ([]models.Source, int, error) {
@@ -361,6 +369,10 @@ func (s *Store) CreateSource(ctx context.Context, src *models.Source) error {
 	if src.ExcludePrereleases {
 		excludePrereleasesInt = 1
 	}
+	releasesOnlyInt := 0
+	if src.ReleasesOnly {
+		releasesOnlyInt = 1
+	}
 
 	var configStr sql.NullString
 	if len(src.Config) > 0 {
@@ -379,11 +391,11 @@ func (s *Store) CreateSource(ctx context.Context, src *models.Source) error {
 		INSERT INTO sources
 		  (id, project_id, provider, repository, poll_interval_seconds,
 		   enabled, config, version_filter_include, version_filter_exclude,
-		   exclude_prereleases, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		   exclude_prereleases, releases_only, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		src.ID, src.ProjectID, src.Provider, src.Repository, src.PollIntervalSeconds,
 		enabledInt, configStr, vfi, vfe,
-		excludePrereleasesInt,
+		excludePrereleasesInt, releasesOnlyInt,
 		now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano),
 	)
 	if err != nil {
@@ -418,6 +430,10 @@ func (s *Store) UpdateSource(ctx context.Context, id string, src *models.Source)
 	if src.ExcludePrereleases {
 		excludePrereleasesInt = 1
 	}
+	releasesOnlyInt := 0
+	if src.ReleasesOnly {
+		releasesOnlyInt = 1
+	}
 
 	var configStr sql.NullString
 	if len(src.Config) > 0 {
@@ -437,12 +453,12 @@ func (s *Store) UpdateSource(ctx context.Context, id string, src *models.Source)
 		SET provider = ?, repository = ?, poll_interval_seconds = ?,
 		    enabled = ?, config = ?,
 		    version_filter_include = ?, version_filter_exclude = ?,
-		    exclude_prereleases = ?, updated_at = ?
+		    exclude_prereleases = ?, releases_only = ?, updated_at = ?
 		WHERE id = ?`,
 		src.Provider, src.Repository, src.PollIntervalSeconds,
 		enabledInt, configStr,
 		vfi, vfe,
-		excludePrereleasesInt, now.Format(time.RFC3339Nano),
+		excludePrereleasesInt, releasesOnlyInt, now.Format(time.RFC3339Nano),
 		id,
 	)
 	if err != nil {
@@ -514,7 +530,7 @@ func (s *Store) ListAllSourceRepos(ctx context.Context) ([]models.SourceRepo, er
 // ListEnabledSources implements ingestion.SourceLister.
 func (s *Store) ListEnabledSources(ctx context.Context) ([]ingestion.EnabledSource, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, provider, repository, poll_interval_seconds, last_polled_at
+		SELECT id, provider, repository, poll_interval_seconds, releases_only, last_polled_at
 		FROM sources WHERE enabled = 1`)
 	if err != nil {
 		return nil, fmt.Errorf("list enabled sources: %w", err)
@@ -525,9 +541,11 @@ func (s *Store) ListEnabledSources(ctx context.Context) ([]ingestion.EnabledSour
 	for rows.Next() {
 		var e ingestion.EnabledSource
 		var lastPolledAtNull sql.NullString
-		if err := rows.Scan(&e.ID, &e.Provider, &e.Repository, &e.PollIntervalSeconds, &lastPolledAtNull); err != nil {
+		var releasesOnlyInt int
+		if err := rows.Scan(&e.ID, &e.Provider, &e.Repository, &e.PollIntervalSeconds, &releasesOnlyInt, &lastPolledAtNull); err != nil {
 			return nil, fmt.Errorf("scan enabled source: %w", err)
 		}
+		e.ReleasesOnly = releasesOnlyInt != 0
 		if lastPolledAtNull.Valid && lastPolledAtNull.String != "" {
 			t, err := parseTime(lastPolledAtNull.String)
 			if err != nil {

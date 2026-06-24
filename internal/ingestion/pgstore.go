@@ -123,7 +123,7 @@ func (s *PgStore) IngestRelease(ctx context.Context, sourceID string, result *In
 // ListEnabledSources implements SourceLister.
 func (s *PgStore) ListEnabledSources(ctx context.Context) ([]EnabledSource, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, provider, repository, poll_interval_seconds, last_polled_at
+		`SELECT id, provider, repository, poll_interval_seconds, releases_only, last_polled_at
 		 FROM sources WHERE enabled = true`)
 	if err != nil {
 		return nil, fmt.Errorf("query enabled sources: %w", err)
@@ -133,7 +133,7 @@ func (s *PgStore) ListEnabledSources(ctx context.Context) ([]EnabledSource, erro
 	var sources []EnabledSource
 	for rows.Next() {
 		var e EnabledSource
-		if err := rows.Scan(&e.ID, &e.Provider, &e.Repository, &e.PollIntervalSeconds, &e.LastPolledAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.Provider, &e.Repository, &e.PollIntervalSeconds, &e.ReleasesOnly, &e.LastPolledAt); err != nil {
 			return nil, fmt.Errorf("scan source row: %w", err)
 		}
 		sources = append(sources, e)

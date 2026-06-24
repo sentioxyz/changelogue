@@ -596,6 +596,8 @@
   "sourceForm.versionFilterExcludePlaceholder": "例如 -(alpha|beta|rc|nightly)",
   "sourceForm.versionFilterExcludeHelper": "隐藏/屏蔽匹配此模式的版本",
   "sourceForm.excludePrereleases": "排除预发布版本",
+  "sourceForm.releasesOnly": "仅发布版本",
+  "sourceForm.releasesOnlyHelper": "仅监控已发布的 Release。关闭后也可发现只打标签（tag）而不创建 Release 的仓库。",
   "sourceForm.enabled": "启用",
   "sourceForm.cancel": "取消",
   "sourceForm.saving": "保存中...",

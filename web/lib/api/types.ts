@@ -56,6 +56,7 @@ export interface Source {
   version_filter_include?: string;
   version_filter_exclude?: string;
   exclude_prereleases?: boolean;
+  releases_only?: boolean;
   last_polled_at?: string;
   last_error?: string;
   created_at: string;
@@ -71,6 +72,7 @@ export interface SourceInput {
   version_filter_include?: string;
   version_filter_exclude?: string;
   exclude_prereleases?: boolean;
+  releases_only?: boolean;
 }
 
 export interface GitHubAppInstallation {
