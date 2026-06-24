@@ -26,7 +26,19 @@ type ghRelease struct {
 
 // ghTag represents a single tag from the GitHub REST API.
 type ghTag struct {
-	Name string `json:"name"`
+	Name   string `json:"name"`
+	Commit struct {
+		SHA string `json:"sha"`
+	} `json:"commit"`
+}
+
+// ghCommit holds the commit date used to timestamp tag-derived releases.
+type ghCommit struct {
+	Commit struct {
+		Committer struct {
+			Date string `json:"date"`
+		} `json:"committer"`
+	} `json:"commit"`
 }
 
 // GitHubSource polls the GitHub REST API for repository releases.
@@ -83,6 +95,7 @@ func (s *GitHubSource) FetchNewReleases(ctx context.Context) ([]IngestionResult,
 				"release_url": fmt.Sprintf("https://github.com/%s/releases/tag/%s", s.repository, t.Name),
 				"source_kind": "tag",
 			},
+			Timestamp: s.tagCommitDate(ctx, t.Commit.SHA),
 		})
 	}
 	return results, nil
@@ -160,6 +173,30 @@ func (s *GitHubSource) fetchTags(ctx context.Context) ([]ghTag, error) {
 		return nil, fmt.Errorf("decode tags: %w", err)
 	}
 	return tags, nil
+}
+
+// tagCommitDate returns the committer date for a tag's commit. Tags carry no
+// date of their own, so this backfills released_at. Failures are non-fatal:
+// a zero time is returned and the release is stored without a date.
+func (s *GitHubSource) tagCommitDate(ctx context.Context, sha string) time.Time {
+	if sha == "" {
+		return time.Time{}
+	}
+	url := fmt.Sprintf("%s/repos/%s/commits/%s", s.baseURL, s.repository, sha)
+	resp, err := s.doGitHubRequest(ctx, url)
+	if err != nil {
+		return time.Time{}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return time.Time{}
+	}
+	var c ghCommit
+	if err := json.NewDecoder(resp.Body).Decode(&c); err != nil {
+		return time.Time{}
+	}
+	ts, _ := time.Parse(time.RFC3339, c.Commit.Committer.Date)
+	return ts
 }
 
 func (s *GitHubSource) doGitHubRequest(ctx context.Context, url string) (*http.Response, error) {

@@ -207,13 +207,15 @@ const sampleGitHubTags = `[
   { "name": "v1.16.8", "commit": { "sha": "ccc" } }
 ]`
 
-// githubMux routes /releases and /tags to separate bodies and records whether
-// the tags endpoint was hit.
+// githubMux routes /releases, /tags, and /commits to separate bodies and
+// records whether the tags endpoint was hit.
 func githubMux(t *testing.T, releasesBody, tagsBody string, tagsHit *bool) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
+		case strings.Contains(r.URL.Path, "/commits/"):
+			w.Write([]byte(`{"commit":{"committer":{"date":"2026-06-08T19:15:15Z"}}}`))
 		case strings.Contains(r.URL.Path, "/tags"):
 			if tagsHit != nil {
 				*tagsHit = true
@@ -289,8 +291,8 @@ func TestGitHubTagDiscoveryMergesAndDedups(t *testing.T) {
 	if tag.Changelog != "" {
 		t.Errorf("tag v1.16.8 changelog = %q, want empty", tag.Changelog)
 	}
-	if !tag.Timestamp.IsZero() {
-		t.Error("tag v1.16.8 timestamp should be zero")
+	if tag.Timestamp.IsZero() {
+		t.Error("tag v1.16.8 timestamp should be backfilled from its commit date")
 	}
 	if tag.Metadata["source_kind"] != "tag" {
 		t.Errorf("tag v1.16.8 source_kind = %q, want tag", tag.Metadata["source_kind"])
@@ -320,8 +322,8 @@ func TestGitHubTagDiscoveryTagsOnlyRepo(t *testing.T) {
 		if r.Metadata["source_kind"] != "tag" {
 			t.Errorf("%s source_kind = %q, want tag", r.RawVersion, r.Metadata["source_kind"])
 		}
-		if !r.Timestamp.IsZero() {
-			t.Errorf("%s timestamp should be zero", r.RawVersion)
+		if r.Timestamp.IsZero() {
+			t.Errorf("%s timestamp should be backfilled from its commit date", r.RawVersion)
 		}
 	}
 }
