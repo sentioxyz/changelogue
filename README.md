@@ -8,7 +8,7 @@
 
 ## What it does
 
-- **Discovers releases** by polling Docker Hub, GitHub, ECR Public, GitLab, PyPI, and npm on configurable intervals
+- **Discovers releases** by polling Docker Hub, GitHub, ECR Public, GHCR, GitLab, PyPI, and npm on configurable intervals
 - **Routes notifications** to Slack, Discord, email, and webhooks the moment a new version lands
 - **Generates AI reports** via LLM agents (Gemini / OpenAI) that research changelogs, assess risk, and summarize what changed
 - **Release gates** delay agent analysis until all required sources report a version
@@ -179,7 +179,7 @@ internal/
   auth/                GitHub OAuth 2.0, sessions, user allowlisting
   db/                  Connection pool and migrations
   gate/                Release gate system (check, NL eval, timeout workers)
-  ingestion/           Polling sources (Docker Hub, GitHub, ECR Public, GitLab, PyPI, npm)
+  ingestion/           Polling sources (Docker Hub, GitHub, ECR Public, GHCR, GitLab, PyPI, npm)
   models/              Shared domain types
   onboard/             GitHub repo scanning and dependency extraction
   queue/               River job definitions and client

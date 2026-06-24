@@ -142,6 +142,7 @@ export function ProjectForm({ initial, onSubmit, title, hideSource, onSuccess, o
                     <SelectItem value="github">{t("projectForm.providerGitHub")}</SelectItem>
                     <SelectItem value="dockerhub">{t("projectForm.providerDockerHub")}</SelectItem>
                     <SelectItem value="ecr-public">{t("projectForm.providerECR")}</SelectItem>
+                    <SelectItem value="ghcr">{t("projectForm.providerGHCR")}</SelectItem>
                     <SelectItem value="gitlab">{t("projectForm.providerGitLab")}</SelectItem>
                     <SelectItem value="pypi">{t("projectForm.providerPyPI")}</SelectItem>
                     <SelectItem value="npm">{t("projectForm.providerNpm")}</SelectItem>

@@ -179,8 +179,8 @@ func TestProvidersHandlerList(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(got.Data) != 6 {
-		t.Fatalf("expected 6 providers, got %d", len(got.Data))
+	if len(got.Data) != 7 {
+		t.Fatalf("expected 7 providers, got %d", len(got.Data))
 	}
 	if got.Data[0]["id"] != "dockerhub" {
 		t.Fatalf("expected first provider id=dockerhub, got %s", got.Data[0]["id"])
@@ -191,11 +191,11 @@ func TestProvidersHandlerList(t *testing.T) {
 	if got.Data[2]["id"] != "ecr-public" {
 		t.Fatalf("expected third provider id=ecr-public, got %s", got.Data[2]["id"])
 	}
-	if got.Data[3]["id"] != "gitlab" {
-		t.Fatalf("expected fourth provider id=gitlab, got %s", got.Data[3]["id"])
+	if got.Data[3]["id"] != "ghcr" {
+		t.Fatalf("expected fourth provider id=ghcr, got %s", got.Data[3]["id"])
 	}
-	if got.Data[4]["id"] != "pypi" {
-		t.Fatalf("expected fifth provider id=pypi, got %s", got.Data[4]["id"])
+	if got.Data[4]["id"] != "gitlab" {
+		t.Fatalf("expected fifth provider id=gitlab, got %s", got.Data[4]["id"])
 	}
 	if got.Data[0]["type"] != "polling" {
 		t.Fatalf("expected dockerhub type=polling, got %s", got.Data[0]["type"])
@@ -207,16 +207,22 @@ func TestProvidersHandlerList(t *testing.T) {
 		t.Fatalf("expected ecr-public type=polling, got %s", got.Data[2]["type"])
 	}
 	if got.Data[3]["type"] != "polling" {
-		t.Fatalf("expected gitlab type=polling, got %s", got.Data[3]["type"])
+		t.Fatalf("expected ghcr type=polling, got %s", got.Data[3]["type"])
 	}
 	if got.Data[4]["type"] != "polling" {
-		t.Fatalf("expected pypi type=polling, got %s", got.Data[4]["type"])
+		t.Fatalf("expected gitlab type=polling, got %s", got.Data[4]["type"])
 	}
-	if got.Data[5]["id"] != "npm" {
-		t.Fatalf("expected sixth provider id=npm, got %s", got.Data[5]["id"])
+	if got.Data[5]["id"] != "pypi" {
+		t.Fatalf("expected sixth provider id=pypi, got %s", got.Data[5]["id"])
 	}
 	if got.Data[5]["type"] != "polling" {
-		t.Fatalf("expected npm type=polling, got %s", got.Data[5]["type"])
+		t.Fatalf("expected pypi type=polling, got %s", got.Data[5]["type"])
+	}
+	if got.Data[6]["id"] != "npm" {
+		t.Fatalf("expected seventh provider id=npm, got %s", got.Data[6]["id"])
+	}
+	if got.Data[6]["type"] != "polling" {
+		t.Fatalf("expected npm type=polling, got %s", got.Data[6]["type"])
 	}
 }
 

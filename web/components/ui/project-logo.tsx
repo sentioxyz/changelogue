@@ -9,6 +9,7 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   gitlab: 1,
   dockerhub: 2,
   "ecr-public": 3,
+  ghcr: 4,
 };
 
 interface AvatarCandidate {

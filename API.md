@@ -117,7 +117,7 @@ Subscriptions link a notification channel to either a specific source or an enti
 
 | Method | Path                 | Description                                      |
 |--------|----------------------|--------------------------------------------------|
-| `GET`  | `/api/v1/providers`  | List supported source types (`dockerhub`, `github`, `ecr-public`, `gitlab`, `pypi`, `npm`) |
+| `GET`  | `/api/v1/providers`  | List supported source types (`dockerhub`, `github`, `ecr-public`, `ghcr`, `gitlab`, `pypi`, `npm`) |
 
 ### System
 

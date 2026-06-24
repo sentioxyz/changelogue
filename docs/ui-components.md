@@ -98,7 +98,7 @@ const Icon = getProviderIcon("dockerhub");
 // Returns a render function: (props: { size, className }) => JSX
 ```
 
-Supported providers: `github`, `dockerhub`, `ecr-public`, `gitlab`, `pypi`, `npm`.
+Supported providers: `github`, `dockerhub`, `ecr-public`, `ghcr`, `gitlab`, `pypi`, `npm`.
 
 ### StatusDot
 

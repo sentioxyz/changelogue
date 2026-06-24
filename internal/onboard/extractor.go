@@ -22,8 +22,8 @@ For each dependency, return:
 - ecosystem: one of "go", "npm", "pypi", "cargo", "rubygems", "maven", "gradle", "docker", "other"
 - upstream_repo: your best guess at the canonical GitHub repository URL (e.g., "github.com/gorilla/mux")
 - provider: the Changelogue provider to use for release tracking. Use "github" for repos
-  with GitHub releases, "dockerhub" for Docker images, "gitlab" for GitLab repos,
-  "ecr_public" for AWS ECR images. When unsure, default to "github".
+  with GitHub releases, "dockerhub" for Docker Hub images, "ghcr" for ghcr.io images,
+  "gitlab" for GitLab repos, "ecr-public" for AWS ECR images. When unsure, default to "github".
 
 Return ONLY a JSON array. No explanations.`
 
@@ -141,11 +141,11 @@ func (e *DependencyExtractor) extractGemini(ctx context.Context, prompt string) 
 
 // OpenAI Responses API types (minimal, for dependency extraction only)
 type openaiResponsesRequest struct {
-	Model        string           `json:"model"`
-	Input        []openaiInput    `json:"input"`
-	Instructions string           `json:"instructions,omitempty"`
-	Temperature  *float32         `json:"temperature,omitempty"`
-	Store        bool             `json:"store"`
+	Model        string        `json:"model"`
+	Input        []openaiInput `json:"input"`
+	Instructions string        `json:"instructions,omitempty"`
+	Temperature  *float32      `json:"temperature,omitempty"`
+	Store        bool          `json:"store"`
 }
 
 type openaiInput struct {
