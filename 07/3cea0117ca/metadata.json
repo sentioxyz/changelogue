@@ -57,6 +57,13 @@
       "context": "",
       "content_hash": "/07/3cea0117ca/4/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/07/3cea0117ca/5/metadata.json",
+      "transcript": "/07/3cea0117ca/5/full.jsonl",
+      "context": "/07/3cea0117ca/5/context.md",
+      "content_hash": "/07/3cea0117ca/5/content_hash.txt",
+      "prompt": "/07/3cea0117ca/5/prompt.txt"
     }
   ],
   "token_usage": {
@@ -64,6 +71,6 @@
     "cache_creation_tokens": 406220,
     "cache_read_tokens": 22688017,
     "output_tokens": 64436,
-    "api_call_count": 199
+    "api_call_count": 200
   }
 }
