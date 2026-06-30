@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 
@@ -27,6 +28,7 @@ type mockNotifyStore struct {
 	mu              sync.Mutex
 	agentRunCalls   []agentRunCall
 	enqueueAgentErr error
+	createTodoErr   error
 }
 
 type agentRunCall struct {
@@ -112,6 +114,9 @@ func (m *mockNotifyStore) EnqueueAgentRun(_ context.Context, projectID, trigger,
 func (m *mockNotifyStore) CreateReleaseTodo(_ context.Context, releaseID string) (string, error) {
 	if m.err != nil {
 		return "", m.err
+	}
+	if m.createTodoErr != nil {
+		return "", m.createTodoErr
 	}
 	return "todo-" + releaseID, nil
 }
@@ -445,6 +450,51 @@ func TestNotifyWorker_SenderError(t *testing.T) {
 	err := worker.Work(context.Background(), job)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestNotifyWorker_TodoCreationFailureRetriesBeforeSending(t *testing.T) {
+	sourceID := "src-1"
+	releaseID := "rel-1"
+
+	store := &mockNotifyStore{
+		releases: map[string]*models.Release{
+			releaseID: {ID: releaseID, SourceID: sourceID, Version: "v1.0.0", RawData: json.RawMessage(`{}`)},
+		},
+		sources: map[string]*models.Source{
+			sourceID: {ID: sourceID, ProjectID: "proj-1"},
+		},
+		subscriptions: map[string][]models.Subscription{
+			sourceID: {{ID: "sub-1", ChannelID: "ch-1", Type: "source_release", SourceID: &sourceID}},
+		},
+		channels: map[string]*models.NotificationChannel{
+			"ch-1": {ID: "ch-1", Name: "test", Type: "webhook", Config: json.RawMessage(`{"url":"http://example.com"}`)},
+		},
+		projects: map[string]*models.Project{
+			"proj-1": {ID: "proj-1", Name: "test", AgentRules: json.RawMessage(`{}`)},
+		},
+		createTodoErr: errors.New("insert release todo failed"),
+	}
+
+	webhookSender := &mockSender{}
+	worker := &NotifyWorker{
+		store:   store,
+		senders: map[string]Sender{"webhook": webhookSender},
+	}
+
+	job := &river.Job[queue.NotifyJobArgs]{
+		Args: queue.NotifyJobArgs{ReleaseID: releaseID, SourceID: sourceID},
+	}
+
+	err := worker.Work(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected todo creation error to make notify job retry")
+	}
+	if !strings.Contains(err.Error(), "create release todo") {
+		t.Fatalf("expected create release todo error, got %v", err)
+	}
+	if webhookSender.sentCount() != 0 {
+		t.Fatalf("expected 0 notifications before TODO side effect succeeds, got %d", webhookSender.sentCount())
 	}
 }
 

@@ -82,6 +82,12 @@ func VersionPassesFilter(version string, include, exclude *string) bool {
 // sends notifications to all matching channels, and checks agent rules to
 // auto-trigger agent runs when version criteria are met.
 func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobArgs]) error {
+	slog.Info("notify_release started", notifyLogAttrs(job,
+		"release_id", job.Args.ReleaseID,
+		"source_id", job.Args.SourceID,
+		"is_update", job.Args.IsUpdate,
+	)...)
+
 	release, err := w.store.GetRelease(ctx, job.Args.ReleaseID)
 	if err != nil {
 		return fmt.Errorf("get release: %w", err)
@@ -93,7 +99,13 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 		return fmt.Errorf("get source: %w", err)
 	}
 	if !VersionPassesFilter(release.Version, source.VersionFilterInclude, source.VersionFilterExclude) {
-		slog.Debug("release filtered by version filter", "version", release.Version, "source_id", job.Args.SourceID)
+		slog.Info("notify_release skipped by version filter", notifyLogAttrs(job,
+			"release_id", release.ID,
+			"source_id", job.Args.SourceID,
+			"version", release.Version,
+			"include_filter", stringValue(source.VersionFilterInclude),
+			"exclude_filter", stringValue(source.VersionFilterExclude),
+		)...)
 		return nil
 	}
 
@@ -102,34 +114,67 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 		var rawData map[string]interface{}
 		if err := json.Unmarshal(release.RawData, &rawData); err == nil {
 			if prerelease, _ := rawData["prerelease"].(string); prerelease == "true" {
-				slog.Debug("release filtered by exclude_prereleases", "version", release.Version, "source_id", job.Args.SourceID)
+				slog.Info("notify_release skipped by exclude_prereleases", notifyLogAttrs(job,
+					"release_id", release.ID,
+					"source_id", job.Args.SourceID,
+					"version", release.Version,
+				)...)
 				return nil
 			}
 		}
 	}
 
-	// Create a TODO for this release (idempotent — safe for retries).
+	// Create a TODO before external sends. This is idempotent and failing here
+	// makes River retry instead of silently completing without the TODO side effect.
 	todoID, todoErr := w.store.CreateReleaseTodo(ctx, release.ID)
 	if todoErr != nil {
-		slog.Error("create release todo failed", "release_id", release.ID, "err", todoErr)
-		// Continue — notification delivery is primary responsibility.
+		slog.Error("create release todo failed", notifyLogAttrs(job,
+			"release_id", release.ID,
+			"source_id", job.Args.SourceID,
+			"version", release.Version,
+			"err", todoErr,
+		)...)
+		return fmt.Errorf("create release todo: %w", todoErr)
 	}
+	slog.Info("release todo verified", notifyLogAttrs(job,
+		"release_id", release.ID,
+		"source_id", job.Args.SourceID,
+		"version", release.Version,
+		"todo_id", todoID,
+	)...)
 
 	subs, err := w.store.ListSourceSubscriptions(ctx, job.Args.SourceID)
 	if err != nil {
 		return fmt.Errorf("list subscriptions: %w", err)
 	}
+	slog.Info("notify_release subscriptions loaded", notifyLogAttrs(job,
+		"release_id", release.ID,
+		"source_id", job.Args.SourceID,
+		"subscription_count", len(subs),
+	)...)
 
 	for _, sub := range subs {
 		ch, err := w.store.GetChannel(ctx, sub.ChannelID)
 		if err != nil {
-			slog.Error("get channel failed", "channel_id", sub.ChannelID, "err", err)
+			slog.Error("get channel failed", notifyLogAttrs(job,
+				"release_id", release.ID,
+				"source_id", job.Args.SourceID,
+				"subscription_id", sub.ID,
+				"channel_id", sub.ChannelID,
+				"err", err,
+			)...)
 			continue
 		}
 
 		sender, ok := w.senders[ch.Type]
 		if !ok {
-			slog.Warn("unknown channel type", "type", ch.Type)
+			slog.Warn("unknown channel type", notifyLogAttrs(job,
+				"release_id", release.ID,
+				"source_id", job.Args.SourceID,
+				"subscription_id", sub.ID,
+				"channel_id", ch.ID,
+				"channel_type", ch.Type,
+			)...)
 			continue
 		}
 
@@ -160,14 +205,55 @@ func (w *NotifyWorker) Work(ctx context.Context, job *river.Job[queue.NotifyJobA
 		}
 
 		if err := sender.Send(ctx, ch, msg); err != nil {
-			slog.Error("send notification failed", "channel", ch.Name, "err", err)
+			slog.Error("send notification failed", notifyLogAttrs(job,
+				"release_id", release.ID,
+				"source_id", job.Args.SourceID,
+				"subscription_id", sub.ID,
+				"channel_id", ch.ID,
+				"channel", ch.Name,
+				"channel_type", ch.Type,
+				"err", err,
+			)...)
+		} else {
+			slog.Info("notification sent", notifyLogAttrs(job,
+				"release_id", release.ID,
+				"source_id", job.Args.SourceID,
+				"subscription_id", sub.ID,
+				"channel_id", ch.ID,
+				"channel", ch.Name,
+				"channel_type", ch.Type,
+				"todo_id", todoID,
+			)...)
 		}
 	}
 
 	// Check agent rules and auto-trigger if criteria are met.
 	w.checkAgentRules(ctx, release, source)
 
+	slog.Info("notify_release completed", notifyLogAttrs(job,
+		"release_id", release.ID,
+		"source_id", job.Args.SourceID,
+		"version", release.Version,
+		"todo_id", todoID,
+		"subscription_count", len(subs),
+	)...)
+
 	return nil
+}
+
+func notifyLogAttrs(job *river.Job[queue.NotifyJobArgs], attrs ...any) []any {
+	if job.JobRow == nil {
+		return attrs
+	}
+	base := []any{"job_id", job.ID, "attempt", job.Attempt}
+	return append(base, attrs...)
+}
+
+func stringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 // checkAgentRules evaluates the project's agent rules against the new release
